@@ -365,6 +365,12 @@ def import_one_dossier_from_ds(dossier_number: int):
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):
+    old_instruction_date = dossier.ds_date_passage_en_instruction
+    old_construction_date = dossier.ds_date_passage_en_construction
+    old_ds_state = dossier.ds_state
+    old_is_active = dossier.is_active
+    old_raison = dossier.raison_desactivation
+
     dossier_converter = DossierConverter(dossier.ds_data.raw_data, dossier)
     dossier_converter.fill_unmapped_fields()
     dossier_converter.convert_all_fields()
@@ -376,6 +382,90 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
         raise e
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    _create_dossier_event_actions(
+        dossier,
+        old_instruction_date,
+        old_construction_date,
+        old_ds_state,
+        old_is_active,
+        old_raison,
+    )
+
+
+_DS_FINAL_STATES = {
+    Dossier.STATE_ACCEPTE,
+    Dossier.STATE_REFUSE,
+    Dossier.STATE_SANS_SUITE,
+}
+
+
+def _create_dossier_event_actions(
+    dossier,
+    old_instruction_date,
+    old_construction_date,
+    old_ds_state,
+    old_is_active,
+    old_raison,
+):
+    from gsl_historique.models import ProjetAction
+    from gsl_projet.models import Projet
+
+    try:
+        projet = dossier.projet
+    except Projet.DoesNotExist:
+        return
+
+    new_instruction_date = dossier.ds_date_passage_en_instruction
+    coming_from_final_state = old_ds_state in _DS_FINAL_STATES
+    if (
+        new_instruction_date
+        and new_instruction_date != old_instruction_date
+        and not coming_from_final_state
+    ):
+        ProjetAction.objects.get_or_create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
+            created_at=new_instruction_date,
+            defaults={"source": ProjetAction.SOURCE_DN},
+        )
+
+    new_construction_date = dossier.ds_date_passage_en_construction
+    if (
+        new_construction_date
+        and old_construction_date
+        and new_construction_date != old_construction_date
+    ):
+        ProjetAction.objects.get_or_create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
+            created_at=new_construction_date,
+            defaults={"source": ProjetAction.SOURCE_DN},
+        )
+
+    if old_is_active and not dossier.is_active:
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_DEACTIVATION,
+            source=ProjetAction.SOURCE_DN,
+            deactivation_reason=dossier.raison_desactivation,
+        )
+    elif (
+        not old_is_active
+        and not dossier.is_active
+        and old_raison != dossier.raison_desactivation
+    ):
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_DEACTIVATION,
+            source=ProjetAction.SOURCE_DN,
+            deactivation_reason=dossier.raison_desactivation,
+        )
+    elif not old_is_active and dossier.is_active:
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_REACTIVATION,
+            source=ProjetAction.SOURCE_DN,
+        )
 
 
 def refresh_dossier_instructeurs(
@@ -442,6 +532,9 @@ def refresh_dossier_instructeurs(
             dossier.ds_instructeurs.add(instructeur)
 
 
+### Private methods
+
+
 def _build_groupe_index_from_demarche(demarche: Demarche) -> dict[str, list[dict]]:
     """
     Build ``{groupe_ds_id: [{"id": profile_ds_id, "email": profile_email}, ...]}``
@@ -460,10 +553,10 @@ def _build_groupe_index_from_demarche(demarche: Demarche) -> dict[str, list[dict
     }
 
 
-### Private methods
-
-
 def _deactivate_deleted_dossier(deleted_dossier_data: dict, raison: str):
+    from gsl_historique.models import ProjetAction
+    from gsl_projet.models import Projet
+
     ds_number = deleted_dossier_data["number"]
     try:
         dossier = Dossier.objects.get(ds_number=ds_number)
@@ -474,10 +567,25 @@ def _deactivate_deleted_dossier(deleted_dossier_data: dict, raison: str):
         )
         return
 
-    if dossier.is_active or dossier.raison_desactivation != raison:
+    old_raison = dossier.raison_desactivation
+    if dossier.is_active or old_raison != raison:
         dossier.is_active = False
         dossier.raison_desactivation = raison
         dossier.save(update_fields=["is_active", "raison_desactivation"])
+        try:
+            projet = dossier.projet
+        except Projet.DoesNotExist:
+            return
+
+        if old_raison == raison:
+            return
+
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_DEACTIVATION,
+            source=ProjetAction.SOURCE_DN,
+            deactivation_reason=raison,
+        )
 
 
 def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
