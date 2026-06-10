@@ -47,7 +47,7 @@ class RefreshOneDossierView(SingleObjectMixin, View):
             url = request.headers.get("Referer")
 
         is_url_safe = url_has_allowed_host_and_scheme(
-            url, allowed_hosts=request.get_host()
+            url, allowed_hosts=request.get_host(), require_https=request.is_secure()
         )
         if is_url_safe:
             return redirect(url)
