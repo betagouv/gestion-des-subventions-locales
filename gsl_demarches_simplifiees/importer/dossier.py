@@ -4,6 +4,7 @@ from typing import Iterable, NamedTuple
 from django.contrib import messages
 from django.utils import timezone
 
+from gsl.celery import TASK_PRIORITY_HIGH, TASK_PRIORITY_LOW
 from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -350,8 +351,12 @@ def import_one_dossier_from_ds(dossier_number: int):
             f"Le dossier #{dossier_number} appartient au territoire « {departement} » qui n'est pas géré sur Turgot.",
         )
 
+    # Import interactif d'un seul dossier (admin) : le refresh associé doit
+    # passer devant la sync de fond, d'où la priorité haute.
     _create_or_update_dossier_from_ds_data(
-        dossier_data, handled_departement_insee_codes
+        dossier_data,
+        handled_departement_insee_codes,
+        refresh_priority=TASK_PRIORITY_HIGH,
     )
     return (
         messages.SUCCESS,
@@ -481,6 +486,7 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     async_refresh: bool = False,
     refresh_only_if_dossier_has_been_updated: bool = True,
     groupe_index: dict | None = None,
+    refresh_priority: int = TASK_PRIORITY_LOW,
 ):
     if refresh_only_if_dossier_has_been_updated:
         must_refresh_dossier = _has_dossier_been_updated_on_ds(dossier, dossier_data)
@@ -501,7 +507,9 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
                 task_refresh_dossier_from_saved_data,
             )
 
-            task_refresh_dossier_from_saved_data.delay(dossier.ds_number)
+            task_refresh_dossier_from_saved_data.apply_async(
+                (dossier.ds_number,), priority=refresh_priority
+            )
         else:
             refresh_dossier_from_saved_data(dossier)
 
@@ -539,6 +547,7 @@ def _create_or_update_dossier_from_ds_data(
     handled_departement_insee_codes: Iterable[str],
     demarche: Demarche | None = None,
     groupe_index: dict | None = None,
+    refresh_priority: int = TASK_PRIORITY_LOW,
 ):
     ds_id = dossier_data["id"]
     ds_dossier_number = dossier_data["number"]
@@ -575,6 +584,7 @@ def _create_or_update_dossier_from_ds_data(
         async_refresh=True,
         refresh_only_if_dossier_has_been_updated=False,
         groupe_index=groupe_index,
+        refresh_priority=refresh_priority,
     )
 
 

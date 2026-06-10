@@ -108,11 +108,14 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     @admin.action(description="Rafraîchir depuis le dossier DN")
     def refresh_from_dossier(self, request, queryset):
+        from gsl.celery import priority_for_dispatch_count
         from gsl_projet.tasks import task_create_or_update_projet_and_co_from_dossier
 
+        count = queryset.count()
         for projet in queryset.select_related("dossier_ds"):
-            task_create_or_update_projet_and_co_from_dossier.delay(
-                projet.dossier_ds.ds_number
+            task_create_or_update_projet_and_co_from_dossier.apply_async(
+                (projet.dossier_ds.ds_number,),
+                priority=priority_for_dispatch_count(count),
             )
 
     def get_deleted_objects(self, objs, request):

@@ -23,6 +23,7 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.tasks import (
+    task_create_or_update_dotation_projets_from_projet_batch,
     task_create_or_update_projet_and_co_from_dossier,
     task_create_or_update_projets_and_co_batch,
     task_create_or_update_projets_and_co_from_all_dossiers,
@@ -478,20 +479,24 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
         DossierFactory(ds_number=i, ds_state="state")
 
     with mock.patch(
-        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.delay"
+        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.apply_async"
     ) as mock_create_or_update_projets_batch:
         task_create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
         assert mock_create_or_update_projets_batch.call_count == 2
 
-        mock_create_or_update_projets_batch.assert_any_call((0, 1, 2, 3, 4))
-        mock_create_or_update_projets_batch.assert_any_call((5, 6, 7, 8, 9))
+        mock_create_or_update_projets_batch.assert_any_call(
+            ((0, 1, 2, 3, 4),), priority=9
+        )
+        mock_create_or_update_projets_batch.assert_any_call(
+            ((5, 6, 7, 8, 9),), priority=9
+        )
 
 
 @pytest.mark.django_db
 def test_create_or_update_projets_and_its_simulation_and_programmation_projets_from_all_dossiers_with_no_dossiers():
     with mock.patch(
-        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.delay"
+        "gsl_projet.tasks.task_create_or_update_projets_and_co_batch.apply_async"
     ) as mock_delay:
         task_create_or_update_projets_and_co_from_all_dossiers(batch_size=5)
 
@@ -501,11 +506,24 @@ def test_create_or_update_projets_and_its_simulation_and_programmation_projets_f
 @pytest.mark.django_db
 def test_create_or_update_projets_batch():
     with mock.patch(
-        "gsl_projet.tasks.task_create_or_update_projet_and_co_from_dossier.delay"
+        "gsl_projet.tasks.task_create_or_update_projet_and_co_from_dossier.apply_async"
     ) as mock_delay:
         task_create_or_update_projets_and_co_batch((1, 2, 3))
         assert mock_delay.call_count == 3
 
-        mock_delay.assert_any_call(1)
-        mock_delay.assert_any_call(2)
-        mock_delay.assert_any_call(3)
+        mock_delay.assert_any_call((1,), priority=9)
+        mock_delay.assert_any_call((2,), priority=9)
+        mock_delay.assert_any_call((3,), priority=9)
+
+
+@pytest.mark.django_db
+def test_create_or_update_dotation_projets_batch():
+    with mock.patch(
+        "gsl_projet.tasks.task_create_or_update_dotation_projet_from_projet.apply_async"
+    ) as mock_delay:
+        task_create_or_update_dotation_projets_from_projet_batch((1, 2, 3))
+        assert mock_delay.call_count == 3
+
+        mock_delay.assert_any_call((1,), priority=9)
+        mock_delay.assert_any_call((2,), priority=9)
+        mock_delay.assert_any_call((3,), priority=9)

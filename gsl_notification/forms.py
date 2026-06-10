@@ -89,6 +89,9 @@ class ImportJobStartForm(forms.Form):
             s3_keys=self.cleaned_data["s3_keys"],
             remove_qr_code=self.cleaned_data["remove_qr_code"],
         )
+        # Tâche longue, déclenchée par un agent qui attend le résultat : priorité
+        # normale (défaut). La passer en haute la ferait bloquer le worker unique
+        # devant les tâches courtes non bloquantes.
         run_document_import_job.delay(str(job.pk))
         return job
 

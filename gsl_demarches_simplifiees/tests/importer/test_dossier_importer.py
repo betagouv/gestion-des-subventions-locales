@@ -541,12 +541,12 @@ def test_save_dossier_data_and_refresh_dossier_and_projet_and_co_calls_async_tas
     ds_data = {"dateDerniereModification": "2025-01-01T12:00:00+02:00"}
 
     with patch(
-        "gsl_demarches_simplifiees.tasks.task_refresh_dossier_from_saved_data.delay"
+        "gsl_demarches_simplifiees.tasks.task_refresh_dossier_from_saved_data.apply_async"
     ) as target_task:
         _save_dossier_data_and_refresh_dossier_and_projet_and_co(
             dossier, ds_data, async_refresh=True
         )
-        target_task.assert_called_once_with(dossier.ds_number)
+        target_task.assert_called_once_with((dossier.ds_number,), priority=9)
 
 
 @pytest.mark.django_db
@@ -962,6 +962,8 @@ def test_import_one_dossier_from_ds_cree_le_dossier():
     assert level == messages.SUCCESS
     assert "20240001" in message
     mock_refresh.assert_called_once()
+    # Import interactif d'un seul dossier : le refresh doit être prioritaire.
+    assert mock_refresh.call_args.kwargs["refresh_priority"] == 0
 
 
 # tests _save_cursors_after_page

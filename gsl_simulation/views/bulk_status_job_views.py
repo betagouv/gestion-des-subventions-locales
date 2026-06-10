@@ -75,6 +75,9 @@ class BulkStatusJobStartView(CreateView):
             # an active job for the same simulation between our check and save.
             # The DB-level partial unique constraint catches the duplicate.
             return self._render_already_running()
+        # Tâche longue, déclenchée par un agent qui en attend le résultat :
+        # priorité normale (défaut). En haute, elle bloquerait le worker unique
+        # devant les tâches courtes non bloquantes.
         run_bulk_status_job.delay(str(job.pk))
 
         queue_matomo_event(

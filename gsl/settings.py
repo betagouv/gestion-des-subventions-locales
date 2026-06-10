@@ -412,6 +412,11 @@ CELERY_RESULT_BACKEND = "django-db"
 CELERY_RESULT_EXTENDED = True
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
+CELERY_BROKER_TRANSPORT_OPTIONS = {"queue_order_strategy": "priority"}
+CELERY_TASK_QUEUE_MAX_PRIORITY = 10
+# Redis: 0 = servi en premier. 5 = priorité normale par défaut (cf. TASK_PRIORITY_* dans gsl.celery)
+CELERY_TASK_DEFAULT_PRIORITY = 5
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
 # Durée de vie max d'un verrou de synchronisation DS (secondes). Filet de
 # sécurité : si un worker meurt, le verrou est libéré au plus tard à l'expiration.
