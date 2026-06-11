@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load dsfr_tags gsl_filters %}
+
+{% block content %}
+    <div class="fr-mb-4w">
+        <a href="{% url 'suivi_financier:beneficiaire-list' %}"
+           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+            Retour à la liste des bénéficiaires
+        </a>
+    </div>
+
+    <h1>
+        {{ beneficiaire_nom }}
+    </h1>
+    <p class="fr-text--sm fr-text-mention--grey">
+        SIREN : {{ siren }}
+    </p>
+
+    <h2 class="fr-mt-6w">
+        Historique des subventions DGCL
+    </h2>
+    <p class="fr-text--sm fr-text-mention--grey">
+        Source : données nationales DGCL publiées sur data.gouv.fr (DETR, DSIL, DPV, DSID)
+    </p>
+
+    {% if subventions %}
+        <div class="fr-table fr-table--no-caption">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table>
+                            <caption>Subventions DGCL pour {{ beneficiaire_nom }}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        Année
+                                    </th>
+                                    <th scope="col">
+                                        Dotation
+                                    </th>
+                                    <th scope="col">
+                                        Intitulé
+                                    </th>
+                                    <th scope="col">
+                                        Coût HT
+                                    </th>
+                                    <th scope="col">
+                                        Subvention
+                                    </th>
+                                    <th scope="col">
+                                        Taux
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in subventions %}
+                                    <tr>
+                                        <td>
+                                            {{ s.exercice }}
+                                        </td>
+                                        <td>
+                                            {% dsfr_tag label=s.dispositif %}
+                                        </td>
+                                        <td>
+                                            {{ s.intitule }}
+                                        </td>
+                                        <td>
+                                            {{ s.cout_ht|euro }}
+                                        </td>
+                                        <td>
+                                            {{ s.subvention|euro }}
+                                        </td>
+                                        <td>
+                                            {{ s.taux|percent:1 }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <p>
+            Aucune subvention DGCL trouvée pour ce bénéficiaire dans votre périmètre.
+        </p>
+    {% endif %}
+
+    <h2 class="fr-mt-6w">
+        Projets en cours dans Turgot
+    </h2>
+
+    {% if projets %}
+        <div class="fr-table fr-table--no-caption">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table>
+                            <caption>Projets Turgot pour {{ beneficiaire_nom }}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        Date de dépôt
+                                    </th>
+                                    <th scope="col">
+                                        Dotation(s)
+                                    </th>
+                                    <th scope="col">
+                                        Intitulé
+                                    </th>
+                                    <th scope="col">
+                                        Statut
+                                    </th>
+                                    <th scope="col">
+                                        Montant accordé
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for projet in projets %}
+                                    <tr>
+                                        <td>
+                                            {{ projet.dossier_ds.ds_date_depot|date:"Y" }}
+                                        </td>
+                                        <td>
+                                            {% for dp in projet.dotationprojet_set.all %}
+                                                {% dsfr_tag label=dp.dotation %}
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'projet:get-projet' projet.pk %}">
+                                                {{ projet.dossier_ds.projet_intitule|lower|capfirst }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {% for dp in projet.dotationprojet_set.all %}
+                                                <span class="fr-badge badge-projet-status badge-projet-status__{{ dp.status }}">
+                                                    {{ dp.get_status_display|remove_first_word }}
+                                                </span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for dp in projet.dotationprojet_set.all %}
+                                                {% if dp.montant_retenu %}
+                                                    {{ dp.montant_retenu|euro }}
+                                                    <br>
+                                                {% else %}
+                                                    –
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <p>
+            Aucun projet Turgot trouvé pour ce bénéficiaire dans votre périmètre.
+        </p>
+    {% endif %}
+{% endblock content %}
