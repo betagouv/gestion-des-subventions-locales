@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "gsl_simulation",
     "gsl_notification",
     "gsl_historique",
+    "gsl_suivi_financier",
     "gsl_pages",
     "gsl_oidc",
 ]
