@@ -81,7 +81,17 @@
                             <b>Nature du porteur de projet</b> : {{ dossier.porteur_de_projet_nature }}
                         </li>
                         <li>
-                            <b>Demandeur</b> : {{ dossier.ds_demandeur }}
+                            <b>Entité demandeuse</b> :
+                            {% if dossier.ds_demandeur_url %}
+                                <a href="{{ dossier.ds_demandeur_url }}"
+                                   target="_blank"
+                                   rel="noopener noreferrer">{{ dossier.ds_demandeur }}</a>
+                            {% else %}
+                                {{ dossier.ds_demandeur|default:"-" }}
+                            {% endif %}
+                        </li>
+                        <li>
+                            <b>Nom du demandeur</b> : {{ dossier.porteur_fullname }}
                         </li>
                         <li>
                             <b>Département et arrondissement :</b> {{ dossier.porteur_de_projet_departement.name|default:"-" }}
