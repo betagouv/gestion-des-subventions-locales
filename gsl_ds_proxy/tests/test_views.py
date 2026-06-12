@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
 
@@ -27,6 +27,18 @@ class GraphqlProxyViewTest(TestCase):
         )
         self.url = "/ds-proxy/graphql/"
         self.headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.plaintext_key}"}
+
+        # The per-token Redis lock is exercised on its own in
+        # GraphqlProxyTokenLockTest; here we neutralise it (always acquired,
+        # no-op release) so the rest of the suite doesn't need a live Redis.
+        acquire_patcher = patch(
+            "gsl_ds_proxy.views.acquire_token_lock", return_value=MagicMock()
+        )
+        self.mock_acquire = acquire_patcher.start()
+        self.addCleanup(acquire_patcher.stop)
+        release_patcher = patch("gsl_ds_proxy.views.release_token_lock")
+        self.mock_release = release_patcher.start()
+        self.addCleanup(release_patcher.stop)
 
     def _get_demarche_payload(self, demarche_number=None):
         return {
@@ -1239,3 +1251,131 @@ class GraphqlProxyViewTest(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self._request_log_records(cm.records), [])
+
+
+@override_settings(DS_API_TOKEN="test-ds-token", DS_API_URL="https://ds.test/graphql")
+class GraphqlProxyTokenLockTest(TestCase):
+    """One in-flight request per token, enforced by the Redis lock.
+
+    The lock layer (`acquire_token_lock` / `release_token_lock`) is mocked here
+    just like `requests.post` is, so the suite doesn't need a live Redis. The
+    locks module itself is unit-tested in test_locks.py.
+    """
+
+    def setUp(self):
+        self.demarche = DemarcheFactory(ds_number=123)
+        self.token = ProxyTokenFactory(
+            demarche=self.demarche,
+            groupe_instructeur_ds_id="GROUPE-1",
+        )
+        self.url = "/ds-proxy/graphql/"
+        self.headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.plaintext_key}"}
+
+    def _post(self, data, **extra_headers):
+        headers = {**self.headers, **extra_headers}
+        return self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+            **headers,
+        )
+
+    def _get_demarche_payload(self):
+        return {
+            "query": "query getDemarche { demarche { number } }",
+            "operationName": "getDemarche",
+            "variables": {"demarcheNumber": self.demarche.ds_number},
+        }
+
+    def _mock_ds_success(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {"nodes": []},
+                }
+            }
+        }
+
+    @patch("gsl_ds_proxy.views.release_token_lock")
+    @patch("gsl_ds_proxy.views.acquire_token_lock", return_value=None)
+    def test_concurrent_request_rejected_with_429(self, mock_acquire, mock_release):
+        # acquire returns None => a request from this token is already in flight.
+        response = self._post(self._get_demarche_payload())
+
+        self.assertEqual(response.status_code, 429)
+        body = json.loads(response.content)
+        self.assertEqual(
+            body["errors"][0]["message"],
+            "Une seule requête à la fois est autorisée par token. "
+            "Une requête est déjà en cours pour ce token, attendez sa fin "
+            "avant d'en envoyer une autre.",
+        )
+        self.assertTrue(body["errors"][0]["extensions"]["requestId"])
+        # No worker work happened and there is nothing to release.
+        mock_release.assert_not_called()
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("gsl_ds_proxy.views.release_token_lock")
+    @patch("gsl_ds_proxy.views.acquire_token_lock")
+    def test_lock_released_after_successful_request(
+        self, mock_acquire, mock_release, mock_post
+    ):
+        fake_lock = MagicMock()
+        mock_acquire.return_value = fake_lock
+        self._mock_ds_success(mock_post)
+
+        response = self._post(self._get_demarche_payload())
+        self.assertEqual(response.status_code, 200)
+        _read_stream(response)
+
+        mock_release.assert_called_once_with(fake_lock, self.token.id)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("gsl_ds_proxy.views.release_token_lock")
+    @patch("gsl_ds_proxy.views.acquire_token_lock")
+    def test_lock_released_after_ds_error(self, mock_acquire, mock_release, mock_post):
+        import requests as req
+
+        fake_lock = MagicMock()
+        mock_acquire.return_value = fake_lock
+        mock_post.side_effect = req.exceptions.Timeout()
+
+        response = self._post(self._get_demarche_payload())
+        self.assertEqual(response.status_code, 200)
+        # Drain the stream so the generator (and its finally) runs to the end.
+        _read_stream(response)
+
+        mock_release.assert_called_once_with(fake_lock, self.token.id)
+
+    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("gsl_ds_proxy.views.release_token_lock")
+    @patch("gsl_ds_proxy.views.acquire_token_lock")
+    def test_distinct_tokens_acquire_independent_locks(
+        self, mock_acquire, mock_release, mock_post
+    ):
+        # Each token gets its own lock keyed on its id, so they never block
+        # one another even on the same démarche.
+        other_token = ProxyTokenFactory(
+            demarche=self.demarche,
+            groupe_instructeur_ds_id="GROUPE-2",
+        )
+        mock_acquire.return_value = MagicMock()
+        self._mock_ds_success(mock_post)
+
+        self._read_ok(self._post(self._get_demarche_payload()))
+        self._read_ok(
+            self._post(
+                self._get_demarche_payload(),
+                HTTP_AUTHORIZATION=f"Bearer {other_token.plaintext_key}",
+            )
+        )
+
+        acquired_token_ids = [call.args[0] for call in mock_acquire.call_args_list]
+        self.assertEqual(acquired_token_ids, [self.token.id, other_token.id])
+
+    def _read_ok(self, response):
+        self.assertEqual(response.status_code, 200)
+        _read_stream(response)
