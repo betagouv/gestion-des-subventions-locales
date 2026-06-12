@@ -430,6 +430,11 @@ DS_INIT_SYNC_LOCK_TIMEOUT = int(
     os.getenv("DS_INIT_SYNC_LOCK_TIMEOUT", 6 * 60 * 60)
 )  # 6 h
 
+# TTL du verrou « une requête à la fois » par token proxy DS (secondes).
+# Filet de sécurité si un worker meurt sans libérer le verrou : doit rester
+# au-dessus de la durée max d'un forward DS (_DS_TIMEOUT = 5 + 55s).
+DS_PROXY_TOKEN_LOCK_TIMEOUT = int(os.getenv("DS_PROXY_TOKEN_LOCK_TIMEOUT", 90))
+
 
 # Storage
 AWS_ACCESS_KEY_ID = os.getenv("SCALEWAY_S3_KEY")

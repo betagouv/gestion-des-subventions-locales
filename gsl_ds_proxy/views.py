@@ -12,6 +12,7 @@ from graphql import GraphQLError, OperationType, parse
 from graphql.language.ast import FieldNode, OperationDefinitionNode
 
 from gsl_ds_proxy.filters import filter_response
+from gsl_ds_proxy.locks import acquire_token_lock, release_token_lock
 from gsl_ds_proxy.models import ProxyToken
 from gsl_ds_proxy.query_guard import validate_demarche_selections
 
@@ -358,6 +359,19 @@ def graphql_proxy(request):
             f"Champ démarche non autorisé : `{forbidden_field}`.", 403, request_id
         )
 
+    # One in-flight request per token: acquire the lock just before the
+    # expensive DS forward. A second concurrent request from the same token is
+    # rejected immediately (429) instead of holding a second worker hostage.
+    lock = acquire_token_lock(proxy_token.id)
+    if lock is None:
+        return _error_response(
+            "Une seule requête à la fois est autorisée par token. "
+            "Une requête est déjà en cours pour ce token, attendez sa fin "
+            "avant d'en envoyer une autre.",
+            429,
+            request_id,
+        )
+
     allowed_groupe_ds_id = proxy_token.groupe_instructeur_ds_id
     stream = _stream_ds_response(
         proxy_token,
@@ -367,6 +381,7 @@ def graphql_proxy(request):
         variables,
         allowed_groupe_ds_id,
         request_id,
+        lock,
     )
     return StreamingHttpResponse(stream, content_type="application/json", status=200)
 
@@ -379,70 +394,80 @@ def _stream_ds_response(
     variables,
     allowed_groupe_ds_id,
     request_id,
+    lock,
 ):
-    # Send a single whitespace byte immediately to close Scalingo's
-    # 30s-to-first-byte window. Leading whitespace is valid JSON.
-    yield b" "
+    # The lock acquired in the view is released here in a finally so every exit
+    # path frees it: DS error return, verbatim forward, scope error, ok — and
+    # also if the client disconnects (Django closes the iterator, which raises
+    # GeneratorExit and triggers the finally).
+    try:
+        # Send a single whitespace byte immediately to close Scalingo's
+        # 30s-to-first-byte window. Leading whitespace is valid JSON.
+        yield b" "
 
-    response_data, error_message, elapsed_ms = _forward_to_ds(
-        query, variables, operation_name, proxy_token, request_id
-    )
-    if error_message is not None:
-        yield _graphql_error_bytes(error_message, request_id)
-        return
+        response_data, error_message, elapsed_ms = _forward_to_ds(
+            query, variables, operation_name, proxy_token, request_id
+        )
+        if error_message is not None:
+            yield _graphql_error_bytes(error_message, request_id)
+            return
 
-    def _log_request(*, outcome, filtered=None):
-        original = _count_dossiers(response_data, root_field)
-        extra = {
-            "request_id": request_id,
-            "proxy_token_id": proxy_token.id,
-            "demarche_number": proxy_token.demarche.ds_number,
-            "operation_name": operation_name,
-            "root_field": root_field,
-            "elapsed_ms": elapsed_ms,
-            "ds_errors_count": len(response_data.get("errors") or []),
-            "outcome": outcome,
-        }
-        if original is not None:
-            post = _count_dossiers(filtered, root_field) if filtered is not None else 0
-            extra["ds_results_count"] = original
-            extra["filtered_out_count"] = original - post
-        logger.info("DS proxy: request", extra=extra)
+        def _log_request(*, outcome, filtered=None):
+            original = _count_dossiers(response_data, root_field)
+            extra = {
+                "request_id": request_id,
+                "proxy_token_id": proxy_token.id,
+                "demarche_number": proxy_token.demarche.ds_number,
+                "operation_name": operation_name,
+                "root_field": root_field,
+                "elapsed_ms": elapsed_ms,
+                "ds_errors_count": len(response_data.get("errors") or []),
+                "outcome": outcome,
+            }
+            if original is not None:
+                post = (
+                    _count_dossiers(filtered, root_field) if filtered is not None else 0
+                )
+                extra["ds_results_count"] = original
+                extra["filtered_out_count"] = original - post
+            logger.info("DS proxy: request", extra=extra)
 
-    # If DS itself reported errors and returned no scopable data, forward the
-    # upstream response verbatim so the caller can see the real error. There is
-    # nothing to scope-check (data is null/absent), so no risk of leaking
-    # out-of-scope data. We prepend a marker error carrying our request_id so
-    # the partner can correlate with our server logs.
-    if response_data.get("errors") and not _scoped_field_present(
-        root_field, response_data
-    ):
-        forwarded = dict(response_data)
-        forwarded["errors"] = [
-            _error_entry("Erreur Démarches Simplifiées transmise.", request_id),
-            *response_data["errors"],
-        ]
-        _log_request(outcome="verbatim_forward", filtered=response_data)
-        yield json.dumps(forwarded).encode()
-        return
+        # If DS itself reported errors and returned no scopable data, forward
+        # the upstream response verbatim so the caller can see the real error.
+        # There is nothing to scope-check (data is null/absent), so no risk of
+        # leaking out-of-scope data. We prepend a marker error carrying our
+        # request_id so the partner can correlate with our server logs.
+        if response_data.get("errors") and not _scoped_field_present(
+            root_field, response_data
+        ):
+            forwarded = dict(response_data)
+            forwarded["errors"] = [
+                _error_entry("Erreur Démarches Simplifiées transmise.", request_id),
+                *response_data["errors"],
+            ]
+            _log_request(outcome="verbatim_forward", filtered=response_data)
+            yield json.dumps(forwarded).encode()
+            return
 
-    scope_error = _check_response_allowed(proxy_token, root_field, response_data)
-    if scope_error is not None:
-        # Preserve any upstream DS errors so the caller still sees what DS
-        # signalled (e.g. partial Timeout on PersonneMorale.entreprise rows)
-        # alongside our own scope rejection.
-        upstream_errors = response_data.get("errors") or []
-        payload = {
-            "data": None,
-            "errors": [*upstream_errors, _error_entry(scope_error, request_id)],
-        }
-        _log_request(outcome="scope_error")
-        yield json.dumps(payload).encode()
-        return
+        scope_error = _check_response_allowed(proxy_token, root_field, response_data)
+        if scope_error is not None:
+            # Preserve any upstream DS errors so the caller still sees what DS
+            # signalled (e.g. partial Timeout on PersonneMorale.entreprise rows)
+            # alongside our own scope rejection.
+            upstream_errors = response_data.get("errors") or []
+            payload = {
+                "data": None,
+                "errors": [*upstream_errors, _error_entry(scope_error, request_id)],
+            }
+            _log_request(outcome="scope_error")
+            yield json.dumps(payload).encode()
+            return
 
-    filtered = filter_response(response_data, allowed_groupe_ds_id)
-    _log_request(outcome="ok", filtered=filtered)
-    yield json.dumps(filtered).encode()
+        filtered = filter_response(response_data, allowed_groupe_ds_id)
+        _log_request(outcome="ok", filtered=filtered)
+        yield json.dumps(filtered).encode()
+    finally:
+        release_token_lock(lock, proxy_token.id)
 
 
 graphql_proxy.login_required = False
