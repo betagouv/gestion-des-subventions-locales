@@ -2,13 +2,7 @@
     background: var(--background-alt-blue-france);
     margin-left: calc(-50vw + 50%);
     margin-right: calc(-50vw + 50%);
-    padding: 1rem 1.5rem;
-}
-
-@media (width <= 768px) {
-    .projets-filters-layout {
-        padding: 1rem;
-    }
+  padding: 1rem 0;
 }
 
 .projets-filters-layout,
@@ -21,16 +15,6 @@
 .projets-filters-layout.projet-filters-in-parent {
   margin: 0;
   padding: 1rem;
-}
-   
-.reinit-filters {
-  place-content: end;
-}
-
-.reinit-filters > button {
-  width: 100%;
-  gap: 8px;
-  justify-content: center;
 }
 
 .filter-field .gsl-dropdown-content {
@@ -117,23 +101,6 @@
   padding-top: 6px;
 }
 
-.filter-dropdown-button-active.fr-tag {
-  overflow: hidden;
-  display: inline-block;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  max-width: 200px;
-  padding-right: 2rem;
-  position: relative;
-}
-
-.filter-dropdown-button-active.fr-tag::after {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
 .filter-field > select {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -147,6 +114,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+/* In the fixed top row, keep the category dropdown (a .fr-select toggle, unlike
+   the .fr-input amount toggles) from widening when a long category is selected,
+   so the row stays on a single line. Capped to match sibling fixed fields. */
+.filters-fixed.filters-flex-row > .filter-field > .gsl-dropdown > button.fr-select {
+  max-width: 150px;
 }
 
 .territoire-type-d ~ .territoire-type-a,
@@ -176,8 +150,7 @@
   align-items: stretch;
 }
 
-.filters-flex-row > .filter-field,
-.filters-flex-row > .reinit-filters {
+.filters-flex-row > .filter-field {
   flex: 0 1 auto;
   width: auto;
   max-width: 220px;
@@ -187,15 +160,31 @@
   justify-content: space-between;
 }
 
-.filters-flex-row > .reinit-filters {
-  justify-content: flex-end;
+.filters-top-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.filters-top-row > .filters-fixed {
+  flex: 1 1 auto;
+}
+
+.filters-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+#filters-toggle[aria-expanded="true"]::before {
+  transform: rotate(180deg);
 }
 
 @media (width <= 768px) {
-  .filters-flex-row > .filter-field,
-  .filters-flex-row > .reinit-filters {
-    flex: 1 1 100%;
-    min-width: 0;
+  .filters-top-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
@@ -209,6 +198,13 @@
   max-width: 360px;
 }
 
+@media (width <= 1130px) {
+  .filters-flex-row > .filter-field--search {
+    flex: 1 1 190px;
+    min-width: 190px;
+  }
+}
+
 .filter-field--search .fr-search-bar {
   width: 100%;
 }
@@ -217,4 +213,8 @@
   max-height: 400px;
   scroll-behavior: auto;
   overflow: auto;
+}
+
+.filters-active-tags:empty {
+  display: none;
 }

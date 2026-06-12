@@ -376,6 +376,11 @@ dossier.dossier_dotation_dsil.status = "refused"
 - **Build tools:** esbuild (bundler/minifier), stylelint (CSS linting)
 - **CSS approach:** DSFR classes + custom CSS
 
+> **Prefer DSFR utility classes over custom CSS.** Reach for DSFR's grid
+> classes (`fr-grid-row`, `fr-col-*`) and spacing utilities
+> (`fr-mt-*`, `fr-mb-*`, `fr-p-*`, etc.) before writing custom CSS. Only add
+> custom CSS when no DSFR utility covers the need.
+
 **Key patterns:**
 - Server-side HTML rendering with HTMX for AJAX updates
 - Stimulus controllers for modal/tab interactions

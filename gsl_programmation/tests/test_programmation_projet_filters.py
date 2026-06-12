@@ -25,7 +25,7 @@ from gsl_programmation.tests.factories import (
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
-from gsl_projet.constants import DOTATION_DETR
+from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
@@ -75,6 +75,16 @@ def mock_request(request_factory, user):
     request.user = user
     request.resolver_match = type(
         "MockResolverMatch", (), {"kwargs": {"dotation": DOTATION_DETR}}
+    )()
+    return request
+
+
+@pytest.fixture
+def mock_request_dsil(request_factory, user):
+    request = request_factory.get("/")
+    request.user = user
+    request.resolver_match = type(
+        "MockResolverMatch", (), {"kwargs": {"dotation": DOTATION_DSIL}}
     )()
     return request
 
@@ -900,6 +910,22 @@ class TestProgrammationProjetFilters:
         result = list(filterset.qs)
         assert prog_ecole not in result
         assert prog_mairie in result
+
+    def test_fixed_fields_show_detr_category_on_detr_page(self, mock_request):
+        """On a DETR programmation page, the DETR category sits in the fixed row
+        and the DSIL category is absent."""
+        filterset = ProgrammationProjetFilters(request=mock_request)
+        fixed_names = [field.name for field in filterset.fixed_fields]
+        assert "categorie_detr" in fixed_names
+        assert "categorie_dsil" not in fixed_names
+
+    def test_fixed_fields_show_dsil_category_on_dsil_page(self, mock_request_dsil):
+        """On a DSIL programmation page, the DSIL category sits in the fixed row
+        and the DETR category is absent."""
+        filterset = ProgrammationProjetFilters(request=mock_request_dsil)
+        fixed_names = [field.name for field in filterset.fixed_fields]
+        assert "categorie_dsil" in fixed_names
+        assert "categorie_detr" not in fixed_names
 
     def test_empty_filters(self, mock_request, enveloppe, arrondissement):
         """Test que sans filtres, tous les projets de l'enveloppe sont retournés"""
