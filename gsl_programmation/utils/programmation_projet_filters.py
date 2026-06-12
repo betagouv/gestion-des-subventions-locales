@@ -35,6 +35,7 @@ from gsl_projet.utils.django_filters_custom_widget import (
 from gsl_projet.utils.projet_filters import (
     DOTATION_SOLLICITEE_CHOICES,
     OUI_NON_CHOICES,
+    FixedFilterFieldsMixin,
     LabelFromInstanceFilter,
     ProjetOrderingFilter,
     filter_boolean,
@@ -60,7 +61,7 @@ PROGRAMMATION_ORDERING_MAP = {
 }
 
 
-class ProgrammationProjetFilters(FilterSet):
+class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
     search = CharFilter(
         label="Recherche",
         method="filter_search",

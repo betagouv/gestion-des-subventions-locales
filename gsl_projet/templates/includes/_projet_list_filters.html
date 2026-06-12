@@ -15,46 +15,88 @@
         <input type="hidden" name="order" value="{{ current_order }}">
     {% endif %}
 
-    <div class="projets-filters-layout {% if component_included_in_parent %} projet-filters-in-parent{% endif %} fr-container--fluid">
-        <div class="filters-flex-row">
-            <div class="fr-col-12 fr-col-md-4 fr-col-lg-3 reinit-filters">
-                <button class="fr-btn fr-btn--tertiary"
-                        type="submit"
-                        name="reset_filters"
-                        value="1">
-                    <span class="fr-icon-arrow-go-back-fill fr-icon--sm"></span> Réinitialiser les filtres
-                </button>
-            </div>
-            {% if filter.form.search %}
-                {% include "includes/_filter_search.html" with field=filter.form.search %}
-            {% endif %}
-            {% if current_order %}
-                {% active_sort_label columns current_order as sort_label %}
-                {% if sort_label %}
-                    <div class="filter-field">
-                        <label class="fr-label">
-                            Tri
-                        </label>
-                        <a href="{% querystring order='' %}"
-                           class="fr-tag fr-tag--dismiss filter-dropdown-button-active"
-                           aria-label="Retirer le tri">
-                            {% if current_order|first == "-" %}
-                                ↓
-                            {% else %}
-                                ↑
-                            {% endif %}
-                            {{ sort_label }}
-                        </a>
+    {% with fixed_filter_fields=filter.fixed_filter_fields %}
+
+        <div class="projets-filters-layout {% if component_included_in_parent %} projet-filters-in-parent{% endif %}">
+            <div class="fr-container">
+                <div class="fr-grid-row">
+                    <div class="fr-col-12 filters-top-row">
+                        <div class="filters-fixed filters-flex-row">
+                            {% for field in filter.fixed_fields %}
+                                {% if field.name == "search" %}
+                                    {% include "includes/_filter_search.html" with field=field %}
+                                {% else %}
+                                    {% include field.field.widget.display_template with field=field %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="filters-actions">
+                            <button class="fr-btn fr-btn--secondary fr-icon-close-circle-line"
+                                    type="submit"
+                                    name="reset_filters"
+                                    value="1"
+                                    title="Réinitialiser les filtres">
+                                Réinitialiser les filtres
+                            </button>
+                            <button type="button"
+                                    id="filters-toggle"
+                                    class="fr-btn fr-btn--secondary fr-icon-arrow-down-s-line"
+                                    aria-expanded="false"
+                                    aria-controls="filters-extra"
+                                    title="Afficher tous les filtres">
+                                Afficher tous les filtres
+                            </button>
+                        </div>
                     </div>
-                {% endif %}
-            {% endif %}
-            {% for field in filter.form %}
-                {% if field.name != "order" and field.name != "search" %}
-                    {% include field.field.widget.display_template with field=field %}
-                {% endif %}
-            {% endfor %}
+                </div>
+
+                <div class="fr-grid-row fr-mt-2w">
+                    <div class="fr-col-12">
+                        <div id="filters-extra" class="filters-extra fr-collapse">
+                            <div class="filters-flex-row">
+                                {% for field in filter.form %}
+                                    {% if field.name not in fixed_filter_fields and field.name != "order" %}
+                                        {% include field.field.widget.display_template with field=field %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <ul class="filters-active-tags fr-tags-group fr-mt-2w">
+                            {% active_sort_label columns current_order as sort_label %}
+                            {% if sort_label %}
+                                <li>
+                                    <a class="fr-tag fr-tag--dismiss"
+                                       href="{% remove_filter_qs filter.form.order %}"
+                                       aria-label="Retirer le tri {{ sort_label }}">
+                                        Trié par {{ sort_label }}
+                                        {% if current_order|slice:":1" == "-" %}
+                                            ↓
+                                        {% else %}
+                                            ↑
+                                        {% endif %}
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {% for field in filter.form %}
+                                {% if field.name != "order" %}
+                                    {% with text=field|active_filter_tag %}
+                                        {% if text %}
+                                            <li>
+                                                <a class="fr-tag fr-tag--dismiss"
+                                                   href="{% remove_filter_qs field %}"
+                                                   aria-label="Retirer le filtre {{ text }}">{{ text }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    {% endwith %}
 </form>
 <script src="{% static "js/projectFilters.js" %}" defer></script>
 <script src="{% static 'js/territoireFilter.js' %}" defer></script>

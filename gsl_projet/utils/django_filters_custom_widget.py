@@ -48,6 +48,21 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
             )
         return mark_safe("\n".join(output))
 
+    def active_tag_label(self, value, label):
+        """Tag text joining the labels of the selected choices, or '' if none.
+
+        `value` is a list of submitted values (MultipleChoiceFilter) or a
+        queryset of model instances (Model/LabelFromInstance filters); both
+        resolve against the widget's own `str()`-keyed choice labels."""
+        if not value:
+            return ""
+        choice_dict = {str(k): v for k, v in self.choices}
+        parts = []
+        for item in value:
+            key = str(item.pk) if hasattr(item, "pk") else str(item)
+            parts.append(str(choice_dict.get(key, item)))
+        return f"{label} : {', '.join(parts)}"
+
 
 class DsfrRangeWidget(SuffixedMultiWidget):
     suffixes = ["min", "max"]
@@ -68,6 +83,21 @@ class DsfrRangeWidget(SuffixedMultiWidget):
         if value:
             return [value.start, value.stop]
         return [None, None]
+
+    def active_tag_label(self, value, label):
+        """Euro span ("de … à …" / "supérieur à …" / "inférieur à …"), or ''."""
+        from gsl_core.templatetags.gsl_filters import euro
+
+        if value is None:
+            return ""
+        start, stop = value.start, value.stop
+        if start is None and stop is None:
+            return ""
+        if start is not None and stop is not None:
+            return f"{label} de {euro(start)} à {euro(stop)}"
+        if start is not None:
+            return f"{label} supérieur à {euro(start)}"
+        return f"{label} inférieur à {euro(stop)}"
 
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
@@ -123,6 +153,20 @@ class DsfrDateRangeWidget(SuffixedMultiWidget):
         if value:
             return [value.start, value.stop]
         return [None, None]
+
+    def active_tag_label(self, value, label):
+        """Date span ("du … au …" / "à partir du …" / "jusqu'au …"), or ''."""
+        if value is None:
+            return ""
+        d1 = value.start.strftime("%d/%m/%Y") if value.start else None
+        d2 = value.stop.strftime("%d/%m/%Y") if value.stop else None
+        if not d1 and not d2:
+            return ""
+        if d1 and d2:
+            return f"{label} du {d1} au {d2}"
+        if d1:
+            return f"{label} à partir du {d1}"
+        return f"{label} jusqu'au {d2}"
 
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
