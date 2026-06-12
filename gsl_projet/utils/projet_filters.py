@@ -261,7 +261,29 @@ def filter_dossier_complet(queryset, name, values):
     return queryset.filter(q)
 
 
-class ProjetFilters(FilterSet):
+class FixedFilterFieldsMixin:
+    """Filters always rendered in the top fixed row, in display order.
+    Names absent from a given FilterSet are skipped by the template."""
+
+    fixed_filter_fields = (
+        "search",
+        "categorie_detr",
+        "cout",
+        "montant_demande",
+        "montant_retenu",
+    )
+
+    @property
+    def fixed_fields(self):
+        """Bound fields for the fixed top row, in display order, skipping absent names."""
+        return [
+            self.form[name]
+            for name in self.fixed_filter_fields
+            if name in self.form.fields
+        ]
+
+
+class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
     order = ProjetOrderingFilter(
         fields=ORDERING_MAP,
         empty_label="Tri",
