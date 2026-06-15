@@ -76,25 +76,16 @@ class ProjetCommentUpdateView(SafeRedirectMixin, UpdateView):
     def get_queryset(self):
         return Projet.objects.active().for_user(self.request.user)
 
+    def get_success_url(self):
+        return reverse("projet:get-projet-notes", kwargs={"projet_id": self.object.pk})
+
     def form_valid(self, form):
         self.object = form.save()
         messages.success(self.request, "Le commentaire a été enregistré avec succès.")
-        return redirect(
-            self.get_safe_redirect_url(
-                fallback=reverse(
-                    "projet:get-projet-notes", kwargs={"projet_id": self.object.pk}
-                )
-            )
-        )
+        return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
 
     def form_invalid(self, form):
-        return redirect(
-            self.get_safe_redirect_url(
-                fallback=reverse(
-                    "projet:get-projet-notes", kwargs={"projet_id": self.object.pk}
-                )
-            )
-        )
+        return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
 
 
 class ProjetListViewFilters(ProjetFilters):
