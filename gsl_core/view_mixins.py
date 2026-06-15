@@ -1,5 +1,17 @@
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.utils.http import url_has_allowed_host_and_scheme
 from django_htmx.http import trigger_client_event
+
+
+class SafeRedirectMixin:
+    def get_safe_redirect_url(self, fallback="/"):
+        request = self.request
+        url = request.POST.get("next") or request.headers.get("Referer")
+        if url and url_has_allowed_host_and_scheme(
+            url, allowed_hosts=request.get_host(), require_https=request.is_secure()
+        ):
+            return url
+        return fallback
 
 
 class OpenHtmxModalMixin:

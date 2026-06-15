@@ -5,10 +5,11 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import UpdateView
 from django.views.generic.detail import SingleObjectMixin
+
+from gsl_core.view_mixins import SafeRedirectMixin
 
 from .exceptions import DsServiceException
 from .forms import DossierReporteSansPieceForm
@@ -18,7 +19,7 @@ from .models import Demarche, Dossier
 logger = logging.getLogger(__name__)
 
 
-class RefreshOneDossierView(SingleObjectMixin, View):
+class RefreshOneDossierView(SafeRedirectMixin, SingleObjectMixin, View):
     http_method_names = ["post"]
     model = Dossier
     slug_url_kwarg = "dossier_ds_number"
@@ -42,17 +43,7 @@ class RefreshOneDossierView(SingleObjectMixin, View):
                 ),
             )
 
-        url = request.POST.get("next")
-        if not url:
-            url = request.headers.get("Referer")
-
-        is_url_safe = url_has_allowed_host_and_scheme(
-            url, allowed_hosts=request.get_host(), require_https=request.is_secure()
-        )
-        if is_url_safe:
-            return redirect(url)
-
-        return redirect("/")
+        return redirect(self.get_safe_redirect_url())
 
 
 @staff_member_required
