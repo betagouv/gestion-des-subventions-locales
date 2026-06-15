@@ -7,8 +7,10 @@ from django.urls import reverse
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
+    PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreFactory,
+    PerimetreRegionalFactory,
 )
 from gsl_notification.models import (
     ModeleArrete,
@@ -550,3 +552,70 @@ def test_delete_nonexistent_modele_arrete(client, modele_type):
     )
     response = client.post(url)
     assert response.status_code == 404
+
+
+def test_delete_modele_staff_user_bypasses_perimetre():
+    user = CollegueFactory(perimetre=PerimetreDepartementalFactory(), is_staff=True)
+    client = ClientWithLoggedUserFactory(user)
+    modele = ModeleArreteFactory(perimetre=PerimetreDepartementalFactory())
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": ARRETE, "modele_id": modele.id},
+    )
+
+    response = client.post(url)
+
+    assert response.status_code == 302
+    assert ModeleArrete.objects.count() == 0
+
+
+def test_delete_dsil_modele_from_region_by_dept_user():
+    dept_perimetre = PerimetreDepartementalFactory()
+    regional_perimetre = PerimetreRegionalFactory(region=dept_perimetre.region)
+    user = CollegueFactory(perimetre=dept_perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=DOTATION_DSIL)
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": ARRETE, "modele_id": modele.id},
+    )
+
+    response = client.post(url)
+
+    assert response.status_code == 302
+    assert ModeleArrete.objects.count() == 0
+
+
+def test_delete_detr_modele_by_region_user_is_forbidden():
+    regional_perimetre = PerimetreRegionalFactory()
+    user = CollegueFactory(perimetre=regional_perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=DOTATION_DETR)
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": ARRETE, "modele_id": modele.id},
+    )
+
+    response = client.post(url)
+
+    assert response.status_code == 404
+    assert ModeleArrete.objects.count() == 1
+
+
+def test_delete_detr_modele_from_dept_by_arrondissement_user():
+    arr_perimetre = PerimetreArrondissementFactory()
+    dept_perimetre = PerimetreDepartementalFactory(
+        departement=arr_perimetre.departement
+    )
+    user = CollegueFactory(perimetre=arr_perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    modele = ModeleArreteFactory(perimetre=dept_perimetre, dotation=DOTATION_DETR)
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": ARRETE, "modele_id": modele.id},
+    )
+
+    response = client.post(url)
+
+    assert response.status_code == 302
+    assert ModeleArrete.objects.count() == 0

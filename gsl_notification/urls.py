@@ -12,10 +12,10 @@ from gsl_notification.views.import_views import (
 from gsl_notification.views.modele_views import (
     ChooseModeleDocumentType,
     CreateModelDocumentWizard,
+    DeleteModeleView,
     DuplicateModele,
     ModeleListView,
     UpdateModele,
-    delete_modele_view,
     get_generic_modele,
 )
 from gsl_notification.views.uploaded_document_views import (
@@ -164,7 +164,7 @@ urlpatterns = [
     ),
     path(
         "modeles/<str:modele_type>/<str:modele_id>/",
-        delete_modele_view,
+        DeleteModeleView.as_view(),
         name="delete-modele",
     ),
 ]

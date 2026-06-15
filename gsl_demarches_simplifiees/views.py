@@ -6,11 +6,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_POST
+from django.views import View
 from django.views.generic import UpdateView
-
-from gsl_core.exceptions import Http404
-from gsl_projet.models import Projet
+from django.views.generic.detail import SingleObjectMixin
 
 from .exceptions import DsServiceException
 from .forms import DossierReporteSansPieceForm
@@ -20,53 +18,41 @@ from .models import Demarche, Dossier
 logger = logging.getLogger(__name__)
 
 
-def dossier_visible_by_user(func):
-    def wrapper(*args, **kwargs):
-        request = args[0]
-        user = request.user
-        if user.is_staff:
-            return func(*args, **kwargs)
-        dossier_number = kwargs.get("dossier_ds_number")
+class RefreshOneDossierView(SingleObjectMixin, View):
+    http_method_names = ["post"]
+    model = Dossier
+    slug_url_kwarg = "dossier_ds_number"
+    slug_field = "ds_number"
 
-        is_projet_visible_by_user = (
-            Projet.objects.for_user(user)
-            .filter(dossier_ds__ds_number=dossier_number)
-            .exists()
+    def get_queryset(self):
+        return Dossier.objects.for_user(self.request.user)
+
+    def post(self, request, dossier_ds_number):
+        dossier = self.get_object()
+
+        try:
+            level, message = save_one_dossier_from_ds(dossier)
+            messages.add_message(request, level, message)
+        except DsServiceException:
+            messages.error(
+                request,
+                (
+                    "Une erreur s’est produite lors de l’appel à Démarche Numérique. "
+                    "Essayez à nouveau dans quelques instants."
+                ),
+            )
+
+        url = request.POST.get("next")
+        if not url:
+            url = request.headers.get("Referer")
+
+        is_url_safe = url_has_allowed_host_and_scheme(
+            url, allowed_hosts=request.get_host(), require_https=request.is_secure()
         )
-        if not is_projet_visible_by_user:
-            raise Http404(user_message="Dossier non trouvé")
+        if is_url_safe:
+            return redirect(url)
 
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
-@dossier_visible_by_user
-@require_POST
-def refresh_one_dossier(request, dossier_ds_number):
-    dossier = get_object_or_404(Dossier, ds_number=dossier_ds_number)
-
-    try:
-        level, message = save_one_dossier_from_ds(dossier)
-        messages.add_message(request, level, message)
-    except DsServiceException:
-        messages.error(
-            request,
-            (
-                "Une erreur s’est produite lors de l’appel à Démarche Numérique. "
-                "Essayez à nouveau dans quelques instants."
-            ),
-        )
-
-    url = request.POST.get("next")
-    if not url:
-        url = request.headers.get("Referer")
-
-    is_url_safe = url_has_allowed_host_and_scheme(url, allowed_hosts=request.get_host())
-    if is_url_safe:
-        return redirect(url)
-
-    return redirect("/")
+        return redirect("/")
 
 
 @staff_member_required
