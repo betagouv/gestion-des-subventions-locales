@@ -2,11 +2,11 @@ from django.contrib import messages
 from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import DetailView, ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
+from gsl_core.view_mixins import SafeRedirectMixin
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
@@ -67,7 +67,7 @@ class ProjetHistoriqueView(BaseProjetDetailView):
         return context
 
 
-class ProjetCommentUpdateView(UpdateView):
+class ProjetCommentUpdateView(SafeRedirectMixin, UpdateView):
     model = Projet
     form_class = ProjetCommentForm
     pk_url_kwarg = "projet_id"
@@ -76,21 +76,16 @@ class ProjetCommentUpdateView(UpdateView):
     def get_queryset(self):
         return Projet.objects.active().for_user(self.request.user)
 
-    def _get_redirect_url(self):
-        next_url = self.request.POST.get("next")
-        if next_url and url_has_allowed_host_and_scheme(
-            next_url, allowed_hosts=self.request.get_host()
-        ):
-            return next_url
+    def get_success_url(self):
         return reverse("projet:get-projet-notes", kwargs={"projet_id": self.object.pk})
 
     def form_valid(self, form):
         self.object = form.save()
         messages.success(self.request, "Le commentaire a été enregistré avec succès.")
-        return redirect(self._get_redirect_url())
+        return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
 
     def form_invalid(self, form):
-        return redirect(self._get_redirect_url())
+        return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
 
 
 class ProjetListViewFilters(ProjetFilters):

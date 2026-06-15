@@ -426,18 +426,18 @@ class DeleteModeleView(DeleteView):
 
         try:
             response = super().form_valid(form)
-            type_and_article = (
-                "d’arrêté" if modele_type == ARRETE else "de lettre de notification"
-            )
-            messages.info(
-                self.request,
-                f"Le modèle {type_and_article} “{name}” a été supprimé.",
-                extra_tags="delete_modele_arrete",
-            )
         except ProtectedError as e:
             _add_error_message(self.request, len(e.protected_objects), modele_type)
             return redirect(self.get_success_url())
 
+        type_and_article = (
+            "d’arrêté" if modele_type == ARRETE else "de lettre de notification"
+        )
+        messages.info(
+            self.request,
+            f"Le modèle {type_and_article} “{name}” a été supprimé.",
+            extra_tags="delete_modele_arrete",
+        )
         return response
 
 
