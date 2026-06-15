@@ -1,5 +1,6 @@
 from django.contrib.admin.models import LogEntry
 from django.db import models
+from django.utils import timezone
 
 from gsl_projet.constants import DOTATION_CHOICES
 
@@ -21,6 +22,11 @@ class ProjetAction(models.Model):
     TYPE_DOTATION_REMOVED = "dotation_removed"
     TYPE_MONTANT_MODIFIED = "montant_modified"
     TYPE_BOOLEAN_MODIFIED = "boolean_modified"
+    TYPE_DEPOT_DOSSIER = "depot_dossier"
+    TYPE_PASSAGE_EN_INSTRUCTION = "passage_en_instruction"
+    TYPE_RETOUR_EN_CONSTRUCTION = "retour_en_construction"
+    TYPE_DEACTIVATION = "deactivation"
+    TYPE_REACTIVATION = "reactivation"
 
     ACTION_TYPES = [
         (TYPE_STATUS_CHANGE, "Changement de statut"),
@@ -35,6 +41,11 @@ class ProjetAction(models.Model):
         (TYPE_DOTATION_REMOVED, "Suppression de dotation"),
         (TYPE_MONTANT_MODIFIED, "Modification du montant"),
         (TYPE_BOOLEAN_MODIFIED, "Modification de booléen"),
+        (TYPE_DEPOT_DOSSIER, "Dépôt du dossier"),
+        (TYPE_PASSAGE_EN_INSTRUCTION, "Passage en instruction"),
+        (TYPE_RETOUR_EN_CONSTRUCTION, "Retour en construction"),
+        (TYPE_DEACTIVATION, "Désactivation du dossier"),
+        (TYPE_REACTIVATION, "Réactivation du dossier"),
     ]
 
     projet = models.ForeignKey(
@@ -43,7 +54,7 @@ class ProjetAction(models.Model):
         related_name="actions",
     )
     action_type = models.CharField(max_length=50, choices=ACTION_TYPES)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     actor = models.ForeignKey(
         "gsl_core.Collegue",
         null=True,
@@ -69,6 +80,7 @@ class ProjetAction(models.Model):
     boolean_field = models.CharField(max_length=200, blank=True, default="")
     boolean_value = models.BooleanField(null=True, blank=True)
     form_id = models.CharField(max_length=200, blank=True, default="")
+    deactivation_reason = models.CharField(max_length=20, blank=True, default="")
 
     class Meta:
         ordering = ["-created_at"]
@@ -109,8 +121,22 @@ class ProjetAction(models.Model):
             self.TYPE_DOTATION_REMOVED: f"Suppression dotation {self.dotation}",
             self.TYPE_MONTANT_MODIFIED: "Modification du montant",
             self.TYPE_BOOLEAN_MODIFIED: self.boolean_field or "Modification booléen",
+            self.TYPE_DEPOT_DOSSIER: "Dépôt du dossier",
+            self.TYPE_PASSAGE_EN_INSTRUCTION: "Passage en instruction",
+            self.TYPE_RETOUR_EN_CONSTRUCTION: "Retour en construction",
+            self.TYPE_DEACTIVATION: self._deactivation_label,
+            self.TYPE_REACTIVATION: "Réactivation du dossier",
         }
         return labels.get(self.action_type, self.get_action_type_display())
+
+    @property
+    def _deactivation_label(self):
+        labels = {
+            "archive": "Dossier archivé",
+            "corbeille": "Dossier mis à la corbeille",
+            "supprime": "Dossier supprimé",
+        }
+        return labels.get(self.deactivation_reason, "Désactivation du dossier")
 
     @property
     def precision_display(self):
