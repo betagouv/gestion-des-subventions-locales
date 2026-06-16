@@ -22,6 +22,7 @@ class ProjetActionAdmin(admin.ModelAdmin):
     search_fields = ("projet__dossier_ds__ds_number",)
     readonly_fields = (
         "projet",
+        "enveloppe",
         "action_type",
         "created_at",
         "actor",
