@@ -1,13 +1,15 @@
 import logging
 
+from celery.result import AsyncResult
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from django.views import View
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
+from gsl.celery import TASK_PRIORITY_HIGH
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
-from gsl_notification.exports import build_export, upload_export_and_get_url
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
@@ -19,6 +21,7 @@ from gsl_notification.forms import (
     GenerateDocumentsStep2Form,
     GenerateDocumentsStep3Form,
 )
+from gsl_notification.tasks import generate_export_task
 from gsl_notification.utils import get_programmation_projet_attribute
 from gsl_projet.constants import DOTATIONS
 
@@ -35,6 +38,8 @@ class GenerateDocumentsWizard(SessionWizardView):
 
     TEMPLATE_BASE = "gsl_notification/generated_document/multiple/"
     SUCCESS_TEMPLATE = TEMPLATE_BASE + "modal_success_body.html"
+    POLLING_TEMPLATE = TEMPLATE_BASE + "modal_export_progress_body.html"
+    ERROR_TEMPLATE = TEMPLATE_BASE + "modal_export_error_body.html"
 
     form_list = [
         (LAUNCH_STEP, GenerateDocumentsLaunchForm),
@@ -186,28 +191,76 @@ class GenerateDocumentsWizard(SessionWizardView):
         )
 
         attrs = [get_programmation_projet_attribute(t) for t in form.selected_types]
-        filename, content_type, body = build_export(
-            refreshed,
-            attrs,
-            export_format,
-            form.document_type,
-            with_qr_code=with_qr_code,
-        )
-        download_url = upload_export_and_get_url(filename, content_type, body)
+        pp_ids = [pp.pk for pp in refreshed]
+        doc_count = len(pp_ids) * len(attrs)
 
+        result = generate_export_task.apply_async(
+            args=[pp_ids, attrs, export_format, form.document_type, with_qr_code],
+            priority=TASK_PRIORITY_HIGH,
+        )
+
+        return render(
+            self.request,
+            self.POLLING_TEMPLATE,
+            {
+                "task_id": result.id,
+                "modal_id": self.modal_id,
+                "dotation": self.kwargs["dotation"],
+                "doc_count": doc_count,
+            },
+        )
+
+
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsStatusView(View):
+    """Polled every 2 s while the export Celery task is running."""
+
+    TEMPLATE_BASE = GenerateDocumentsWizard.TEMPLATE_BASE
+    SUCCESS_TEMPLATE = GenerateDocumentsWizard.SUCCESS_TEMPLATE
+    POLLING_TEMPLATE = GenerateDocumentsWizard.POLLING_TEMPLATE
+    ERROR_TEMPLATE = GenerateDocumentsWizard.ERROR_TEMPLATE
+
+    def get(self, request, dotation, task_id):
+        from gsl_programmation.models import ProgrammationProjet
+
+        result = AsyncResult(task_id)
         context = {
-            "modal_id": self.modal_id,
-            "dotation": self.kwargs["dotation"],
-            "form": form,
-            "download_url": download_url,
-            "doc_count": len(form.programmation_projets) * len(form.selected_types),
-            "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
-            "is_export_one_pdf_all_grouped": (
-                export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED
-            ),
-            "is_export_one_pdf_per_project": (
-                export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT
-            ),
-            "refreshed_programmation_projets": refreshed,
+            "modal_id": GenerateDocumentsWizard.modal_id,
+            "dotation": dotation,
+            "task_id": task_id,
         }
-        return render(self.request, self.SUCCESS_TEMPLATE, context)
+
+        if result.ready():
+            if result.successful():
+                data = result.get()
+                export_format = data["export_format"]
+                pp_ids = data["pp_ids"]
+                refreshed = list(
+                    ProgrammationProjet.objects.filter(pk__in=pp_ids)
+                    .select_related(
+                        "arrete", "lettre_notification", "lettre_et_arrete_signes"
+                    )
+                    .prefetch_related("annexes")
+                )
+                pk_to_pp = {pp.pk: pp for pp in refreshed}
+                refreshed_ordered = [pk_to_pp[pk] for pk in pp_ids if pk in pk_to_pp]
+                context.update(
+                    {
+                        "download_url": data["download_url"],
+                        "doc_count": data["doc_count"],
+                        "is_export_one_pdf_all": export_format
+                        == EXPORT_FORMAT_ONE_PDF_ALL,
+                        "is_export_one_pdf_all_grouped": export_format
+                        == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
+                        "is_export_one_pdf_per_project": export_format
+                        == EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
+                        "refreshed_programmation_projets": refreshed_ordered,
+                    }
+                )
+                return render(request, self.SUCCESS_TEMPLATE, context)
+
+            logger.error("generate_export_task %s failed: %s", task_id, result.info)
+            return render(request, self.ERROR_TEMPLATE, context)
+
+        context["doc_count"] = int(request.GET.get("doc_count", 0))
+        return render(request, self.POLLING_TEMPLATE, context)

@@ -96,6 +96,15 @@ def _wizard_url(dotation=DOTATION_DETR):
     return reverse("gsl_notification:generate-documents-modal", args=[dotation])
 
 
+def _status_url(dotation, task_id):
+    from django.urls import reverse
+
+    return reverse(
+        "gsl_notification:generate-documents-status",
+        kwargs={"dotation": dotation, "task_id": task_id},
+    )
+
+
 def _wizard_step_data(current_step, fields, prefix=WIZARD_PREFIX_DETR):
     """Build POST data for a wizard step submission, with management form."""
     data = {f"{prefix}-current_step": current_step}
@@ -422,12 +431,20 @@ def _drive_through_step3(
     )
 
 
-def _post_step4(client, dotation=DOTATION_DETR):
+def _post_step4_raw(client, dotation=DOTATION_DETR):
+    """POST step4 and return the intermediate polling response."""
     return client.post(
         _wizard_url(dotation),
         _wizard_step_data("step4", {}, prefix=f"generate_documents_wizard_{dotation}"),
         **HTMX_HEADERS,
     )
+
+
+def _post_step4(client, dotation=DOTATION_DETR):
+    """POST step4 then poll the status endpoint; returns the final success response."""
+    polling_response = _post_step4_raw(client, dotation)
+    task_id = polling_response.context["task_id"]
+    return client.get(_status_url(dotation, task_id), **HTMX_HEADERS)
 
 
 def test_wizard_step3_renders_loading_body(
@@ -447,6 +464,24 @@ def test_wizard_step3_renders_loading_body(
     # is dispatched to the wizard's step4.
     assert b"generate_documents_wizard_DETR-current_step" in response.content
     assert b'value="step4"' in response.content
+
+
+def test_wizard_step4_returns_polling_template(
+    client, programmation_projets, detr_lettre_modele
+):
+    _drive_through_step3(
+        client,
+        programmation_projets,
+        step2_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
+    )
+    response = _post_step4_raw(client)
+    assert response.status_code == 200
+    assert (
+        "gsl_notification/generated_document/multiple/modal_export_progress_body.html"
+        in _template_names(response)
+    )
+    assert "task_id" in response.context
+    assert response.context["doc_count"] == 3
 
 
 def test_wizard_step4_creates_documents_and_returns_success(
@@ -654,9 +689,7 @@ def test_wizard_step4_both_creates_arrete_and_lettre(
         "gsl_notification/generated_document/multiple/modal_success_body.html"
         in _template_names(response)
     )
-    form = response.context["form"]
-    assert form.document_type == ARRETE_ET_LETTRE
-    assert response.context["doc_count"] == 6
+    assert response.context["doc_count"] == 6  # 3 projets × 2 types = ARRETE_ET_LETTRE
     assert "download_url" in response.context
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:

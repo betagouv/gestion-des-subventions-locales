@@ -1,6 +1,7 @@
 from django.urls import path
 
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
+    GenerateDocumentsStatusView,
     GenerateDocumentsWizard,
 )
 from gsl_notification.views.import_views import (
@@ -88,6 +89,11 @@ urlpatterns = [
         "<str:dotation>/generer/",
         GenerateDocumentsWizard.as_view(),
         name="generate-documents-modal",
+    ),
+    path(
+        "<str:dotation>/generer/status/<str:task_id>/",
+        GenerateDocumentsStatusView.as_view(),
+        name="generate-documents-status",
     ),
     # Modal HTMX - import des documents signés
     path(

@@ -1,0 +1,20 @@
+{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% load dsfr_tags %}
+{% block stepper_or_error %}
+{% endblock stepper_or_error %}
+{% block content %}
+    <div class="fr-alert fr-alert--error fr-mt-3w" role="alert">
+        <p>
+            Une erreur est survenue lors de la génération des documents. Veuillez réessayer.
+        </p>
+    </div>
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <button class="fr-btn fr-btn--tertiary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Fermer
+        </button>
+    </li>
+{% endblock footer_buttons %}

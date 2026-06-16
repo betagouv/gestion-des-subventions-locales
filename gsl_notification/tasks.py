@@ -23,6 +23,38 @@ UPLOADED_DOCUMENT_MODELS = (LettreEtArreteSignes, Annexe)
 LOGO_SCANNED_MODELS = (ModeleArrete, ModeleLettreNotification)
 
 
+@shared_task
+def generate_export_task(
+    pp_ids: list[int],
+    attr_names: list[str],
+    export_format: str,
+    document_type: str,
+    with_qr_code: bool,
+) -> dict:
+    from gsl_notification.exports import build_export, upload_export_and_get_url
+    from gsl_programmation.models import ProgrammationProjet
+
+    pk_to_pp = {
+        pp.pk: pp
+        for pp in ProgrammationProjet.objects.filter(pk__in=pp_ids).select_related(
+            "arrete__modele",
+            "lettre_notification__modele",
+            "dotation_projet__projet__dossier_ds__ds_demandeur",
+        )
+    }
+    pps = [pk_to_pp[pk] for pk in pp_ids]
+    filename, content_type, body = build_export(
+        pps, attr_names, export_format, document_type, with_qr_code=with_qr_code
+    )
+    download_url = upload_export_and_get_url(filename, content_type, body)
+    return {
+        "download_url": download_url,
+        "pp_ids": pp_ids,
+        "export_format": export_format,
+        "doc_count": len(pp_ids) * len(attr_names),
+    }
+
+
 def _scan_path(path: str) -> dict:
     """Scan a file already on disk with clamdscan.
 
