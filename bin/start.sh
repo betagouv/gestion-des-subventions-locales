@@ -1,3 +1,3 @@
 #!/bin/bash
 
-gunicorn gsl.wsgi --log-file -
+gunicorn gsl.wsgi --log-file - --timeout 120
