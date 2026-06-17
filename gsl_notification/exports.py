@@ -25,27 +25,46 @@ EXPORT_URL_TTL = 900  # 15 minutes
 
 
 def build_export(
-    programmation_projets, attrs, export_format, document_type, *, with_qr_code=True
+    programmation_projets,
+    attrs,
+    export_format,
+    document_type,
+    *,
+    with_qr_code=True,
+    pdf_bytes_map: dict | None = None,
 ) -> tuple[str, str, bytes]:
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
         return _build_single_merged_pdf(
-            programmation_projets, attrs, document_type, with_qr_code=with_qr_code
+            programmation_projets,
+            attrs,
+            document_type,
+            with_qr_code=with_qr_code,
+            pdf_bytes_map=pdf_bytes_map,
         )
     if export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT:
         return _build_one_pdf_per_project(
-            programmation_projets, attrs, with_qr_code=with_qr_code
+            programmation_projets,
+            attrs,
+            with_qr_code=with_qr_code,
+            pdf_bytes_map=pdf_bytes_map,
         )
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED:
         return _build_grouped_merged_pdf(
-            programmation_projets, attrs, with_qr_code=with_qr_code
+            programmation_projets,
+            attrs,
+            with_qr_code=with_qr_code,
+            pdf_bytes_map=pdf_bytes_map,
         )
     return _build_one_pdf_per_doc(
-        programmation_projets, attrs, with_qr_code=with_qr_code
+        programmation_projets,
+        attrs,
+        with_qr_code=with_qr_code,
+        pdf_bytes_map=pdf_bytes_map,
     )
 
 
 def _build_one_pdf_per_doc(
-    programmation_projets, attrs, *, with_qr_code=True
+    programmation_projets, attrs, *, with_qr_code=True, pdf_bytes_map=None
 ) -> tuple[str, str, bytes]:
     documents = [
         doc
@@ -55,8 +74,8 @@ def _build_one_pdf_per_doc(
 
     if len(documents) == 1:
         document = documents[0]
-        pdf_content = generate_pdf_for_generated_document(
-            document, with_qr_code=with_qr_code
+        pdf_content = _get_pdf(
+            document, with_qr_code=with_qr_code, pdf_bytes_map=pdf_bytes_map
         )
         logger.info(f"#1 {document} généré")
         return document.name, "application/pdf", pdf_content
@@ -64,8 +83,8 @@ def _build_one_pdf_per_doc(
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for i, document in enumerate(documents, start=1):
-            pdf_content = generate_pdf_for_generated_document(
-                document, with_qr_code=with_qr_code
+            pdf_content = _get_pdf(
+                document, with_qr_code=with_qr_code, pdf_bytes_map=pdf_bytes_map
             )
             zip_file.writestr(f"{document.name}", pdf_content)
             logger.info(f"#{i} {document} généré")
@@ -74,14 +93,21 @@ def _build_one_pdf_per_doc(
 
 
 def _build_single_merged_pdf(
-    programmation_projets, attrs, document_type, *, with_qr_code=True
+    programmation_projets,
+    attrs,
+    document_type,
+    *,
+    with_qr_code=True,
+    pdf_bytes_map=None,
 ) -> tuple[str, str, bytes]:
     pdf_bytes_list = []
     for pp in programmation_projets:
         for attr in attrs:
             pdf_bytes_list.append(
-                generate_pdf_for_generated_document(
-                    getattr(pp, attr), with_qr_code=with_qr_code
+                _get_pdf(
+                    getattr(pp, attr),
+                    with_qr_code=with_qr_code,
+                    pdf_bytes_map=pdf_bytes_map,
                 )
             )
     merged = _merge_pdfs_bytes(pdf_bytes_list)
@@ -97,13 +123,15 @@ def _build_single_merged_pdf(
 
 
 def _build_one_pdf_per_project(
-    programmation_projets, attrs, *, with_qr_code=True
+    programmation_projets, attrs, *, with_qr_code=True, pdf_bytes_map=None
 ) -> tuple[str, str, bytes]:
     if len(programmation_projets) == 1:
         pp = programmation_projets[0]
         pdf_bytes_list = [
-            generate_pdf_for_generated_document(
-                getattr(pp, attr), with_qr_code=with_qr_code
+            _get_pdf(
+                getattr(pp, attr),
+                with_qr_code=with_qr_code,
+                pdf_bytes_map=pdf_bytes_map,
             )
             for attr in attrs
         ]
@@ -119,8 +147,10 @@ def _build_one_pdf_per_project(
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for pp in programmation_projets:
             project_pdfs = [
-                generate_pdf_for_generated_document(
-                    getattr(pp, attr), with_qr_code=with_qr_code
+                _get_pdf(
+                    getattr(pp, attr),
+                    with_qr_code=with_qr_code,
+                    pdf_bytes_map=pdf_bytes_map,
                 )
                 for attr in attrs
             ]
@@ -137,20 +167,28 @@ def _build_one_pdf_per_project(
 
 
 def _build_grouped_merged_pdf(
-    programmation_projets, attrs, *, with_qr_code=True
+    programmation_projets, attrs, *, with_qr_code=True, pdf_bytes_map=None
 ) -> tuple[str, str, bytes]:
     pdf_bytes_list = []
     for pp in programmation_projets:
         for attr in attrs:
             pdf_bytes_list.append(
-                generate_pdf_for_generated_document(
-                    getattr(pp, attr), with_qr_code=with_qr_code
+                _get_pdf(
+                    getattr(pp, attr),
+                    with_qr_code=with_qr_code,
+                    pdf_bytes_map=pdf_bytes_map,
                 )
             )
     merged = _merge_pdfs_bytes(pdf_bytes_list)
     date_str = timezone.now().strftime("%d-%m-%Y")
     filename = f"export turgot {date_str}.pdf"
     return filename, "application/pdf", merged
+
+
+def _get_pdf(document, *, with_qr_code, pdf_bytes_map):
+    if pdf_bytes_map is not None and document.pk in pdf_bytes_map:
+        return pdf_bytes_map[document.pk]
+    return generate_pdf_for_generated_document(document, with_qr_code=with_qr_code)
 
 
 def _merge_pdfs_bytes(pdf_bytes_list: list[bytes]) -> bytes:

@@ -24,35 +24,96 @@ LOGO_SCANNED_MODELS = (ModeleArrete, ModeleLettreNotification)
 
 
 @shared_task
-def generate_export_task(
-    pp_ids: list[int],
-    attr_names: list[str],
-    export_format: str,
-    document_type: str,
-    with_qr_code: bool,
-) -> dict:
+def generate_export_task(job_id: str) -> None:
     from gsl_notification.exports import build_export, upload_export_and_get_url
+    from gsl_notification.models import ExportJob
+    from gsl_notification.utils import (
+        count_pdf_pages,
+        generate_pdf_pass1,
+        generate_pdf_pass2,
+    )
     from gsl_programmation.models import ProgrammationProjet
 
-    pk_to_pp = {
-        pp.pk: pp
-        for pp in ProgrammationProjet.objects.filter(pk__in=pp_ids).select_related(
-            "arrete__modele",
-            "lettre_notification__modele",
-            "dotation_projet__projet__dossier_ds__ds_demandeur",
+    job = ExportJob.objects.get(pk=job_id)
+    try:
+        job.status = ExportJob.STATUS_RUNNING
+        job.save(update_fields=["status", "updated_at"])
+
+        pk_to_pp = {
+            pp.pk: pp
+            for pp in ProgrammationProjet.objects.filter(
+                pk__in=job.pp_ids
+            ).select_related(
+                "arrete__modele",
+                "lettre_notification__modele",
+                "dotation_projet__projet__dossier_ds__ds_demandeur",
+            )
+        }
+        pps = [pk_to_pp[pk] for pk in job.pp_ids]
+        documents = [getattr(pp, attr) for attr in job.attr_names for pp in pps]
+        total = len(documents)
+        total_steps = 3 if job.with_qr_code else 2
+
+        ExportJob.objects.filter(pk=job.pk).update(
+            total=total, total_steps=total_steps, updated_at=timezone.now()
         )
-    }
-    pps = [pk_to_pp[pk] for pk in pp_ids]
-    filename, content_type, body = build_export(
-        pps, attr_names, export_format, document_type, with_qr_code=with_qr_code
-    )
-    download_url = upload_export_and_get_url(filename, content_type, body)
-    return {
-        "download_url": download_url,
-        "pp_ids": pp_ids,
-        "export_format": export_format,
-        "doc_count": len(pp_ids) * len(attr_names),
-    }
+
+        pdf_bytes_map: dict[int, bytes] = {}
+
+        if job.with_qr_code:
+            ExportJob.objects.filter(pk=job.pk).update(
+                step=1, processed=0, updated_at=timezone.now()
+            )
+            pass1_results: dict[int, tuple[bytes, int]] = {}
+            for doc in documents:
+                pdf = generate_pdf_pass1(doc)
+                pass1_results[doc.pk] = (pdf, count_pdf_pages(pdf))
+                ExportJob.objects.filter(pk=job.pk).update(
+                    processed=F("processed") + 1, updated_at=timezone.now()
+                )
+
+            ExportJob.objects.filter(pk=job.pk).update(
+                step=2, processed=0, updated_at=timezone.now()
+            )
+            for doc in documents:
+                _, page_count = pass1_results[doc.pk]
+                pdf_bytes_map[doc.pk] = generate_pdf_pass2(doc, page_count)
+                ExportJob.objects.filter(pk=job.pk).update(
+                    processed=F("processed") + 1, updated_at=timezone.now()
+                )
+        else:
+            ExportJob.objects.filter(pk=job.pk).update(
+                step=1, processed=0, updated_at=timezone.now()
+            )
+            for doc in documents:
+                pdf_bytes_map[doc.pk] = generate_pdf_pass1(doc)
+                ExportJob.objects.filter(pk=job.pk).update(
+                    processed=F("processed") + 1, updated_at=timezone.now()
+                )
+
+        ExportJob.objects.filter(pk=job.pk).update(
+            step=total_steps, updated_at=timezone.now()
+        )
+        filename, content_type, body = build_export(
+            pps,
+            job.attr_names,
+            job.export_format,
+            job.document_type,
+            with_qr_code=False,
+            pdf_bytes_map=pdf_bytes_map,
+        )
+        download_url = upload_export_and_get_url(filename, content_type, body)
+
+        ExportJob.objects.filter(pk=job.pk).update(
+            status=ExportJob.STATUS_DONE,
+            download_url=download_url,
+            updated_at=timezone.now(),
+        )
+    except Exception:
+        ExportJob.objects.filter(pk=job.pk).update(
+            status=ExportJob.STATUS_FAILED, updated_at=timezone.now()
+        )
+        raise
 
 
 def _scan_path(path: str) -> dict:

@@ -96,12 +96,12 @@ def _wizard_url(dotation=DOTATION_DETR):
     return reverse("gsl_notification:generate-documents-modal", args=[dotation])
 
 
-def _status_url(dotation, task_id):
+def _status_url(dotation, job_id):
     from django.urls import reverse
 
     return reverse(
         "gsl_notification:generate-documents-status",
-        kwargs={"dotation": dotation, "task_id": task_id},
+        kwargs={"dotation": dotation, "job_id": job_id},
     )
 
 
@@ -443,8 +443,8 @@ def _post_step4_raw(client, dotation=DOTATION_DETR):
 def _post_step4(client, dotation=DOTATION_DETR):
     """POST step4 then poll the status endpoint; returns the final success response."""
     polling_response = _post_step4_raw(client, dotation)
-    task_id = polling_response.context["task_id"]
-    return client.get(_status_url(dotation, task_id), **HTMX_HEADERS)
+    job_id = polling_response.context["job_id"]
+    return client.get(_status_url(dotation, job_id), **HTMX_HEADERS)
 
 
 def test_wizard_step3_renders_loading_body(
@@ -480,8 +480,8 @@ def test_wizard_step4_returns_polling_template(
         "gsl_notification/generated_document/multiple/modal_export_progress_body.html"
         in _template_names(response)
     )
-    assert "task_id" in response.context
-    assert response.context["doc_count"] == 3
+    assert "job_id" in response.context
+    assert "job" in response.context
 
 
 def test_wizard_step4_creates_documents_and_returns_success(

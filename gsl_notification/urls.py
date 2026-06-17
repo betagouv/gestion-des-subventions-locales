@@ -91,7 +91,7 @@ urlpatterns = [
         name="generate-documents-modal",
     ),
     path(
-        "<str:dotation>/generer/status/<str:task_id>/",
+        "<str:dotation>/generer/status/<uuid:job_id>/",
         GenerateDocumentsStatusView.as_view(),
         name="generate-documents-status",
     ),

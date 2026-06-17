@@ -1,6 +1,5 @@
 import logging
 
-from celery.result import AsyncResult
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -21,6 +20,7 @@ from gsl_notification.forms import (
     GenerateDocumentsStep2Form,
     GenerateDocumentsStep3Form,
 )
+from gsl_notification.models import ExportJob
 from gsl_notification.tasks import generate_export_task
 from gsl_notification.utils import get_programmation_projet_attribute
 from gsl_projet.constants import DOTATIONS
@@ -192,10 +192,17 @@ class GenerateDocumentsWizard(SessionWizardView):
 
         attrs = [get_programmation_projet_attribute(t) for t in form.selected_types]
         pp_ids = [pp.pk for pp in refreshed]
-        doc_count = len(pp_ids) * len(attrs)
 
-        result = generate_export_task.apply_async(
-            args=[pp_ids, attrs, export_format, form.document_type, with_qr_code],
+        job = ExportJob.objects.create(
+            created_by=self.request.user,
+            pp_ids=pp_ids,
+            attr_names=attrs,
+            export_format=export_format,
+            document_type=form.document_type,
+            with_qr_code=with_qr_code,
+        )
+        generate_export_task.apply_async(
+            args=[str(job.pk)],
             priority=TASK_PRIORITY_HIGH,
         )
 
@@ -203,64 +210,61 @@ class GenerateDocumentsWizard(SessionWizardView):
             self.request,
             self.POLLING_TEMPLATE,
             {
-                "task_id": result.id,
+                "job_id": str(job.pk),
+                "job": job,
                 "modal_id": self.modal_id,
                 "dotation": self.kwargs["dotation"],
-                "doc_count": doc_count,
             },
         )
 
 
 @method_decorator(htmx_only, name="dispatch")
 class GenerateDocumentsStatusView(View):
-    """Polled every 2 s while the export Celery task is running."""
+    """Polled every 2 s while the export job is running."""
 
     TEMPLATE_BASE = GenerateDocumentsWizard.TEMPLATE_BASE
     SUCCESS_TEMPLATE = GenerateDocumentsWizard.SUCCESS_TEMPLATE
     POLLING_TEMPLATE = GenerateDocumentsWizard.POLLING_TEMPLATE
     ERROR_TEMPLATE = GenerateDocumentsWizard.ERROR_TEMPLATE
 
-    def get(self, request, dotation, task_id):
+    def get(self, request, dotation, job_id):
         from gsl_programmation.models import ProgrammationProjet
 
-        result = AsyncResult(task_id)
+        job = ExportJob.objects.get(pk=job_id)
         context = {
             "modal_id": GenerateDocumentsWizard.modal_id,
             "dotation": dotation,
-            "task_id": task_id,
+            "job_id": str(job.pk),
+            "job": job,
         }
 
-        if result.ready():
-            if result.successful():
-                data = result.get()
-                export_format = data["export_format"]
-                pp_ids = data["pp_ids"]
-                refreshed = list(
-                    ProgrammationProjet.objects.filter(pk__in=pp_ids)
-                    .select_related(
-                        "arrete", "lettre_notification", "lettre_et_arrete_signes"
-                    )
-                    .prefetch_related("annexes")
-                )
-                pk_to_pp = {pp.pk: pp for pp in refreshed}
-                refreshed_ordered = [pk_to_pp[pk] for pk in pp_ids if pk in pk_to_pp]
-                context.update(
-                    {
-                        "download_url": data["download_url"],
-                        "doc_count": data["doc_count"],
-                        "is_export_one_pdf_all": export_format
-                        == EXPORT_FORMAT_ONE_PDF_ALL,
-                        "is_export_one_pdf_all_grouped": export_format
-                        == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
-                        "is_export_one_pdf_per_project": export_format
-                        == EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
-                        "refreshed_programmation_projets": refreshed_ordered,
-                    }
-                )
-                return render(request, self.SUCCESS_TEMPLATE, context)
+        if job.is_running:
+            return render(request, self.POLLING_TEMPLATE, context)
 
-            logger.error("generate_export_task %s failed: %s", task_id, result.info)
-            return render(request, self.ERROR_TEMPLATE, context)
+        if job.status == ExportJob.STATUS_DONE:
+            pp_ids = job.pp_ids
+            refreshed = list(
+                ProgrammationProjet.objects.filter(pk__in=pp_ids)
+                .select_related(
+                    "arrete", "lettre_notification", "lettre_et_arrete_signes"
+                )
+                .prefetch_related("annexes")
+            )
+            pk_to_pp = {pp.pk: pp for pp in refreshed}
+            refreshed_ordered = [pk_to_pp[pk] for pk in pp_ids if pk in pk_to_pp]
+            export_format = job.export_format
+            context.update(
+                {
+                    "download_url": job.download_url,
+                    "doc_count": len(pp_ids) * len(job.attr_names),
+                    "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
+                    "is_export_one_pdf_all_grouped": export_format
+                    == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
+                    "is_export_one_pdf_per_project": export_format
+                    == EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
+                    "refreshed_programmation_projets": refreshed_ordered,
+                }
+            )
+            return render(request, self.SUCCESS_TEMPLATE, context)
 
-        context["doc_count"] = int(request.GET.get("doc_count", 0))
-        return render(request, self.POLLING_TEMPLATE, context)
+        return render(request, self.ERROR_TEMPLATE, context)

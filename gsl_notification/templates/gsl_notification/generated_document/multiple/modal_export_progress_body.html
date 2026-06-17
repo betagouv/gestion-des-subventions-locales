@@ -1,6 +1,6 @@
 {% load dsfr_tags %}
 <div id="{{ modal_id }}-step"
-     hx-get="{% url 'gsl_notification:generate-documents-status' dotation task_id %}?doc_count={{ doc_count }}"
+     hx-get="{% url 'gsl_notification:generate-documents-status' dotation job_id %}"
      hx-trigger="every 2s"
      hx-swap="outerHTML"
      hx-target="this">
@@ -13,7 +13,10 @@
              role="status"
              aria-live="polite">
             <p>
-                {{ doc_count }} document{{ doc_count|pluralize }} en cours de génération…
+                Étape {{ job.step }}/{{ job.total_steps }} — {{ job.step_label }}
+                {% if job.total > 0 and job.step != job.total_steps %}
+                    ({{ job.processed }}/{{ job.total }} document{{ job.total|pluralize }})
+                {% endif %}
             </p>
         </div>
         <div class="fr-mt-3w fr-grid-row fr-grid-row--gutters fr-grid-row--center"

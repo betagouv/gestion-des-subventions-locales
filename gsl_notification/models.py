@@ -372,6 +372,68 @@ class DocumentImportJob(BaseModel):
         return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
 
 
+class ExportJob(BaseModel):
+    """
+    Tracks an async batch PDF export. `done()` creates this record and dispatches
+    a Celery task; the browser polls a view that reads it for progress.
+    """
+
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_FAILED = "failed"
+    STATUS_DONE = "done"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "En attente"),
+        (STATUS_RUNNING, "En cours"),
+        (STATUS_FAILED, "Échec"),
+        (STATUS_DONE, "Terminé"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+
+    # Task parameters — stored so the task only needs job_id
+    pp_ids = models.JSONField(default=list)
+    attr_names = models.JSONField(default=list)
+    export_format = models.CharField(max_length=64)
+    document_type = models.CharField(max_length=32)
+    with_qr_code = models.BooleanField(default=True)
+
+    # Progress
+    status = models.CharField(
+        max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    step = models.PositiveSmallIntegerField(default=1)
+    total_steps = models.PositiveSmallIntegerField(default=2)
+    processed = models.PositiveIntegerField(default=0)
+    total = models.PositiveIntegerField(default=0)
+
+    # Result
+    download_url = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Export de documents"
+        verbose_name_plural = "Exports de documents"
+        ordering = ("-created_at",)
+
+    @property
+    def step_label(self) -> str:
+        if self.with_qr_code:
+            return {
+                1: "Première génération",
+                2: "Génération avec QR code",
+                3: "Création du fichier d'export",
+            }.get(self.step, "")
+        return {
+            1: "Génération des documents",
+            2: "Création du fichier d'export",
+        }.get(self.step, "")
+
+    @property
+    def is_running(self) -> bool:
+        return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
+
+
 class Annexe(UploadedDocument):
     file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
 
