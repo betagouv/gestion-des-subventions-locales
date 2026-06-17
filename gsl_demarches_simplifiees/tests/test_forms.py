@@ -214,6 +214,33 @@ class TestDossierReporteSansPieceForm:
         assert DOTATION_DETR in saved_dossier.demande_dispositif_sollicite
         assert DOTATION_DSIL in saved_dossier.demande_dispositif_sollicite
 
+    def test_form_save_creates_dotation_projet_with_assiette_from_finance_cout_total(
+        self,
+    ):
+        dossier = DossierFactory(
+            demande_dispositif_sollicite="",
+            finance_cout_total=None,
+            annotations_assiette_detr=None,
+        )
+        ProjetFactory(dossier_ds=dossier)
+
+        form_data = {
+            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        form.save()
+
+        from gsl_projet.models import DotationProjet
+
+        dp = DotationProjet.objects.get(
+            projet__dossier_ds=dossier, dotation=DOTATION_DETR
+        )
+        assert dp.assiette == Decimal("100000.00")
+
 
 class TestDossierReporteSansPieceFormCategories:
     @pytest.fixture

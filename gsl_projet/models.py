@@ -647,6 +647,20 @@ class DotationProjet(BaseModel):
                     f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
                 )
 
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.assiette is None:
+            dossier = self.dossier_ds
+            if self.dotation == DOTATION_DETR:
+                annotation_assiette = dossier.annotations_assiette_detr
+            else:
+                annotation_assiette = dossier.annotations_assiette_dsil
+            self.assiette = (
+                annotation_assiette
+                if annotation_assiette is not None
+                else dossier.finance_cout_total
+            )
+        super().save(*args, **kwargs)
+
     @property
     def dossier_ds(self):
         return self.projet.dossier_ds

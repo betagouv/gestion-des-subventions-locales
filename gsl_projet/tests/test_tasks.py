@@ -134,7 +134,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     assert dotation_projets.count() == 1
     dotation_projet = dotation_projets.first()  # always exists
     assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette is None
+    assert dotation_projet.assiette == 4_000
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED  # always exists
 
     for simulation_projet in dotation_projet.simulationprojet_set.all():
@@ -192,7 +192,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     assert dotation_projets.count() == 1
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette is None
+    assert dotation_projet.assiette == 4_000
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
 
     for simulation_projet in dotation_projet.simulationprojet_set.all():
@@ -252,7 +252,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     assert dotation_projets.count() == 1
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette is None
+    assert dotation_projet.assiette == 4_000
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
 
     for simulation_projet in dotation_projet.simulationprojet_set.all():
