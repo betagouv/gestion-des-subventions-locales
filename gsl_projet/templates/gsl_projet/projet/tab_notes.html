@@ -1,5 +1,5 @@
 {% extends "gsl_projet/projet.html" %}
-{% load static gsl_filters dsfr_tags %}
+{% load static gsl_filters dsfr_tags ui_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
@@ -7,25 +7,54 @@
 {% endblock extra_css %}
 
 {% block tab_projet %}
-    <h2 class="fr-mb-4w">
-        <span class="fr-icon-edit-box-fill fr-icon--lg blue-color"
-              aria-hidden="true"></span>
-        Commentaires d'arbitrage
-    </h2>
+    <div data-controller="projet-notes"
+         data-action="projet-note-card:delete-requested->projet-notes#openDeleteModal projet-note-card:cancel-requested->projet-notes#openCancelModal">
+        <h2 class="fr-mb-4w">
+            <span class="fr-icon-edit-box-fill fr-icon--lg blue-color"
+                  aria-hidden="true"></span>
+            Commentaires d'arbitrage
+        </h2>
 
-    {% for card in comment_cards %}
-        {% include "includes/_comment_arbitrage_card.html" with comment_num=card.num comment_value=card.value comment_form=card.form projet=projet %}
-    {% endfor %}
+        {% for card in comment_cards %}
+            {% include "includes/_comment_arbitrage_card.html" with comment_num=card.num comment_value=card.value comment_form=card.form projet=projet %}
+        {% endfor %}
 
-    {% include "includes/_notes_detail.html" %}
-    {% block block_projet_notes %}
-        {% if projet_notes %}
-            <h3>
-                Notes créées ici
-            </h3>
-            {% for note in projet_notes %}
-                {% include "includes/_note_card.html" with allow_update=False %}
-            {% endfor %}
-        {% endif %}
-    {% endblock block_projet_notes %}
+        {% include "includes/_notes_detail.html" %}
+        {% block block_projet_notes %}
+            {% if projet_notes %}
+                <h3>
+                    Annotations créées ici
+                </h3>
+                {% for note in projet_notes %}
+                    {% include "includes/_projet_note_card.html" with allow_update=True %}
+                {% endfor %}
+            {% endif %}
+
+            <div class="fr-mt-2w">
+                <button class="fr-btn fr-btn--primary fr-btn--icon-left fr-icon-add-line fr-icon--lg"
+                        data-action="click->projet-notes#showAddForm">
+                    Ajouter une nouvelle note
+                </button>
+            </div>
+            <form class="fr-mt-4w"
+                  method="post"
+                  id="projet_note_form"
+                  action="{% url 'projet:note-create' projet.id %}"
+                  data-projet-notes-target="addForm"
+                  data-action="input->projet-notes#trackInput submit->projet-notes#clearDirty keydown->projet-notes#handleKeydown">
+                {% csrf_token %}
+                {{ projet_note_form }}
+                <div class="fr-mt-2w submit-projet-note-form-container">
+                    <button type="submit" class="fr-btn fr-btn--primary">
+                        Ajouter
+                    </button>
+                </div>
+            </form>
+        {% endblock block_projet_notes %}
+    </div>
 {% endblock tab_projet %}
+
+{% block modal %}
+    {% ui_confirmation_modal modal_id="delete-confirmation-modal" title="Supprimer la note" text="Êtes-vous sûr(e) de vouloir supprimer cette note ? Personne ne pourra plus la voir dans Turgot. Cette action est irréversible." action_text="Supprimer" %}
+    {% ui_confirmation_modal modal_id="cancel-update-confirmation-modal" title="Annuler la mise à jour de la note" text="Êtes-vous sûr(e) de vouloir annuler la mise à jour de cette note ?" %}
+{% endblock modal %}

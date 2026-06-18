@@ -1,0 +1,24 @@
+
+<form method="post"
+      action="{% url 'projet:note-edit' object.id %}"
+      hx-post="{% url 'projet:note-edit' object.id %}"
+      hx-target="#note_card_{{ object.id }}"
+      hx-swap="outerHTML"
+      class="projet_note_update_form"
+      id="projet_note_update_form_{{ object.id }}"
+      data-action="input->projet-note-card#trackInput submit->projet-note-card#clearDirty keydown->projet-note-card#handleKeydown">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="button"
+            class="fr-btn fr-btn--secondary"
+            hx-get="{% url 'projet:note-card' object.id %}"
+            hx-target="#note_card_{{ object.id }}"
+            hx-trigger="cancel"
+            hx-swap="outerHTML"
+            data-action="click->projet-note-card#confirmCancel">
+        Annuler
+    </button>
+    <button type="submit" class="fr-btn fr-btn--primary">
+        Modifier
+    </button>
+</form>
