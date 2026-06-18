@@ -121,6 +121,11 @@ class ProjetUpdateView(UpdateView):
     def get_queryset(self):
         return Projet.objects.active().for_user(self.request.user)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         try:
             form.save()

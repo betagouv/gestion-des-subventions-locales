@@ -32,8 +32,3 @@
 {% block modal %}
     {% ui_confirmation_modal modal_id="dotation-confirmation-modal-content" title="Modification de la dotation" icon="fr-icon-arrow-right-line" text="Ce projet sera aussi affiché dans les simulations DSIL." action_text="Je confirme" form="projet-form" is_title_red=False %}
 {% endblock modal %}
-
-{% block extra_js %}
-    <script type="module"
-            src="{% static 'js/handleInteractionInSimulationProjet.js' %}"></script>
-{% endblock extra_js %}
