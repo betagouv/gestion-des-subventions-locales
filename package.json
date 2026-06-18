@@ -33,7 +33,8 @@
   "standard": {
     "globals": [
       "dsfr",
-      "htmx"
+      "htmx",
+      "sessionStorage"
     ],
     "ignore": [
       "static/vendor",
