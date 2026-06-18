@@ -60,7 +60,9 @@
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
                     "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
                     "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
-                    "projetForm": "{% static 'js/controllers/projetForm.js' %}"
+                    "projetForm": "{% static 'js/controllers/projetForm.js' %}",
+                    "projetNotes": "{% static 'js/controllers/projetNotes.js' %}",
+                    "projetNoteCard": "{% static 'js/controllers/projetNoteCard.js' %}"
                 }
             }
             </script>
@@ -134,6 +136,8 @@
             import { DotationDropdown } from "dotationDropdown"
             import { CommentArbitrage } from "commentArbitrage"
             import { ProjetForm } from "projetForm"
+            import { ProjetNotes } from "projetNotes"
+            import { ProjetNoteCard } from "projetNoteCard"
 
             window.Stimulus = Application.start()
 
@@ -150,6 +154,8 @@
             Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)
             Stimulus.register("projet-form", ProjetForm)
+            Stimulus.register("projet-notes", ProjetNotes)
+            Stimulus.register("projet-note-card", ProjetNoteCard)
         </script>
 
         {% block extra_js %}
