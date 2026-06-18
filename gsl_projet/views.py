@@ -2,10 +2,17 @@ import json
 
 from django.contrib import messages
 from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
-from django.shortcuts import redirect
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.generic import DetailView, ListView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
@@ -18,8 +25,13 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
-from gsl_projet.forms import DotationProjetForm, ProjetCommentForm, ProjetForm
-from gsl_projet.models import DotationProjet
+from gsl_projet.forms import (
+    DotationProjetForm,
+    ProjetCommentForm,
+    ProjetForm,
+    ProjetNoteForm,
+)
+from gsl_projet.models import DotationProjet, ProjetNote
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
     ORDERING_MAP,
@@ -68,6 +80,7 @@ class BaseProjetDetailView(DetailView):
         if detr_dotation:
             context["dotation_projet_form"] = DotationProjetForm(instance=detr_dotation)
             context["dotation_projet"] = detr_dotation
+        context["projet_note_form"] = ProjetNoteForm()
         return context
 
 
@@ -172,6 +185,92 @@ class DotationProjetUpdateView(UpdateView):
             "Une erreur s'est produite lors de la soumission du formulaire.",
         )
         return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+
+class ProjetNoteCreateView(CreateView):
+    model = ProjetNote
+    form_class = ProjetNoteForm
+    http_method_names = ["post"]
+
+    def form_valid(self, form):
+        projet = get_object_or_404(
+            Projet.objects.active().for_user(self.request.user),
+            pk=self.kwargs["projet_id"],
+        )
+        note = form.save(commit=False)
+        note.projet = projet
+        note.created_by = self.request.user
+        note.save()
+        messages.success(self.request, "La note a été ajoutée avec succès.")
+        return _redirect_to_notes(self.request, projet)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "Une erreur s'est produite lors de la soumission du formulaire.",
+        )
+        return redirect("projet:get-projet-notes", projet_id=self.kwargs["projet_id"])
+
+
+class ProjetNoteDeleteView(DeleteView):
+    model = ProjetNote
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return ProjetNote.objects.filter(created_by=self.request.user)
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            f'La note "{self.object.title}" a bien été supprimée.',
+        )
+        return reverse(
+            "projet:get-projet-notes",
+            kwargs={"projet_id": self.object.projet.pk},
+        )
+
+
+class ProjetNoteEditView(UpdateView):
+    model = ProjetNote
+    form_class = ProjetNoteForm
+    template_name = "htmx/projet_note_update_form.html"
+
+    def get_queryset(self):
+        return ProjetNote.objects.filter(created_by=self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        if request.headers.get("HX-Request") != "true":
+            return HttpResponseForbidden("Cette action n'est pas autorisée.")
+        return super().get(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("projet:note-card", kwargs={"pk": self.object.pk})
+
+
+class ProjetNoteCardView(DetailView):
+    model = ProjetNote
+    template_name = "includes/_projet_note_card.html"
+    context_object_name = "note"
+    http_method_names = ["get"]
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.headers.get("HX-Request") != "true":
+            return HttpResponseForbidden("Cette action n'est pas autorisée.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["allow_update"] = True
+        return context
+
+
+def _redirect_to_notes(request, projet):
+    referer = request.headers.get("Referer")
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts=request.get_host()
+    ):
+        return redirect(referer)
+    return redirect("projet:get-projet-notes", projet_id=projet.pk)
 
 
 class ProjetListViewFilters(ProjetFilters):
