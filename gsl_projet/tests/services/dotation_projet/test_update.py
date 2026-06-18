@@ -731,10 +731,10 @@ def test_update_assiette_from_dossier_does_not_create_action_when_assiette_uncha
 
 
 @pytest.mark.django_db
-def test_update_assiette_from_dossier_creates_action_when_assiette_was_none():
+def test_update_assiette_from_dossier_creates_action_when_assiette_changed():
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        assiette=None,
+        assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=15_000,
     )
 

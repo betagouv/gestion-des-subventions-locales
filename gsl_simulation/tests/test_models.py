@@ -146,7 +146,7 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
         )
         sp.clean()
     assert (
-        "Le montant doit être inférieur ou égal au coût total du projet."
+        "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
         in exc_info.value.messages
     )
 

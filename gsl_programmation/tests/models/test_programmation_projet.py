@@ -87,7 +87,7 @@ def test_programmation_projet_cant_have_a_montant_higher_than_projet_cout_total(
         pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=101)
         pp.full_clean()
     assert (
-        "Le montant de la programmation ne peut pas être supérieur au coût total du projet pour cette dotation."
+        "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet pour cette dotation."
         in exc_info.value.message_dict.get("montant")[0]
     )
 
