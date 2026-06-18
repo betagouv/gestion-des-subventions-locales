@@ -69,7 +69,8 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         widget=forms.CheckboxInput(
             attrs={
                 "form": "projet-form",
-                "data-toggle": "autre-zonage-local",
+                "data-action": "change->projet-form#toggleAutreZonageLocal",
+                "data-projet-form-target": "autreZonageLocalCheckbox",
             }
         ),
     )
@@ -85,7 +86,8 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         widget=forms.CheckboxInput(
             attrs={
                 "form": "projet-form",
-                "data-toggle": "contrat-local",
+                "data-action": "change->projet-form#toggleContratLocal",
+                "data-projet-form-target": "contratLocalCheckbox",
             }
         ),
     )
@@ -321,7 +323,11 @@ class DotationProjetForm(ModelForm):
         choices=DETR_AVIS_CHOICES,
         required=False,
         widget=forms.Select(
-            attrs={"form": "dotation-projet-form", "class": "fr-select"}
+            attrs={
+                "form": "dotation-projet-form",
+                "class": "fr-select",
+                "data-action": "change->projet-form#submitOnChange",
+            }
         ),
     )
 
