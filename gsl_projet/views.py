@@ -1,12 +1,16 @@
+import json
+
 from django.contrib import messages
 from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import DetailView, ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import SafeRedirectMixin
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
@@ -14,7 +18,8 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
-from gsl_projet.forms import ProjetCommentForm
+from gsl_projet.forms import DotationProjetForm, ProjetCommentForm, ProjetForm
+from gsl_projet.models import DotationProjet
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
     ORDERING_MAP,
@@ -42,6 +47,8 @@ class BaseProjetDetailView(DetailView):
     def get_context_data(self, **kwargs):
         projet = self.object
         context = super().get_context_data(**kwargs)
+        projet_form = ProjetForm(instance=projet)
+        dotation_field = projet_form.fields.get("dotations")
         context.update(
             {
                 "title": projet.dossier_ds.projet_intitule,
@@ -50,9 +57,17 @@ class BaseProjetDetailView(DetailView):
                 "projet_notes": projet.notes.all(),
                 "dotation_projets": projet.dotationprojet_set.all(),
                 "comment_cards": get_comment_cards(projet),
+                "projet_form": projet_form,
+                "initial_dotations": (
+                    json.dumps(dotation_field.initial) if dotation_field else "[]"
+                ),
                 **get_projet_go_back_context(self.request),
             }
         )
+        detr_dotation = projet.dotation_detr
+        if detr_dotation:
+            context["dotation_projet_form"] = DotationProjetForm(instance=detr_dotation)
+            context["dotation_projet"] = detr_dotation
         return context
 
 
@@ -86,6 +101,72 @@ class ProjetCommentUpdateView(SafeRedirectMixin, UpdateView):
 
     def form_invalid(self, form):
         return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
+
+
+def _redirect_to_referer_or_projet(request, projet):
+    referer = request.headers.get("Referer")
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts=request.get_host()
+    ):
+        return redirect(referer)
+    return redirect("projet:get-projet", projet_id=projet.pk)
+
+
+class ProjetUpdateView(UpdateView):
+    model = Projet
+    form_class = ProjetForm
+    pk_url_kwarg = "projet_id"
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return Projet.objects.active().for_user(self.request.user)
+
+    def form_valid(self, form):
+        try:
+            form.save()
+            messages.success(
+                self.request,
+                "Les modifications ont été enregistrées avec succès.",
+            )
+        except DsServiceException as e:
+            messages.error(
+                self.request,
+                f"Une erreur est survenue lors de la mise à jour sur Démarche Numérique. {e}",
+            )
+        return _redirect_to_referer_or_projet(self.request, self.object)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "Une erreur s'est produite lors de la soumission du formulaire.",
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object)
+
+
+class DotationProjetUpdateView(UpdateView):
+    model = DotationProjet
+    form_class = DotationProjetForm
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return DotationProjet.objects.filter(
+            projet__in=Projet.objects.active().for_user(self.request.user)
+        )
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            "Les modifications ont été enregistrées avec succès.",
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "Une erreur s'est produite lors de la soumission du formulaire.",
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
 
 
 class ProjetListViewFilters(ProjetFilters):

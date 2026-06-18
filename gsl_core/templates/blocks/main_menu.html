@@ -22,7 +22,7 @@
                         <a class="fr-nav__link"
                            href="{{ projets_url }}"
                            target="_self"
-                           {% if "/projets/" in request.path or "/notification/" in request.path and "/notification/modeles/" not in request.path %}{% if go_back_link is None or "/programmation/" not in go_back_link %}aria-current="true"{% endif %}
+                           {% if "/projets/" in request.path or "/notification/" in request.path and "/notification/modeles/" not in request.path %}{% if go_back_link is None or "/programmation/" not in go_back_link and "/simulation/" not in go_back_link %}aria-current="true"{% endif %}
                            {% endif %}>Liste des projets</a>
                     </li>
                     <li class="fr-nav__item">
@@ -30,7 +30,7 @@
                         <a class="fr-nav__link"
                            href="{{ simulations_url }}"
                            target="_self"
-                           {% if "/simulation/" in request.path %}aria-current="true"{% endif %}>Simulations</a>
+                           {% if "/simulation/" in request.path or go_back_link and "/simulation/" in go_back_link %}aria-current="true"{% endif %}>Simulations</a>
                     </li>
                     <li class="fr-nav__item">
                         {% if not request.user.perimetre.departement %}

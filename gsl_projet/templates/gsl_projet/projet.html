@@ -11,7 +11,12 @@
             <div class="fr-col">
                 {% block go_back_button %}
                     <div class="fr-mb-4w">
-                        {% if "/programmation/" in go_back_link %}
+                        {% if go_back_link and "/simulation/" in go_back_link %}
+                            <a href="{{ go_back_link }}"
+                               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                                Retour à la simulation
+                            </a>
+                        {% elif go_back_link and "/programmation/" in go_back_link %}
                             <a href="{{ go_back_link }}"
                                class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
                                 Retour à la liste des projets programmés

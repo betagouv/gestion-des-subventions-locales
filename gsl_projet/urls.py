@@ -15,6 +15,16 @@ urlpatterns = [
         name="get-projet",
     ),
     path(
+        "voir/<int:projet_id>/modifier/",
+        views.ProjetUpdateView.as_view(),
+        name="patch-projet",
+    ),
+    path(
+        "dotation/<int:pk>/modifier/",
+        views.DotationProjetUpdateView.as_view(),
+        name="patch-dotation-projet",
+    ),
+    path(
         "voir/<int:projet_id>/notes/",
         views.BaseProjetDetailView.as_view(
             template_name="gsl_projet/projet/tab_notes.html"
