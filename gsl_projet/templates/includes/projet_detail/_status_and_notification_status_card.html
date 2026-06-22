@@ -9,7 +9,7 @@
         </h2>
     </div>
     {% block status_action_content %}
-        <p class="fr-badge badge-projet-status__{{ dotation_projet.status }}">
+        <p class="fr-badge {{ dotation_projet.status|dotation_badge_class }}">
             {{ dotation_projet.get_status_display|remove_first_word }}
         </p>
     {% endblock status_action_content %}
