@@ -240,3 +240,12 @@ def other_dotation_cell_value(context, column):
 @register.filter
 def perimetre_type_abbrev(perimetre_type):
     return f"{perimetre_type[:3]}."
+
+
+@register.filter
+def dotation_badge_class(status):
+    if status == "accepted":
+        return "fr-badge--success"
+    if status == "refused":
+        return "fr-badge--error"
+    return f"badge-projet-status__{status}"

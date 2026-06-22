@@ -59,7 +59,7 @@
     <div class="projet-header__status">
         {% block status_badge %}
             {% for dotation_projet in dotation_projets %}
-                <span class="fr-badge badge-projet-status__{{ dotation_projet.status }}">
+                <span class="fr-badge {{ dotation_projet.status|dotation_badge_class }}">
                     {{ dotation_projet.dotation }}
                     {{ dotation_projet.get_status_display|remove_first_word }}
                 </span>
