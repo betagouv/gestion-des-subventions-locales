@@ -1,4 +1,5 @@
 {% extends "gsl_projet/projet.html" %}
+
 {% load static gsl_filters %}
 
 {% block extra_css %}
@@ -7,20 +8,57 @@
 {% endblock extra_css %}
 
 {% block tab_projet %}
-    <div class="fr-container--fluid fr-mt-4w">
+    {% url "projet:get-projet-simulations" projet_id=projet.id as base_simulations_url %}
+    <div class="fr-container--fluid">
         <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-mb-4w">
             <div class="fr-col-auto">
-                <span class="fr-text--sm fr-text--bold fr-mr-2w">Dotation</span>
-                {% url "projet:get-projet-simulations" projet_id=projet.id as base_simulations_url %}
-                <a href="{{ base_simulations_url }}"
-                   class="fr-btn fr-btn--sm {% if not dotation_filter %}{% else %}fr-btn--tertiary{% endif %} fr-mr-1w">Toutes</a>
-                <a href="{{ base_simulations_url }}?dotation=DETR"
-                   class="fr-btn fr-btn--sm {% if dotation_filter == 'DETR' %}{% else %}fr-btn--tertiary{% endif %} fr-mr-1w">DETR</a>
-                <a href="{{ base_simulations_url }}?dotation=DSIL"
-                   class="fr-btn fr-btn--sm {% if dotation_filter == 'DSIL' %}{% else %}fr-btn--tertiary{% endif %}">DSIL</a>
+                <fieldset class="fr-segmented"
+                          data-controller="radio-navigate"
+                          data-radio-navigate-base-url-value="{{ base_simulations_url }}">
+                    <legend class="fr-segmented__legend">
+                        Dotation
+                    </legend>
+                    <div class="fr-segmented__elements">
+                        <div class="fr-segmented__element">
+                            <input class="fr-sr-only"
+                                   type="radio"
+                                   id="filter-toutes"
+                                   name="dotation-filter"
+                                   value=""
+                                   {% if not dotation_filter %}checked{% endif %}
+                                   data-action="change->radio-navigate#navigate">
+                            <label class="fr-label" for="filter-toutes">
+                                Toutes
+                            </label>
+                        </div>
+                        <div class="fr-segmented__element">
+                            <input class="fr-sr-only"
+                                   type="radio"
+                                   id="filter-detr"
+                                   name="dotation-filter"
+                                   value="DETR"
+                                   {% if dotation_filter == 'DETR' %}checked{% endif %}
+                                   data-action="change->radio-navigate#navigate">
+                            <label class="fr-label" for="filter-detr">
+                                DETR
+                            </label>
+                        </div>
+                        <div class="fr-segmented__element">
+                            <input class="fr-sr-only"
+                                   type="radio"
+                                   id="filter-dsil"
+                                   name="dotation-filter"
+                                   value="DSIL"
+                                   {% if dotation_filter == 'DSIL' %}checked{% endif %}
+                                   data-action="change->radio-navigate#navigate">
+                            <label class="fr-label" for="filter-dsil">
+                                DSIL
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
             </div>
         </div>
-
         {% if simulation_projets_with_forms %}
             <div class="fr-grid-row fr-grid-row--gutters">
                 {% for simu, simulation_projet_form, form_id, assiette_shared in simulation_projets_with_forms %}
