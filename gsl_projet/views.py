@@ -67,7 +67,9 @@ class BaseProjetDetailView(DetailView):
                 "dossier": projet.dossier_ds,
                 "menu_dict": PROJET_MENU,
                 "projet_notes": projet.notes.all(),
-                "dotation_projets": projet.dotationprojet_set.all(),
+                "dotation_projets": projet.dotationprojet_set.order_by(
+                    "dotation"
+                ).all(),
                 "comment_cards": get_comment_cards(projet),
                 "projet_form": projet_form,
                 "initial_dotations": (
