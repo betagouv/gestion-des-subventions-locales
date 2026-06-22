@@ -41,6 +41,8 @@ from gsl_projet.utils.projet_filters import (
 )
 from gsl_projet.utils.projet_page import PROJET_MENU, get_projet_go_back_context
 from gsl_projet.utils.utils import get_comment_cards
+from gsl_simulation.forms import SimulationProjetForm
+from gsl_simulation.models import SimulationProjet
 
 from .models import Projet
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
@@ -84,6 +86,48 @@ class BaseProjetDetailView(DetailView):
             context["dotation_projet_form"] = DotationProjetForm(instance=detr_dotation)
             context["dotation_projet"] = detr_dotation
         context["projet_note_form"] = ProjetNoteForm()
+        return context
+
+
+class ProjetSimulationsView(BaseProjetDetailView):
+    template_name = "gsl_projet/projet/tab_simulations.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        projet = self.object
+        all_qs = SimulationProjet.objects.filter(
+            dotation_projet__projet=projet
+        ).select_related(
+            "simulation",
+            "simulation__enveloppe",
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
+        )
+
+        dp_sp_counts: dict[int, int] = {}
+        for sp in all_qs:
+            dp_sp_counts[sp.dotation_projet_id] = (
+                dp_sp_counts.get(sp.dotation_projet_id, 0) + 1
+            )
+
+        dotation_filter = self.request.GET.get("dotation", "")
+        filtered_qs = all_qs.order_by("-simulation__created_at")
+        if dotation_filter in ("DETR", "DSIL"):
+            filtered_qs = filtered_qs.filter(dotation_projet__dotation=dotation_filter)
+
+        simulation_projets_with_forms = []
+        for sp in filtered_qs:
+            form_id = f"simulation-card-form-{sp.pk}"
+            form = SimulationProjetForm(instance=sp)
+            for field in ("assiette", "montant", "taux"):
+                if field in form.fields:
+                    form.fields[field].widget.attrs["form"] = form_id
+            assiette_shared = dp_sp_counts.get(sp.dotation_projet_id, 1) > 1
+            simulation_projets_with_forms.append((sp, form, form_id, assiette_shared))
+
+        context["simulation_projets_with_forms"] = simulation_projets_with_forms
+        context["dotation_filter"] = dotation_filter
         return context
 
 

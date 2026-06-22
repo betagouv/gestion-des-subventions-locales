@@ -1,0 +1,43 @@
+{% extends "gsl_projet/projet.html" %}
+{% load static gsl_filters %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
+    <link rel="stylesheet" href="{% static "css/simulation_detail.css" %}">
+{% endblock extra_css %}
+
+{% block tab_projet %}
+    <div class="fr-container--fluid fr-mt-4w">
+        <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-mb-4w">
+            <div class="fr-col-auto">
+                <span class="fr-text--sm fr-text--bold fr-mr-2w">Dotation</span>
+                {% url "projet:get-projet-simulations" projet_id=projet.id as base_simulations_url %}
+                <a href="{{ base_simulations_url }}"
+                   class="fr-btn fr-btn--sm {% if not dotation_filter %}{% else %}fr-btn--tertiary{% endif %} fr-mr-1w">Toutes</a>
+                <a href="{{ base_simulations_url }}?dotation=DETR"
+                   class="fr-btn fr-btn--sm {% if dotation_filter == 'DETR' %}{% else %}fr-btn--tertiary{% endif %} fr-mr-1w">DETR</a>
+                <a href="{{ base_simulations_url }}?dotation=DSIL"
+                   class="fr-btn fr-btn--sm {% if dotation_filter == 'DSIL' %}{% else %}fr-btn--tertiary{% endif %}">DSIL</a>
+            </div>
+        </div>
+
+        {% if simulation_projets_with_forms %}
+            <div class="fr-grid-row fr-grid-row--gutters">
+                {% for simu, simulation_projet_form, form_id, assiette_shared in simulation_projets_with_forms %}
+                    {% with dotation_projet=simu.dotation_projet dossier=simu.dossier %}
+                        {% include "gsl_projet/projet/includes/_simulation_card.html" %}
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="fr-py-8w fr-text--center">
+                <p class="fr-text--lg fr-text--bold">
+                    Aucune simulation pour ce projet
+                </p>
+                <p class="fr-text--sm fr-hint-text">
+                    Les simulations apparaîtront ici une fois que ce projet aura été ajouté à une simulation.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock tab_projet %}

@@ -1,3 +1,7 @@
+.simulation-projet-card {
+  background-image: none;
+}
+
 .projet-header {
   display: flex;
   flex-direction: row;

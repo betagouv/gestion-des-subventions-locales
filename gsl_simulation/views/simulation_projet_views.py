@@ -563,6 +563,57 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return HttpResponseClientRefresh()
 
 
+class SimulationProjetCardUpdateView(UpdateView):
+    model = SimulationProjet
+    form_class = SimulationProjetForm
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return SimulationProjet.objects.active().in_user_perimeter(self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        try:
+            form.save()
+        except DsServiceException as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+        return HttpResponseClientRefresh()
+
+    def form_invalid(self, form):
+        simu = self.object
+        if not self.request.headers.get("HX-Request"):
+            messages.error(self.request, "Erreur dans le formulaire de simulation.")
+            return redirect("projet:get-projet-simulations", projet_id=simu.projet.pk)
+        form_id = f"simulation-card-form-{simu.pk}"
+        for field in ("assiette", "montant", "taux"):
+            if field in form.fields:
+                form.fields[field].widget.attrs["form"] = form_id
+        assiette_shared = (
+            SimulationProjet.objects.filter(
+                dotation_projet=simu.dotation_projet
+            ).count()
+            > 1
+        )
+        return render(
+            self.request,
+            "gsl_projet/projet/includes/_simulation_card.html",
+            {
+                "simu": simu,
+                "simulation_projet_form": form,
+                "form_id": form_id,
+                "assiette_shared": assiette_shared,
+                "dotation_projet": simu.dotation_projet,
+                "dossier": simu.dossier,
+                "projet": simu.projet,
+            },
+        )
+
+
 @method_decorator(htmx_only, name="dispatch")
 @method_decorator(require_POST, name="dispatch")
 class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):

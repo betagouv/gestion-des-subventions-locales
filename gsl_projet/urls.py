@@ -52,6 +52,11 @@ urlpatterns = [
         name="note-delete",
     ),
     path(
+        "voir/<int:projet_id>/simulations/",
+        views.ProjetSimulationsView.as_view(),
+        name="get-projet-simulations",
+    ),
+    path(
         "voir/<int:projet_id>/historique/",
         views.ProjetHistoriqueView.as_view(),
         name="get-projet-historique",
