@@ -4,12 +4,13 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import Http404 as DjangoHttp404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import BaseUpdateView
-from django_htmx.http import HttpResponseClientRefresh
+from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh
 
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
@@ -582,7 +583,12 @@ class SimulationProjetCardUpdateView(UpdateView):
         except DsServiceException as e:
             form.add_error(None, str(e))
             return self.form_invalid(form)
-        return HttpResponseClientRefresh()
+        simu = self.object
+        url = reverse(
+            "projet:get-projet-simulations",
+            kwargs={"projet_id": simu.dotation_projet.projet_id},
+        )
+        return HttpResponseClientRedirect(url)
 
     def form_invalid(self, form):
         simu = self.object
