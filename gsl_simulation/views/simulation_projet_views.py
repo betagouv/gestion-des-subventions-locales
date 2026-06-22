@@ -1,4 +1,5 @@
 import json
+from urllib.parse import parse_qs, urlparse
 
 from django.contrib import messages
 from django.db import transaction
@@ -588,6 +589,14 @@ class SimulationProjetCardUpdateView(UpdateView):
             "projet:get-projet-simulations",
             kwargs={"projet_id": simu.dotation_projet.projet_id},
         )
+        current_url = self.request.headers.get("HX-Current-URL", "")
+        if current_url:
+            dotation = parse_qs(urlparse(current_url).query).get("dotation", [""])[0]
+            if dotation in ("DETR", "DSIL"):
+                url = f"{url}?dotation={dotation}"
+        # HttpResponseClientRefresh (window.location.reload) can serve a cached
+        # response and leave sibling cards with a shared assiette out of date.
+        # A redirect forces a full navigation with no cache reuse.
         return HttpResponseClientRedirect(url)
 
     def form_invalid(self, form):
