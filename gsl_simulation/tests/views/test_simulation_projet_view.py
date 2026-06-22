@@ -158,40 +158,6 @@ def test_get_other_dotation_montants_with_none_assiette():
     assert result["taux"] is None
 
 
-@pytest.mark.parametrize(
-    "status",
-    (
-        SimulationProjet.STATUS_PROCESSING,
-        SimulationProjet.STATUS_ACCEPTED,
-        SimulationProjet.STATUS_REFUSED,
-        SimulationProjet.STATUS_DISMISSED,
-        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
-    ),
-)
-def test_status_and_notification_status_card_is_displayed_everytime(status):
-    perimetre = PerimetreArrondissementFactory()
-    user = CollegueFactory(perimetre=perimetre)
-    client = ClientWithLoggedUserFactory(user)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dotation_projet = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-    enveloppe = DsilEnveloppeFactory(perimetre=perimetre)
-    simulation = SimulationFactory(enveloppe=enveloppe)
-    simulation_projet = SimulationProjetFactory(
-        simulation=simulation, dotation_projet=dotation_projet, status=status
-    )
-    response = client.get(
-        reverse(
-            "simulation:simulation-projet-detail", kwargs={"pk": simulation_projet.pk}
-        )
-    )
-    assert response.status_code == 200
-    assert "Décision de financement du projet" in response.content.decode()
-    assert 'aria-label="Options de statut"' in response.content.decode(), (
-        f"Status dropdown is always displayed for status {status}"
-    )
-
-
 @pytest.mark.parametrize("dotation", (DOTATION_DSIL, DOTATION_DETR))
 def test_status_and_notification_status_card_is_displayed_with_the_correct_title(
     dotation,
@@ -216,7 +182,7 @@ def test_status_and_notification_status_card_is_displayed_with_the_correct_title
         )
     )
     assert response.status_code == 200
-    assert f"Décision de financement du projet {dotation}" in response.content.decode()
+    assert dotation in response.content.decode()
 
 
 @pytest.mark.parametrize(

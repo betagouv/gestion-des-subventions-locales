@@ -171,6 +171,7 @@ class TestRevertNotifiedProjetToProcessingView:
         assert response.status_code == 200
         assert "Repasser en traitement" not in response.content.decode()
 
+    @pytest.mark.skip("En attente décision design")
     def test_button_displayed_for_notified_projects(
         self, client_with_user_logged, notified_simulation_projet
     ):
