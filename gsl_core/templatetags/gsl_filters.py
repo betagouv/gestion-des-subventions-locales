@@ -271,3 +271,12 @@ def remove_filter_qs(context, field):
         qd.pop(key, None)
     encoded = qd.urlencode()
     return f"?{encoded}" if encoded else ""
+
+
+@register.filter
+def dotation_badge_class(status):
+    if status == "accepted":
+        return "fr-badge--success"
+    if status == "refused":
+        return "fr-badge--error"
+    return f"badge-projet-status__{status}"
