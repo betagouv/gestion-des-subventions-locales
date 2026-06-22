@@ -25,6 +25,7 @@ from gsl_simulation.views.simulation_projet_views import (
     ProgrammationStatusUpdateView,
     ProjetFormView,
     RefreshSimulationRowView,
+    SimulationProjetCardUpdateView,
     SimulationProjetDetailView,
     SimulationProjetStatusUpdateView,
     patch_dotation_projet,
@@ -85,6 +86,11 @@ urlpatterns = [
         "projet-detail/<int:pk>/historique/",
         SimulationProjetHistoriqueView.as_view(),
         name="simulation-projet-historique",
+    ),
+    path(
+        "<int:pk>/carte/modifier/",
+        SimulationProjetCardUpdateView.as_view(),
+        name="simulation-projet-card-update",
     ),
     path(
         "edit-assiette/<int:pk>/",
