@@ -9,30 +9,31 @@
         </h2>
     </div>
     {% block status_action_content %}
-        <p class="fr-badge {{ dotation_projet.status|dotation_badge_class }}">
-            {{ dotation_projet.get_status_display|remove_first_word }}
-        </p>
     {% endblock status_action_content %}
 
-    {% block notification_status_message %}
-        {% if projet.display_notification_message %}
-            <div class="fr-callout__text notification_status_message fr-mb-2w">
+    <div class="fr-callout__text notification_status_message fr-mb-2w">
+        <span class="fr-badge {{ dotation_projet.status|dotation_badge_class }} fr-mr-1w">
+            {{ dotation_projet.get_status_display|remove_first_word }}
+        </span>
+
+        {% block notification_status_message %}
+            {% if projet.display_notification_message %}
                 {% if projet.to_notify %}
-                    <p class="fr-badge fr-badge--no-icon">
+                    <span class="fr-badge fr-badge--no-icon">
                         À notifier
-                    </p>
+                    </span>
                 {% elif projet.notified_at %}
-                    <p class="fr-badge fr-badge--success fr-badge--no-icon">
+                    <span class="fr-badge fr-badge--success fr-badge--no-icon">
                         Notifié
-                    </p>
+                    </span>
                 {% else %}
-                    <p class="fr-badge fr-badge--info fr-badge--no-icon">
+                    <span class="fr-badge fr-badge--info fr-badge--no-icon">
                         En attente de la décision {{ projet.dotation_not_treated }}
-                    </p>
+                    </span>
                 {% endif %}
-            </div>
-        {% endif %}
-    {% endblock notification_status_message %}
+            {% endif %}
+        {% endblock notification_status_message %}
+    </div>
 
     {% block notification_action_content %}
         {% if display_notify_button|default_if_none:True and projet.display_notification_button %}

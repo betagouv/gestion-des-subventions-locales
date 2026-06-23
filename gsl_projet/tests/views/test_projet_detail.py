@@ -23,7 +23,7 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 pytestmark = pytest.mark.django_db()
 
 
-def test_projet_detail_page_has_no_status_and_notification_status_card_when_all_dotation_projet_have_processing_status():
+def test_projet_detail_page_has_no_dotation_status_card_when_all_dotation_projet_have_processing_status():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -44,7 +44,7 @@ def test_projet_detail_page_has_no_status_and_notification_status_card_when_all_
 @pytest.mark.parametrize(
     "status", (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
 )
-def test_projet_detail_page_has_status_and_notification_status_card_with_not_processing_simple_dotation(
+def test_projet_detail_page_has_dotation_status_card_with_not_processing_simple_dotation(
     status,
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -78,7 +78,7 @@ def test_projet_detail_page_has_status_and_notification_status_card_with_not_pro
         (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING),
     ),
 )
-def test_projet_detail_page_has_status_and_notification_status_card_with_not_processing_double_dotations(
+def test_projet_detail_page_has_dotation_status_card_with_not_processing_double_dotations(
     dotation_status_1, dotation_status_2
 ):
     perimetre = PerimetreArrondissementFactory()
