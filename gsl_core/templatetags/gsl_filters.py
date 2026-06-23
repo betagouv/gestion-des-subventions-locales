@@ -247,5 +247,5 @@ def dotation_badge_class(status):
     if status == "accepted":
         return "fr-badge--success"
     if status == "refused":
-        return "fr-badge--error"
+        return "fr-badge--error fr-icon-close-circle-fill"
     return f"badge-projet-status__{status}"
