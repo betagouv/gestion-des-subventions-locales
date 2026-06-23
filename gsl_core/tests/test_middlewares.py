@@ -15,7 +15,7 @@ def req():
 
 def make_user(is_authenticated=True, is_staff=False, perimetre=None):
     return SimpleNamespace(
-        is_authenticated=is_authenticated, is_staff=is_staff, perimetre=perimetre
+        pk=1, is_authenticated=is_authenticated, is_staff=is_staff, perimetre=perimetre
     )
 
 
