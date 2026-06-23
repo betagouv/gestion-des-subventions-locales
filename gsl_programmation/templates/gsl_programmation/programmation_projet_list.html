@@ -27,7 +27,8 @@
 
     <div id="programmation-table-wrapper"
          data-controller="checkbox-selection"
-         data-checkbox-selection-empty-means-all-value="true">
+         data-checkbox-selection-empty-means-all-value="true"
+         data-checkbox-selection-user-id-value="{{ request.user.pk }}">
         {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
         <button id="generate-multiple-modal-button"
                 aria-controls="generate-multiple-modal"

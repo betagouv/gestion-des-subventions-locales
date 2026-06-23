@@ -3,7 +3,8 @@ import { Controller } from 'stimulus'
 export class CheckboxSelection extends Controller {
   static values = {
     // When true, submits empty IDs when all are selected (view uses URL filters as fallback)
-    emptyMeansAll: { type: Boolean, default: false }
+    emptyMeansAll: { type: Boolean, default: false },
+    userId: { type: Number, default: 0 }
   }
 
   static targets = [
@@ -16,10 +17,15 @@ export class CheckboxSelection extends Controller {
     'actionButton'
   ]
 
-  connect () {
+  initialize () {
     this.selectedIds = new Set()
     const jsonEl = document.getElementById('checkbox-selection-selectable-ids')
     this.selectableIds = jsonEl ? JSON.parse(jsonEl.textContent) : []
+    this._loadFromStorage()
+  }
+
+  connect () {
+    this._restoreCheckboxStates()
     this.rowCheckboxTargets.forEach((checkbox) => {
       if (checkbox.checked) {
         this.selectedIds.add(parseInt(checkbox.value, 10))
@@ -72,8 +78,7 @@ export class CheckboxSelection extends Controller {
   }
 
   pageCheckboxTargetConnected () {
-    if (!this.selectedIds || this.selectedIds.size === 0) return
-    this.selectedIds.clear()
+    this._restoreCheckboxStates()
     this._refresh()
   }
 
@@ -99,6 +104,7 @@ export class CheckboxSelection extends Controller {
       this._setCheckbox(this.pageCheckboxTarget, allChecked)
     }
     this._syncIdsInputs()
+    this._saveToStorage()
   }
 
   _setCheckbox (element, value) {
@@ -112,5 +118,36 @@ export class CheckboxSelection extends Controller {
       ? ''
       : Array.from(this.selectedIds).join(',')
     this.idsInputTargets.forEach((input) => { input.value = value })
+  }
+
+  _storageKey () {
+    return `checkboxSelection-${this.userIdValue}-${window.location.pathname}`
+  }
+
+  _saveToStorage () {
+    if (this.selectedIds.size === 0) {
+      sessionStorage.removeItem(this._storageKey())
+    } else {
+      sessionStorage.setItem(this._storageKey(), Array.from(this.selectedIds).join(','))
+    }
+  }
+
+  _loadFromStorage () {
+    const stored = sessionStorage.getItem(this._storageKey())
+    if (!stored) return
+    stored.split(',').forEach((id) => {
+      const parsed = parseInt(id, 10)
+      if (!isNaN(parsed) && this.selectableIds.includes(parsed)) {
+        this.selectedIds.add(parsed)
+      }
+    })
+  }
+
+  _restoreCheckboxStates () {
+    this.rowCheckboxTargets.forEach((checkbox) => {
+      if (this.selectedIds.has(parseInt(checkbox.value, 10))) {
+        this._setCheckbox(checkbox, true)
+      }
+    })
   }
 }
