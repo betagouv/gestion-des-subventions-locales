@@ -181,20 +181,15 @@ class DotationProjetService:
         detr_avis_commission = cls._get_detr_avis_commission(
             dotation, projet.dossier_ds
         )
-        log_level = (
-            logging.WARNING
-            if projet.dossier_ds.ds_state == Dossier.STATE_ACCEPTE
-            else logging.INFO
-        )
-        assiette = cls._get_assiette_from_dossier(
-            projet.dossier_ds, dotation, log_level
-        )
-        return DotationProjet.objects.create(
-            projet=projet,
-            dotation=dotation,
-            detr_avis_commission=detr_avis_commission,
-            assiette=assiette,
-        )
+        assiette = cls._get_assiette_from_annotations(projet.dossier_ds, dotation)
+        kwargs = {
+            "projet": projet,
+            "dotation": dotation,
+            "detr_avis_commission": detr_avis_commission,
+        }
+        if assiette is not None:
+            kwargs["assiette"] = assiette
+        return DotationProjet.objects.create(**kwargs)
 
     ## -------------------------- Update Dotation Projets --------------------------
 
@@ -290,7 +285,7 @@ class DotationProjetService:
             dotation=dotation,
         )
 
-        assiette = cls._get_assiette_from_dossier(projet.dossier_ds, dotation)
+        assiette = cls._get_assiette_from_annotations(projet.dossier_ds, dotation)
         if assiette is not None:  # we only update if we have an info
             dotation_projet.assiette = assiette
 
@@ -491,45 +486,35 @@ class DotationProjetService:
         from gsl_historique.models import ProjetAction
 
         for dotation_projet in projet.dotationprojet_set.all():
-            assiette = cls._get_assiette_from_dossier(
+            assiette = cls._get_assiette_from_annotations(
                 projet.dossier_ds, dotation_projet.dotation
             )
-            if assiette is not None:
-                if dotation_projet.assiette != assiette:
-                    ProjetAction.objects.create(
-                        projet=projet,
-                        action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
-                        actor=None,
-                        source=ProjetAction.SOURCE_DN,
-                        dotation=dotation_projet.dotation,
-                        euro_field_value=assiette,
-                    )
-                dotation_projet.assiette = assiette
+            if assiette is None:
+                continue
+
+            if dotation_projet.assiette != assiette:
+                ProjetAction.objects.create(
+                    projet=projet,
+                    action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+                    actor=None,
+                    source=ProjetAction.SOURCE_DN,
+                    dotation=dotation_projet.dotation,
+                    euro_field_value=assiette,
+                )
+
+            dotation_projet.assiette = assiette
             dotation_projet.save()
 
     @classmethod
-    def _get_assiette_from_dossier(
+    def _get_assiette_from_annotations(
         cls,
         dossier: Dossier,
         dotation: POSSIBLE_DOTATIONS,
-        log_level: int = logging.WARNING,
     ) -> float | None:
         if dotation == DOTATION_DETR:
-            assiette = dossier.annotations_assiette_detr
-        elif dotation == DOTATION_DSIL:
-            assiette = dossier.annotations_assiette_dsil
+            return dossier.annotations_assiette_detr
 
-        if assiette is None:
-            logger.log(
-                log_level,
-                "Assiette is missing in dossier annotations",
-                extra={
-                    "dossier_ds_number": dossier.ds_number,
-                    "dotation": dotation,
-                },
-            )
-            return None
-        return assiette
+        return dossier.annotations_assiette_dsil
 
     @classmethod
     def _get_montant_from_dossier(cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS):

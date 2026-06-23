@@ -779,3 +779,69 @@ def test_categorie_detr_dotation_constraint():
         "Les catégories DETR ne doivent être renseignées que pour les projets DETR"
         in str(excinfo.value)
     )
+
+
+# -- save() default assiette --
+
+
+def test_dotation_projet_assiette_defaults_to_finance_cout_total_when_no_annotation():
+    dp = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=None,
+        projet__dossier_ds__finance_cout_total=50_000,
+        projet__dossier_ds__annotations_assiette_detr=None,
+    )
+    assert dp.assiette == 50_000
+
+
+def test_dotation_projet_assiette_uses_detr_annotation_when_set():
+    dp = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=None,
+        projet__dossier_ds__finance_cout_total=50_000,
+        projet__dossier_ds__annotations_assiette_detr=30_000,
+    )
+    assert dp.assiette == 30_000
+
+
+def test_dotation_projet_assiette_uses_dsil_annotation_when_set():
+    dp = DotationProjetFactory(
+        dotation=DOTATION_DSIL,
+        assiette=None,
+        projet__dossier_ds__finance_cout_total=50_000,
+        projet__dossier_ds__annotations_assiette_dsil=20_000,
+    )
+    assert dp.assiette == 20_000
+
+
+def test_dotation_projet_assiette_explicit_value_kept():
+    dp = DotationProjetFactory(
+        assiette=30_000,
+        projet__dossier_ds__finance_cout_total=50_000,
+    )
+    assert dp.assiette == 30_000
+
+
+def test_dotation_projet_assiette_stays_none_when_no_cout_total_and_no_annotation():
+    dp = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=None,
+        projet__dossier_ds__finance_cout_total=None,
+        projet__dossier_ds__annotations_assiette_detr=None,
+    )
+    assert dp.assiette is None
+
+
+def test_dotation_projet_save_update_does_not_reset_assiette():
+    dp = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        assiette=None,
+        projet__dossier_ds__finance_cout_total=50_000,
+        projet__dossier_ds__annotations_assiette_detr=None,
+    )
+    assert dp.assiette == 50_000
+
+    dp.assiette = None
+    dp.save()
+    dp.refresh_from_db()
+    assert dp.assiette is None

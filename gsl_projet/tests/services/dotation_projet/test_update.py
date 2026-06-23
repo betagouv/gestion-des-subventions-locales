@@ -356,14 +356,8 @@ def test_update_dotation_projets_from_projet_accepted_with_empty_annotations_dot
     detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_PROCESSING
 
-    assert len(caplog.records) == 2
+    assert len(caplog.records) == 1
     record = caplog.records[0]
-    assert record.message == "Assiette is missing in dossier annotations"
-    assert record.levelname == "INFO", (
-        "Log level should be INFO because the dossier is in EN_INSTRUCTION during initialization"
-    )
-
-    record = caplog.records[1]
     assert (
         record.message
         == "No dotations found in annotations_dotation for accepted dossier during update"
@@ -737,10 +731,10 @@ def test_update_assiette_from_dossier_does_not_create_action_when_assiette_uncha
 
 
 @pytest.mark.django_db
-def test_update_assiette_from_dossier_creates_action_when_assiette_was_none():
+def test_update_assiette_from_dossier_creates_action_when_assiette_changed():
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
-        assiette=None,
+        assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=15_000,
     )
 

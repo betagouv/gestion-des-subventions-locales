@@ -132,7 +132,7 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
     assert detr_dp.programmation_projet.status == PROJET_STATUS_ACCEPTED
 
     # Check log message, level and extra
-    assert len(caplog.records) == 3
+    assert len(caplog.records) == 2
 
     record = caplog.records[0]
     assert (
@@ -146,12 +146,6 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
     assert getattr(record, "field", None) == "annotations_dotation"
 
     record = caplog.records[1]
-    assert record.message == "Assiette is missing in dossier annotations"
-    assert record.levelname == "WARNING"
-    assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
-    assert getattr(record, "dotation", None) == DOTATION_DETR
-
-    record = caplog.records[2]
     assert record.message == "Montant is missing in dossier annotations"
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number

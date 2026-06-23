@@ -191,22 +191,18 @@ def test_get_dotations_from_field(field, value, expected_dotation):
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_get_assiette_from_dossier_handles_missing_assiette(caplog):
-    """Test _get_assiette_from_dossier handles missing assiette"""
+def test_get_assiette_from_annotations_handles_missing_assiette(caplog):
+    """Test _get_assiette_from_annotations handles missing assiette"""
     projet = ProjetFactory(
         dossier_ds__annotations_assiette_detr=None,
         dossier_ds__annotations_assiette_dsil=None,
     )
 
-    assiette_detr = dps._get_assiette_from_dossier(projet.dossier_ds, DOTATION_DETR)
+    assiette_detr = dps._get_assiette_from_annotations(projet.dossier_ds, DOTATION_DETR)
     assert assiette_detr is None
 
-    assiette_dsil = dps._get_assiette_from_dossier(projet.dossier_ds, DOTATION_DSIL)
+    assiette_dsil = dps._get_assiette_from_annotations(projet.dossier_ds, DOTATION_DSIL)
     assert assiette_dsil is None
-
-    # Check that warnings were logged
-    assert len(caplog.records) == 2
-    assert "Assiette is missing" in caplog.records[0].message
 
 
 # -- get_montant_from_dossier --
