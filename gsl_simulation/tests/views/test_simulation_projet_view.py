@@ -159,7 +159,7 @@ def test_get_other_dotation_montants_with_none_assiette():
 
 
 @pytest.mark.parametrize("dotation", (DOTATION_DSIL, DOTATION_DETR))
-def test_status_and_notification_status_card_is_displayed_with_the_correct_title(
+def test_dotation_status_card_is_displayed_with_the_correct_title(
     dotation,
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -204,7 +204,7 @@ def test_status_and_notification_status_card_is_displayed_with_the_correct_title
         ),
     ),
 )
-def test_status_and_notification_status_card_displays_the_notification_status_or_not_with_simple_dotation(
+def test_dotation_status_card_displays_the_notification_status_or_not_with_simple_dotation(
     dotation_status,
     simulation_projet_status,
     must_be_displayed,
@@ -267,7 +267,7 @@ DOTATION_PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),
     ),
 )
-def test_status_and_notification_status_card_displays_the_notification_status_or_not_with_double_dotations(
+def test_dotation_status_card_displays_the_notification_status_or_not_with_double_dotations(
     dotation_1_status, dotation_2_status, must_be_displayed
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -333,7 +333,7 @@ def test_status_and_notification_status_card_displays_the_notification_status_or
         ),
     ),
 )
-def test_status_and_notification_status_card_displays_the_correct_notification_status_message(
+def test_dotation_status_card_displays_the_correct_notification_status_message(
     dotation_1_status, dotation_2_status, notification_status_message
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -399,7 +399,7 @@ def test_status_and_notification_status_card_displays_the_correct_notification_s
         (datetime.now(timezone.utc), "Notifié"),
     ),
 )
-def test_status_and_notification_status_card_displays_the_correct_notification_status_message_depending_on_the_notified_at_date(
+def test_dotation_status_card_displays_the_correct_notification_status_message_depending_on_the_notified_at_date(
     dotation_1_status, dotation_2_status, notified_at, notification_status_message
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -472,7 +472,7 @@ def test_status_and_notification_status_card_displays_the_correct_notification_s
         (PROJET_STATUS_DISMISSED, True),
     ),
 )
-def test_status_and_notification_status_card_displays_notification_button_simple_dotation_when_the_projet_has_not_been_notified(
+def test_dotation_status_card_displays_notification_button_simple_dotation_when_the_projet_has_not_been_notified(
     dotation_status, is_button_displayed
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -518,7 +518,7 @@ def test_status_and_notification_status_card_displays_notification_button_simple
         (PROJET_STATUS_PROCESSING),
     ),
 )
-def test_status_and_notification_status_card_does_not_display_notification_button_simple_dotation_when_the_projet_has_been_notified(
+def test_dotation_status_card_does_not_display_notification_button_simple_dotation_when_the_projet_has_been_notified(
     dotation_status,
 ):
     """
@@ -576,7 +576,7 @@ def test_status_and_notification_status_card_does_not_display_notification_butto
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),
     ),
 )
-def test_status_and_notification_status_card_displays_notification_button_double_dotation_when_the_projet_has_not_been_notified(
+def test_dotation_status_card_displays_notification_button_double_dotation_when_the_projet_has_not_been_notified(
     dotation_status_1, dotation_status_2, is_button_displayed
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -637,7 +637,7 @@ def test_status_and_notification_status_card_displays_notification_button_double
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_DISMISSED),
     ),
 )
-def test_status_and_notification_status_card_does_not_display_notification_button_double_dotation_when_the_projet_has_been_notified(
+def test_dotation_status_card_does_not_display_notification_button_double_dotation_when_the_projet_has_been_notified(
     dotation_status_1,
     dotation_status_2,
 ):

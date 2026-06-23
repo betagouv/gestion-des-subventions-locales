@@ -44,12 +44,42 @@
                         <ul class="no-list-style">
                             {% include "includes/projet_detail/_dotation_projet_financial_informations.html" %}
                         </ul>
-                    {% endfor %}
-                {% else %}
-                    <ul class="no-list-style">
-                        {% include "includes/projet_detail/_projet_financial_informations.html" %}
-                        {% include "includes/projet_detail/_dotation_projet_financial_informations.html" with dotation_projet=projet.dotationprojet_set.first %}
-                    </ul>
+                    {% else %}
+                        <ul class="no-list-style">
+                            {% include "includes/projet_detail/_projet_financial_informations.html" %}
+                            {% include "includes/projet_detail/_dotation_projet_financial_informations.html" with dotation_projet=projet.dotationprojet_set.first %}
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="fr-col-12 fr-col-xl-4">
+            {% for dotation_projet in dotation_projets %}
+                {% include "includes/projet_detail/_dotation_status_card.html" with dotation_projet=dotation_projet %}
+            {% endfor %}
+        </div>
+        {% block detr_avis_commission %}
+            <div class="fr-col-12">
+                {% if projet.can_have_a_commission_detr_avis %}
+                    {% if dotation_projet_form %}
+                        {% include "includes/forms/_detr_avis_commission_form.html" %}
+                    {% else %}
+                        <div class="fr-callout fr-background-alt--blue-france callout-without-left-border block-avis-commission-detr fr-p-2w fr-m-0">
+                            <h2 class="fr-callout__title fr-text--lg">
+                                <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
+                                      aria-hidden="true"></span>Avis de la commission DETR
+                            </h2>
+                            <p class="fr-callout__text">
+                                {% if projet.dotation_detr.detr_avis_commission %}
+                                    <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span> Oui
+                                {% elif projet.dotation_detr.detr_avis_commission is False %}
+                                    <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span> Non
+                                {% else %}
+                                    <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span> En cours
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>
