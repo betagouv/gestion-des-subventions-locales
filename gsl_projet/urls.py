@@ -15,11 +15,41 @@ urlpatterns = [
         name="get-projet",
     ),
     path(
+        "voir/<int:projet_id>/modifier/",
+        views.ProjetUpdateView.as_view(),
+        name="patch-projet",
+    ),
+    path(
+        "dotation/<int:pk>/modifier/",
+        views.DotationProjetUpdateView.as_view(),
+        name="patch-dotation-projet",
+    ),
+    path(
         "voir/<int:projet_id>/notes/",
         views.BaseProjetDetailView.as_view(
             template_name="gsl_projet/projet/tab_notes.html"
         ),
         name="get-projet-notes",
+    ),
+    path(
+        "voir/<int:projet_id>/notes/ajouter/",
+        views.ProjetNoteCreateView.as_view(),
+        name="note-create",
+    ),
+    path(
+        "notes/<int:pk>/",
+        views.ProjetNoteCardView.as_view(),
+        name="note-card",
+    ),
+    path(
+        "notes/<int:pk>/modifier/",
+        views.ProjetNoteEditView.as_view(),
+        name="note-edit",
+    ),
+    path(
+        "notes/<int:pk>/supprimer/",
+        views.ProjetNoteDeleteView.as_view(),
+        name="note-delete",
     ),
     path(
         "voir/<int:projet_id>/historique/",

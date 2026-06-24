@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static gsl_filters %}
+{% load static gsl_filters ui_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
@@ -11,7 +11,12 @@
             <div class="fr-col">
                 {% block go_back_button %}
                     <div class="fr-mb-4w">
-                        {% if "/programmation/" in go_back_link %}
+                        {% if go_back_link and "/simulation/" in go_back_link %}
+                            <a href="{{ go_back_link }}"
+                               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                                Retour à la simulation
+                            </a>
+                        {% elif go_back_link and "/programmation/" in go_back_link %}
                             <a href="{{ go_back_link }}"
                                class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
                                 Retour à la liste des projets programmés
@@ -48,30 +53,28 @@
             </button>
         </div>
     {% endif %}
-    {% if projet.dossier_ds.demande_numero_demande_precedente %}
-        <p class="fr-tag fr-tag--icon-left fr-mb-1w fr-icon-arrow-turn-back-line">
-            Reporté
-        </p>
-    {% endif %}
-    <div class="projet-header">
-        <h1>
-            {{ dossier.projet_intitule|lower|capfirst }}
-        </h1>
-        <div class="projet-header__status">
-            {% block status_badge %}
-                {% for dotation_projet in dotation_projets %}
-                    <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ dotation_projet.status }}">
-                        {% if dotation_projets|length > 1 %}
-                            {{ dotation_projet.dotation }}
-                        {% endif %}
-                        {{ dotation_projet.get_status_display|remove_first_word }}
-                    </span>
-                {% endfor %}
-            {% endblock status_badge %}
-        </div>
+    <h1>
+        {{ dossier.projet_intitule|lower|capfirst }}
+    </h1>
+    <div class="projet-header__status">
+        {% block status_badge %}
+            {% for dotation_projet in dotation_projets %}
+                <span class="fr-badge {{ dotation_projet.status|dotation_badge_class }}">
+                    {{ dotation_projet.dotation }}
+                    {{ dotation_projet.get_status_display|remove_first_word }}
+                </span>
+            {% endfor %}
+            {% if projet.dossier_ds.demande_numero_demande_precedente %}
+                <span class="fr-badge fr-badge fr-badge--green-menthe">
+                    <i class="fr-icon-arrow-turn-back-line fr-icon--sm fr-mr-1v"
+                       aria-hidden="true"></i>
+                    Reporté
+                </span>
+            {% endif %}
+        {% endblock status_badge %}
     </div>
 
-    <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-6w fr-mb-5w">
+    <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
         {% if dossier.ds_number %}
             <li>
                 <a href="{{ dossier.url_on_ds }}"
@@ -136,3 +139,7 @@
         {% endblock tab_projet %}
     </div>
 {% endblock content %}
+
+{% block modal %}
+    {% ui_confirmation_modal modal_id="dotation-confirmation-modal-content" title="Modification de la dotation" icon="fr-icon-arrow-right-line" text="Ce projet sera aussi affiché dans les simulations DSIL." action_text="Je confirme" form="projet-form" is_title_red=False %}
+{% endblock modal %}

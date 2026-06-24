@@ -1,13 +1,17 @@
-<div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-2w fr-pt-3w fr-px-3w fr-m-0">
+{% load gsl_filters %}
+<div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-2w fr-pt-3w fr-px-3w fr-mb-2w">
     <div class='status_action_header'>
         <h2 class="fr-callout__title">
             <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
             {% block title %}
-                Décision de financement du projet
+                {{ dotation_projet.dotation }}
             {% endblock title %}
         </h2>
     </div>
     {% block status_action_content %}
+        <p class="fr-badge {{ dotation_projet.status|dotation_badge_class }}">
+            {{ dotation_projet.get_status_display|remove_first_word }}
+        </p>
     {% endblock status_action_content %}
 
     {% block notification_status_message %}
@@ -34,13 +38,13 @@
         {% if display_notify_button|default_if_none:True and projet.display_notification_button %}
             {% if projet.has_accepted_dotation %}
                 <a class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-                   id="to_notify_button"
+                   id="to_notify_button_{{ dotation_projet.dotation }}"
                    href="{% url 'gsl_notification:documents' projet.id %}">
                     Notifier le demandeur
                 </a>
             {% else %}
                 <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-                        id="to_notify_button"
+                        id="to_notify_button_{{ dotation_projet.dotation }}"
                         type="button"
                         hx-get="{% url 'gsl_notification:notify-refused-dismissed' projet.id %}"
                         hx-swap="outerHTML">
