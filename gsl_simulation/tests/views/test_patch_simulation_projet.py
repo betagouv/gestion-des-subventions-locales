@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.messages import INFO, SUCCESS, get_messages
-from django.test.html import parse_html
 from django.urls import reverse
 
 from gsl_core.tests.factories import (
@@ -96,7 +95,6 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         mock_update_ds_annotations_for_one_dotation.return_value = None
         response = client_with_user_logged.post(
             url,
-            follow=True,
             headers={"HX-Request": "true", "HX-Request-URL": page_url},
         )
 
@@ -106,12 +104,9 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     )
 
     assert response.status_code == 200
+    assert "HX-Redirect" in response.headers
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert "1 projet accepté" in parse_html(response.content.decode())
-    assert "0 projet refusé" in parse_html(response.content.decode())
-    assert "0 projet notifié" in parse_html(response.content.decode())
-    assert 'id="total-amount-granted">1\xa0000\xa0€</span>' in response.content.decode()
 
 
 data_test = (
@@ -163,7 +158,7 @@ def test_patch_status_simulation_projet_gives_message(
         args=[simulation_projet.id, status],
     )
     response = client_with_user_logged.post(
-        url, headers={"HX-Request": "true", "HX-Request-URL": page_url}, follow=True
+        url, headers={"HX-Request": "true", "HX-Request-URL": page_url}
     )
 
     if status == SimulationProjet.STATUS_ACCEPTED:
