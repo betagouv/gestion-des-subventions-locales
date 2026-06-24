@@ -48,7 +48,7 @@
                                     <form method="post"
                                           hx-post="{% url 'simulation:simulation-projet-bulk-update-simulation-status' status=status_key %}"
                                           hx-swap="none"
-                                          data-action="submit->checkbox-selection#beforeSubmit">
+                                          data-action="submit->checkbox-selection#beforeSubmit htmx:afterRequest->checkbox-selection#clearSelection">
                                         {% csrf_token %}
                                         <input type="hidden"
                                                name="simulation_projet_ids"

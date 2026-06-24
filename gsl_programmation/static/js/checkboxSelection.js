@@ -77,6 +77,13 @@ export class CheckboxSelection extends Controller {
     this._syncIdsInputs()
   }
 
+  clearSelection (event) {
+    if (event && event.detail && !event.detail.successful) return
+    this.selectedIds.clear()
+    this.rowCheckboxTargets.forEach((c) => this._setCheckbox(c, false))
+    this._refresh()
+  }
+
   pageCheckboxTargetConnected () {
     this._restoreCheckboxStates()
     this._refresh()

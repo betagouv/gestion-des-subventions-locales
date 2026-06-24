@@ -79,7 +79,8 @@
                 <li class="fr-mb-2v">
                     <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
                           hx-target="#generate-multiple-modal-step"
-                          hx-swap="outerHTML">
+                          hx-swap="outerHTML"
+                          data-action="htmx:afterRequest->checkbox-selection#clearSelection">
                         {% csrf_token %}
                         <input type="hidden"
                                name="generate_documents_wizard_{{ dotation }}-current_step"
