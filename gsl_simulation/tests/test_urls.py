@@ -265,10 +265,9 @@ def test_patch_status_simulation_projet_url_with_htmx(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     ) as mock_ds_update:
         mock_ds_update.return_value = None
-        response = client_with_cote_d_or_user_logged.post(
-            url, headers=htmx_headers, follow=True
-        )
+        response = client_with_cote_d_or_user_logged.post(url, headers=htmx_headers)
     assert response.status_code == 200
+    assert "HX-Redirect" in response.headers
 
     cote_dorien_simulation_projet.refresh_from_db()
     assert cote_dorien_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -447,7 +446,6 @@ def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_ds
             url,
             data,
             headers={"HX-Request": "true", "HX-Request-URL": page_url},
-            follow=True,
         )
     assert response.status_code == 200
 
