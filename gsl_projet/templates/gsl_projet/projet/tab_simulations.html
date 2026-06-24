@@ -12,7 +12,9 @@
         {% if projet.has_double_dotations %}
             <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-mb-4w">
                 <div class="fr-col-auto">
-                    <fieldset class="fr-segmented" data-controller="radio-navigate">
+                    <fieldset class="fr-segmented"
+                              data-controller="radio-navigate"
+                              data-action="keydown->radio-navigate#onKeydown">
                         <legend class="fr-segmented__legend">
                             Dotation
                         </legend>
@@ -24,7 +26,7 @@
                                        name="dotation-filter"
                                        value=""
                                        {% if not dotation_filter %}checked{% endif %}
-                                       data-action="change->radio-navigate#navigate">
+                                       data-action="click->radio-navigate#navigate">
                                 <label class="fr-label" for="filter-toutes">
                                     Toutes
                                 </label>
@@ -36,7 +38,7 @@
                                        name="dotation-filter"
                                        value="DETR"
                                        {% if dotation_filter == 'DETR' %}checked{% endif %}
-                                       data-action="change->radio-navigate#navigate">
+                                       data-action="click->radio-navigate#navigate">
                                 <label class="fr-label" for="filter-detr">
                                     DETR
                                 </label>
@@ -48,7 +50,7 @@
                                        name="dotation-filter"
                                        value="DSIL"
                                        {% if dotation_filter == 'DSIL' %}checked{% endif %}
-                                       data-action="change->radio-navigate#navigate">
+                                       data-action="click->radio-navigate#navigate">
                                 <label class="fr-label" for="filter-dsil">
                                     DSIL
                                 </label>
@@ -60,7 +62,7 @@
         {% endif %}
         {% if simulation_projets_with_forms %}
             <div class="fr-grid-row fr-grid-row--gutters">
-                {% for simu, simulation_projet_form, form_id, assiette_shared in simulation_projets_with_forms %}
+                {% for simu, simulation_projet_form, form_id in simulation_projets_with_forms %}
                     {% with dotation_projet=simu.dotation_projet dossier=simu.dossier %}
                         {% include "gsl_projet/projet/includes/_simulation_card.html" %}
                     {% endwith %}
@@ -78,3 +80,6 @@
         {% endif %}
     </div>
 {% endblock tab_projet %}
+
+{% block modal %}
+{% endblock modal %}
