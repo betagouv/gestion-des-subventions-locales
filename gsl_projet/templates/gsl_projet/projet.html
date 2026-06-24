@@ -9,26 +9,24 @@
     <div class="fr-container--fluid">
         <div class="fr-grid-row">
             <div class="fr-col">
-                {% block go_back_button %}
-                    <div class="fr-mb-4w">
-                        {% if go_back_link and "/simulation/" in go_back_link %}
-                            <a href="{{ go_back_link }}"
-                               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-                                Retour à la simulation
-                            </a>
-                        {% elif go_back_link and "/programmation/" in go_back_link %}
-                            <a href="{{ go_back_link }}"
-                               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-                                Retour à la liste des projets programmés
-                            </a>
-                        {% else %}
-                            <a href="{% url "projet:list" %}{% querystring %}"
-                               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-                                Retour à la liste des projets
-                            </a>
-                        {% endif %}
-                    </div>
-                {% endblock go_back_button %}
+                <div class="fr-mb-4w">
+                    {% if go_back_link and "/simulation/" in go_back_link %}
+                        <a href="{{ go_back_link }}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la simulation
+                        </a>
+                    {% elif go_back_link and "/programmation/" in go_back_link %}
+                        <a href="{{ go_back_link }}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la liste des projets programmés
+                        </a>
+                    {% else %}
+                        <a href="{% url "projet:list" %}{% querystring %}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la liste des projets
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -57,21 +55,19 @@
         {{ dossier.projet_intitule|lower|capfirst }}
     </h1>
     <div class="projet-header__status">
-        {% block status_badge %}
-            {% for dotation_projet in dotation_projets %}
-                <span class="fr-badge {{ dotation_projet.status|dotation_badge_class }}">
-                    {{ dotation_projet.dotation }}
-                    {{ dotation_projet.get_status_display|remove_first_word }}
-                </span>
-            {% endfor %}
-            {% if projet.dossier_ds.demande_numero_demande_precedente %}
-                <span class="fr-badge fr-badge fr-badge--green-menthe">
-                    <i class="fr-icon-arrow-turn-back-line fr-icon--sm fr-mr-1v"
-                       aria-hidden="true"></i>
-                    Reporté
-                </span>
-            {% endif %}
-        {% endblock status_badge %}
+        {% for dotation_projet in dotation_projets %}
+            <span class="fr-badge {{ dotation_projet.status|dotation_badge_class }}">
+                {{ dotation_projet.dotation }}
+                {{ dotation_projet.get_status_display|remove_first_word }}
+            </span>
+        {% endfor %}
+        {% if projet.dossier_ds.demande_numero_demande_precedente %}
+            <span class="fr-badge fr-badge fr-badge--green-menthe">
+                <i class="fr-icon-arrow-turn-back-line fr-icon--sm fr-mr-1v"
+                   aria-hidden="true"></i>
+                Reporté
+            </span>
+        {% endif %}
     </div>
 
     <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
@@ -130,9 +126,7 @@
         </div>
     {% endif %}
 
-    {% block tabs_list %}
-        {% include "gsl_projet/projet/tabs.html" %}
-    {% endblock tabs_list %}
+    {% include "gsl_projet/projet/tabs.html" %}
     <div id="projet-panel" class="fake-tab-panel" role="tabpanel" tabindex="0">
         {% block tab_projet %}
             {% include "gsl_projet/projet/tab_projet.html" %}

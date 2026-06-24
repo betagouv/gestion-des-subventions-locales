@@ -20,37 +20,35 @@
         {% endfor %}
 
         {% include "includes/_notes_detail.html" %}
-        {% block block_projet_notes %}
-            {% if projet_notes %}
-                <h3>
-                    Annotations créées ici
-                </h3>
-                {% for note in projet_notes %}
-                    {% include "includes/_projet_note_card.html" with allow_update=True %}
-                {% endfor %}
-            {% endif %}
+        {% if projet_notes %}
+            <h3>
+                Annotations créées ici
+            </h3>
+            {% for note in projet_notes %}
+                {% include "includes/_projet_note_card.html" with allow_update=True %}
+            {% endfor %}
+        {% endif %}
 
-            <div class="fr-mt-2w">
-                <button class="fr-btn fr-btn--primary fr-btn--icon-left fr-icon-add-line fr-icon--lg"
-                        data-action="click->projet-notes#showAddForm">
-                    Ajouter une nouvelle note
+        <div class="fr-mt-2w">
+            <button class="fr-btn fr-btn--primary fr-btn--icon-left fr-icon-add-line fr-icon--lg"
+                    data-action="click->projet-notes#showAddForm">
+                Ajouter une nouvelle note
+            </button>
+        </div>
+        <form class="fr-mt-4w"
+              method="post"
+              id="projet_note_form"
+              action="{% url 'projet:note-create' projet.id %}"
+              data-projet-notes-target="addForm"
+              data-action="input->projet-notes#trackInput submit->projet-notes#clearDirty keydown->projet-notes#handleKeydown">
+            {% csrf_token %}
+            {{ projet_note_form }}
+            <div class="fr-mt-2w submit-projet-note-form-container">
+                <button type="submit" class="fr-btn fr-btn--primary">
+                    Ajouter
                 </button>
             </div>
-            <form class="fr-mt-4w"
-                  method="post"
-                  id="projet_note_form"
-                  action="{% url 'projet:note-create' projet.id %}"
-                  data-projet-notes-target="addForm"
-                  data-action="input->projet-notes#trackInput submit->projet-notes#clearDirty keydown->projet-notes#handleKeydown">
-                {% csrf_token %}
-                {{ projet_note_form }}
-                <div class="fr-mt-2w submit-projet-note-form-container">
-                    <button type="submit" class="fr-btn fr-btn--primary">
-                        Ajouter
-                    </button>
-                </div>
-            </form>
-        {% endblock block_projet_notes %}
+        </form>
     </div>
 {% endblock tab_projet %}
 
