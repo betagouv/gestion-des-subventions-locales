@@ -1,11 +1,10 @@
 from decimal import Decimal
 from typing import cast
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.contrib.messages import INFO, SUCCESS, get_messages
-from django.test.html import parse_html
 from django.urls import reverse
 
 from gsl_core.tests.factories import (
@@ -96,7 +95,6 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         mock_update_ds_annotations_for_one_dotation.return_value = None
         response = client_with_user_logged.post(
             url,
-            follow=True,
             headers={"HX-Request": "true", "HX-Request-URL": page_url},
         )
 
@@ -106,12 +104,9 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     )
 
     assert response.status_code == 200
+    assert "HX-Redirect" in response.headers
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert "1 projet accepté" in parse_html(response.content.decode())
-    assert "0 projet refusé" in parse_html(response.content.decode())
-    assert "0 projet notifié" in parse_html(response.content.decode())
-    assert 'id="total-amount-granted">1\xa0000\xa0€</span>' in response.content.decode()
 
 
 data_test = (
@@ -152,7 +147,7 @@ def test_patch_status_simulation_projet_gives_message(
         simulation_projet.save()
 
     page_url = reverse(
-        "simulation:simulation-projet-detail", args=[simulation_projet.id]
+        "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
     )
     url = reverse(
         (
@@ -163,7 +158,7 @@ def test_patch_status_simulation_projet_gives_message(
         args=[simulation_projet.id, status],
     )
     response = client_with_user_logged.post(
-        url, headers={"HX-Request": "true", "HX-Request-URL": page_url}, follow=True
+        url, headers={"HX-Request": "true", "HX-Request-URL": page_url}
     )
 
     if status == SimulationProjet.STATUS_ACCEPTED:
@@ -240,7 +235,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     page_url = reverse(
-        "simulation:simulation-projet-detail", args=[simulation_projet.id]
+        "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
     )
     url = reverse(
         "simulation:simulation-projet-update-programmed-status",
@@ -555,267 +550,3 @@ def test_refresh_simulation_row(
     assert response.status_code == 200
     content = response.content.decode()
     assert f'id="simulation-{accepted_simulation_projet.pk}"' in content
-
-
-# --- Tests for patch_dotation_projet and SimulationProjetDetailView (unchanged) ---
-
-
-@pytest.mark.parametrize(
-    "value, expected_value", (("True", True), ("False", False), ("", None))
-)
-def test_patch_detr_avis_commission_simulation_projet(
-    client_with_user_logged, accepted_simulation_projet, value, expected_value
-):
-    url = reverse(
-        "simulation:patch-dotation-projet",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"detr_avis_commission": value},
-        follow=True,
-    )
-
-    updated_simulation_projet = SimulationProjet.objects.get(
-        id=accepted_simulation_projet.id
-    )
-
-    assert response.status_code == 200
-    assert (
-        updated_simulation_projet.dotation_projet.detr_avis_commission is expected_value
-    )
-
-
-def test_patch_simulation_projet(
-    client_with_user_logged,
-    accepted_simulation_projet,
-    ds_field,
-):
-    accepted_simulation_projet.dotation_projet.assiette = 1_000
-    accepted_simulation_projet.montant = 500
-    accepted_simulation_projet.save()
-    accepted_simulation_projet.dotation_projet.save()
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {
-        "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
-    }
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
-            return_value=ds_field,
-        ),
-        patch("requests.post", return_value=mock_resp),
-    ):
-        url = reverse(
-            "simulation:simulation-projet-detail",
-            args=[accepted_simulation_projet.id],
-        )
-        response = client_with_user_logged.post(
-            url,
-            {"assiette": 2000, "montant": 500},
-            follow=True,
-        )
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 25
-    assert "Les modifications ont été enregistrées avec succ\xe8s." in message.message
-
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-
-    assert response.status_code == 200
-    assert accepted_simulation_projet.dotation_projet.assiette == 2_000
-
-
-def test_patch_simulation_projet_with_invalid_form(
-    client_with_user_logged,
-    accepted_simulation_projet,
-):
-    accepted_simulation_projet.dotation_projet.assiette = 1_000
-    accepted_simulation_projet.montant = 500
-    accepted_simulation_projet.save()
-    accepted_simulation_projet.dotation_projet.save()
-
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        args=[accepted_simulation_projet.id],
-    )
-    response = client_with_user_logged.post(
-        url,
-        {"assiette": 200, "montant": 500},
-        follow=True,
-    )
-
-    assert response.context["simulation_projet_form"].errors == {
-        "__all__": [
-            "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
-        ]
-    }
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert (
-        "Une erreur s'est produite lors de la soumission du formulaire."
-        in message.message
-    )
-
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-
-    assert response.status_code == 200
-    assert accepted_simulation_projet.dotation_projet.assiette == 1_000
-    assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
-
-
-possible_responses = [
-    # Instructeur has no rights
-    (
-        {
-            "data": {
-                "dossierModifierAnnotations": {
-                    "errors": [
-                        {
-                            "message": "L’instructeur n’a pas les droits d’accès à ce dossier"
-                        }
-                    ]
-                }
-            }
-        },
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Vous n'avez pas les droits suffisants pour modifier ce dossier.",
-    ),
-    # Invalid payload (ex: wrong dossier id)
-    (
-        {
-            "errors": [
-                {
-                    "message": "dossierModifierAnnotationsPayload not found",
-                }
-            ],
-            "data": {"dossierModifierAnnotations": None},
-        },
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. dossierModifierAnnotationsPayload not found",
-    ),
-    # Invalid field id
-    (
-        {
-            "errors": [
-                {
-                    "message": 'Invalid input: "field_NUL"',
-                }
-            ],
-            "data": {"dossierModifierAnnotations": None},
-        },
-        'Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Invalid input: "field_NUL"',
-    ),
-    # Invalid value
-    (
-        {
-            "errors": [
-                {
-                    "message": 'Variable $input of type dossierModifierAnnotationsInput! was provided invalid value for value (Could not coerce value "RIGOLO" to Boolean)',
-                }
-            ],
-        },
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. ",
-    ),
-    # Other error
-    (
-        {
-            "data": {
-                "dossierModifierAnnotations": {"errors": [{"message": "Une erreur"}]}
-            }
-        },
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Une erreur",
-    ),
-]
-
-
-@pytest.mark.parametrize("response, error_msg", possible_responses)
-def test_patch_simulation_projet_with_ds_error(
-    client_with_user_logged, accepted_simulation_projet, ds_field, response, error_msg
-):
-    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
-    accepted_simulation_projet.dotation_projet.assiette = 1_000
-    accepted_simulation_projet.montant = 500
-    accepted_simulation_projet.save()
-    accepted_simulation_projet.dotation_projet.save()
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = response
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.DsService._get_ds_field_id",
-            return_value=ds_field.ds_field_id,
-        ),
-        patch("requests.post", return_value=mock_resp),
-    ):
-        url = reverse(
-            "simulation:simulation-projet-detail",
-            args=[accepted_simulation_projet.id],
-        )
-        response = client_with_user_logged.post(
-            url,
-            {"assiette": 2000, "montant": 500, "taux": 25},
-            follow=True,
-        )
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert error_msg == message.message
-
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-
-    assert response.status_code == 200
-    assert accepted_simulation_projet.dotation_projet.assiette == 1_000
-
-
-def test_patch_simulation_projet_with_ds_token_error(
-    client_with_user_logged, accepted_simulation_projet, ds_field
-):
-    accepted_simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
-    accepted_simulation_projet.dotation_projet.assiette = 1_000
-    accepted_simulation_projet.montant = 500
-    accepted_simulation_projet.save()
-    accepted_simulation_projet.dotation_projet.save()
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 403
-
-    with (
-        patch(
-            "gsl_demarches_simplifiees.services.FieldMapping.actives.get",
-            return_value=ds_field,
-        ),
-        patch("requests.post", return_value=mock_resp),
-    ):
-        url = reverse(
-            "simulation:simulation-projet-detail",
-            args=[accepted_simulation_projet.id],
-        )
-        response = client_with_user_logged.post(
-            url,
-            {"assiette": 2000, "montant": 500},
-            follow=True,
-        )
-
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 40
-    assert (
-        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. Nous n'arrivons pas à nous connecter à Démarche Numérique."
-        == message.message
-    )
-
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-
-    assert response.status_code == 200
-    assert accepted_simulation_projet.dotation_projet.assiette == 1_000

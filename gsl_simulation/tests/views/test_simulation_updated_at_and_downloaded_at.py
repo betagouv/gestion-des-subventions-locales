@@ -143,7 +143,7 @@ class TestSimulationUpdatedAtOnStatusChange:
     ):
         before = simulation_projet.simulation.updated_at
         page_url = reverse(
-            "simulation:simulation-projet-detail", args=[simulation_projet.id]
+            "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
         )
         url = reverse(
             "simulation:simulation-projet-update-simulation-status",
@@ -162,7 +162,7 @@ class TestSimulationUpdatedAtOnStatusChange:
     ):
         before = simulation_projet.simulation.updated_at
         page_url = reverse(
-            "simulation:simulation-projet-detail", args=[simulation_projet.id]
+            "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
         )
         url = reverse(
             "simulation:simulation-projet-update-simulation-status",
