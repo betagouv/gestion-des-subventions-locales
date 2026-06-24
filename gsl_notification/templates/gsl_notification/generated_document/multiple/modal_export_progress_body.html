@@ -3,7 +3,8 @@
      hx-get="{% url 'gsl_notification:generate-documents-status' dotation job_id %}"
      hx-trigger="every 2s"
      hx-swap="outerHTML"
-     hx-target="this">
+     hx-target="this"
+     data-action="documents-generated->checkbox-selection#clearSelection">
     <div class="fr-modal__content">
         <h1 class="fr-modal__title" id="{{ modal_id }}-title">
             Générer les documents
