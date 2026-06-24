@@ -99,8 +99,7 @@ class ProjetSimulationsView(BaseProjetDetailView):
             for field in ("assiette", "montant", "taux"):
                 if field in form.fields:
                     form.fields[field].widget.attrs["form"] = form_id
-            assiette_shared = dp_sp_counts.get(sp.dotation_projet_id, 1) > 1
-            simulation_projets_with_forms.append((sp, form, form_id, assiette_shared))
+            simulation_projets_with_forms.append((sp, form, form_id))
 
         context["simulation_projets_with_forms"] = simulation_projets_with_forms
         context["dotation_filter"] = dotation_filter
