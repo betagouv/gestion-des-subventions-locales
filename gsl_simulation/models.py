@@ -217,11 +217,6 @@ class SimulationProjet(BaseModel):
     def __str__(self):
         return f"Simulation projet {self.pk}"
 
-    def get_absolute_url(self):
-        from django.urls import reverse
-
-        return reverse("simulation:simulation-projet-detail", kwargs={"pk": self.pk})
-
     @property
     def projet(self):
         return self.dotation_projet.projet

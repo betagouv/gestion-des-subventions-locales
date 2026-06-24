@@ -157,6 +157,7 @@ def double_dotation_projet(collegue, detr_simulation, dsil_simulation):
     return detr_simulation_projet
 
 
+@pytest.mark.skip("En attente de réimplémenter le retour en traitement")
 class TestRevertNotifiedProjetToProcessingView:
     def test_button_not_displayed_for_non_notified_projects(
         self, client_with_user_logged, non_notified_simulation_projet

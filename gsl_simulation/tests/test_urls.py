@@ -13,11 +13,8 @@ from gsl_core.tests.factories import (
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.forms import ProjetNoteForm
 from gsl_projet.tests.factories import (
     DotationProjetFactory,
-    ProjetFactory,
-    ProjetNoteFactory,
 )
 from gsl_simulation.models import SimulationProjet
 from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
@@ -250,8 +247,8 @@ def test_patch_status_simulation_projet_url_with_htmx(
     cote_dorien_simulation_projet,
 ):
     page_url = reverse(
-        "gsl_simulation:simulation-projet-detail",
-        args=[cote_dorien_simulation_projet.pk],
+        "simulation:simulation-detail",
+        kwargs={"slug": cote_dorien_simulation_projet.simulation.slug},
     )
     htmx_headers = {"HX-Request": "true", "HX-Request-URL": page_url}
     url = reverse(
@@ -365,17 +362,6 @@ PATCH_ROUTES_AND_DATA = (
         {"status": "valid"},
         None,
     ),
-    (
-        "simulation:patch-projet",
-        {},
-        {
-            "is_in_qpv": "on",
-            "is_attached_to_a_crte": "on",
-            "is_budget_vert": "",
-            "dotations": ["DSIL"],
-        },
-    ),
-    ("simulation:patch-dotation-projet", {}, {"detr_avis_commission": ""}),
 )
 
 
@@ -392,7 +378,8 @@ def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_d
     data,
 ):
     page_url = reverse(
-        "simulation:simulation-projet-detail", args=[cote_dorien_simulation_projet.pk]
+        "simulation:simulation-detail",
+        kwargs={"slug": cote_dorien_simulation_projet.simulation.slug},
     )
     url = reverse(
         route,
@@ -432,8 +419,8 @@ def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_ds
     data,
 ):
     page_url = reverse(
-        "simulation:simulation-projet-detail",
-        args=[cote_dorien_dsil_simulation_projet.pk],
+        "simulation:simulation-detail",
+        kwargs={"slug": cote_dorien_dsil_simulation_projet.simulation.slug},
     )
     url = reverse(
         route,
@@ -462,7 +449,8 @@ def test_patch_projet_allowed_for_staff_user(
     client_with_staff_user_logged, cote_dorien_simulation_projet, route, kwargs, data
 ):
     page_url = reverse(
-        "simulation:simulation-projet-detail", args=[cote_dorien_simulation_projet.pk]
+        "simulation:simulation-detail",
+        kwargs={"slug": cote_dorien_simulation_projet.simulation.slug},
     )
     url = reverse(
         route,
@@ -478,102 +466,6 @@ def test_patch_projet_allowed_for_staff_user(
 
 
 @pytest.mark.django_db
-def test_get_simulation_projet_detail_url(
-    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
-):
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    response = client_with_cote_d_or_user_logged.get(url)
-    assert response.status_code == 200
-    assert response.templates[0].name == "gsl_simulation/simulation_projet_detail.html"
-    assert response.context["simu"] == cote_dorien_simulation_projet
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
-
-
-@pytest.mark.django_db
-def test_get_simulation_projet_detail_redirects_when_deleted(
-    client_with_cote_d_or_user_logged, cote_dorien_simulation_projet
-):
-    pk = cote_dorien_simulation_projet.pk
-    cote_dorien_simulation_projet.delete()
-
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        kwargs={"pk": pk},
-    )
-    response = client_with_cote_d_or_user_logged.get(url)
-    assert response.status_code == 302
-    assert response.url == reverse("simulation:simulation-list")
-    messages_list = list(response.wsgi_request._messages)
-    assert len(messages_list) == 1
-    assert str(messages_list[0]) == "Ce projet n'est plus dans cette simulation."
-
-
-@pytest.mark.django_db
-def test_post_simulation_projet_detail_url(
-    cote_d_or_perimetre, cote_dorien_simulation_projet
-):
-    notes_tab_url = reverse(
-        "simulation:simulation-projet-notes",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    client = get_client_with_referer(cote_d_or_perimetre, notes_tab_url)
-
-    response = client.post(
-        notes_tab_url,
-        {"title": "Titre de la note", "content": "Contenu de la note"},
-        follow=True,
-    )
-    assert response.status_code == 200
-    assert (
-        response.templates[0].name
-        == "gsl_simulation/tab_simulation_projet/tab_notes.html"
-    )
-    assert response.context["simu"] == cote_dorien_simulation_projet
-    assert response.context["projet"] == cote_dorien_simulation_projet.projet
-    # Specific context for the notes tab
-    assert response.context["projet_note_form"].__class__ == ProjetNoteForm
-    notes = cote_dorien_simulation_projet.projet.notes
-    assert notes.count() == 1
-    assert response.context["projet_notes"].count() == 1
-    assert response.context["projet_notes"].first().title == "Titre de la note"
-    assert response.context["projet_notes"].first().content == "Contenu de la note"
-
-
-@pytest.mark.django_db
-def test_post_simulation_for_a_user_not_in_perimetre(
-    client_with_iconnais_user_logged, cote_dorien_simulation_projet
-):
-    notes_tab_url = reverse(
-        "simulation:simulation-projet-notes",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-
-    response = client_with_iconnais_user_logged.post(
-        notes_tab_url,
-        {"title": "Titre de la note", "content": "Contenu de la note"},
-        follow=True,
-    )
-    assert response.status_code == 404
-    notes = cote_dorien_simulation_projet.projet.notes
-    assert notes.count() == 0
-
-
-@pytest.mark.django_db
-def test_simulation_projet_detail_url_with_perimetre_not_in_user_one(
-    client_with_iconnais_user_logged, cote_dorien_simulation_projet
-):
-    url = reverse(
-        "simulation:simulation-projet-detail",
-        kwargs={"pk": cote_dorien_simulation_projet.pk},
-    )
-    response = client_with_iconnais_user_logged.get(url)
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db
 def test_edit_montant_post_returns_partial_regardless_of_referer(
     cote_d_or_perimetre, cote_dorien_simulation_projet
 ):
@@ -581,8 +473,8 @@ def test_edit_montant_post_returns_partial_regardless_of_referer(
     client = get_client_with_referer(
         cote_d_or_perimetre,
         reverse(
-            "simulation:simulation-projet-detail",
-            kwargs={"pk": cote_dorien_simulation_projet.pk},
+            "simulation:simulation-detail",
+            kwargs={"slug": cote_dorien_simulation_projet.simulation.slug},
         ),
     )
 
@@ -593,141 +485,3 @@ def test_edit_montant_post_returns_partial_regardless_of_referer(
     response = client.post(url, {"montant": "100"})
     assert response.status_code == 200
     assert response.templates[0].name == "htmx/projet_update.html"
-
-
-def _get_client_and_url_of_edit_projet_note_url(
-    local_client,
-    other_client,
-    simulation_projet,
-    is_note_creator,
-    is_projet_in_user_perimetre,
-):
-    client = local_client if is_projet_in_user_perimetre else other_client
-    projet = (
-        simulation_projet.projet if is_projet_in_user_perimetre else ProjetFactory()
-    )
-    creator = client.user if is_note_creator else CollegueFactory()
-    user_note = ProjetNoteFactory(
-        projet=projet,
-        created_by=creator,
-    )
-
-    url = reverse(
-        "simulation:get-edit-projet-note",
-        kwargs={"pk": simulation_projet.pk, "note_id": user_note.id},
-    )
-    return client, url
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "is_note_creator, is_projet_in_user_perimetre, with_htmx, expected_status_code",
-    (
-        (True, True, True, 200),
-        (False, True, True, 403),
-        (True, False, True, 404),
-        (False, False, True, 403),
-        (True, True, False, 403),
-        (False, True, False, 403),
-        (True, False, False, 403),
-        (False, False, False, 403),
-    ),
-)
-def test_get_edit_projet_note_url(
-    client_with_cote_d_or_user_logged,
-    client_with_iconnais_user_logged,
-    cote_dorien_simulation_projet,
-    is_note_creator,
-    is_projet_in_user_perimetre,
-    with_htmx,
-    expected_status_code,
-):
-    client, url = _get_client_and_url_of_edit_projet_note_url(
-        client_with_cote_d_or_user_logged,
-        client_with_iconnais_user_logged,
-        cote_dorien_simulation_projet,
-        is_note_creator,
-        is_projet_in_user_perimetre,
-    )
-    headers = {"HX-Request": "true"} if with_htmx else {}
-    response = client.get(url, headers=headers)
-
-    assert response.status_code == expected_status_code
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "is_note_creator, is_projet_in_user_perimetre, expected_status_code",
-    (
-        (True, True, 200),
-        (False, True, 403),
-        (True, False, 404),
-        (False, False, 403),
-    ),
-)
-def test_post_edit_projet_note_url(
-    client_with_cote_d_or_user_logged,
-    client_with_iconnais_user_logged,
-    cote_dorien_simulation_projet,
-    is_note_creator,
-    is_projet_in_user_perimetre,
-    expected_status_code,
-):
-    client, url = _get_client_and_url_of_edit_projet_note_url(
-        client_with_cote_d_or_user_logged,
-        client_with_iconnais_user_logged,
-        cote_dorien_simulation_projet,
-        is_note_creator,
-        is_projet_in_user_perimetre,
-    )
-    response = client.post(url, data={"title": "A", "content": "b"}, follow=True)
-
-    assert response.status_code == expected_status_code
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "is_note_creator, is_projet_in_user_perimetre, with_htmx, expected_status_code",
-    (
-        (True, True, True, 200),
-        (False, True, True, 200),
-        (True, False, True, 404),
-        (False, False, True, 404),
-        (True, True, False, 403),
-        (False, True, False, 403),
-        (True, False, False, 403),
-        (False, False, False, 403),
-    ),
-)
-def test_get_note_card_url(
-    client_with_cote_d_or_user_logged,
-    client_with_iconnais_user_logged,
-    cote_dorien_simulation_projet,
-    is_note_creator,
-    is_projet_in_user_perimetre,
-    with_htmx,
-    expected_status_code,
-):
-    client = (
-        client_with_cote_d_or_user_logged
-        if is_projet_in_user_perimetre
-        else client_with_iconnais_user_logged
-    )
-    projet = (
-        cote_dorien_simulation_projet.projet
-        if is_projet_in_user_perimetre
-        else ProjetFactory()
-    )
-    creator = client.user if is_note_creator else CollegueFactory()
-    user_note = ProjetNoteFactory(
-        projet=projet,
-        created_by=creator,
-    )
-
-    url = reverse(
-        "simulation:get-note-card",
-        kwargs={"pk": cote_dorien_simulation_projet.pk, "note_id": user_note.id},
-    )
-    headers = {"HX-Request": "true"} if with_htmx else {}
-    response = client.get(url, headers=headers)
-    assert response.status_code == expected_status_code
