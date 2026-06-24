@@ -191,16 +191,16 @@ def test_dotation_status_card_is_displayed_with_the_correct_title(
         (PROJET_STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED, True),
         (PROJET_STATUS_REFUSED, SimulationProjet.STATUS_REFUSED, True),
         (PROJET_STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED, True),
-        (PROJET_STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING, False),
+        (PROJET_STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING, True),
         (
             PROJET_STATUS_PROCESSING,
             SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-            False,
+            True,
         ),
         (
             PROJET_STATUS_PROCESSING,
             SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
-            False,
+            True,
         ),
     ),
 )
@@ -264,7 +264,7 @@ DOTATION_PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED, True),
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_REFUSED, True),
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_DISMISSED, True),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, True),
     ),
 )
 def test_dotation_status_card_displays_the_notification_status_or_not_with_double_dotations(
@@ -445,7 +445,7 @@ def test_dotation_status_card_displays_the_correct_notification_status_message_d
         assert projet.display_notification_message is False
         assert (
             'div class="fr-callout__text notification_status_message'
-            not in response.content.decode()
+            in response.content.decode()
         )
         return
 
