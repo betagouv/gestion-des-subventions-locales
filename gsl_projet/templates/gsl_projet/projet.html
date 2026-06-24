@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static gsl_filters %}
+{% load static gsl_filters ui_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
@@ -139,3 +139,7 @@
         {% endblock tab_projet %}
     </div>
 {% endblock content %}
+
+{% block modal %}
+    {% ui_confirmation_modal modal_id="dotation-confirmation-modal-content" title="Modification de la dotation" icon="fr-icon-arrow-right-line" text="Ce projet sera aussi affiché dans les simulations DSIL." action_text="Je confirme" form="projet-form" is_title_red=False %}
+{% endblock modal %}

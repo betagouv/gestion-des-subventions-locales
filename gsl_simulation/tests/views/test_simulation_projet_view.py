@@ -502,10 +502,10 @@ def test_status_and_notification_status_card_displays_notification_button_simple
 
     assert response.status_code == 200
     if is_button_displayed:
-        assert 'id="to_notify_button"' in response.content.decode()
+        assert 'id="to_notify_button' in response.content.decode()
         assert "Notifier le demandeur" in response.content.decode()
     else:
-        assert 'id="to_notify_button"' not in response.content.decode()
+        assert 'id="to_notify_button' not in response.content.decode()
         assert "Notifier le demandeur" not in response.content.decode()
 
 
@@ -552,7 +552,7 @@ def test_status_and_notification_status_card_does_not_display_notification_butto
     )
 
     assert response.status_code == 200
-    assert 'id="to_notify_button"' not in response.content.decode()
+    assert 'id="to_notify_button' not in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode()
 
 
@@ -613,10 +613,10 @@ def test_status_and_notification_status_card_displays_notification_button_double
 
     assert response.status_code == 200
     if is_button_displayed:
-        assert 'id="to_notify_button"' in response.content.decode()
+        assert 'id="to_notify_button' in response.content.decode()
         assert "Notifier le demandeur" in response.content.decode()
     else:
-        assert 'id="to_notify_button"' not in response.content.decode()
+        assert 'id="to_notify_button' not in response.content.decode()
         assert "Notifier le demandeur" not in response.content.decode()
 
 
@@ -679,7 +679,7 @@ def test_status_and_notification_status_card_does_not_display_notification_butto
     )
 
     assert response.status_code == 200
-    assert 'id="to_notify_button"' not in response.content.decode()
+    assert 'id="to_notify_button' not in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode()
 
 
