@@ -1,7 +1,5 @@
 import logging
 
-from django.http import Http404 as DjangoHttp404
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from gsl_core.exceptions import Http404
@@ -11,6 +9,7 @@ from gsl_simulation.models import Simulation
 logger = logging.getLogger(__name__)
 
 
+# TODO delete this ! replace by get_queryset in CBV
 def simulation_must_be_visible_by_user(func):
     def wrapper(*args, **kwargs):
         user = args[0].user
@@ -25,30 +24,5 @@ def simulation_must_be_visible_by_user(func):
             raise Http404(user_message="Simulation non trouvée")
 
         return func(*args, **kwargs)
-
-    return wrapper
-
-
-def exception_handler_decorator(func):
-    # TODO : merge this with django error handlers settings
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except (Http404, DjangoHttp404) as e:
-            logger.info("404 Error: %s", str(e), exc_info=True)
-            return JsonResponse(
-                {
-                    "error": "Not found.",
-                },
-                status=404,
-            )
-        except Exception as e:
-            logger.exception("500 Error: %s", str(e))
-            return JsonResponse(
-                {
-                    "error": "An internal error has occurred.",
-                },
-                status=500,
-            )
 
     return wrapper

@@ -8,14 +8,6 @@ from gsl_simulation.views.bulk_status_job_views import (
 from gsl_simulation.views.decorators import (
     simulation_must_be_visible_by_user,
 )
-from gsl_simulation.views.simulation_projet_historique_views import (
-    SimulationProjetHistoriqueView,
-)
-from gsl_simulation.views.simulation_projet_notes_views import (
-    ProjetNoteEditView,
-    SimulationProjetNotesView,
-    get_note_card,
-)
 from gsl_simulation.views.simulation_projet_views import (
     BulkSimulationProjetStatusUpdateView,
     EditAssietteView,
@@ -23,12 +15,9 @@ from gsl_simulation.views.simulation_projet_views import (
     EditMontantView,
     EditTauxView,
     ProgrammationStatusUpdateView,
-    ProjetFormView,
     RefreshSimulationRowView,
     SimulationProjetCardUpdateView,
-    SimulationProjetDetailView,
     SimulationProjetStatusUpdateView,
-    patch_dotation_projet,
 )
 from gsl_simulation.views.simulation_views import (
     SimulationColumnsVisibilityView,
@@ -42,6 +31,11 @@ urlpatterns = [
         "liste/",
         simulation_views.SimulationListView.as_view(),
         name="simulation-list",
+    ),
+    path(
+        "creation-simulation",
+        SimulationCreateView.as_view(),
+        name="simulation-form",
     ),
     path(
         "voir/<slug:slug>/",
@@ -71,21 +65,6 @@ urlpatterns = [
             simulation_views.FilteredProjetsExportView.as_view()
         ),
         name="simulation-projets-export",
-    ),
-    path(
-        "projet-detail/<int:pk>/",
-        SimulationProjetDetailView.as_view(),
-        name="simulation-projet-detail",
-    ),
-    path(
-        "projet-detail/<int:pk>/notes/",
-        SimulationProjetNotesView.as_view(),
-        name="simulation-projet-notes",
-    ),
-    path(
-        "projet-detail/<int:pk>/historique/",
-        SimulationProjetHistoriqueView.as_view(),
-        name="simulation-projet-historique",
     ),
     path(
         "<int:pk>/carte/modifier/",
@@ -141,31 +120,5 @@ urlpatterns = [
         "<int:pk>/programmer/<str:status>/",
         ProgrammationStatusUpdateView.as_view(),
         name="simulation-projet-update-programmed-status",
-    ),
-    path(
-        "creation-simulation",
-        SimulationCreateView.as_view(),
-        name="simulation-form",
-    ),
-    path(
-        "modifier-le-projet-d-un-projet-de-simulation/<int:pk>/",
-        ProjetFormView.as_view(),
-        name="patch-projet",
-    ),
-    path(
-        "modifier-le-projet-de-dotation-d-un-projet-de-simulation/<int:pk>/",
-        patch_dotation_projet,
-        name="patch-dotation-projet",
-    ),
-    # Annotations
-    path(
-        "simulation_projet/<int:pk>/notes/<int:note_id>/edit",
-        ProjetNoteEditView.as_view(),
-        name="get-edit-projet-note",
-    ),
-    path(
-        "simulation_projet/<int:pk>/notes/<int:note_id>",
-        get_note_card,
-        name="get-note-card",
     ),
 ]

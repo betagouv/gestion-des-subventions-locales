@@ -178,7 +178,7 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
                 self.request,
                 f"Une erreur est survenue lors de la mise à jour sur Démarche Numérique. {e}",
             )
-        return redirect("projet:get-projet", projet_id=self.object.pk)
+        return _redirect_to_referer_or_projet(self.request, self.object)
 
     def form_invalid(self, form):
         messages.error(
