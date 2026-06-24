@@ -38,13 +38,13 @@
         {% if display_notify_button|default_if_none:True and projet.display_notification_button %}
             {% if projet.has_accepted_dotation %}
                 <a class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-                   id="to_notify_button"
+                   id="to_notify_button_{{ dotation_projet.dotation }}"
                    href="{% url 'gsl_notification:documents' projet.id %}">
                     Notifier le demandeur
                 </a>
             {% else %}
                 <button class="fr-mt-0 fr-btn fr-btn--icon-left fr-icon-mail-line"
-                        id="to_notify_button"
+                        id="to_notify_button_{{ dotation_projet.dotation }}"
                         type="button"
                         hx-get="{% url 'gsl_notification:notify-refused-dismissed' projet.id %}"
                         hx-swap="outerHTML">
