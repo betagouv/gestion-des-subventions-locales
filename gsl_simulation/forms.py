@@ -80,6 +80,7 @@ class SimulationRenameForm(DsfrBaseForm, ModelForm):
 class SimulationProjetForm(ModelForm, DsfrBaseForm):
     assiette = forms.DecimalField(
         label="Montant des dépenses éligibles retenues (€)",
+        help_text="Cette valeur est identique sur toutes les simulations de cette dotation.",
         max_digits=12,
         decimal_places=2,
         min_value=0,
@@ -133,7 +134,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
 
     class Meta:
         model = SimulationProjet
-        fields = ["montant"]
+        fields = ["assiette", "montant", "taux"]
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)

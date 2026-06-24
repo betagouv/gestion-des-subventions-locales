@@ -562,7 +562,12 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 self.request,
                 f"{str(e)}",
             )
-        return HttpResponseClientRefresh()
+        # HttpResponseClientRefresh (window.location.reload) can serve a cached
+        # response and leave sibling cards with a shared assiette out of date.
+        # A redirect forces a full navigation with no cache reuse.
+        return HttpResponseClientRedirect(
+            self.request.headers.get("HX-Current-URL", self.request.path)
+        )
 
 
 class SimulationProjetCardUpdateView(UpdateView):
@@ -608,12 +613,7 @@ class SimulationProjetCardUpdateView(UpdateView):
         for field in ("assiette", "montant", "taux"):
             if field in form.fields:
                 form.fields[field].widget.attrs["form"] = form_id
-        assiette_shared = (
-            SimulationProjet.objects.filter(
-                dotation_projet=simu.dotation_projet
-            ).count()
-            > 1
-        )
+
         return render(
             self.request,
             "gsl_projet/projet/includes/_simulation_card.html",
@@ -621,7 +621,6 @@ class SimulationProjetCardUpdateView(UpdateView):
                 "simu": simu,
                 "simulation_projet_form": form,
                 "form_id": form_id,
-                "assiette_shared": assiette_shared,
                 "dotation_projet": simu.dotation_projet,
                 "dossier": simu.dossier,
                 "projet": simu.projet,
@@ -763,7 +762,9 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
             f"{target_status}:{len(valid_projets)}",
         )
 
-        return HttpResponseClientRefresh()
+        return HttpResponseClientRedirect(
+            request.headers.get("HX-Current-URL", request.path)
+        )
 
     @staticmethod
     def _needs_ds_confirmation(target_status, simulation_projets):
@@ -837,7 +838,9 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 self.request,
                 str(e),
             )
-            return HttpResponseClientRefresh()  # we reload the page without the modal
+            return HttpResponseClientRedirect(
+                self.request.headers.get("HX-Current-URL", self.request.path)
+            )  # we reload the page without the modal
 
     def get_object(self, queryset=None) -> SimulationProjet:
         obj = super().get_object(queryset)
@@ -953,6 +956,6 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME,
             f"{self.kwargs['status']}",
         )
-        return (
-            HttpResponseClientRefresh()
-        )  # we reload the page without the modal and with the success message
+        return HttpResponseClientRedirect(
+            self.request.headers.get("HX-Current-URL", self.request.path)
+        )  # redirect (not refresh) to avoid serving a cached response

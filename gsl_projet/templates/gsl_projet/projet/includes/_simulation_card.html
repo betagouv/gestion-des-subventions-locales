@@ -34,43 +34,7 @@
                   data-bind-amount-fields-cout-total-value="{{ dossier.finance_cout_total }}"
                   data-action="submit->bind-amount-fields#onSubmit">
                 {% csrf_token %}
-                {{ simulation_projet_form.non_field_errors }}
-
-                <div class="fr-mb-2w">
-                    {{ simulation_projet_form.assiette.label_tag }}
-                    {{ simulation_projet_form.assiette }}
-                    {% if assiette_shared %}
-                        <p class="fr-hint-text fr-mt-1v">
-                            <span class="fr-icon-information-fill fr-icon--sm" aria-hidden="true"></span>
-                            Cette valeur est identique sur toutes les simulations de cette dotation.
-                        </p>
-                    {% endif %}
-                    {% for error in simulation_projet_form.assiette.errors %}
-                        <p class="fr-error-text">
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                </div>
-
-                <div class="fr-mb-2w">
-                    {{ simulation_projet_form.montant.label_tag }}
-                    {{ simulation_projet_form.montant }}
-                    {% for error in simulation_projet_form.montant.errors %}
-                        <p class="fr-error-text">
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                </div>
-
-                <div class="fr-mb-2w">
-                    {{ simulation_projet_form.taux.label_tag }}
-                    {{ simulation_projet_form.taux }}
-                    {% for error in simulation_projet_form.taux.errors %}
-                        <p class="fr-error-text">
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                </div>
+                {{ simulation_projet_form }}
 
                 <button class="fr-btn fr-btn--sm" type="submit" form="{{ form_id }}">
                     Enregistrer
