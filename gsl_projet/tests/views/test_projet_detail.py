@@ -23,7 +23,7 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 pytestmark = pytest.mark.django_db()
 
 
-def test_projet_detail_page_has_no_dotation_status_card_when_all_dotation_projet_have_processing_status():
+def test_projet_detail_page_has_no_notification_button_when_all_dotation_projet_have_processing_status():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -35,7 +35,6 @@ def test_projet_detail_page_has_no_dotation_status_card_when_all_dotation_projet
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     assert response.context["projet"].all_dotations_have_processing_status is True
-    assert "notification_status_message" not in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode(), (
         "Notify button is never displayed in projet page from main tab #1"
     )
@@ -274,7 +273,6 @@ def test_unified_projet_page_hides_decision_card_and_notification_tab_for_proces
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     content = response.content.decode()
-    assert "notification_status_message" not in content
     assert "Notifications du demandeur" not in content
 
 

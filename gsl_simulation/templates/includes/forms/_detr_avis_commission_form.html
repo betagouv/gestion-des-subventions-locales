@@ -18,6 +18,15 @@
                     <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
                 {% endif %}
                 {{ dotation_projet_form.detr_avis_commission }}
+                {% if dotation_projet_form.errors.detr_avis_commission %}
+                    <div class="fr-messages-group" aria-live="assertive">
+                        {% for err in dotation_projet_form.errors.detr_avis_commission %}
+                            <p class="fr-message fr-message--error">
+                                {{ err }}
+                            </p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
