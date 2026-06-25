@@ -42,6 +42,10 @@ class BeneficiaireDetailView(DetailView):
             "departement", "commune"
         ).order_by("-exercice", "dispositif")
 
+        subventions_fonds_vert = beneficiaire.subventionfondsvert_set.select_related(
+            "departement", "commune"
+        ).order_by("-annee_millesime", "demarche_title")
+
         if self.request.user.is_staff:
             projets = Projet.objects.filter(
                 dossier_ds__ds_demandeur__siren=beneficiaire.siren
@@ -61,6 +65,7 @@ class BeneficiaireDetailView(DetailView):
                 "siren": beneficiaire.siren,
                 "beneficiaire_nom": beneficiaire.nom,
                 "subventions": subventions,
+                "subventions_fonds_vert": subventions_fonds_vert,
                 "projets": projets,
                 "title": f"Bénéficiaire – {beneficiaire.nom}",
             }
