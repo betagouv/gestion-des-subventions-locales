@@ -1,10 +1,13 @@
 import io
 import logging
+import tempfile
 import uuid
 import zipfile
+from pathlib import Path
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.db.models import F
 from django.utils import timezone
 from django.utils.text import slugify
 from pikepdf import Pdf
@@ -15,7 +18,11 @@ from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
 )
-from gsl_notification.utils import generate_pdf_for_generated_document
+from gsl_notification.utils import (
+    count_pdf_pages,
+    generate_pdf_pass1,
+    generate_pdf_pass2,
+)
 from gsl_projet.constants import ARRETE
 
 logger = logging.getLogger(__name__)
@@ -24,47 +31,97 @@ EXPORT_PREFIX = "tmp/notifications/exports"
 EXPORT_URL_TTL = 900  # 15 minutes
 
 
-def build_export(
-    programmation_projets,
-    attrs,
-    export_format,
-    document_type,
-    *,
-    with_qr_code=True,
-    pdf_bytes_map: dict | None = None,
+def build_export(job) -> tuple[str, str, bytes]:
+    from gsl_notification.models import ExportJob
+    from gsl_programmation.models import ProgrammationProjet
+
+    pk_to_pp = {
+        pp.pk: pp
+        for pp in ProgrammationProjet.objects.filter(pk__in=job.pp_ids).select_related(
+            "arrete__modele",
+            "lettre_notification__modele",
+            "dotation_projet__projet__dossier_ds__ds_demandeur",
+        )
+    }
+    pps = [pk_to_pp[pk] for pk in job.pp_ids]
+    documents = [getattr(pp, attr) for attr in job.attr_names for pp in pps]
+    total = len(documents)
+    total_steps = 3 if job.with_qr_code else 2
+
+    ExportJob.objects.filter(pk=job.pk).update(
+        total=total, total_steps=total_steps, updated_at=timezone.now()
+    )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        pdf_paths = _render_pdfs_to_disk(job, documents, Path(tmp_dir))
+
+        ExportJob.objects.filter(pk=job.pk).update(
+            step=total_steps, updated_at=timezone.now()
+        )
+
+        return _assemble_export(
+            pps, job.attr_names, job.export_format, job.document_type, pdf_paths
+        )
+
+
+def _render_pdfs_to_disk(job, documents, tmp_path: Path) -> dict[int, Path]:
+    from gsl_notification.models import ExportJob
+
+    if job.with_qr_code:
+        ExportJob.objects.filter(pk=job.pk).update(
+            step=1, processed=0, updated_at=timezone.now()
+        )
+        page_counts: dict[int, int] = {}
+        for doc in documents:
+            pdf = generate_pdf_pass1(doc)
+            page_counts[doc.pk] = count_pdf_pages(pdf)
+            ExportJob.objects.filter(pk=job.pk).update(
+                processed=F("processed") + 1, updated_at=timezone.now()
+            )
+
+        ExportJob.objects.filter(pk=job.pk).update(
+            step=2, processed=0, updated_at=timezone.now()
+        )
+        pdf_paths: dict[int, Path] = {}
+        for doc in documents:
+            pdf = generate_pdf_pass2(doc, page_counts[doc.pk])
+            path = tmp_path / f"{doc.pk}.pdf"
+            path.write_bytes(pdf)
+            pdf_paths[doc.pk] = path
+            ExportJob.objects.filter(pk=job.pk).update(
+                processed=F("processed") + 1, updated_at=timezone.now()
+            )
+    else:
+        ExportJob.objects.filter(pk=job.pk).update(
+            step=1, processed=0, updated_at=timezone.now()
+        )
+        pdf_paths = {}
+        for doc in documents:
+            pdf = generate_pdf_pass1(doc)
+            path = tmp_path / f"{doc.pk}.pdf"
+            path.write_bytes(pdf)
+            pdf_paths[doc.pk] = path
+            ExportJob.objects.filter(pk=job.pk).update(
+                processed=F("processed") + 1, updated_at=timezone.now()
+            )
+
+    return pdf_paths
+
+
+def _assemble_export(
+    pps, attrs, export_format, document_type, pdf_paths: dict[int, Path]
 ) -> tuple[str, str, bytes]:
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
-        return _build_single_merged_pdf(
-            programmation_projets,
-            attrs,
-            document_type,
-            with_qr_code=with_qr_code,
-            pdf_bytes_map=pdf_bytes_map,
-        )
+        return _build_single_merged_pdf(pps, attrs, document_type, pdf_paths)
     if export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT:
-        return _build_one_pdf_per_project(
-            programmation_projets,
-            attrs,
-            with_qr_code=with_qr_code,
-            pdf_bytes_map=pdf_bytes_map,
-        )
+        return _build_one_pdf_per_project(pps, attrs, pdf_paths)
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED:
-        return _build_grouped_merged_pdf(
-            programmation_projets,
-            attrs,
-            with_qr_code=with_qr_code,
-            pdf_bytes_map=pdf_bytes_map,
-        )
-    return _build_one_pdf_per_doc(
-        programmation_projets,
-        attrs,
-        with_qr_code=with_qr_code,
-        pdf_bytes_map=pdf_bytes_map,
-    )
+        return _build_grouped_merged_pdf(pps, attrs, pdf_paths)
+    return _build_one_pdf_per_doc(pps, attrs, pdf_paths)
 
 
 def _build_one_pdf_per_doc(
-    programmation_projets, attrs, *, with_qr_code=True, pdf_bytes_map=None
+    programmation_projets, attrs, pdf_paths: dict[int, Path]
 ) -> tuple[str, str, bytes]:
     documents = [
         doc
@@ -74,19 +131,14 @@ def _build_one_pdf_per_doc(
 
     if len(documents) == 1:
         document = documents[0]
-        pdf_content = _get_pdf(
-            document, with_qr_code=with_qr_code, pdf_bytes_map=pdf_bytes_map
-        )
+        pdf_content = pdf_paths[document.pk].read_bytes()
         logger.info(f"#1 {document} généré")
         return document.name, "application/pdf", pdf_content
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for i, document in enumerate(documents, start=1):
-            pdf_content = _get_pdf(
-                document, with_qr_code=with_qr_code, pdf_bytes_map=pdf_bytes_map
-            )
-            zip_file.writestr(f"{document.name}", pdf_content)
+            zip_file.write(str(pdf_paths[document.pk]), arcname=document.name)
             logger.info(f"#{i} {document} généré")
     date_str = timezone.now().strftime("%d-%m-%Y")
     return f"export turgot {date_str}.zip", "application/zip", zip_buffer.getvalue()
@@ -96,21 +148,14 @@ def _build_single_merged_pdf(
     programmation_projets,
     attrs,
     document_type,
-    *,
-    with_qr_code=True,
-    pdf_bytes_map=None,
+    pdf_paths: dict[int, Path],
 ) -> tuple[str, str, bytes]:
-    pdf_bytes_list = []
-    for pp in programmation_projets:
-        for attr in attrs:
-            pdf_bytes_list.append(
-                _get_pdf(
-                    getattr(pp, attr),
-                    with_qr_code=with_qr_code,
-                    pdf_bytes_map=pdf_bytes_map,
-                )
-            )
-    merged = _merge_pdfs_bytes(pdf_bytes_list)
+    paths = [
+        pdf_paths[getattr(pp, attr).pk]
+        for pp in programmation_projets
+        for attr in attrs
+    ]
+    merged = _merge_pdfs_from_paths(paths)
     date_str = timezone.now().strftime("%d-%m-%Y")
     if document_type == ARRETE:
         doc_type_fr = "arrêté"
@@ -123,19 +168,12 @@ def _build_single_merged_pdf(
 
 
 def _build_one_pdf_per_project(
-    programmation_projets, attrs, *, with_qr_code=True, pdf_bytes_map=None
+    programmation_projets, attrs, pdf_paths: dict[int, Path]
 ) -> tuple[str, str, bytes]:
     if len(programmation_projets) == 1:
         pp = programmation_projets[0]
-        pdf_bytes_list = [
-            _get_pdf(
-                getattr(pp, attr),
-                with_qr_code=with_qr_code,
-                pdf_bytes_map=pdf_bytes_map,
-            )
-            for attr in attrs
-        ]
-        merged = _merge_pdfs_bytes(pdf_bytes_list)
+        paths = [pdf_paths[getattr(pp, attr).pk] for attr in attrs]
+        merged = _merge_pdfs_from_paths(paths)
         date_str = timezone.now().strftime("%d-%m-%Y")
         ds_number = pp.dossier.ds_number
         raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
@@ -146,15 +184,8 @@ def _build_one_pdf_per_project(
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for pp in programmation_projets:
-            project_pdfs = [
-                _get_pdf(
-                    getattr(pp, attr),
-                    with_qr_code=with_qr_code,
-                    pdf_bytes_map=pdf_bytes_map,
-                )
-                for attr in attrs
-            ]
-            merged = _merge_pdfs_bytes(project_pdfs)
+            paths = [pdf_paths[getattr(pp, attr).pk] for attr in attrs]
+            merged = _merge_pdfs_from_paths(paths)
             ds_number = pp.dossier.ds_number
             raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
             filename = f"lettre et arrêté - {ds_number} - {raison_sociale}.pdf"
@@ -167,34 +198,23 @@ def _build_one_pdf_per_project(
 
 
 def _build_grouped_merged_pdf(
-    programmation_projets, attrs, *, with_qr_code=True, pdf_bytes_map=None
+    programmation_projets, attrs, pdf_paths: dict[int, Path]
 ) -> tuple[str, str, bytes]:
-    pdf_bytes_list = []
-    for pp in programmation_projets:
-        for attr in attrs:
-            pdf_bytes_list.append(
-                _get_pdf(
-                    getattr(pp, attr),
-                    with_qr_code=with_qr_code,
-                    pdf_bytes_map=pdf_bytes_map,
-                )
-            )
-    merged = _merge_pdfs_bytes(pdf_bytes_list)
+    paths = [
+        pdf_paths[getattr(pp, attr).pk]
+        for pp in programmation_projets
+        for attr in attrs
+    ]
+    merged = _merge_pdfs_from_paths(paths)
     date_str = timezone.now().strftime("%d-%m-%Y")
     filename = f"export turgot {date_str}.pdf"
     return filename, "application/pdf", merged
 
 
-def _get_pdf(document, *, with_qr_code, pdf_bytes_map):
-    if pdf_bytes_map is not None and document.pk in pdf_bytes_map:
-        return pdf_bytes_map[document.pk]
-    return generate_pdf_for_generated_document(document, with_qr_code=with_qr_code)
-
-
-def _merge_pdfs_bytes(pdf_bytes_list: list[bytes]) -> bytes:
+def _merge_pdfs_from_paths(paths: list[Path]) -> bytes:
     pdf = Pdf.new()
-    for pdf_bytes in pdf_bytes_list:
-        src = Pdf.open(io.BytesIO(pdf_bytes))
+    for path in paths:
+        src = Pdf.open(str(path))
         pdf.pages.extend(src.pages)
     output = io.BytesIO()
     pdf.save(output)

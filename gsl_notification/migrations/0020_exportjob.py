@@ -39,8 +39,32 @@ class Migration(migrations.Migration):
                 ),
                 ("pp_ids", models.JSONField(default=list)),
                 ("attr_names", models.JSONField(default=list)),
-                ("export_format", models.CharField(max_length=64)),
-                ("document_type", models.CharField(max_length=32)),
+                (
+                    "export_format",
+                    models.CharField(
+                        choices=[
+                            ("un_pdf_par_document", "Un PDF par document"),
+                            ("un_seul_pdf_ensemble", "Un seul PDF pour l'ensemble"),
+                            ("un_pdf_par_projet", "Un PDF par projet"),
+                            (
+                                "un_seul_pdf_groupe_par_projet",
+                                "Un seul PDF groupé par projet",
+                            ),
+                        ],
+                        max_length=64,
+                    ),
+                ),
+                (
+                    "document_type",
+                    models.CharField(
+                        choices=[
+                            ("arrete", "Arrêté"),
+                            ("lettre", "Lettre de notification"),
+                            ("arrete_et_lettre", "Arrêté et lettre"),
+                        ],
+                        max_length=32,
+                    ),
+                ),
                 ("with_qr_code", models.BooleanField(default=True)),
                 (
                     "status",
