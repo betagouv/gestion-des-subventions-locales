@@ -1,9 +1,11 @@
 import csv
 import io
 import logging
+from datetime import date, datetime, timezone
 
 import requests
 from celery import shared_task
+from django.conf import settings
 
 from gsl.celery import TASK_PRIORITY_LOW
 
@@ -11,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 DGCL_DATASET_ID = "6176785207139a929a2776fe"
 DGCL_API_URL = f"https://www.data.gouv.fr/api/1/datasets/{DGCL_DATASET_ID}/"
+
+FONDS_VERT_BASE_URL = "https://api-fonds-vert.datahub.din.developpement-durable.gouv.fr"
 
 
 @shared_task(priority=TASK_PRIORITY_LOW)
@@ -166,6 +170,145 @@ def _import_row(row):
         },
     )
     return created
+
+
+@shared_task(priority=TASK_PRIORITY_LOW)
+def fetch_subventions_fonds_vert():
+    username = settings.FONDS_VERT_USERNAME
+    password = settings.FONDS_VERT_PASSWORD
+    if not username or not password:
+        logger.error(
+            "FONDS_VERT_USERNAME / FONDS_VERT_PASSWORD non définis — import annulé"
+        )
+        return {}
+
+    token = _fonds_vert_login(username, password)
+
+    nb_created = nb_updated = nb_errors = 0
+    page = 1
+    per_page = 500
+
+    while True:
+        data = _fonds_vert_get(
+            token, "/fonds_vert/v2/dossiers", page=page, per_page=per_page
+        )
+        items = data.get("data", [])
+        if not items:
+            break
+
+        for item in items:
+            try:
+                created = _import_fonds_vert_dossier(item)
+            except Exception as e:
+                sc = item.get("socle_commun", {})
+                logger.error(
+                    "Erreur import dossier Fonds Vert #%s: %s",
+                    sc.get("dossier_number"),
+                    e,
+                )
+                nb_errors += 1
+                continue
+            if created:
+                nb_created += 1
+            else:
+                nb_updated += 1
+
+        if data.get("next_page") is None:
+            break
+        page += 1
+
+    logger.info(
+        "Fonds Vert: %d créés, %d mis à jour, %d erreurs",
+        nb_created,
+        nb_updated,
+        nb_errors,
+    )
+    return {"created": nb_created, "updated": nb_updated, "errors": nb_errors}
+
+
+def _fonds_vert_login(username: str, password: str) -> str:
+    resp = requests.post(
+        f"{FONDS_VERT_BASE_URL}/fonds_vert/login",
+        headers={"Accept": "application/json"},
+        data={"username": username, "password": password},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()["access_token"]
+
+
+def _fonds_vert_get(token: str, path: str, **params) -> dict:
+    resp = requests.get(
+        f"{FONDS_VERT_BASE_URL}{path}",
+        headers={"Authorization": f"Bearer {token}"},
+        params=params,
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _import_fonds_vert_dossier(item: dict) -> bool:
+    from .models import Beneficiaire, SubventionFondsVert
+
+    sc = item.get("socle_commun", {})
+
+    dossier_number = sc.get("dossier_number")
+    siret = (sc.get("siret") or "").strip()
+    nom = (sc.get("entreprise_raison_sociale") or "").strip()[:200]
+    entreprise_type = (sc.get("entreprise_forme_juridique") or "").strip()[:50]
+
+    if not dossier_number or not siret:
+        return False
+
+    siren = siret[:9]
+    beneficiaire, _ = Beneficiaire.objects.update_or_create(
+        siren=siren,
+        defaults={"nom": nom, "type": entreprise_type},
+    )
+
+    departement = _resolve_departement(sc.get("code_departement", ""))
+    commune = _resolve_commune(sc.get("code_commune", ""))
+
+    _, created = SubventionFondsVert.objects.update_or_create(
+        dossier_number=dossier_number,
+        defaults={
+            "beneficiaire": beneficiaire,
+            "annee_millesime": sc.get("annee_millesime") or 0,
+            "demarche_number": sc.get("demarche_number") or 0,
+            "demarche_title": (sc.get("demarche_title") or "")[:200],
+            "nom_du_projet": sc.get("nom_du_projet") or "",
+            "statut": (sc.get("statut") or "")[:30],
+            "departement": departement,
+            "commune": commune,
+            "montant_aide_demandee": sc.get("montant_aide_demandee_fond_vert") or 0,
+            "montant_subvention_attribuee": sc.get("montant_subvention_attribuee"),
+            "total_des_depenses": sc.get("total_des_depenses") or 0,
+            "date_depot": _parse_datetime(sc.get("date_depot")),
+            "date_notification": _parse_date(sc.get("date_notification")),
+        },
+    )
+    return created
+
+
+def _parse_datetime(value) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value[:19], "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=timezone.utc
+        )
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_date(value) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(str(value)[:10])
+    except (ValueError, TypeError):
+        return None
 
 
 def _resolve_departement(code):
