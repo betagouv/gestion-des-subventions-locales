@@ -271,3 +271,27 @@ def remove_filter_qs(context, field):
         qd.pop(key, None)
     encoded = qd.urlencode()
     return f"?{encoded}" if encoded else ""
+
+
+_DISPOSITIF_SHORT = {
+    "DSIL exceptionnelle": "DSIL EXC.",
+}
+
+
+@register.filter
+def dispositif_short(label):
+    return _DISPOSITIF_SHORT.get(label, label)
+
+
+_FONDS_VERT_STATUT_TO_CSS = {
+    "Accepté": "accepted",
+    "Refusé": "refused",
+    "Classé sans suite": "dismissed",
+    "En instruction": "processing",
+    "En construction": "processing",
+}
+
+
+@register.filter
+def fonds_vert_statut_class(statut):
+    return _FONDS_VERT_STATUT_TO_CSS.get(statut, "processing")
