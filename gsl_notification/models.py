@@ -389,14 +389,34 @@ class ExportJob(BaseModel):
         (STATUS_DONE, "Terminé"),
     )
 
+    DOCUMENT_TYPE_ARRETE = ARRETE
+    DOCUMENT_TYPE_LETTRE = LETTRE
+    DOCUMENT_TYPE_ARRETE_ET_LETTRE = "arrete_et_lettre"
+    DOCUMENT_TYPE_CHOICES = (
+        (ARRETE, "Arrêté"),
+        (LETTRE, "Lettre de notification"),
+        ("arrete_et_lettre", "Arrêté et lettre"),
+    )
+
+    EXPORT_FORMAT_ONE_PDF_PER_DOC = "un_pdf_par_document"
+    EXPORT_FORMAT_ONE_PDF_ALL = "un_seul_pdf_ensemble"
+    EXPORT_FORMAT_ONE_PDF_PER_PROJECT = "un_pdf_par_projet"
+    EXPORT_FORMAT_ONE_PDF_ALL_GROUPED = "un_seul_pdf_groupe_par_projet"
+    EXPORT_FORMAT_CHOICES = (
+        (EXPORT_FORMAT_ONE_PDF_PER_DOC, "Un PDF par document"),
+        (EXPORT_FORMAT_ONE_PDF_ALL, "Un seul PDF pour l'ensemble"),
+        (EXPORT_FORMAT_ONE_PDF_PER_PROJECT, "Un PDF par projet"),
+        (EXPORT_FORMAT_ONE_PDF_ALL_GROUPED, "Un seul PDF groupé par projet"),
+    )
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
     # Task parameters — stored so the task only needs job_id
     pp_ids = models.JSONField(default=list)
     attr_names = models.JSONField(default=list)
-    export_format = models.CharField(max_length=64)
-    document_type = models.CharField(max_length=32)
+    export_format = models.CharField(max_length=64, choices=EXPORT_FORMAT_CHOICES)
+    document_type = models.CharField(max_length=32, choices=DOCUMENT_TYPE_CHOICES)
     with_qr_code = models.BooleanField(default=True)
 
     # Progress
