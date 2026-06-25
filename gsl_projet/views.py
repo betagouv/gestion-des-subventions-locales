@@ -3,6 +3,7 @@ import json
 from django.contrib import messages
 from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
 from django.shortcuts import get_object_or_404, redirect
+from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -271,11 +272,28 @@ class ProjetNoteCreateView(CreateView):
         return redirect(self.get_success_url())
 
     def form_invalid(self, form):
+        error_messages = (
+            "Une erreur s'est produite lors de la soumission du formulaire."
+        )
+        for error in form.non_field_errors():
+            error_messages += f" {error}"
+
         messages.error(
             self.request,
-            "Une erreur s'est produite lors de la soumission du formulaire.",
+            error_messages,
         )
-        return redirect("projet:get-projet-notes", projet_id=self.kwargs["projet_id"])
+        projet = get_object_or_404(
+            Projet.objects.active().for_user(self.request.user),
+            pk=self.kwargs["projet_id"],
+        )
+        context = _build_projet_page_context(projet, self.request)
+        context["projet_note_form"] = form
+        return TemplateResponse(
+            self.request,
+            "gsl_projet/projet/tab_notes.html",
+            context,
+            status=200,
+        )
 
     def get_success_url(self):
         referer = self.request.headers.get("Referer")

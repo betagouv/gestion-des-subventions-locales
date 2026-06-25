@@ -94,6 +94,12 @@ def test_projet_note_form_save_with_error(client_with_user_logged, simulation_pr
 
     projet.refresh_from_db()
     assert projet.notes.count() == 0
+    assert response.context["projet_note_form"].errors == {
+        "title": [
+            "Assurez-vous que cette valeur comporte au plus 100 caractères (actuellement 156)."
+        ],
+        "content": ["Ce champ est obligatoire."],
+    }
 
 
 @pytest.mark.parametrize(
@@ -151,11 +157,14 @@ def test_post_edit_projet_note(client_with_user_logged, simulation_projet):
     assert projet.notes.count() == 1
 
     url = reverse("projet:note-edit", kwargs={"pk": projet_note.pk})
-    client_with_user_logged.post(
+    response = client_with_user_logged.post(
         url,
+        headers={"HX-Request": "true"},
         data={"title": "Mon titre", "content": "Mon contenu"},
+        follow=True,
     )
 
+    assert response.status_code == 200
     projet_note.refresh_from_db()
     assert projet_note.title == "Mon titre"
     assert projet_note.content == "Mon contenu"
