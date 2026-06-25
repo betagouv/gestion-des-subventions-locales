@@ -28,8 +28,16 @@
             <div class="fr-table__wrapper">
                 <div class="fr-table__container">
                     <div class="fr-table__content">
-                        <table>
+                        <table class="table-fixed">
                             <caption>Subventions DGCL pour {{ beneficiaire_nom }}</caption>
+                            <colgroup>
+                                <col class="col-annee">
+                                <col class="col-dotation">
+                                <col class="col-intitule">
+                                <col class="col-montant">
+                                <col class="col-montant">
+                                <col class="col-montant">
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th scope="col">
@@ -58,10 +66,10 @@
                                         <td>
                                             {{ s.exercice }}
                                         </td>
-                                        <td>
-                                            {% dsfr_tag label=s.dispositif %}
+                                        <td title="{{ s.dispositif }}">
+                                            {% dsfr_tag label=s.dispositif|dispositif_short %}
                                         </td>
-                                        <td>
+                                        <td class="cell-wrap" title="{{ s.intitule }}">
                                             {{ s.intitule }}
                                         </td>
                                         <td>
@@ -84,6 +92,98 @@
     {% else %}
         <p>
             Aucune subvention DGCL trouvée pour ce bénéficiaire dans votre périmètre.
+        </p>
+    {% endif %}
+
+    <h2 class="fr-mt-6w">
+        Historique des subventions Fonds Vert
+    </h2>
+    <p class="fr-text--sm fr-text-mention--grey">
+        Source : API Fonds Vert (programme 380 – transition écologique)
+    </p>
+
+    {% if subventions_fonds_vert %}
+        <div class="fr-table fr-table--no-caption">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table class="table-fixed">
+                            <caption>Subventions Fonds Vert pour {{ beneficiaire_nom }}</caption>
+                            <colgroup>
+                                <col class="col-annee">
+                                <col>
+                                <col class="col-intitule">
+                                <col>
+                                <col class="col-montant">
+                                <col class="col-montant">
+                                <col class="col-montant">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        Année
+                                    </th>
+                                    <th scope="col">
+                                        Démarche
+                                    </th>
+                                    <th scope="col">
+                                        Intitulé
+                                    </th>
+                                    <th scope="col">
+                                        Statut
+                                    </th>
+                                    <th scope="col">
+                                        Coût total
+                                    </th>
+                                    <th scope="col">
+                                        Montant demandé
+                                    </th>
+                                    <th scope="col">
+                                        Montant attribué
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in subventions_fonds_vert %}
+                                    <tr>
+                                        <td>
+                                            {{ s.annee_millesime }}
+                                        </td>
+                                        <td class="cell-wrap" title="{{ s.demarche_title }}">
+                                            {{ s.demarche_title }}
+                                        </td>
+                                        <td class="cell-wrap" title="{{ s.nom_du_projet }}">
+                                            {{ s.nom_du_projet }}
+                                        </td>
+                                        <td>
+                                            <span class="fr-badge badge-projet-status badge-projet-status__{{ s.statut|fonds_vert_statut_class }}">
+                                                {{ s.statut }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {{ s.total_des_depenses|euro }}
+                                        </td>
+                                        <td>
+                                            {{ s.montant_aide_demandee|euro }}
+                                        </td>
+                                        <td>
+                                            {% if s.montant_subvention_attribuee is not None %}
+                                                {{ s.montant_subvention_attribuee|euro }}
+                                            {% else %}
+                                                –
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <p>
+            Aucune subvention Fonds Vert trouvée pour ce bénéficiaire.
         </p>
     {% endif %}
 
