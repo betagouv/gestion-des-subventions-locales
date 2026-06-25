@@ -240,3 +240,27 @@ def other_dotation_cell_value(context, column):
 @register.filter
 def perimetre_type_abbrev(perimetre_type):
     return f"{perimetre_type[:3]}."
+
+
+_DISPOSITIF_SHORT = {
+    "DSIL exceptionnelle": "DSIL EXC.",
+}
+
+
+@register.filter
+def dispositif_short(label):
+    return _DISPOSITIF_SHORT.get(label, label)
+
+
+_FONDS_VERT_STATUT_TO_CSS = {
+    "Accepté": "accepted",
+    "Refusé": "refused",
+    "Classé sans suite": "dismissed",
+    "En instruction": "processing",
+    "En construction": "processing",
+}
+
+
+@register.filter
+def fonds_vert_statut_class(statut):
+    return _FONDS_VERT_STATUT_TO_CSS.get(statut, "processing")
