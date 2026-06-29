@@ -30,6 +30,7 @@ from gsl_projet.utils.projet_filters import (
     DOTATION_SOLLICITEE_CHOICES,
     ORDERING_MAP,
     OUI_NON_CHOICES,
+    FixedFilterFieldsMixin,
     LabelFromInstanceFilter,
     ProjetOrderingFilter,
     filter_boolean,
@@ -42,7 +43,18 @@ from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_simulation.models import SimulationProjet
 
 
-class SimulationProjetFilters(FilterSet):
+class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
+    # Simulations have no "montant retenu" (programmation only); the fixed row
+    # surfaces the "montant prévisionnel accordé" in its place.
+    fixed_filter_fields = (
+        "search",
+        "categorie_detr",
+        "categorie_dsil",
+        "cout",
+        "montant_demande",
+        "montant_previsionnel",
+    )
+
     def __init__(self, *args, slug=None, dotation=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.slug = slug or self.request.resolver_match.kwargs.get("slug")
@@ -198,10 +210,12 @@ class SimulationProjetFilters(FilterSet):
     )
 
     territoire = LabelFromInstanceFilter(
+        label="Territoire",
         method="filter_territoire",
         queryset=Perimetre.objects.none(),
         widget=CustomCheckboxSelectMultiple(
-            display_template="includes/_filter_territoire.html"
+            display_template="includes/_filter_territoire.html",
+            label_attr="entity_name",
         ),
         label_attr="entity_name",
     )

@@ -35,6 +35,7 @@ from gsl_projet.utils.django_filters_custom_widget import (
 from gsl_projet.utils.projet_filters import (
     DOTATION_SOLLICITEE_CHOICES,
     OUI_NON_CHOICES,
+    FixedFilterFieldsMixin,
     LabelFromInstanceFilter,
     ProjetOrderingFilter,
     filter_boolean,
@@ -60,7 +61,16 @@ PROGRAMMATION_ORDERING_MAP = {
 }
 
 
-class ProgrammationProjetFilters(FilterSet):
+class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
+    fixed_filter_fields = (
+        "search",
+        "categorie_detr",
+        "categorie_dsil",
+        "cout",
+        "montant_demande",
+        "montant_retenu",
+    )
+
     search = CharFilter(
         label="Recherche",
         method="filter_search",
@@ -117,10 +127,12 @@ class ProgrammationProjetFilters(FilterSet):
     )
 
     territoire = LabelFromInstanceFilter(
+        label="Territoire",
         method="filter_territoire",
         queryset=Perimetre.objects.none(),
         widget=CustomCheckboxSelectMultiple(
-            display_template="includes/_filter_territoire.html"
+            display_template="includes/_filter_territoire.html",
+            label_attr="entity_name",
         ),
         label_attr="entity_name",
     )

@@ -240,3 +240,34 @@ def other_dotation_cell_value(context, column):
 @register.filter
 def perimetre_type_abbrev(perimetre_type):
     return f"{perimetre_type[:3]}."
+
+
+@register.filter
+def active_filter_tag(field):
+    """Formatted tag text for an active filter, or '' when it has no value.
+
+    Each custom widget knows how to describe itself via `active_tag_label`;
+    the plain search input falls back to the base case below."""
+    form = field.form
+    form.is_valid()
+    value = getattr(form, "cleaned_data", {}).get(field.name)
+    label = field.field.label or field.name
+    get_label = getattr(field.field.widget, "active_tag_label", None)
+    if get_label:
+        return get_label(value, label)
+    return f"{label} « {value} »" if value else ""
+
+
+@register.simple_tag(takes_context=True)
+def remove_filter_qs(context, field):
+    """href that drops only this field's GET key(s) (incl. _min/_max suffixes)."""
+    suffixes = getattr(field.field.widget, "suffixes", None)
+    if suffixes:
+        keys = [f"{field.name}_{suffix}" for suffix in suffixes]
+    else:
+        keys = [field.name]
+    qd = context["request"].GET.copy()
+    for key in keys:
+        qd.pop(key, None)
+    encoded = qd.urlencode()
+    return f"?{encoded}" if encoded else ""
