@@ -293,7 +293,7 @@ def test_edit_taux_post_saves_and_returns_oob(
     url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
     response = client_with_user_logged.post(
         url,
-        {"taux": "75.0"},
+        {"taux": "75.0", "confirmed": "1"},
         headers={"HX-Request": "true"},
     )
 
@@ -349,7 +349,7 @@ def test_edit_taux_post_rolls_back_on_ds_error(
     ):
         response = client_with_user_logged.post(
             url,
-            {"taux": 75},
+            {"taux": 75, "confirmed": "1"},
         )
     assert response.status_code == 200
     content = response.content.decode()
@@ -387,7 +387,7 @@ def test_edit_montant_post_saves_and_returns_oob(
     )
     response = client_with_user_logged.post(
         url,
-        {"montant": "1267.32"},
+        {"montant": "1267.32", "confirmed": "1"},
         headers={"HX-Request": "true"},
     )
 
@@ -450,7 +450,7 @@ def test_edit_montant_post_rolls_back_on_ds_error(
     ):
         response = client_with_user_logged.post(
             url,
-            {"montant": 2_000},
+            {"montant": 2_000, "confirmed": "1"},
         )
     assert response.status_code == 200
     content = response.content.decode()

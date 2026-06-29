@@ -2,6 +2,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.contrib import messages
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -9,7 +10,11 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import BaseUpdateView
-from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh
+from django_htmx.http import (
+    HttpResponseClientRedirect,
+    HttpResponseClientRefresh,
+    trigger_client_event,
+)
 
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
@@ -151,11 +156,37 @@ class EditMontantView(SimulationTableCellEditMixin):
     template_name = "gsl_simulation/table_cells/edit_forms/_montant_edit_form.html"
     matomo_action = MATOMO_ACTION_MODIFICATION_MONTANT
 
+    def form_valid(self, form):
+        if (
+            self.object.status == SimulationProjet.STATUS_ACCEPTED
+            and not self.request.POST.get("confirmed")
+        ):
+            refresh_url = reverse(
+                "simulation:refresh-simulation-row", kwargs={"pk": self.object.pk}
+            )
+            return _render_amount_confirmation_modal(
+                self.request, self.object, refresh_url
+            )
+        return super().form_valid(form)
+
 
 class EditTauxView(SimulationTableCellEditMixin):
     form_class = TauxSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_taux_edit_form.html"
     matomo_action = MATOMO_ACTION_MODIFICATION_TAUX
+
+    def form_valid(self, form):
+        if (
+            self.object.status == SimulationProjet.STATUS_ACCEPTED
+            and not self.request.POST.get("confirmed")
+        ):
+            refresh_url = reverse(
+                "simulation:refresh-simulation-row", kwargs={"pk": self.object.pk}
+            )
+            return _render_amount_confirmation_modal(
+                self.request, self.object, refresh_url
+            )
+        return super().form_valid(form)
 
 
 class EditCommentView(SimulationTableCellEditMixin):
@@ -300,9 +331,26 @@ class SimulationProjetCardUpdateView(UpdateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
+        kwargs["prefix"] = (
+            f"simulation-card-form-{self.object.pk}"  # useful to match the form fields
+        )
         return kwargs
 
     def form_valid(self, form):
+        if (
+            self.object.dotation_projet.status == PROJET_STATUS_ACCEPTED
+            and not self.request.POST.get("confirmed")
+        ):
+            refresh_url = reverse(
+                "simulation:cleanup-amount-modal", kwargs={"pk": self.object.pk}
+            )
+            return _render_amount_confirmation_modal(
+                self.request,
+                self.object,
+                refresh_url,
+                card_placeholder_id=f"simulation-card-{self.object.pk}",
+            )
+
         try:
             form.save()
         except DsServiceException as e:
@@ -354,6 +402,50 @@ class SimulationProjetCardUpdateView(UpdateView):
                 "projet": simu.projet,
             },
         )
+
+
+class CleanupAmountModalView(DetailView):
+    model = SimulationProjet
+
+    def get_queryset(self):
+        return SimulationProjet.objects.active().in_user_perimeter(self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        simu = self.get_object()
+        # The card was never replaced (HX-Reswap: none). Just OOB-delete
+        # the hidden trigger button that was injected into <body>.
+        modal_button_id = f"confirm-amount-update-{simu.pk}-button"
+        return HttpResponse(
+            f'<button id="{modal_button_id}" hx-swap-oob="delete"></button>'
+        )
+
+
+def _render_amount_confirmation_modal(
+    request, simu, refresh_url: str, card_placeholder_id: str = ""
+):
+    modal_id = f"confirm-amount-update-{simu.pk}"
+    submitted_data = {
+        k: v for k, v in request.POST.items() if k != "csrfmiddlewaretoken"
+    }
+    context = {
+        "simu": simu,
+        "modal_id": modal_id,
+        "modal_button_id": f"{modal_id}-button",
+        "submitted_data": submitted_data,
+        "confirm_url": request.get_full_path(),
+        "refresh_url": refresh_url,
+        "card_placeholder_id": card_placeholder_id,
+    }
+    print("submitted_data", submitted_data)
+    response = render(request, "htmx/amount_update_confirm_modal.html", context)
+    if card_placeholder_id:
+        # Redirect the main swap to body (beforeend) so the trigger button is
+        # appended there instead of replacing the card.
+        response["HX-Retarget"] = "body"
+        response["HX-Reswap"] = "beforeend"
+    return trigger_client_event(
+        response, "click", {"target": f"#{modal_id}-button"}, after="settle"
+    )
 
 
 @method_decorator(htmx_only, name="dispatch")
