@@ -2,12 +2,13 @@ import logging
 
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from django.views.generic import DetailView
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
+from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
-from gsl_notification.exports import build_export, upload_export_and_get_url
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
@@ -19,6 +20,8 @@ from gsl_notification.forms import (
     GenerateDocumentsStep2Form,
     GenerateDocumentsStep3Form,
 )
+from gsl_notification.models import ExportJob
+from gsl_notification.tasks import generate_export_task
 from gsl_notification.utils import get_programmation_projet_attribute
 from gsl_projet.constants import DOTATIONS
 
@@ -35,6 +38,8 @@ class GenerateDocumentsWizard(SessionWizardView):
 
     TEMPLATE_BASE = "gsl_notification/generated_document/multiple/"
     SUCCESS_TEMPLATE = TEMPLATE_BASE + "modal_success_body.html"
+    POLLING_TEMPLATE = TEMPLATE_BASE + "modal_export_progress_body.html"
+    ERROR_TEMPLATE = TEMPLATE_BASE + "modal_export_error_body.html"
 
     form_list = [
         (LAUNCH_STEP, GenerateDocumentsLaunchForm),
@@ -186,28 +191,85 @@ class GenerateDocumentsWizard(SessionWizardView):
         )
 
         attrs = [get_programmation_projet_attribute(t) for t in form.selected_types]
-        filename, content_type, body = build_export(
-            refreshed,
-            attrs,
-            export_format,
-            form.document_type,
+        pp_ids = [pp.pk for pp in refreshed]
+
+        job = ExportJob.objects.create(
+            created_by=self.request.user,
+            pp_ids=pp_ids,
+            attr_names=attrs,
+            export_format=export_format,
+            document_type=form.document_type,
             with_qr_code=with_qr_code,
         )
-        download_url = upload_export_and_get_url(filename, content_type, body)
+        generate_export_task.apply_async(
+            args=[str(job.pk)],
+            priority=TASK_PRIORITY_NORMAL,
+        )
 
+        return render(
+            self.request,
+            self.POLLING_TEMPLATE,
+            {
+                "job_id": str(job.pk),
+                "job": job,
+                "modal_id": self.modal_id,
+                "dotation": self.kwargs["dotation"],
+            },
+        )
+
+
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsStatusView(DetailView):
+    """Polled every 2 s while the export job is running."""
+
+    model = ExportJob
+    pk_url_kwarg = "job_id"
+    TEMPLATE_BASE = GenerateDocumentsWizard.TEMPLATE_BASE
+    SUCCESS_TEMPLATE = GenerateDocumentsWizard.SUCCESS_TEMPLATE
+    POLLING_TEMPLATE = GenerateDocumentsWizard.POLLING_TEMPLATE
+    ERROR_TEMPLATE = GenerateDocumentsWizard.ERROR_TEMPLATE
+
+    def get_queryset(self):
+        return ExportJob.objects.filter(created_by=self.request.user)
+
+    def get(self, request, dotation, **_):
+        from gsl_programmation.models import ProgrammationProjet
+
+        job = self.get_object()
         context = {
-            "modal_id": self.modal_id,
-            "dotation": self.kwargs["dotation"],
-            "form": form,
-            "download_url": download_url,
-            "doc_count": len(form.programmation_projets) * len(form.selected_types),
-            "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
-            "is_export_one_pdf_all_grouped": (
-                export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED
-            ),
-            "is_export_one_pdf_per_project": (
-                export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT
-            ),
-            "refreshed_programmation_projets": refreshed,
+            "modal_id": GenerateDocumentsWizard.modal_id,
+            "dotation": dotation,
+            "job_id": str(job.pk),
+            "job": job,
         }
-        return render(self.request, self.SUCCESS_TEMPLATE, context)
+
+        if job.is_running:
+            return render(request, self.POLLING_TEMPLATE, context)
+
+        if job.status == ExportJob.STATUS_DONE:
+            pp_ids = job.pp_ids
+            refreshed = list(
+                ProgrammationProjet.objects.filter(pk__in=pp_ids)
+                .select_related(
+                    "arrete", "lettre_notification", "lettre_et_arrete_signes"
+                )
+                .prefetch_related("annexes")
+            )
+            pk_to_pp = {pp.pk: pp for pp in refreshed}
+            refreshed_ordered = [pk_to_pp[pk] for pk in pp_ids if pk in pk_to_pp]
+            export_format = job.export_format
+            context.update(
+                {
+                    "download_url": job.download_url,
+                    "doc_count": len(pp_ids) * len(job.attr_names),
+                    "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
+                    "is_export_one_pdf_all_grouped": export_format
+                    == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
+                    "is_export_one_pdf_per_project": export_format
+                    == EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
+                    "refreshed_programmation_projets": refreshed_ordered,
+                }
+            )
+            return render(request, self.SUCCESS_TEMPLATE, context)
+
+        return render(request, self.ERROR_TEMPLATE, context)

@@ -23,6 +23,31 @@ UPLOADED_DOCUMENT_MODELS = (LettreEtArreteSignes, Annexe)
 LOGO_SCANNED_MODELS = (ModeleArrete, ModeleLettreNotification)
 
 
+@shared_task
+def generate_export_task(job_id: str) -> None:
+    from gsl_notification.exports import build_export, upload_export_and_get_url
+    from gsl_notification.models import ExportJob
+
+    job = ExportJob.objects.get(pk=job_id)
+    try:
+        job.status = ExportJob.STATUS_RUNNING
+        job.save(update_fields=["status", "updated_at"])
+
+        filename, content_type, body = build_export(job)
+        download_url = upload_export_and_get_url(filename, content_type, body)
+
+        ExportJob.objects.filter(pk=job.pk).update(
+            status=ExportJob.STATUS_DONE,
+            download_url=download_url,
+            updated_at=timezone.now(),
+        )
+    except Exception:
+        ExportJob.objects.filter(pk=job.pk).update(
+            status=ExportJob.STATUS_FAILED, updated_at=timezone.now()
+        )
+        raise
+
+
 def _scan_path(path: str) -> dict:
     """Scan a file already on disk with clamdscan.
 

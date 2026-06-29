@@ -557,53 +557,47 @@ def generate_pdf_for_generated_document(
     When ``with_qr_code`` is False, a single, faster pass is rendered without
     any QR code.
     """
+    if not with_qr_code:
+        return generate_pdf_pass1(document)
+    first_pass_pdf = generate_pdf_pass1(document)
+    return generate_pdf_pass2(document, count_pdf_pages(first_pass_pdf))
+
+
+def generate_pdf_pass1(document: Arrete | LettreNotification) -> bytes:
+    """Render without QR code — used for page counting or no-QR exports."""
+    return _render_document_as_pdf(document, qr_css_rules="")
+
+
+def generate_pdf_pass2(document: Arrete | LettreNotification, page_count: int) -> bytes:
+    """Render with per-page QR codes (requires page_count from pass 1)."""
+    qr_css_rules = _build_qr_css_rules(document, page_count)
+    return _render_document_as_pdf(document, qr_css_rules=qr_css_rules)
+
+
+def _render_document_as_pdf(
+    document: Arrete | LettreNotification, qr_css_rules
+) -> bytes:
     content = fix_empty_paragraphs_for_weasyprint(document.content)
     content = fix_table_widths_for_weasyprint(content)
-    base_context = {
-        "doc_title": get_doc_title(document.document_type),
-        "logo": get_logo_base64(document.modele.logo.url),
-        "alt_logo": document.modele.logo_alt_text,
-        "top_right_text": document.modele.top_right_text.strip(),
-        "content": mark_safe(content),
-    }
-
-    if not with_qr_code:
-        html = render_to_string(
-            "gsl_notification/pdf/document.html",
-            {**base_context, "qr_css_rules": ""},
-        )
-        return HTML(
-            string=html,
-            url_fetcher=django_url_fetcher,
-            base_url=settings.STATIC_ROOT,
-        ).write_pdf()
-
-    # Pass 1: render without QR to learn how many pages the document has.
-    first_pass_html = render_to_string(
+    html = render_to_string(
         "gsl_notification/pdf/document.html",
-        {**base_context, "qr_css_rules": ""},
-    )
-    first_pass_pdf = HTML(
-        string=first_pass_html,
-        url_fetcher=django_url_fetcher,
-        base_url=settings.STATIC_ROOT,
-    ).write_pdf()
-
-    qr_css_rules = _build_qr_css_rules(document, _count_pdf_pages(first_pass_pdf))
-
-    # Pass 2: render again with one @page :nth(K) rule per page.
-    final_html = render_to_string(
-        "gsl_notification/pdf/document.html",
-        {**base_context, "qr_css_rules": mark_safe(qr_css_rules)},
+        {
+            "doc_title": get_doc_title(document.document_type),
+            "logo": get_logo_base64(document.modele.logo.url),
+            "alt_logo": document.modele.logo_alt_text,
+            "top_right_text": document.modele.top_right_text.strip(),
+            "content": mark_safe(content),
+            "qr_css_rules": mark_safe(qr_css_rules),
+        },
     )
     return HTML(
-        string=final_html,
+        string=html,
         url_fetcher=django_url_fetcher,
         base_url=settings.STATIC_ROOT,
     ).write_pdf()
 
 
-def _count_pdf_pages(pdf_bytes: bytes) -> int:
+def count_pdf_pages(pdf_bytes: bytes) -> int:
     with Pdf.open(io.BytesIO(pdf_bytes)) as pdf:
         return len(pdf.pages)
 

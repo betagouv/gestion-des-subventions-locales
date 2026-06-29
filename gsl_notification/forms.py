@@ -18,6 +18,7 @@ from gsl_notification.models import (
     Annexe,
     Arrete,
     DocumentImportJob,
+    ExportJob,
     LettreEtArreteSignes,
     LettreNotification,
     ModeleDocument,
@@ -446,12 +447,12 @@ class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
 
 # -- Multi-projet document generation modal forms --
 
-ARRETE_ET_LETTRE = "arrete_et_lettre"
+ARRETE_ET_LETTRE = ExportJob.DOCUMENT_TYPE_ARRETE_ET_LETTRE
 
-EXPORT_FORMAT_ONE_PDF_PER_DOC = "un_pdf_par_document"
-EXPORT_FORMAT_ONE_PDF_ALL = "un_seul_pdf_ensemble"
-EXPORT_FORMAT_ONE_PDF_PER_PROJECT = "un_pdf_par_projet"
-EXPORT_FORMAT_ONE_PDF_ALL_GROUPED = "un_seul_pdf_groupe_par_projet"
+EXPORT_FORMAT_ONE_PDF_PER_DOC = ExportJob.EXPORT_FORMAT_ONE_PDF_PER_DOC
+EXPORT_FORMAT_ONE_PDF_ALL = ExportJob.EXPORT_FORMAT_ONE_PDF_ALL
+EXPORT_FORMAT_ONE_PDF_PER_PROJECT = ExportJob.EXPORT_FORMAT_ONE_PDF_PER_PROJECT
+EXPORT_FORMAT_ONE_PDF_ALL_GROUPED = ExportJob.EXPORT_FORMAT_ONE_PDF_ALL_GROUPED
 
 
 class ProgrammationProjetMultipleChoiceField(forms.ModelMultipleChoiceField):
