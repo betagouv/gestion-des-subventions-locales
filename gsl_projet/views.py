@@ -82,12 +82,6 @@ class ProjetSimulationsView(BaseProjetDetailView):
             "dotation_projet__projet__dossier_ds",
         )
 
-        dp_sp_counts: dict[int, int] = {}
-        for sp in all_qs:
-            dp_sp_counts[sp.dotation_projet_id] = (
-                dp_sp_counts.get(sp.dotation_projet_id, 0) + 1
-            )
-
         dotation_filter = self.request.GET.get("dotation", "")
         filtered_qs = all_qs.order_by("-simulation__created_at")
         if dotation_filter in ("DETR", "DSIL"):
@@ -96,7 +90,7 @@ class ProjetSimulationsView(BaseProjetDetailView):
         simulation_projets_with_forms = []
         for sp in filtered_qs:
             form_id = f"simulation-card-form-{sp.pk}"
-            form = SimulationProjetForm(instance=sp)
+            form = SimulationProjetForm(instance=sp, prefix=form_id)
             for field in ("assiette", "montant", "taux"):
                 if field in form.fields:
                     form.fields[field].widget.attrs["form"] = form_id

@@ -10,6 +10,7 @@ from gsl_simulation.views.decorators import (
 )
 from gsl_simulation.views.simulation_projet_views import (
     BulkSimulationProjetStatusUpdateView,
+    CleanupAmountModalView,
     EditAssietteView,
     EditCommentView,
     EditMontantView,
@@ -95,6 +96,11 @@ urlpatterns = [
         "refresh-row/<int:pk>/",
         RefreshSimulationRowView.as_view(),
         name="refresh-simulation-row",
+    ),
+    path(
+        "refresh-card/<int:pk>/",
+        CleanupAmountModalView.as_view(),
+        name="cleanup-amount-modal",
     ),
     path(
         "<int:pk>/simuler/<str:status>/",
