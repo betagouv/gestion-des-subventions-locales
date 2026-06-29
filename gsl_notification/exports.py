@@ -71,10 +71,10 @@ def _render_pdfs_to_disk(job, documents, tmp_path: Path) -> dict[int, Path]:
         ExportJob.objects.filter(pk=job.pk).update(
             step=1, processed=0, updated_at=timezone.now()
         )
-        page_counts: dict[int, int] = {}
+        page_counts: dict[str, int] = {}
         for doc in documents:
             pdf = generate_pdf_pass1(doc)
-            page_counts[doc.pk] = count_pdf_pages(pdf)
+            page_counts[f"{type(doc).__name__}_{doc.pk}"] = count_pdf_pages(pdf)
             ExportJob.objects.filter(pk=job.pk).update(
                 processed=F("processed") + 1, updated_at=timezone.now()
             )
@@ -82,12 +82,13 @@ def _render_pdfs_to_disk(job, documents, tmp_path: Path) -> dict[int, Path]:
         ExportJob.objects.filter(pk=job.pk).update(
             step=2, processed=0, updated_at=timezone.now()
         )
-        pdf_paths: dict[int, Path] = {}
+        pdf_paths: dict[str, Path] = {}
         for doc in documents:
-            pdf = generate_pdf_pass2(doc, page_counts[doc.pk])
-            path = tmp_path / f"{doc.pk}.pdf"
+            key = f"{type(doc).__name__}_{doc.pk}"
+            pdf = generate_pdf_pass2(doc, page_counts[key])
+            path = tmp_path / f"{key}.pdf"
             path.write_bytes(pdf)
-            pdf_paths[doc.pk] = path
+            pdf_paths[key] = path
             ExportJob.objects.filter(pk=job.pk).update(
                 processed=F("processed") + 1, updated_at=timezone.now()
             )
@@ -97,10 +98,11 @@ def _render_pdfs_to_disk(job, documents, tmp_path: Path) -> dict[int, Path]:
         )
         pdf_paths = {}
         for doc in documents:
+            key = f"{type(doc).__name__}_{doc.pk}"
             pdf = generate_pdf_pass1(doc)
-            path = tmp_path / f"{doc.pk}.pdf"
+            path = tmp_path / f"{key}.pdf"
             path.write_bytes(pdf)
-            pdf_paths[doc.pk] = path
+            pdf_paths[key] = path
             ExportJob.objects.filter(pk=job.pk).update(
                 processed=F("processed") + 1, updated_at=timezone.now()
             )
@@ -109,7 +111,7 @@ def _render_pdfs_to_disk(job, documents, tmp_path: Path) -> dict[int, Path]:
 
 
 def _assemble_export(
-    pps, attrs, export_format, document_type, pdf_paths: dict[int, Path]
+    pps, attrs, export_format, document_type, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
         return _build_single_merged_pdf(pps, attrs, document_type, pdf_paths)
@@ -121,7 +123,7 @@ def _assemble_export(
 
 
 def _build_one_pdf_per_doc(
-    programmation_projets, attrs, pdf_paths: dict[int, Path]
+    programmation_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     documents = [
         doc
@@ -131,14 +133,16 @@ def _build_one_pdf_per_doc(
 
     if len(documents) == 1:
         document = documents[0]
-        pdf_content = pdf_paths[document.pk].read_bytes()
+        key = f"{type(document).__name__}_{document.pk}"
+        pdf_content = pdf_paths[key].read_bytes()
         logger.info(f"#1 {document} généré")
         return document.name, "application/pdf", pdf_content
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for i, document in enumerate(documents, start=1):
-            zip_file.write(str(pdf_paths[document.pk]), arcname=document.name)
+            key = f"{type(document).__name__}_{document.pk}"
+            zip_file.write(str(pdf_paths[key]), arcname=document.name)
             logger.info(f"#{i} {document} généré")
     date_str = timezone.now().strftime("%d-%m-%Y")
     return f"export turgot {date_str}.zip", "application/zip", zip_buffer.getvalue()
@@ -148,13 +152,13 @@ def _build_single_merged_pdf(
     programmation_projets,
     attrs,
     document_type,
-    pdf_paths: dict[int, Path],
+    pdf_paths: dict[str, Path],
 ) -> tuple[str, str, bytes]:
-    paths = [
-        pdf_paths[getattr(pp, attr).pk]
-        for pp in programmation_projets
-        for attr in attrs
-    ]
+    paths = []
+    for pp in programmation_projets:
+        for attr in attrs:
+            doc = getattr(pp, attr)
+            paths.append(pdf_paths[f"{type(doc).__name__}_{doc.pk}"])
     merged = _merge_pdfs_from_paths(paths)
     date_str = timezone.now().strftime("%d-%m-%Y")
     if document_type == ARRETE:
@@ -168,11 +172,14 @@ def _build_single_merged_pdf(
 
 
 def _build_one_pdf_per_project(
-    programmation_projets, attrs, pdf_paths: dict[int, Path]
+    programmation_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     if len(programmation_projets) == 1:
         pp = programmation_projets[0]
-        paths = [pdf_paths[getattr(pp, attr).pk] for attr in attrs]
+        paths = [
+            pdf_paths[f"{type(getattr(pp, attr)).__name__}_{getattr(pp, attr).pk}"]
+            for attr in attrs
+        ]
         merged = _merge_pdfs_from_paths(paths)
         date_str = timezone.now().strftime("%d-%m-%Y")
         ds_number = pp.dossier.ds_number
@@ -184,7 +191,10 @@ def _build_one_pdf_per_project(
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for pp in programmation_projets:
-            paths = [pdf_paths[getattr(pp, attr).pk] for attr in attrs]
+            paths = [
+                pdf_paths[f"{type(getattr(pp, attr)).__name__}_{getattr(pp, attr).pk}"]
+                for attr in attrs
+            ]
             merged = _merge_pdfs_from_paths(paths)
             ds_number = pp.dossier.ds_number
             raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
@@ -198,13 +208,13 @@ def _build_one_pdf_per_project(
 
 
 def _build_grouped_merged_pdf(
-    programmation_projets, attrs, pdf_paths: dict[int, Path]
+    programmation_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
-    paths = [
-        pdf_paths[getattr(pp, attr).pk]
-        for pp in programmation_projets
-        for attr in attrs
-    ]
+    paths = []
+    for pp in programmation_projets:
+        for attr in attrs:
+            doc = getattr(pp, attr)
+            paths.append(pdf_paths[f"{type(doc).__name__}_{doc.pk}"])
     merged = _merge_pdfs_from_paths(paths)
     date_str = timezone.now().strftime("%d-%m-%Y")
     filename = f"export turgot {date_str}.pdf"

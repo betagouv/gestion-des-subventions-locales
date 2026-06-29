@@ -2,11 +2,11 @@ import logging
 
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
-from django.views import View
+from django.views.generic import DetailView
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
-from gsl.celery import TASK_PRIORITY_HIGH
+from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_notification.forms import (
@@ -203,7 +203,7 @@ class GenerateDocumentsWizard(SessionWizardView):
         )
         generate_export_task.apply_async(
             args=[str(job.pk)],
-            priority=TASK_PRIORITY_HIGH,
+            priority=TASK_PRIORITY_NORMAL,
         )
 
         return render(
@@ -219,18 +219,23 @@ class GenerateDocumentsWizard(SessionWizardView):
 
 
 @method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsStatusView(View):
+class GenerateDocumentsStatusView(DetailView):
     """Polled every 2 s while the export job is running."""
 
+    model = ExportJob
+    pk_url_kwarg = "job_id"
     TEMPLATE_BASE = GenerateDocumentsWizard.TEMPLATE_BASE
     SUCCESS_TEMPLATE = GenerateDocumentsWizard.SUCCESS_TEMPLATE
     POLLING_TEMPLATE = GenerateDocumentsWizard.POLLING_TEMPLATE
     ERROR_TEMPLATE = GenerateDocumentsWizard.ERROR_TEMPLATE
 
-    def get(self, request, dotation, job_id):
+    def get_queryset(self):
+        return ExportJob.objects.filter(created_by=self.request.user)
+
+    def get(self, request, dotation, **_):
         from gsl_programmation.models import ProgrammationProjet
 
-        job = ExportJob.objects.get(pk=job_id)
+        job = self.get_object()
         context = {
             "modal_id": GenerateDocumentsWizard.modal_id,
             "dotation": dotation,
