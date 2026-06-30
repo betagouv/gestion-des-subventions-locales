@@ -25,29 +25,12 @@
             Remettre la demande de financement {{ object.dotation_projet.dotation }}
             {{ new_simulation_status|status_to_adjective }}
         {% endif %}
-
-        {% if object.projet.notified_at %}
-            et prévenir le demandeur sur la messagerie de Démarche Numérique
-        {% endif %}
     </h1>
-    {% if object.projet.notified_at %}
-        <p>
-            Attention, vous vous apprêtez à repasser le statut du projet
-            «&nbsp;{{ object.projet.dossier_ds.projet_intitule }}&nbsp;» en
-            traitement, alors que
-            celui-ci est déjà {{ object.status|status_to_adjective }} et notifié.
-        </p>
-    {% endif %}
     <p id="draft-confirmation-modal-content">
         Ce projet {{ object.status|status_to_adjective }} va être remis en traitement dans toutes les simulations dans
         lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation
         officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
-    {% if object.projet.notified_at %}
-        <p>
-            Le demandeur sera notifié via la messagerie de Démarches Numériques et le projet repassera en instruction.
-        </p>
-    {% endif %}
     <p>
         Êtes-vous sûr⋅e de {{ new_simulation_status|status_to_action_word }} le projet&nbsp;?
     </p>
@@ -65,10 +48,6 @@
             class="fr-btn fr-btn--primary"
             form="{{ modal_id }}-form"
             id="{{ modal_id }}-submit-button">
-        {% if object.projet.notified_at %}
-            Oui, repasser le dossier en traitement
-        {% else %}
-            Oui
-        {% endif %}
+        Oui
     </button>
 {% endblock confirmation_button %}

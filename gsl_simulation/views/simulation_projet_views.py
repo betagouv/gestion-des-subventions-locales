@@ -273,7 +273,11 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return SimulationProjet.objects.active().in_user_perimeter(self.request.user)
+        return (
+            SimulationProjet.objects.active()
+            .in_user_perimeter(self.request.user)
+            .filter(dotation_projet__projet__notified_at__isnull=True)
+        )
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
