@@ -20,7 +20,7 @@ from gsl_core.matomo_constants import (
     MATOMO_CATEGORY_SIMULATION,
 )
 from gsl_core.models import Perimetre
-from gsl_core.view_mixins import NoFeedbackHtmxFormViewMixin
+from gsl_core.view_mixins import FilterSkiplinksMixin, NoFeedbackHtmxFormViewMixin
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import DotationProjet, Projet
@@ -71,7 +71,7 @@ class SimulationListView(ListView):
         return qs
 
 
-class SimulationDetailView(SingleObjectMixin, FilterView):
+class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
     queryset = Simulation.objects.select_related(
         "enveloppe",
         "enveloppe__perimetre",

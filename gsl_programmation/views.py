@@ -17,6 +17,7 @@ from gsl_core.matomo_constants import (
     MATOMO_CATEGORY_SOUS_ENVELOPPE,
 )
 from gsl_core.models import Perimetre
+from gsl_core.view_mixins import FilterSkiplinksMixin
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
@@ -29,7 +30,7 @@ from gsl_projet.constants import (
 )
 
 
-class ProgrammationProjetListView(FilterView, ListView):
+class ProgrammationProjetListView(FilterSkiplinksMixin, FilterView, ListView):
     model = ProgrammationProjet
     filterset_class = ProgrammationProjetFilters
     template_name = "gsl_programmation/programmation_projet_list.html"

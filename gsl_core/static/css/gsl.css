@@ -2,6 +2,17 @@ html {
     scroll-behavior: smooth;
 }
 
+/* Prevent layout shift when the skip links bar becomes visible.
+   DSFR switches to position:relative on :focus-within, which pushes
+   content down and causes the scroll-to-anchor to overshoot. */
+.fr-skiplinks:focus-within {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+}
+
 .fr-header__service-title {
     font-size: 1.125rem;
 }

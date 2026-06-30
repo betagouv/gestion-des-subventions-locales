@@ -6,7 +6,7 @@ from django.views.generic import DetailView, ListView, UpdateView
 from django_filters.views import FilterView
 
 from gsl_core.models import Perimetre
-from gsl_core.view_mixins import SafeRedirectMixin
+from gsl_core.view_mixins import FilterSkiplinksMixin, SafeRedirectMixin
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
@@ -214,7 +214,7 @@ class ProjetListViewFilters(ProjetFilters):
         return qs
 
 
-class ProjetListView(FilterView, ListView):
+class ProjetListView(FilterSkiplinksMixin, FilterView, ListView):
     model = Projet
     paginate_by = 25
     filterset_class = ProjetListViewFilters
