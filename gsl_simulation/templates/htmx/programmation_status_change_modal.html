@@ -2,7 +2,7 @@
 {% load simulation_filters %}
 
 {% block button_label %}
-    {{ new_simulation_status|status_to_label }}
+    {{ new_simulation_status|status_to_label|split_symbol_and_status|safe }}
 {% endblock button_label %}
 
 {% block content %}

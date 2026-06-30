@@ -109,6 +109,7 @@ def status_to_fr_color(status):
 
 @register.filter(name="split_symbol_and_status")
 def split_symbol_and_status(symbol_and_status):
-    symbol = symbol_and_status[0]
-    status = symbol_and_status[2:]
+    parts = symbol_and_status.split(" ", 1)
+    symbol = parts[0]
+    status = parts[1] if len(parts) > 1 else ""
     return f"<span aria-hidden='true'>{symbol}</span> {status}"
