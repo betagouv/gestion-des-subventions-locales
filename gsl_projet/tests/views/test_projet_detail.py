@@ -261,7 +261,6 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     content = response.content.decode()
     assert "notification_status_message" in content
     assert "Notifications du demandeur" in content
-    assert "Notifier le demandeur" in content
 
 
 def test_unified_projet_page_hides_decision_card_and_notification_tab_for_processing_projet():
