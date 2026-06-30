@@ -38,7 +38,7 @@ Context:
                             <div class="fr-modal__content">
                                 <h1 class="fr-modal__title" id="{{ modal_id }}-title">
                                     <span class="fr-icon-arrow-right-line fr-icon--lg" aria-hidden="true"></span>
-                                    Modifier à «&nbsp;{{ target_status|status_to_label|safe }}&nbsp;» {{ valid_count }} sur {{ valid_count|add:blocker_count }} projet{{ valid_count|add:blocker_count|custom_pluralize }}
+                                    Modifier à «&nbsp;{{ target_status|status_to_label|split_symbol_and_status|safe }}&nbsp;» {{ valid_count }} sur {{ valid_count|add:blocker_count }} projet{{ valid_count|add:blocker_count|custom_pluralize }}
                                 </h1>
                                 <div class="fr-alert fr-alert--warning fr-mt-2w" role="alert">
                                     <h3 class="fr-alert__title">
