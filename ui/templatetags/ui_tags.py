@@ -95,6 +95,61 @@ def ui_confirmation_modal(*args, **kwargs) -> dict:
     return {"self": tag_data}
 
 
+_STATUS_BADGE_CONFIGS = {
+    "accepted": {
+        "icon_class": "fr-icon-checkbox-circle-fill",
+        "label": "Accepté",
+        "badge_class": "badge-projet-status__accepted",
+    },
+    "refused": {
+        "icon_class": "fr-icon-close-circle-fill",
+        "label": "Refusé",
+        "badge_class": "badge-projet-status__refused",
+    },
+    "dismissed": {
+        "icon_class": "fr-icon-close-circle-fill",
+        "label": "Classé sans suite",
+        "badge_class": "badge-projet-status__dismissed",
+    },
+    "reported": {
+        "icon_class": "fr-icon-arrow-turn-back-line fr-icon--sm fr-mr-1v",
+        "label": "Reporté",
+        "badge_class": "fr-badge--green-menthe",
+    },
+    "processing": {
+        "label": "En traitement",
+    },
+}
+
+
+@register.inclusion_tag("ui/components/status_badge.html")
+def ui_status_badge(*args, **kwargs) -> dict:
+    """
+    ```python
+    data_dict = {
+        "type": "accepted | refused | dismissed | reported",
+        "dotation": "(Optional) Dotation prefix, e.g. 'DETR' or 'DSIL'",
+        "class": "(Optional) Extra CSS classes on the <span>",
+    }
+    ```"""
+    allowed_keys = ["type", "dotation", "class"]
+    tag_data = parse_tag_args(args, kwargs, allowed_keys)
+
+    config = _STATUS_BADGE_CONFIGS.get(tag_data.get("type", ""), {})
+    label = config.get("label", "")
+    if tag_data.get("dotation"):
+        label = f"{tag_data['dotation']} {label}"
+
+    return {
+        "self": {
+            "badge_class": config.get("badge_class", ""),
+            "icon_class": config.get("icon_class", ""),
+            "label": label,
+            "extra_class": tag_data.get("class", ""),
+        }
+    }
+
+
 @register.inclusion_tag("ui/components/tiptap_editor.html")
 def ui_tiptap_editor(*args, **kwargs) -> dict:
     """
