@@ -15,10 +15,11 @@ from django.views.generic import (
     UpdateView,
 )
 from django_filters.views import FilterView
+from django_htmx.http import HttpResponseClientRedirect
 
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
-from gsl_core.view_mixins import SafeRedirectMixin
+from gsl_core.view_mixins import OpenHtmxModalMixin, SafeRedirectMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -32,6 +33,7 @@ from gsl_projet.forms import (
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
+    ProjetRevertToProcessingForm,
 )
 from gsl_projet.models import DotationProjet, ProjetNote
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
@@ -220,6 +222,35 @@ class DotationProjetUpdateView(UpdateView):
         for error in form.non_field_errors():
             messages.error(self.request, error)
         return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+
+@method_decorator(htmx_only, name="dispatch")
+class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
+    model = Projet
+    form_class = ProjetRevertToProcessingForm
+    template_name = "htmx/revert_to_processing_modal.html"
+    pk_url_kwarg = "projet_id"
+
+    def get_queryset(self):
+        return Projet.objects.for_user(self.request.user).filter(
+            notified_at__isnull=False
+        )
+
+    def get_modal_id(self):
+        return f"revert-to-processing-modal-{self.object.pk}"
+
+    def form_valid(self, form):
+        try:
+            form.save(user=self.request.user)
+            messages.info(
+                self.request,
+                "Le projet est bien repassé en traitement sur Démarche Numérique.",
+            )
+        except DsServiceException as e:
+            messages.error(self.request, str(e))
+        return HttpResponseClientRedirect(
+            self.request.headers.get("HX-Current-URL", self.request.path)
+        )
 
 
 def _build_projet_page_context(projet, request):

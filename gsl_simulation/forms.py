@@ -272,12 +272,6 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
             self.instance.dotation_projet.dismiss(
                 enveloppe=self.instance.enveloppe, actor=user
             )
-        elif (
-            self.status in SimulationProjet.SIMULATION_PENDING_STATUSES
-            and self.instance.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
-        ):
-            self.instance.dotation_projet.set_back_status_to_processing(user)
-
         self.instance.dotation_projet.save()
         self.instance.status = self.status
         self.instance.save()

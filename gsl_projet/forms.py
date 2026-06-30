@@ -395,6 +395,20 @@ COMMENT_FIELDS = {
 }
 
 
+class ProjetRevertToProcessingForm(forms.ModelForm):
+    @transaction.atomic
+    def save(self, user, commit=True):
+        ds_service = DsService()
+        ds_service.repasser_en_instruction(self.instance.dossier_ds, user)
+        self.instance.notified_at = None
+        self.instance.save(update_fields=["notified_at"])
+        return self.instance
+
+    class Meta:
+        model = Projet
+        fields = ()
+
+
 class ProjetCommentForm(ModelForm, DsfrBaseForm):
     comment_number = forms.ChoiceField(
         choices=(

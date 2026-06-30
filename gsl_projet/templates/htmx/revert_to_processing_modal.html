@@ -1,0 +1,46 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+
+{% block button %}
+    <button class="fr-btn fr-btn--secondary"
+            id="{{ modal_button_id }}"
+            aria-controls="{{ modal_id }}"
+            type="button"
+            data-fr-opened="false">
+        Repasser en traitement
+    </button>
+{% endblock button %}
+
+{% block dialog_close_behavior %}
+{% endblock dialog_close_behavior %}
+
+{% block content %}
+    <h1 class="fr-modal__title">
+        <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span>
+        Repasser le projet en traitement sur Démarche Numérique
+    </h1>
+    <p>
+        Vous vous apprêtez à repasser le dossier
+        «&nbsp;{{ object.dossier_ds.projet_intitule }}&nbsp;» en instruction sur
+        Démarche Numérique. Le demandeur sera notifié via la messagerie.
+    </p>
+    <p>
+        Le projet sera à nouveau dans l'état «&nbsp;À notifier&nbsp;».
+    </p>
+    <form id="{{ modal_id }}-form"
+          hx-post="{{ request.path }}"
+          hx-target="#{{ modal_id }}"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+    </form>
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button type="submit"
+            class="fr-btn fr-btn--primary"
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
+        Oui, repasser en traitement
+    </button>
+{% endblock confirmation_button %}
