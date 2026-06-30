@@ -101,7 +101,7 @@
                 {% endif %}
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">
-                        <a class="fr-nav__link" href="{% url "admin:index" %}">⚙️ Back-office ⚙️</a>
+                        <a class="fr-nav__link" href="{% url "admin:index" %}"><span class="fr-mr-1v" aria-hidden="true">⚙️</span> Back-office <span class="fr-ml-1v" aria-hidden="true">⚙️</span></a>
                     </li>
                 {% endif %}
             </ul>

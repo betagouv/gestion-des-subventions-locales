@@ -26,7 +26,7 @@
 
 {% block content %}
     <h1 class="fr-modal__title" id="{{ modal_id }}-title">
-        <i class="fr-icon-mail-line"></i>
+        <i class="fr-icon-mail-line" aria-hidden="true"></i>
         Notifier sur Démarche Numérique
         {% if projet.has_double_dotations %}
             {# djlint:off #}

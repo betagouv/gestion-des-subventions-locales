@@ -90,8 +90,13 @@ def _get_simu_other_dotation_statut(context):
         return ""
     return format_html(
         '<div class="gsl-projet-table__status-notified">{}</div>',
-        simu.get_status_display(),
+        _wrap_emoji(simu.get_status_display()),
     )
+
+
+def _wrap_emoji(display_str):
+    emoji, text = display_str.split(" ", 1)
+    return format_html('<span aria-hidden="true">{}</span> {}', emoji, text)
 
 
 COLUMN_ASSIETTE = Column(
