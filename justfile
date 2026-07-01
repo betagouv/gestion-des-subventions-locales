@@ -97,3 +97,5 @@ scalingo-django-shell environment: (scalingo-django-command environment "shell")
 # Scalingo: copy a database of a review app from parent
 scalingo-load-review-app environment pr_number:
     scalingo run --app gsl-{{environment}}-pr{{ pr_number }} "bash bin/copy_db.sh && python manage.py migrate"
+
+import? 'justfile.local'

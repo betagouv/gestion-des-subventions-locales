@@ -169,3 +169,4 @@ node_modules/
 
 # Personal agent files (e.g. CLAUDE.local.md)
 *.local.md
+justfile.local
