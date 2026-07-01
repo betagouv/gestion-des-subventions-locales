@@ -97,36 +97,23 @@ class ProjetListViewFilters(ProjetFilters):
                 Q(id=perimetre.id) | Q(id__in=perimetre.children().values("id"))
             )
 
-        selected_dotations = self.data.getlist("dotation")
         visible_projets = (
             Projet.objects.active().for_user(self.request.user).for_current_year()
         )
 
-        detr_selected = (
-            "DETR" in selected_dotations or "DETR_et_DSIL" in selected_dotations
+        self.filters["categorie_detr"].queryset = (
+            CategorieDetr.objects.active()
+            .filter(dossier__projet__in=visible_projets)
+            .distinct()
+            .order_by("rank")
         )
-        if detr_selected:
-            self.filters["categorie_detr"].queryset = (
-                CategorieDetr.objects.active()
-                .filter(dossier__projet__in=visible_projets)
-                .distinct()
-                .order_by("rank")
-            )
-        else:
-            del self.filters["categorie_detr"]
 
-        dsil_selected = (
-            "DSIL" in selected_dotations or "DETR_et_DSIL" in selected_dotations
+        self.filters["categorie_dsil"].queryset = (
+            CategorieDsil.objects.active()
+            .filter(dossier__projet__in=visible_projets)
+            .distinct()
+            .order_by("rank", "label")
         )
-        if dsil_selected:
-            self.filters["categorie_dsil"].queryset = (
-                CategorieDsil.objects.active()
-                .filter(dossier__projet__in=visible_projets)
-                .distinct()
-                .order_by("rank", "label")
-            )
-        else:
-            del self.filters["categorie_dsil"]
 
         visible_dossiers = visible_projets.values("dossier_ds")
 
