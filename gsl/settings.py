@@ -336,6 +336,11 @@ LOGGING = {
             "level": LIBRARIES_LOGGING_LEVEL,
             "propagate": False,
         },
+        "gsl.security": {
+            "handlers": ["console", "sentry"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 

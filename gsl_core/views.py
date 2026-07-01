@@ -1,4 +1,5 @@
 import io
+import logging
 
 import segno
 from django.conf import settings
@@ -7,6 +8,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django_otp import login as otp_login
 from django_otp.plugins.otp_totp.models import TOTPDevice
+
+security_logger = logging.getLogger("gsl.security")
 
 
 def _generate_qr_svg(device):
@@ -45,6 +48,9 @@ class OTPSetupView(View):
             device.confirmed = True
             device.save()
             otp_login(request, device)
+            security_logger.info(
+                "security_event=otp_setup_confirmed user_id=%s", request.user.pk
+            )
             return redirect("/")
 
         qr_svg = _generate_qr_svg(device)
@@ -101,8 +107,14 @@ class OTPVerifyView(View):
         device = TOTPDevice.objects.filter(user=request.user, confirmed=True).first()
         if device and device.verify_token(token):
             otp_login(request, device)
+            security_logger.info(
+                "security_event=otp_verify_success user_id=%s", request.user.pk
+            )
             return redirect(next_url)
 
+        security_logger.warning(
+            "security_event=otp_verify_failure user_id=%s", request.user.pk
+        )
         return render(
             request,
             "gsl_core/otp_verify.html",

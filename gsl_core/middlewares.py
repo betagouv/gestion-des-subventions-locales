@@ -1,9 +1,12 @@
 import json
+import logging
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
+
+security_logger = logging.getLogger("gsl.security")
 
 
 class MatomoHtmxMiddleware:
@@ -116,6 +119,11 @@ class CheckPerimeterMiddleware:
         if user.is_authenticated:
             has_perimeter = user.perimetre
             if not has_perimeter and request.path not in excluded_paths:
+                security_logger.warning(
+                    "security_event=no_perimeter user_id=%s path=%s",
+                    user.pk,
+                    request.path,
+                )
                 return redirect("no-perimeter")
 
         response = self.get_response(request)
