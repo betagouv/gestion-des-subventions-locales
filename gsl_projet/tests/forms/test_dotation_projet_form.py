@@ -30,7 +30,9 @@ def test_dotation_projet_form_fields(dotation_projet):
         (True, "Oui"),
         (False, "Non"),
     ]
-    assert avis_field.label == "Sélectionner l'avis de la commission d'élus DETR :"
+    assert (
+        avis_field.label == "L'avis de la commission de la commission est-il positif ?"
+    )
 
 
 @pytest.mark.django_db

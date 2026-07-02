@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytest
 from django.shortcuts import reverse
+from django.utils import timezone
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -377,3 +378,96 @@ def test_notification_tab_highlights_programmation_when_opened_from_programmatio
     content = response.content.decode()
     assert 'aria-current="true"' in _nav_opening_tag(content, "Programmation")
     assert 'aria-current="true"' not in _nav_opening_tag(content, "Liste des projets")
+
+
+# ---------------------------------------------------------------------------
+# Assiette block on the projet tab
+# ---------------------------------------------------------------------------
+
+
+def _projet_url(projet):
+    return reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
+
+
+def test_assiette_form_shown_for_processing_non_notified_dotation():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    assert response.status_code == 200
+    assiette_url = reverse(
+        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+    )
+    assert assiette_url in response.content.decode()
+
+
+@pytest.mark.parametrize(
+    "status", [PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]
+)
+def test_readonly_block_shown_for_final_status_dotation(status):
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(projet=projet, status=status, dotation=DOTATION_DETR)
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    content = response.content.decode()
+    assiette_url = reverse(
+        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+    )
+    assert assiette_url not in content
+    assert "Montant des dépenses éligibles retenues :" in content
+
+
+def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=timezone.now())
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    content = response.content.decode()
+    assiette_url = reverse(
+        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+    )
+    assert assiette_url not in content
+    assert "Montant des dépenses éligibles retenues :" in content
+
+
+def test_assiette_form_shows_errors_from_session():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    client = ClientWithLoggedUserFactory(user=user)
+    session = client.session
+    session[f"assiette_errors_{dp.pk}"] = {
+        "assiette": "pas_un_nombre",
+        "csrfmiddlewaretoken": "x",
+    }
+    session.save()
+    response = client.get(_projet_url(projet))
+    assert response.status_code == 200
+    items = response.context["dotation_projet_items"]
+    assert len(items) == 1
+    assert items[0]["form"].errors
+
+
+def test_assiette_session_errors_cleared_after_display():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    client = ClientWithLoggedUserFactory(user=user)
+    session = client.session
+    session[f"assiette_errors_{dp.pk}"] = {"assiette": "", "csrfmiddlewaretoken": "x"}
+    session.save()
+    client.get(_projet_url(projet))
+    assert f"assiette_errors_{dp.pk}" not in client.session

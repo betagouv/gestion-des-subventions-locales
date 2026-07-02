@@ -922,11 +922,14 @@ class DotationProjet(BaseModel):
         target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self, user: Collegue):
-        is_notified = self.projet.notified_at is not None
-        self.set_back_status_to_processing_without_ds(actor=user)
         ds_service = DsService()
+
+        self.set_back_status_to_processing_without_ds(actor=user)
+
+        is_notified = self.projet.notified_at is not None
         if is_notified:
             ds_service.repasser_en_instruction(self.projet.dossier_ds, user)
+
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=self.projet.dossier_ds,
             user=user,

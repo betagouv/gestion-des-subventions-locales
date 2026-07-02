@@ -63,7 +63,8 @@
                     "projetForm": "{% static 'js/controllers/projetForm.js' %}",
                     "projetNotes": "{% static 'js/controllers/projetNotes.js' %}",
                     "projetNoteCard": "{% static 'js/controllers/projetNoteCard.js' %}",
-                    "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}"
+                    "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}",
+                    "formatMontant": "{% static 'js/controllers/formatMontant.js' %}"
                 }
             }
             </script>
@@ -140,6 +141,7 @@
             import { ProjetNotes } from "projetNotes"
             import { ProjetNoteCard } from "projetNoteCard"
             import { RadioNavigate } from "radioNavigate"
+            import { FormatMontant } from "formatMontant"
 
             window.Stimulus = Application.start()
 
@@ -159,6 +161,7 @@
             Stimulus.register("projet-notes", ProjetNotes)
             Stimulus.register("projet-note-card", ProjetNoteCard)
             Stimulus.register("radio-navigate", RadioNavigate)
+            Stimulus.register("format-montant", FormatMontant)
         </script>
 
         {% block extra_js %}

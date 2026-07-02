@@ -43,10 +43,6 @@
   margin-left: 0.25rem;
 }
 
-.avis-commission-detr-block {
-  gap: 16px;
-  align-items: baseline;
-}
 
 .avis-commission-detr-select-and-label {
   display: flex;

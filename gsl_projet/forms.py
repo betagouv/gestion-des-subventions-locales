@@ -319,14 +319,14 @@ class DotationProjetForm(ModelForm):
     ]
 
     detr_avis_commission = forms.ChoiceField(
-        label="Sélectionner l'avis de la commission d'élus DETR :",
+        label="L'avis de la commission de la commission est-il positif ?",
         choices=DETR_AVIS_CHOICES,
         required=False,
         widget=forms.Select(
             attrs={
                 "form": "dotation-projet-form",
                 "class": "fr-select",
-                "data-action": "change->projet-form#submitOnChange",
+                "data-action": "change->projet-form#enableSubmit",
             }
         ),
     )
@@ -371,6 +371,26 @@ class DotationProjetForm(ModelForm):
         ]
 
 
+class DotationProjetAssietteForm(ModelForm, DsfrBaseForm):
+    assiette = forms.DecimalField(
+        label="Montant des dépenses éligibles retenues (€)",
+        required=True,
+        help_text=" Cette valeur est identique sur toutes les simulations de cette dotation.",
+        widget=forms.TextInput(
+            attrs={
+                "class": "fr-input",
+                "inputmode": "numeric",
+                "data-format-montant-target": "field",
+                "data-action": "change->format-montant#format",
+            }
+        ),
+    )
+
+    class Meta:
+        model = DotationProjet
+        fields = ["assiette"]
+
+
 class ProjetNoteForm(ModelForm, DsfrBaseForm):
     title = forms.CharField(
         label="Titre de la note",
@@ -393,6 +413,20 @@ COMMENT_FIELDS = {
     "2": "comment_2",
     "3": "comment_3",
 }
+
+
+class ProjetRevertToProcessingForm(forms.ModelForm):
+    @transaction.atomic
+    def save(self, user, commit=True):
+        ds_service = DsService()
+        ds_service.repasser_en_instruction(self.instance.dossier_ds, user)
+        self.instance.notified_at = None
+        self.instance.save(update_fields=["notified_at"])
+        return self.instance
+
+    class Meta:
+        model = Projet
+        fields = ()
 
 
 class ProjetCommentForm(ModelForm, DsfrBaseForm):
