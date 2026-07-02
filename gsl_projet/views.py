@@ -29,6 +29,7 @@ from gsl_demarches_simplifiees.models import (
     ProjetZonage,
 )
 from gsl_projet.forms import (
+    DotationProjetAssietteForm,
     DotationProjetForm,
     ProjetCommentForm,
     ProjetForm,
@@ -224,6 +225,32 @@ class DotationProjetUpdateView(UpdateView):
         return _redirect_to_referer_or_projet(self.request, self.object.projet)
 
 
+class DotationProjetAssietteUpdateView(UpdateView):
+    model = DotationProjet
+    form_class = DotationProjetAssietteForm
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return DotationProjet.objects.filter(
+            projet__in=Projet.objects.active().for_user(self.request.user),
+            projet__notified_at__isnull=True,
+        )
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            "Les modifications ont été enregistrées avec succès.",
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+    def form_invalid(self, form):
+        self.request.session[f"assiette_errors_{self.object.pk}"] = (
+            self.request.POST.dict()
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+
 @method_decorator(htmx_only, name="dispatch")
 class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
     model = Projet
@@ -256,18 +283,22 @@ class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
 def _build_projet_page_context(projet, request):
     projet_form = ProjetForm(instance=projet)
     dotation_field = projet_form.fields.get("dotations")
+    dotation_projets = list(projet.dotationprojet_set.order_by("dotation").all())
     context = {
         "projet": projet,
         "title": projet.dossier_ds.projet_intitule,
         "dossier": projet.dossier_ds,
         "menu_dict": PROJET_MENU,
         "projet_notes": projet.notes.all(),
-        "dotation_projets": projet.dotationprojet_set.order_by("dotation").all(),
+        "dotation_projets": dotation_projets,
         "comment_cards": get_comment_cards(projet),
         "projet_form": projet_form,
         "initial_dotations": (
             json.dumps(dotation_field.initial) if dotation_field else "[]"
         ),
+        "dotation_projet_items": [
+            _build_dotation_projet_item(dp, request) for dp in dotation_projets
+        ],
         **get_projet_go_back_context(request),
     }
     detr_dotation = projet.dotation_detr
@@ -276,6 +307,17 @@ def _build_projet_page_context(projet, request):
         context["dotation_projet"] = detr_dotation
     context["projet_note_form"] = ProjetNoteForm()
     return context
+
+
+def _build_dotation_projet_item(dp, request):
+    session_key = f"assiette_errors_{dp.pk}"
+    if session_key in request.session:
+        form_data = request.session.pop(session_key)
+        form = DotationProjetAssietteForm(data=form_data, instance=dp)
+        form.is_valid()
+    else:
+        form = DotationProjetAssietteForm(instance=dp)
+    return {"dp": dp, "form": form}
 
 
 class ProjetNoteCreateView(CreateView):
