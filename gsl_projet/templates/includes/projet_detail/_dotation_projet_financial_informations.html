@@ -14,3 +14,11 @@
           role="tooltip"
           aria-hidden="true">en % de l'assiette subventionnable</span>
 </li>
+{% if dotation_projet.status == "accepted" %}
+    <li>
+        <span aria-hidden="true">🧾</span> Montant retenu : {{ dotation_projet.montant_retenu|euro|default:"—" }}
+    </li>
+    <li>
+        <span aria-hidden="true">🧾</span> Taux retenu : {{ dotation_projet.taux_retenu|percent:2|default:"—" }}
+    </li>
+{% endif %}

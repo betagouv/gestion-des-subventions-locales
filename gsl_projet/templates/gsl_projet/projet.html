@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static gsl_filters %}
+{% load static ui_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/projet_detail.css" %}">
@@ -9,21 +9,24 @@
     <div class="fr-container--fluid">
         <div class="fr-grid-row">
             <div class="fr-col">
-                {% block go_back_button %}
-                    <div class="fr-mb-4w">
-                        {% if "/programmation/" in go_back_link %}
-                            <a href="{{ go_back_link }}"
-                               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-                                Retour à la liste des projets programmés
-                            </a>
-                        {% else %}
-                            <a href="{% url "projet:list" %}{% querystring %}"
-                               class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-                                Retour à la liste des projets
-                            </a>
-                        {% endif %}
-                    </div>
-                {% endblock go_back_button %}
+                <div class="fr-mb-4w">
+                    {% if go_back_link and "/simulation/" in go_back_link %}
+                        <a href="{{ go_back_link }}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la simulation
+                        </a>
+                    {% elif go_back_link and "/programmation/" in go_back_link %}
+                        <a href="{{ go_back_link }}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la liste des projets programmés
+                        </a>
+                    {% else %}
+                        <a href="{% url "projet:list" %}{% querystring %}"
+                           class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
+                            Retour à la liste des projets
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -48,30 +51,28 @@
             </button>
         </div>
     {% endif %}
-    {% if projet.dossier_ds.demande_numero_demande_precedente %}
-        <p class="fr-tag fr-tag--icon-left fr-mb-1w fr-icon-arrow-turn-back-line">
-            Reporté
-        </p>
-    {% endif %}
-    <div class="projet-header">
-        <h1>
-            {{ dossier.projet_intitule|lower|capfirst }}
-        </h1>
-        <div class="projet-header__status">
-            {% block status_badge %}
-                {% for dotation_projet in dotation_projets %}
-                    <span class="fr-badge fr-text--xl fr-mt-2v fr-ml-5w badge-projet-status badge-projet-status__{{ dotation_projet.status }}">
-                        {% if dotation_projets|length > 1 %}
-                            {{ dotation_projet.dotation }}
-                        {% endif %}
-                        {{ dotation_projet.get_status_display|remove_first_word }}
-                    </span>
-                {% endfor %}
-            {% endblock status_badge %}
-        </div>
+    <h1>
+        {{ dossier.projet_intitule|lower|capfirst }}
+    </h1>
+    <div class="projet-header__status">
+        {% for dotation_projet in dotation_projets %}
+            {% ui_status_badge type=dotation_projet.status dotation=dotation_projet.dotation %}
+        {% endfor %}
+        {% if projet.dossier_ds.demande_numero_demande_precedente %}
+            {% ui_status_badge type="reported" %}
+        {% endif %}
     </div>
 
-    <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-6w fr-mb-5w">
+    <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
+        {% if projet.notified_at %}
+            <li class="fr-mb-2w">
+                <button class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-arrow-go-back-fill"
+                        hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"
+                        hx-swap="outerHTML">
+                    Repasser en traitement
+                </button>
+            </li>
+        {% endif %}
         {% if dossier.ds_number %}
             <li>
                 <a href="{{ dossier.url_on_ds }}"
@@ -127,12 +128,14 @@
         </div>
     {% endif %}
 
-    {% block tabs_list %}
-        {% include "gsl_projet/projet/tabs.html" %}
-    {% endblock tabs_list %}
+    {% include "gsl_projet/projet/tabs.html" %}
     <div id="projet-panel" class="fake-tab-panel" role="tabpanel" tabindex="0">
         {% block tab_projet %}
             {% include "gsl_projet/projet/tab_projet.html" %}
         {% endblock tab_projet %}
     </div>
 {% endblock content %}
+
+{% block modal %}
+    {% ui_confirmation_modal modal_id="dotation-confirmation-modal-content" title="Modification de la dotation" icon="fr-icon-arrow-right-line" text="Ce projet sera aussi affiché dans les simulations DSIL." action_text="Je confirme" form="projet-form" is_title_red=False %}
+{% endblock modal %}

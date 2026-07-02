@@ -7,7 +7,8 @@
     <div class="form-disabled-before-value-change fr-mb-4w"
          id="dotations-form-container"
          data-controller="double-dotation"
-         data-double-dotation-initial-dotations-value="{{ initial_dotations }}">
+         data-double-dotation-initial-dotations-value="{{ initial_dotations }}"
+         data-action="change->projet-form#enableSubmit">
         {% csrf_token %}
         <fieldset id="dotation-fieldset"
                   class=" fr-fieldset fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w"
@@ -42,7 +43,7 @@
 
         </fieldset>
         <button id="submit-dotation"
-                class="fr-btn"
+                class="fr-btn fr-btn--secondary"
                 type="submit"
                 form="projet-form"
                 data-action="double-dotation#sumbit"

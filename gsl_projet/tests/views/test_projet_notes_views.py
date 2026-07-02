@@ -37,13 +37,11 @@ def simulation_projet(perimetre):
 
 
 @pytest.mark.django_db
-def test_simulation_notes_tab_has_comment_cards(
-    client_with_user_logged, simulation_projet
-):
-    """L'onglet notes simulation inclut comment_cards dans le contexte."""
+def test_notes_tab_has_comment_cards(client_with_user_logged, simulation_projet):
+    """L'onglet notes inclut comment_cards dans le contexte."""
     url = reverse(
-        "simulation:simulation-projet-notes",
-        kwargs={"pk": simulation_projet.pk},
+        "projet:get-projet-notes",
+        kwargs={"projet_id": simulation_projet.projet.pk},
     )
     response = client_with_user_logged.get(url)
     assert response.status_code == 200
@@ -57,15 +55,12 @@ def test_projet_note_form_save(client_with_user_logged, simulation_projet):
     assert projet.notes.count() == 0
 
     url = reverse(
-        "simulation:simulation-projet-notes",
-        kwargs={"pk": simulation_projet.pk},
+        "projet:note-create",
+        kwargs={"projet_id": projet.pk},
     )
     response = client_with_user_logged.post(
         url,
-        data={
-            "title": "titre",
-            "content": "contenu",
-        },
+        data={"title": "titre", "content": "contenu"},
         follow=True,
     )
 
@@ -83,8 +78,8 @@ def test_projet_note_form_save_with_error(client_with_user_logged, simulation_pr
     assert projet.notes.count() == 0
 
     url = reverse(
-        "simulation:simulation-projet-notes",
-        kwargs={"pk": simulation_projet.pk},
+        "projet:note-create",
+        kwargs={"projet_id": projet.pk},
     )
     response = client_with_user_logged.post(
         url,
@@ -96,15 +91,15 @@ def test_projet_note_form_save_with_error(client_with_user_logged, simulation_pr
     )
 
     assert response.status_code == 200
+
+    projet.refresh_from_db()
+    assert projet.notes.count() == 0
     assert response.context["projet_note_form"].errors == {
         "title": [
             "Assurez-vous que cette valeur comporte au plus 100 caractères (actuellement 156)."
         ],
         "content": ["Ce champ est obligatoire."],
     }
-
-    projet.refresh_from_db()
-    assert projet.notes.count() == 0
 
 
 @pytest.mark.parametrize(
@@ -129,23 +124,11 @@ def test_projet_note_deletion(
             created_by=client_with_user_logged.user,
         )
     else:
-        projet_note = ProjetNoteFactory(
-            projet=projet,
-        )
+        projet_note = ProjetNoteFactory(projet=projet)
     assert projet.notes.count() == 1
 
-    url = reverse(
-        "simulation:simulation-projet-notes",
-        kwargs={"pk": simulation_projet.pk},
-    )
-    response = client_with_user_logged.post(
-        url,
-        data={
-            "action": "delete_note",
-            "note_id": projet_note.id,
-        },
-        follow=True,
-    )
+    url = reverse("projet:note-delete", kwargs={"pk": projet_note.pk})
+    response = client_with_user_logged.post(url, follow=True)
 
     assert response.status_code == expected_status_code
     projet.refresh_from_db()
@@ -160,10 +143,7 @@ def test_get_edit_projet_note(client_with_user_logged, simulation_projet):
     )
     assert projet.notes.count() == 1
 
-    url = reverse(
-        "simulation:get-edit-projet-note",
-        kwargs={"pk": simulation_projet.pk, "note_id": projet_note.pk},
-    )
+    url = reverse("projet:note-edit", kwargs={"pk": projet_note.pk})
     response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
     assert response.status_code == 200
 
@@ -176,18 +156,15 @@ def test_post_edit_projet_note(client_with_user_logged, simulation_projet):
     )
     assert projet.notes.count() == 1
 
-    url = reverse(
-        "simulation:get-edit-projet-note",
-        kwargs={"pk": simulation_projet.pk, "note_id": projet_note.pk},
-    )
+    url = reverse("projet:note-edit", kwargs={"pk": projet_note.pk})
     response = client_with_user_logged.post(
         url,
         headers={"HX-Request": "true"},
         data={"title": "Mon titre", "content": "Mon contenu"},
         follow=True,
     )
-    assert response.status_code == 200
 
+    assert response.status_code == 200
     projet_note.refresh_from_db()
     assert projet_note.title == "Mon titre"
     assert projet_note.content == "Mon contenu"

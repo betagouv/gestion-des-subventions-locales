@@ -1,15 +1,20 @@
-import json
+from urllib.parse import parse_qs, urlparse
 
 from django.contrib import messages
 from django.db import transaction
-from django.http import Http404 as DjangoHttp404
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import DetailView, TemplateView, UpdateView
 from django.views.generic.edit import BaseUpdateView
-from django_htmx.http import HttpResponseClientRefresh
+from django_htmx.http import (
+    HttpResponseClientRedirect,
+    HttpResponseClientRefresh,
+    trigger_client_event,
+)
 
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
@@ -31,16 +36,12 @@ from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
     DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.forms import DotationProjetForm, ProjetForm
-from gsl_projet.models import DotationProjet, projet_status_from_dotation_statuses
-from gsl_projet.utils.projet_page import PROJET_MENU
+from gsl_projet.models import projet_status_from_dotation_statuses
 from gsl_simulation.filters import SimulationProjetFilters
 from gsl_simulation.forms import (
     AssietteSingleFieldForm,
@@ -57,9 +58,6 @@ from gsl_simulation.models import (
 )
 from gsl_simulation.table_columns import SIMULATION_TABLE_COLUMNS
 from gsl_simulation.views.bulk_status_job_views import BULK_STATUS_MODAL_ID
-from gsl_simulation.views.decorators import (
-    exception_handler_decorator,
-)
 
 
 class SimulationTableCellEditMixin(UpdateView):
@@ -158,11 +156,37 @@ class EditMontantView(SimulationTableCellEditMixin):
     template_name = "gsl_simulation/table_cells/edit_forms/_montant_edit_form.html"
     matomo_action = MATOMO_ACTION_MODIFICATION_MONTANT
 
+    def form_valid(self, form):
+        if (
+            self.object.status == SimulationProjet.STATUS_ACCEPTED
+            and not self.request.POST.get("confirmed")
+        ):
+            refresh_url = reverse(
+                "simulation:refresh-simulation-row", kwargs={"pk": self.object.pk}
+            )
+            return _render_amount_confirmation_modal(
+                self.request, self.object, refresh_url
+            )
+        return super().form_valid(form)
+
 
 class EditTauxView(SimulationTableCellEditMixin):
     form_class = TauxSingleFieldForm
     template_name = "gsl_simulation/table_cells/edit_forms/_taux_edit_form.html"
     matomo_action = MATOMO_ACTION_MODIFICATION_TAUX
+
+    def form_valid(self, form):
+        if (
+            self.object.status == SimulationProjet.STATUS_ACCEPTED
+            and not self.request.POST.get("confirmed")
+        ):
+            refresh_url = reverse(
+                "simulation:refresh-simulation-row", kwargs={"pk": self.object.pk}
+            )
+            return _render_amount_confirmation_modal(
+                self.request, self.object, refresh_url
+            )
+        return super().form_valid(form)
 
 
 class EditCommentView(SimulationTableCellEditMixin):
@@ -214,203 +238,6 @@ class RefreshSimulationRowView(DetailView):
         return context
 
 
-@exception_handler_decorator
-@require_POST
-def patch_dotation_projet(request, pk):
-    simulation_projet = get_object_or_404(
-        SimulationProjet.objects.active().in_user_perimeter(request.user), id=pk
-    )
-    form = DotationProjetForm(
-        request.POST,
-        instance=simulation_projet.dotation_projet,
-    )
-    if form.is_valid():
-        form.save()
-        messages.success(
-            request,
-            "Les modifications ont été enregistrées avec succès.",
-        )
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            request, simulation_projet
-        )
-
-    messages.error(
-        request,
-        "Une erreur s'est produite lors de la soumission du formulaire.",
-    )
-
-    return redirect_to_same_page_or_to_simulation_detail_by_default(
-        request, simulation_projet
-    )
-
-
-class BaseSimulationProjetView(UpdateView):
-    form_class = SimulationProjetForm
-    template_name = "gsl_simulation/simulation_projet_detail.html"
-
-    def get_queryset(self) -> SimulationProjetQuerySet:
-        return (
-            super()
-            .get_queryset()
-            .select_related(
-                "simulation",
-                "simulation__enveloppe",
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-            )
-            .prefetch_related("dotation_projet__projet__dotationprojet_set")
-        )
-
-    def get_object(self, queryset=None) -> SimulationProjet:
-        if not hasattr(self, "_simulation_projet"):
-            self._simulation_projet = super().get_object(queryset)
-        return self._simulation_projet
-
-    def get_context_data(self, with_specific_info_for_main_tab=True, **kwargs):
-        context = super().get_context_data(**kwargs)
-        simulation_projet = self.get_object()
-        _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
-            context, simulation_projet
-        )
-
-        if with_specific_info_for_main_tab:
-            _enrich_simulation_projet_context_with_specific_info_for_main_tab(
-                context, simulation_projet
-            )
-
-        return context
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs.update({"user": self.request.user})
-        return kwargs
-
-    def form_valid(self, form: SimulationProjetForm):
-        try:
-            form.save()
-            messages.success(
-                self.request,
-                "Les modifications ont été enregistrées avec succès.",
-            )
-            queue_matomo_event(
-                self.request,
-                MATOMO_CATEGORY_PROGRAMMATION,
-                MATOMO_ACTION_MODIFICATION_MONTANTS,
-                form.instance.dotation_projet.dotation,
-            )
-        except DsServiceException as e:
-            error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
-            form.add_error(None, error_msg)
-            return self.form_invalid(form, with_error_message_intro=False)
-
-        simulation_projet = self.get_object()
-        simulation_projet.simulation.save(update_fields=["updated_at"])
-
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            self.request,
-            simulation_projet,
-        )
-
-    def form_invalid(self, form: SimulationProjetForm, with_error_message_intro=True):
-        self.set_main_error_message(form, with_error_message_intro)
-
-        simulation_projet = self.get_object()
-
-        view = SimulationProjetDetailView()
-        view.request = self.request
-        view.kwargs = {"pk": simulation_projet.id}
-        view.object = simulation_projet  # nécessaire pour get_context_data
-
-        view.request = self.request
-        view.kwargs = {"pk": simulation_projet.id}
-        context = view.get_context_data(object=simulation_projet)
-
-        self.enrich_context_with_invalid_form(context, form)
-        return render(
-            self.request, "gsl_simulation/simulation_projet_detail.html", context
-        )
-
-    def set_main_error_message(self, form, with_error_message_intro=True):
-        error_msg = ""
-        if with_error_message_intro:
-            error_msg += (
-                "Une erreur s'est produite lors de la soumission du formulaire."
-            )
-
-        if form.non_field_errors():
-            # Join errors directly to avoid HTML encoding from as_text()
-            error_msg += " ".join(str(error) for error in form.non_field_errors())
-
-        messages.error(self.request, error_msg)
-
-
-class ProjetFormView(BaseSimulationProjetView):
-    model = SimulationProjet
-    form_class = ProjetForm
-
-    def get_queryset(self):
-        return super().get_queryset().in_user_perimeter(self.request.user)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        simulation_projet = self.get_object()
-        kwargs.update({"instance": simulation_projet.projet})
-        return kwargs
-
-    def form_valid(self, form: ProjetForm):
-        try:
-            form.save()
-            messages.success(
-                self.request,
-                "Les modifications ont été enregistrées avec succès.",
-            )
-        except DsServiceException as e:
-            error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
-            form.add_error(None, error_msg)
-            return self.form_invalid(form, with_error_message_intro=False)
-
-        # When a dotation is removed, the DotationProjet is deleted,
-        # which CASCADE deletes the SimulationProjet. Redirect to the
-        # simulation project list instead of the now-deleted detail page.
-        if not SimulationProjet.objects.filter(pk=self.object.pk).exists():
-            return redirect(
-                "simulation:simulation-detail",
-                slug=self.object.simulation.slug,
-            )
-
-        return redirect_to_same_page_or_to_simulation_detail_by_default(
-            self.request,
-            self.object,
-        )
-
-    def enrich_context_with_invalid_form(self, context, form):
-        context["projet_form"] = form
-
-
-class SimulationProjetDetailView(BaseSimulationProjetView):
-    model = SimulationProjet
-    form_class = SimulationProjetForm
-
-    def get_queryset(self):
-        return super().get_queryset().in_user_perimeter(self.request.user)
-
-    def get(self, request, *args, **kwargs):
-        try:
-            return super().get(request, *args, **kwargs)
-        except DjangoHttp404:
-            # The SimulationProjet may have been CASCADE-deleted after a
-            # DotationProjet deletion (e.g., DN refresh reverting status).
-            # Re-raise if the object still exists (e.g. perimeter mismatch).
-            if not SimulationProjet.objects.filter(pk=kwargs["pk"]).exists():
-                messages.warning(request, "Ce projet n'est plus dans cette simulation.")
-                return redirect("simulation:simulation-list")
-            raise
-
-    def enrich_context_with_invalid_form(self, context, form):
-        context["simulation_projet_form"] = form
-
-
 def redirect_to_same_page_or_to_simulation_detail_by_default(
     request, simulation_projet
 ):
@@ -423,81 +250,6 @@ def redirect_to_same_page_or_to_simulation_detail_by_default(
     return redirect(
         "simulation:simulation-detail", slug=simulation_projet.simulation.slug
     )
-
-
-def _enrich_simulation_projet_context_with_specific_info_for_main_tab(
-    context: dict, simulation_projet: SimulationProjet
-):
-    if context.get("projet_form", None) is None:
-        projet_form = ProjetForm(instance=simulation_projet.projet)
-        context["projet_form"] = projet_form
-
-    if context.get("simulation_projet_form", None) is None:
-        simulation_projet_form = SimulationProjetForm(instance=simulation_projet)
-        context["simulation_projet_form"] = simulation_projet_form
-
-    dotation_field = projet_form.fields.get("dotations")
-    context.update(
-        {
-            "enveloppe": simulation_projet.simulation.enveloppe,
-            "menu_dict": PROJET_MENU,
-            "dotation_projet_form": DotationProjetForm(
-                instance=simulation_projet.dotation_projet,
-            ),
-            "initial_dotations": (
-                json.dumps(dotation_field.initial) if dotation_field else []
-            ),
-            "other_dotation_montants": _get_other_dotation_montants(simulation_projet),
-            "dotation_projets": simulation_projet.projet.dotationprojet_set.all(),
-        }
-    )
-
-
-def _enrich_simulation_projet_context_with_generic_info_for_all_tabs(
-    context: dict, simulation_projet: SimulationProjet
-):
-    title = simulation_projet.projet.dossier_ds.projet_intitule
-    context.update(
-        {
-            "title": title,
-            "simu": simulation_projet,
-            "projet": simulation_projet.projet,
-            "dotation_projet": simulation_projet.dotation_projet,
-            "dossier": simulation_projet.projet.dossier_ds,
-        }
-    )
-
-
-def _get_other_dotation_montants(
-    simulation_projet: SimulationProjet,
-) -> object | None:
-    if not simulation_projet.projet.has_double_dotations:
-        return None
-
-    other_dotation_projet = (
-        DotationProjet.objects.active()
-        .filter(
-            projet=simulation_projet.projet,
-            dotation=(
-                DOTATION_DETR
-                if simulation_projet.dotation_projet.dotation == DOTATION_DSIL
-                else DOTATION_DSIL
-            ),
-        )
-        .first()
-    )
-    montants = {
-        "dotation": other_dotation_projet.dotation,
-        "assiette": other_dotation_projet.assiette,
-        "montant": None,
-        "taux": None,
-    }
-
-    if hasattr(other_dotation_projet, "programmation_projet"):
-        montants["montant"] = other_dotation_projet.programmation_projet.montant
-        montants["taux"] = other_dotation_projet.programmation_projet.taux
-
-    return montants
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -521,7 +273,11 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        return SimulationProjet.objects.active().in_user_perimeter(self.request.user)
+        return (
+            SimulationProjet.objects.active()
+            .in_user_perimeter(self.request.user)
+            .filter(dotation_projet__projet__notified_at__isnull=True)
+        )
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -560,7 +316,140 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 self.request,
                 f"{str(e)}",
             )
-        return HttpResponseClientRefresh()
+        # HttpResponseClientRefresh (window.location.reload) can serve a cached
+        # response and leave sibling cards with a shared assiette out of date.
+        # A redirect forces a full navigation with no cache reuse.
+        return HttpResponseClientRedirect(
+            self.request.headers.get("HX-Current-URL", self.request.path)
+        )
+
+
+class SimulationProjetCardUpdateView(UpdateView):
+    model = SimulationProjet
+    form_class = SimulationProjetForm
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return SimulationProjet.objects.active().in_user_perimeter(self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        kwargs["prefix"] = (
+            f"simulation-card-form-{self.object.pk}"  # useful to match the form fields
+        )
+        return kwargs
+
+    def form_valid(self, form):
+        if (
+            self.object.dotation_projet.status == PROJET_STATUS_ACCEPTED
+            and not self.request.POST.get("confirmed")
+        ):
+            refresh_url = reverse(
+                "simulation:cleanup-amount-modal", kwargs={"pk": self.object.pk}
+            )
+            return _render_amount_confirmation_modal(
+                self.request,
+                self.object,
+                refresh_url,
+                card_placeholder_id=f"simulation-card-{self.object.pk}",
+            )
+
+        try:
+            form.save()
+        except DsServiceException as e:
+            error_msg = f"Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique. {str(e)}"
+            form.add_error(None, error_msg)
+            return self.form_invalid(form)
+
+        queue_matomo_event(
+            self.request,
+            MATOMO_CATEGORY_PROGRAMMATION,
+            MATOMO_ACTION_MODIFICATION_MONTANTS,
+            form.instance.dotation_projet.dotation,
+        )
+
+        simu = self.object
+        url = reverse(
+            "projet:get-projet-simulations",
+            kwargs={"projet_id": simu.dotation_projet.projet_id},
+        )
+        current_url = self.request.headers.get("HX-Current-URL", "")
+        if current_url:
+            dotation = parse_qs(urlparse(current_url).query).get("dotation", [""])[0]
+            if dotation in ("DETR", "DSIL"):
+                url = f"{url}?dotation={dotation}"
+        # HttpResponseClientRefresh (window.location.reload) can serve a cached
+        # response and leave sibling cards with a shared assiette out of date.
+        # A redirect forces a full navigation with no cache reuse.
+        return HttpResponseClientRedirect(url)
+
+    def form_invalid(self, form):
+        simu = self.object
+        if not self.request.headers.get("HX-Request"):
+            messages.error(self.request, "Erreur dans le formulaire de simulation.")
+            return redirect("projet:get-projet-simulations", projet_id=simu.projet.pk)
+        form_id = f"simulation-card-form-{simu.pk}"
+        for field in ("assiette", "montant", "taux"):
+            if field in form.fields:
+                form.fields[field].widget.attrs["form"] = form_id
+
+        return render(
+            self.request,
+            "gsl_projet/projet/includes/_simulation_card.html",
+            {
+                "simu": simu,
+                "simulation_projet_form": form,
+                "form_id": form_id,
+                "dotation_projet": simu.dotation_projet,
+                "dossier": simu.dossier,
+                "projet": simu.projet,
+            },
+        )
+
+
+class CleanupAmountModalView(DetailView):
+    model = SimulationProjet
+
+    def get_queryset(self):
+        return SimulationProjet.objects.active().in_user_perimeter(self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        simu = self.get_object()
+        # The card was never replaced (HX-Reswap: none). Just OOB-delete
+        # the hidden trigger button that was injected into <body>.
+        modal_button_id = f"confirm-amount-update-{simu.pk}-button"
+        return HttpResponse(
+            f'<button id="{modal_button_id}" hx-swap-oob="delete"></button>'
+        )
+
+
+def _render_amount_confirmation_modal(
+    request, simu, refresh_url: str, card_placeholder_id: str = ""
+):
+    modal_id = f"confirm-amount-update-{simu.pk}"
+    submitted_data = {
+        k: v for k, v in request.POST.items() if k != "csrfmiddlewaretoken"
+    }
+    context = {
+        "simu": simu,
+        "modal_id": modal_id,
+        "modal_button_id": f"{modal_id}-button",
+        "submitted_data": submitted_data,
+        "confirm_url": request.get_full_path(),
+        "refresh_url": refresh_url,
+        "card_placeholder_id": card_placeholder_id,
+    }
+    print("submitted_data", submitted_data)
+    response = render(request, "htmx/amount_update_confirm_modal.html", context)
+    if card_placeholder_id:
+        # Redirect the main swap to body (beforeend) so the trigger button is
+        # appended there instead of replacing the card.
+        response["HX-Retarget"] = "body"
+        response["HX-Reswap"] = "beforeend"
+    return trigger_client_event(
+        response, "click", {"target": f"#{modal_id}-button"}, after="settle"
+    )
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -697,7 +586,9 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
             f"{target_status}:{len(valid_projets)}",
         )
 
-        return HttpResponseClientRefresh()
+        return HttpResponseClientRedirect(
+            request.headers.get("HX-Current-URL", request.path)
+        )
 
     @staticmethod
     def _needs_ds_confirmation(target_status, simulation_projets):
@@ -771,7 +662,9 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
                 self.request,
                 str(e),
             )
-            return HttpResponseClientRefresh()  # we reload the page without the modal
+            return HttpResponseClientRedirect(
+                self.request.headers.get("HX-Current-URL", self.request.path)
+            )  # we reload the page without the modal
 
     def get_object(self, queryset=None) -> SimulationProjet:
         obj = super().get_object(queryset)
@@ -887,6 +780,6 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME,
             f"{self.kwargs['status']}",
         )
-        return (
-            HttpResponseClientRefresh()
-        )  # we reload the page without the modal and with the success message
+        return HttpResponseClientRedirect(
+            self.request.headers.get("HX-Current-URL", self.request.path)
+        )  # redirect (not refresh) to avoid serving a cached response

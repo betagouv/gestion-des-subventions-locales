@@ -1,12 +1,26 @@
+import json
+
 from django.contrib import messages
 from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
+from django.template.response import TemplateResponse
 from django.urls import reverse
-from django.views.generic import DetailView, ListView, UpdateView
+from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    ListView,
+    UpdateView,
+)
 from django_filters.views import FilterView
+from django_htmx.http import HttpResponseClientRedirect
 
+from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
-from gsl_core.view_mixins import SafeRedirectMixin
+from gsl_core.view_mixins import OpenHtmxModalMixin, SafeRedirectMixin
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
@@ -14,7 +28,15 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
-from gsl_projet.forms import ProjetCommentForm
+from gsl_projet.forms import (
+    DotationProjetAssietteForm,
+    DotationProjetForm,
+    ProjetCommentForm,
+    ProjetForm,
+    ProjetNoteForm,
+    ProjetRevertToProcessingForm,
+)
+from gsl_projet.models import DotationProjet, ProjetNote
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
     ORDERING_MAP,
@@ -23,6 +45,8 @@ from gsl_projet.utils.projet_filters import (
 )
 from gsl_projet.utils.projet_page import PROJET_MENU, get_projet_go_back_context
 from gsl_projet.utils.utils import get_comment_cards
+from gsl_simulation.forms import SimulationProjetForm
+from gsl_simulation.models import SimulationProjet
 
 from .models import Projet
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
@@ -40,19 +64,43 @@ class BaseProjetDetailView(DetailView):
         return Projet.objects.for_user(self.request.user)
 
     def get_context_data(self, **kwargs):
-        projet = self.object
         context = super().get_context_data(**kwargs)
-        context.update(
-            {
-                "title": projet.dossier_ds.projet_intitule,
-                "dossier": projet.dossier_ds,
-                "menu_dict": PROJET_MENU,
-                "projet_notes": projet.notes.all(),
-                "dotation_projets": projet.dotationprojet_set.all(),
-                "comment_cards": get_comment_cards(projet),
-                **get_projet_go_back_context(self.request),
-            }
+        context.update(_build_projet_page_context(self.object, self.request))
+        return context
+
+
+class ProjetSimulationsView(BaseProjetDetailView):
+    template_name = "gsl_projet/projet/tab_simulations.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        projet = self.object
+        all_qs = SimulationProjet.objects.filter(
+            dotation_projet__projet=projet
+        ).select_related(
+            "simulation",
+            "simulation__enveloppe",
+            "dotation_projet",
+            "dotation_projet__projet",
+            "dotation_projet__projet__dossier_ds",
         )
+
+        dotation_filter = self.request.GET.get("dotation", "")
+        filtered_qs = all_qs.order_by("-simulation__created_at")
+        if dotation_filter in ("DETR", "DSIL"):
+            filtered_qs = filtered_qs.filter(dotation_projet__dotation=dotation_filter)
+
+        simulation_projets_with_forms = []
+        for sp in filtered_qs:
+            form_id = f"simulation-card-form-{sp.pk}"
+            form = SimulationProjetForm(instance=sp, prefix=form_id)
+            for field in ("assiette", "montant", "taux"):
+                if field in form.fields:
+                    form.fields[field].widget.attrs["form"] = form_id
+            simulation_projets_with_forms.append((sp, form, form_id))
+
+        context["simulation_projets_with_forms"] = simulation_projets_with_forms
+        context["dotation_filter"] = dotation_filter
         return context
 
 
@@ -86,6 +134,292 @@ class ProjetCommentUpdateView(SafeRedirectMixin, UpdateView):
 
     def form_invalid(self, form):
         return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
+
+
+def _redirect_to_referer_or_projet(request, projet):
+    referer = request.headers.get("Referer")
+    if referer and url_has_allowed_host_and_scheme(
+        referer, allowed_hosts=request.get_host()
+    ):
+        return redirect(referer)
+    return redirect("projet:get-projet", projet_id=projet.pk)
+
+
+class ProjetUpdateView(BaseProjetDetailView, UpdateView):
+    form_class = ProjetForm
+    http_method_names = ["post"]
+    template_name = "gsl_projet/projet.html"
+
+    def get_queryset(self):
+        return Projet.objects.active().for_user(self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if "form" in kwargs:
+            context["projet_form"] = kwargs["form"]
+        return context
+
+    def form_valid(self, form):
+        try:
+            form.save()
+            messages.success(
+                self.request,
+                "Les modifications ont été enregistrées avec succès.",
+            )
+        except DsServiceException as e:
+            messages.error(
+                self.request,
+                f"Une erreur est survenue lors de la mise à jour sur Démarche Numérique. {e}",
+            )
+        return _redirect_to_referer_or_projet(self.request, self.object)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "Une erreur s'est produite lors de la soumission du formulaire.",
+        )
+        for error in form.non_field_errors():
+            messages.error(self.request, error)
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+class DotationProjetUpdateView(UpdateView):
+    model = DotationProjet
+    form_class = DotationProjetForm
+    http_method_names = ["post"]
+    template_name = "gsl_projet/projet.html"
+
+    def get_queryset(self):
+        return DotationProjet.objects.filter(
+            projet__in=Projet.objects.active().for_user(self.request.user)
+        )
+
+    def get_context_data(self, **kwargs):
+        dotation_projet = self.object
+        context = _build_projet_page_context(dotation_projet.projet, self.request)
+        if "form" in kwargs:
+            context["dotation_projet_form"] = kwargs["form"]
+            context["dotation_projet"] = dotation_projet
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            "Les modifications ont été enregistrées avec succès.",
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "Une erreur s'est produite lors de la soumission du formulaire.",
+        )
+        for error in form.non_field_errors():
+            messages.error(self.request, error)
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+
+class DotationProjetAssietteUpdateView(UpdateView):
+    model = DotationProjet
+    form_class = DotationProjetAssietteForm
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return DotationProjet.objects.filter(
+            projet__in=Projet.objects.active().for_user(self.request.user),
+            projet__notified_at__isnull=True,
+        )
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            "Les modifications ont été enregistrées avec succès.",
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+    def form_invalid(self, form):
+        self.request.session[f"assiette_errors_{self.object.pk}"] = (
+            self.request.POST.dict()
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+
+
+@method_decorator(htmx_only, name="dispatch")
+class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
+    model = Projet
+    form_class = ProjetRevertToProcessingForm
+    template_name = "htmx/revert_to_processing_modal.html"
+    pk_url_kwarg = "projet_id"
+
+    def get_queryset(self):
+        return Projet.objects.for_user(self.request.user).filter(
+            notified_at__isnull=False
+        )
+
+    def get_modal_id(self):
+        return f"revert-to-processing-modal-{self.object.pk}"
+
+    def form_valid(self, form):
+        try:
+            form.save(user=self.request.user)
+            messages.info(
+                self.request,
+                "Le projet est bien repassé en traitement sur Démarche Numérique.",
+            )
+        except DsServiceException as e:
+            messages.error(self.request, str(e))
+        return HttpResponseClientRedirect(
+            self.request.headers.get("HX-Current-URL", self.request.path)
+        )
+
+
+def _build_projet_page_context(projet, request):
+    projet_form = ProjetForm(instance=projet)
+    dotation_field = projet_form.fields.get("dotations")
+    dotation_projets = list(projet.dotationprojet_set.order_by("dotation").all())
+    context = {
+        "projet": projet,
+        "title": projet.dossier_ds.projet_intitule,
+        "dossier": projet.dossier_ds,
+        "menu_dict": PROJET_MENU,
+        "projet_notes": projet.notes.all(),
+        "dotation_projets": dotation_projets,
+        "comment_cards": get_comment_cards(projet),
+        "projet_form": projet_form,
+        "initial_dotations": (
+            json.dumps(dotation_field.initial) if dotation_field else "[]"
+        ),
+        "dotation_projet_items": [
+            _build_dotation_projet_item(dp, request) for dp in dotation_projets
+        ],
+        **get_projet_go_back_context(request),
+    }
+    detr_dotation = projet.dotation_detr
+    if detr_dotation:
+        context["dotation_projet_form"] = DotationProjetForm(instance=detr_dotation)
+        context["dotation_projet"] = detr_dotation
+    context["projet_note_form"] = ProjetNoteForm()
+    return context
+
+
+def _build_dotation_projet_item(dp, request):
+    session_key = f"assiette_errors_{dp.pk}"
+    if session_key in request.session:
+        form_data = request.session.pop(session_key)
+        form = DotationProjetAssietteForm(data=form_data, instance=dp)
+        form.is_valid()
+    else:
+        form = DotationProjetAssietteForm(instance=dp)
+    return {"dp": dp, "form": form}
+
+
+class ProjetNoteCreateView(CreateView):
+    model = ProjetNote
+    form_class = ProjetNoteForm
+    http_method_names = ["post"]
+
+    def form_valid(self, form):
+        projet = get_object_or_404(
+            Projet.objects.active().for_user(self.request.user),
+            pk=self.kwargs["projet_id"],
+        )
+        note = form.save(commit=False)
+        note.projet = projet
+        note.created_by = self.request.user
+        note.save()
+        self.object = note
+        messages.success(self.request, "La note a été ajoutée avec succès.")
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        error_messages = (
+            "Une erreur s'est produite lors de la soumission du formulaire."
+        )
+        for error in form.non_field_errors():
+            error_messages += f" {error}"
+
+        messages.error(
+            self.request,
+            error_messages,
+        )
+        projet = get_object_or_404(
+            Projet.objects.active().for_user(self.request.user),
+            pk=self.kwargs["projet_id"],
+        )
+        context = _build_projet_page_context(projet, self.request)
+        context["projet_note_form"] = form
+        return TemplateResponse(
+            self.request,
+            "gsl_projet/projet/tab_notes.html",
+            context,
+            status=200,
+        )
+
+    def get_success_url(self):
+        referer = self.request.headers.get("Referer")
+        if referer and url_has_allowed_host_and_scheme(
+            referer, allowed_hosts=self.request.get_host()
+        ):
+            return referer
+        return reverse(
+            "projet:get-projet-notes", kwargs={"projet_id": self.object.projet.pk}
+        )
+
+
+class ProjetNoteDeleteView(DeleteView):
+    model = ProjetNote
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        return ProjetNote.objects.filter(created_by=self.request.user)
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            f'La note "{self.object.title}" a bien été supprimée.',
+        )
+        return reverse(
+            "projet:get-projet-notes",
+            kwargs={"projet_id": self.object.projet.pk},
+        )
+
+
+@method_decorator(htmx_only, name="get")
+class ProjetNoteEditView(UpdateView):
+    model = ProjetNote
+    form_class = ProjetNoteForm
+    template_name = "htmx/projet_note_update_form.html"
+
+    def get_queryset(self):
+        return ProjetNote.objects.filter(created_by=self.request.user)
+
+    def get_success_url(self):
+        return reverse("projet:note-card", kwargs={"pk": self.object.pk})
+
+
+@method_decorator(htmx_only, name="dispatch")
+class ProjetNoteCardView(DetailView):
+    model = ProjetNote
+    template_name = "includes/_projet_note_card.html"
+    context_object_name = "note"
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return ProjetNote.objects.filter(
+            projet__in=Projet.objects.for_user(self.request.user)
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["allow_update"] = True
+        return context
 
 
 class ProjetListViewFilters(ProjetFilters):

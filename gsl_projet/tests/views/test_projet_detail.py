@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytest
 from django.shortcuts import reverse
+from django.utils import timezone
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -23,7 +24,7 @@ from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 pytestmark = pytest.mark.django_db()
 
 
-def test_projet_detail_page_has_no_status_and_notification_status_card_when_all_dotation_projet_have_processing_status():
+def test_projet_detail_page_has_no_notification_button_when_all_dotation_projet_have_processing_status():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -35,7 +36,6 @@ def test_projet_detail_page_has_no_status_and_notification_status_card_when_all_
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     assert response.context["projet"].all_dotations_have_processing_status is True
-    assert "Décision de financement du projet" not in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode(), (
         "Notify button is never displayed in projet page from main tab #1"
     )
@@ -44,7 +44,7 @@ def test_projet_detail_page_has_no_status_and_notification_status_card_when_all_
 @pytest.mark.parametrize(
     "status", (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
 )
-def test_projet_detail_page_has_status_and_notification_status_card_with_not_processing_simple_dotation(
+def test_projet_detail_page_has_dotation_status_card_with_not_processing_simple_dotation(
     status,
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -58,7 +58,7 @@ def test_projet_detail_page_has_status_and_notification_status_card_with_not_pro
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     assert response.context["projet"].all_dotations_have_processing_status is False
-    assert "Décision de financement du projet" in response.content.decode()
+    assert "notification_status_message" in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode(), (
         "Notify button is never displayed in projet page from main tab #1"
     )
@@ -78,7 +78,7 @@ def test_projet_detail_page_has_status_and_notification_status_card_with_not_pro
         (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING),
     ),
 )
-def test_projet_detail_page_has_status_and_notification_status_card_with_not_processing_double_dotations(
+def test_projet_detail_page_has_dotation_status_card_with_not_processing_double_dotations(
     dotation_status_1, dotation_status_2
 ):
     perimetre = PerimetreArrondissementFactory()
@@ -93,7 +93,7 @@ def test_projet_detail_page_has_status_and_notification_status_card_with_not_pro
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     assert response.context["projet"].all_dotations_have_processing_status is False
-    assert "Décision de financement du projet" in response.content.decode()
+    assert "notification_status_message" in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode(), (
         "Notify button is never displayed in projet page from main tab #1"
     )
@@ -260,9 +260,8 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     content = response.content.decode()
-    assert "Décision de financement du projet" in content
+    assert "notification_status_message" in content
     assert "Notifications du demandeur" in content
-    assert "Notifier le demandeur" in content
 
 
 def test_unified_projet_page_hides_decision_card_and_notification_tab_for_processing_projet():
@@ -274,7 +273,6 @@ def test_unified_projet_page_hides_decision_card_and_notification_tab_for_proces
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     content = response.content.decode()
-    assert "Décision de financement du projet" not in content
     assert "Notifications du demandeur" not in content
 
 
@@ -380,3 +378,96 @@ def test_notification_tab_highlights_programmation_when_opened_from_programmatio
     content = response.content.decode()
     assert 'aria-current="true"' in _nav_opening_tag(content, "Programmation")
     assert 'aria-current="true"' not in _nav_opening_tag(content, "Liste des projets")
+
+
+# ---------------------------------------------------------------------------
+# Assiette block on the projet tab
+# ---------------------------------------------------------------------------
+
+
+def _projet_url(projet):
+    return reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
+
+
+def test_assiette_form_shown_for_processing_non_notified_dotation():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    assert response.status_code == 200
+    assiette_url = reverse(
+        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+    )
+    assert assiette_url in response.content.decode()
+
+
+@pytest.mark.parametrize(
+    "status", [PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]
+)
+def test_readonly_block_shown_for_final_status_dotation(status):
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(projet=projet, status=status, dotation=DOTATION_DETR)
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    content = response.content.decode()
+    assiette_url = reverse(
+        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+    )
+    assert assiette_url not in content
+    assert "Montant des dépenses éligibles retenues :" in content
+
+
+def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=timezone.now())
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    content = response.content.decode()
+    assiette_url = reverse(
+        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+    )
+    assert assiette_url not in content
+    assert "Montant des dépenses éligibles retenues :" in content
+
+
+def test_assiette_form_shows_errors_from_session():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    client = ClientWithLoggedUserFactory(user=user)
+    session = client.session
+    session[f"assiette_errors_{dp.pk}"] = {
+        "assiette": "pas_un_nombre",
+        "csrfmiddlewaretoken": "x",
+    }
+    session.save()
+    response = client.get(_projet_url(projet))
+    assert response.status_code == 200
+    items = response.context["dotation_projet_items"]
+    assert len(items) == 1
+    assert items[0]["form"].errors
+
+
+def test_assiette_session_errors_cleared_after_display():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    dp = DotationProjetFactory(
+        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+    )
+    client = ClientWithLoggedUserFactory(user=user)
+    session = client.session
+    session[f"assiette_errors_{dp.pk}"] = {"assiette": "", "csrfmiddlewaretoken": "x"}
+    session.save()
+    client.get(_projet_url(projet))
+    assert f"assiette_errors_{dp.pk}" not in client.session

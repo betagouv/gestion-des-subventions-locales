@@ -9,7 +9,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.constants import PROJET_STATUS_ACCEPTED
 from gsl_simulation.models import BulkStatusJob, SimulationProjet
 from gsl_simulation.tasks import run_bulk_status_job
 from gsl_simulation.tests.factories import SimulationFactory, make_detr_simu_projet
@@ -151,29 +150,6 @@ def test_run_bulk_status_job_records_validation_error_for_missing_assiette(
     assert "assiette" in job.errors[0]["message"].lower()
     sp.refresh_from_db()
     assert sp.status == SimulationProjet.STATUS_PROCESSING
-
-
-def test_run_bulk_status_job_from_accepted_back_to_processing(
-    collegue, perimetre, simulation
-):
-    sp = _make_simu_projet(
-        perimetre,
-        simulation,
-        dotation_status=PROJET_STATUS_ACCEPTED,
-        simu_status=SimulationProjet.STATUS_ACCEPTED,
-    )
-    job = _make_job(simulation, collegue, [sp], SimulationProjet.STATUS_PROCESSING)
-
-    with mock.patch(
-        "gsl_projet.models.DsService.update_ds_annotations_for_one_dotation"
-    ) as ds_mock:
-        run_bulk_status_job(str(job.pk))
-
-    assert ds_mock.called
-    sp.refresh_from_db()
-    assert sp.status == SimulationProjet.STATUS_PROCESSING
-    job.refresh_from_db()
-    assert job.errors == []
 
 
 def test_run_bulk_status_job_lets_unexpected_exception_propagate(

@@ -56,10 +56,15 @@
                     "deleteNotificationDocumentModal": "{% static 'js/deleteNotificationDocumentModal.js' %}",
                     "qrCodeToggle": "{% static 'js/qrCodeToggle.js' %}",
                     "checkboxSelection": "{% static 'js/checkboxSelection.js' %}",
-                    "bindAmountFields": "{% static 'js/controllers/bindAmountTields.js' %}",
+                    "bindAmountFields": "{% static 'js/controllers/bindAmountFields.js' %}",
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
                     "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
-                    "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}"
+                    "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
+                    "projetForm": "{% static 'js/controllers/projetForm.js' %}",
+                    "projetNotes": "{% static 'js/controllers/projetNotes.js' %}",
+                    "projetNoteCard": "{% static 'js/controllers/projetNoteCard.js' %}",
+                    "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}",
+                    "formatMontant": "{% static 'js/controllers/formatMontant.js' %}"
                 }
             }
             </script>
@@ -132,6 +137,11 @@
             import { FormUtils } from "formUtils"
             import { DotationDropdown } from "dotationDropdown"
             import { CommentArbitrage } from "commentArbitrage"
+            import { ProjetForm } from "projetForm"
+            import { ProjetNotes } from "projetNotes"
+            import { ProjetNoteCard } from "projetNoteCard"
+            import { RadioNavigate } from "radioNavigate"
+            import { FormatMontant } from "formatMontant"
 
             window.Stimulus = Application.start()
 
@@ -147,6 +157,11 @@
             Stimulus.register("form-utils", FormUtils)
             Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)
+            Stimulus.register("projet-form", ProjetForm)
+            Stimulus.register("projet-notes", ProjetNotes)
+            Stimulus.register("projet-note-card", ProjetNoteCard)
+            Stimulus.register("radio-navigate", RadioNavigate)
+            Stimulus.register("format-montant", FormatMontant)
         </script>
 
         {% block extra_js %}

@@ -1,3 +1,6 @@
+from urllib.parse import urlencode
+
+from django.urls import reverse
 from django.utils.html import format_html
 
 from gsl_core.table_columns import (
@@ -17,16 +20,42 @@ from gsl_core.table_columns import (
     COLUMN_DEMANDEUR,
     COLUMN_DOTATIONS_SOLLICITEES,
     COLUMN_EPCI,
-    COLUMN_INTITULE,
     COLUMN_NOM_DEMANDEUR,
     COLUMN_NUMERO_DN,
     COLUMN_PRIORITY,
     COLUMN_ZONAGE,
+    CellLink,
     Column,
     StickyPosition,
     TextAlign,
 )
 from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
+
+
+def _simulation_intitule_url(ctx):
+    projet = ctx["projet"]
+    request = ctx.get("request")
+    base = reverse("projet:get-projet", kwargs={"projet_id": projet.id})
+    if request:
+        return f"{base}?{urlencode({'back': request.get_full_path()})}"
+    return base
+
+
+COLUMN_INTITULE = Column(
+    key="intitule",
+    label="Intitulé du projet",
+    getter=lambda ctx: ctx["projet"].dossier_ds.projet_intitule,
+    other_dotation_getter=lambda ctx: (
+        f"Informations pour la dotation {ctx['other_dotation'].dotation}"
+    ),
+    link=CellLink(
+        url_getter=_simulation_intitule_url,
+        fr_link=True,
+        title_from_value=True,
+    ),
+    hideable=False,
+    sticky=StickyPosition.LEFT_2,
+)
 
 COLUMN_DOTATION = Column(
     key="dotation",

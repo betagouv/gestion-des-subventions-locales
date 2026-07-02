@@ -1,0 +1,6 @@
+<span class="fr-badge {{ self.badge_class }}{% if self.extra_class %} {{ self.extra_class }}{% endif %}">
+    {% if self.icon_class %}
+        <i class="{{ self.icon_class }} fr-icon--sm fr-mr-1v" aria-hidden="true"></i>
+    {% endif %}
+    {{ self.label }}
+</span>

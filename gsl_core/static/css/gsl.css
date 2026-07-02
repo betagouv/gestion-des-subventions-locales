@@ -469,9 +469,6 @@ ul.no-list-style li {
 }
 
 /* projet detail */
-.badge-projet-status{
-    min-width: max-content;
-}
 
 .badge-projet-status__accepted,
 .badge-projet-status__valid {
@@ -745,5 +742,43 @@ ul.no-list-style li {
     .gsl-projet-table .fr-table__content > table > thead {
         transform: none !important;
     }
+}
+
+/* status select (shared between simulation table and simulation cards on projet page) */
+
+.gsl-projet-table__status-button {
+    font-weight: bold;
+}
+
+.gsl-projet-table__status-select .fr-btn--tertiary {
+    color: var(--text-default-grey);
+}
+
+.gsl-projet-table__status-select--valid .fr-btn.fr-btn--tertiary {
+    color: var(--text-default-success);
+}
+
+.gsl-projet-table__status-select--cancelled .fr-btn.fr-btn--tertiary {
+    color: var(--text-default-error);
+}
+
+.gsl-projet-table__status-select--provisionally_accepted .fr-btn.fr-btn--tertiary {
+    color: var(--text-default-info);
+}
+
+.gsl-projet-table__status-select--provisionally_refused .fr-btn.fr-btn--tertiary {
+    color: var(--text-action-high-orange-terre-battue);
+}
+
+.gsl-projet-table__status-option {
+    justify-content: flex-start;
+    gap: 0.5rem;
+}
+
+/* Status menu is position: fixed (set by JS in gsl.js) while expanded, so the
+   DSFR collapse slide-in/out looks out of place in viewport space. Skip it. */
+.gsl-projet-table__status-select .fr-collapse,
+.gsl-projet-table__status-select .fr-collapse::before {
+    transition: none;
 }
 
