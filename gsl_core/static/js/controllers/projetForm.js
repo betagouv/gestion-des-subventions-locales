@@ -18,8 +18,10 @@ export class ProjetForm extends Controller {
   }
 
   enableSubmit (evt) {
-    const button = evt.currentTarget.querySelector("button[type='submit']")
-    if (button) button.disabled = false
+    const form = evt.target.form
+    if (!form) return
+    document.querySelectorAll(`button[type='submit'][form='${form.id}']`)
+      .forEach(btn => { btn.disabled = false })
   }
 
   submitOnChange (evt) {

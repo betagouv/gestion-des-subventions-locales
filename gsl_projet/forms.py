@@ -319,14 +319,14 @@ class DotationProjetForm(ModelForm):
     ]
 
     detr_avis_commission = forms.ChoiceField(
-        label="Sélectionner l'avis de la commission d'élus DETR :",
+        label="L'avis de la commission de la commission est-il positif ?",
         choices=DETR_AVIS_CHOICES,
         required=False,
         widget=forms.Select(
             attrs={
                 "form": "dotation-projet-form",
                 "class": "fr-select",
-                "data-action": "change->projet-form#submitOnChange",
+                "data-action": "change->projet-form#enableSubmit",
             }
         ),
     )

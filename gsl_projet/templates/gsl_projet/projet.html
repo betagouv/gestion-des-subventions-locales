@@ -66,7 +66,7 @@
     <ul class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
         {% if projet.notified_at %}
             <li class="fr-mb-2w">
-                <button class="fr-btn fr-btn--secondary"
+                <button class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-arrow-go-back-fill"
                         hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"
                         hx-swap="outerHTML">
                     Repasser en traitement

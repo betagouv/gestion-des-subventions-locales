@@ -1,33 +1,10 @@
-<div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-p-3w fr-m-0">
-    <div class="fr-grid-row avis-commission-detr-block">
-        <h2 class="fr-callout__title fr-text--lg">
-            <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
-                  aria-hidden="true"></span>Commission DETR (projet à + de 100k)
-        </h2>
-
-        <div class="avis-commission-detr-select-and-label">
-            {{ dotation_projet_form.detr_avis_commission.label_tag }}
-
-            <div class="avis-commission-detr-select-group">
-                {% csrf_token %}
-                {% if dotation_projet.detr_avis_commission %}
-                    <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span>
-                {% elif dotation_projet.detr_avis_commission is False %}
-                    <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span>
-                {% else %}
-                    <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span>
-                {% endif %}
-                {{ dotation_projet_form.detr_avis_commission }}
-                {% if dotation_projet_form.errors.detr_avis_commission %}
-                    <div class="fr-messages-group" aria-live="assertive">
-                        {% for err in dotation_projet_form.errors.detr_avis_commission %}
-                            <p class="fr-message fr-message--error">
-                                {{ err }}
-                            </p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+<div class="fr-callout fr-background-alt--blue-france fr-container fr-p-3w fr-m-0">
+    {{ dotation_projet_form.detr_avis_commission.label_tag }}
+    {{ dotation_projet_form.detr_avis_commission }}
 </div>
+<button class="fr-btn fr-mt-2w"
+        type="submit"
+        form="dotation-projet-form"
+        disabled>
+    Enregistrer
+</button>
