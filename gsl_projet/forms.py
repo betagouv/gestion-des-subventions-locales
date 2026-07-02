@@ -319,7 +319,7 @@ class DotationProjetForm(ModelForm):
     ]
 
     detr_avis_commission = forms.ChoiceField(
-        label="L'avis de la commission de la commission est-il positif ?",
+        label="L'avis de la commission est-il positif ?",
         choices=DETR_AVIS_CHOICES,
         required=False,
         widget=forms.Select(

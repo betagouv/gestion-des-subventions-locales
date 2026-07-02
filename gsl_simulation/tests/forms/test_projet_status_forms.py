@@ -12,6 +12,10 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory
 from gsl_simulation.forms import SimulationProjetStatusForm
@@ -209,3 +213,107 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     programmation_projet = programmation_projets_qs.first()
     assert programmation_projet.enveloppe == mother_enveloppe
     assert programmation_projet.status == programmation_status_expected
+
+
+# ---------------------------------------------------------------------------
+# Revert to processing from a final status (new elif branch in save())
+# ---------------------------------------------------------------------------
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+@pytest.mark.parametrize(
+    "initial_simulation_status, initial_dotation_status",
+    (
+        (SimulationProjet.STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (SimulationProjet.STATUS_REFUSED, PROJET_STATUS_REFUSED),
+        (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+    ),
+)
+def test_revert_from_final_status_resets_dotation_projet_to_processing(
+    mock_ds_update,
+    initial_simulation_status,
+    initial_dotation_status,
+    user,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_simulation_status,
+        dotation_projet__status=initial_dotation_status,
+    )
+    form = SimulationProjetStatusForm(
+        instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
+    )
+    form.save(user)
+
+    simulation_projet.dotation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+@pytest.mark.parametrize(
+    "initial_simulation_status, initial_dotation_status",
+    (
+        (SimulationProjet.STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (SimulationProjet.STATUS_REFUSED, PROJET_STATUS_REFUSED),
+        (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+    ),
+)
+def test_revert_from_final_status_deletes_programmation_projet(
+    mock_ds_update,
+    initial_simulation_status,
+    initial_dotation_status,
+    user,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_simulation_status,
+        dotation_projet__status=initial_dotation_status,
+    )
+    ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
+    form = SimulationProjetStatusForm(
+        instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
+    )
+    form.save(user)
+
+    assert not ProgrammationProjet.objects.filter(
+        dotation_projet=simulation_projet.dotation_projet
+    ).exists()
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+@pytest.mark.parametrize(
+    "initial_status, new_status",
+    (
+        (
+            SimulationProjet.STATUS_PROCESSING,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        ),
+        (
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+            SimulationProjet.STATUS_PROCESSING,
+        ),
+        (
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+            SimulationProjet.STATUS_PROCESSING,
+        ),
+    ),
+)
+def test_pending_to_pending_does_not_revert_dotation_projet(
+    mock_ds_update,
+    initial_status,
+    new_status,
+    user,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_status,
+        dotation_projet__status=PROJET_STATUS_PROCESSING,
+    )
+    form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
+    form.save(user)
+
+    simulation_projet.dotation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
