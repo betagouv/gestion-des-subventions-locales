@@ -1,0 +1,15 @@
+<form method="post"
+      action="{% url 'gsl_projet:patch-dotation-projet-assiette' item.dp.pk %}"
+      data-controller="format-montant"
+      data-action="submit->format-montant#unformat">
+    {% csrf_token %}
+    <div class="fr-callout fr-background-alt--blue-france fr-ml-0 fr-mt-2w">
+        <h5 class="fr-callout__title">
+            {{ item.dp.dotation }}
+        </h5>
+        {{ item.form }}
+    </div>
+    <button class="fr-btn fr-btn--secondary" type="submit">
+        Enregistrer
+    </button>
+</form>

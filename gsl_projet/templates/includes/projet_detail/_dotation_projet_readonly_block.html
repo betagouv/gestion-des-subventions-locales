@@ -1,0 +1,30 @@
+{% load ui_tags gsl_filters %}
+
+<div class="fr-callout fr-background-alt--blue-france fr-ml-0 fr-mt-2w">
+    <h5 class="fr-callout__title">
+        {{ item.dp.dotation }}
+    </h5>
+    {% ui_status_badge type=item.dp.status %}
+    <ul class="fr-mt-1w">
+        <li>
+            <b>Montant des dépenses éligibles retenues :</b>
+            {{ item.dp.assiette|euro:2 }}
+        </li>
+        <li>
+            <b>Montant accordé :</b>
+            {% if item.dp.status == 'accepted' %}
+                {{ item.dp.montant_retenu|euro:2 }}
+            {% else %}
+                —
+            {% endif %}
+        </li>
+        <li>
+            <b>Taux de subvention :</b>
+            {% if item.dp.status == 'accepted' %}
+                {{ item.dp.taux_retenu|percent:3 }}
+            {% else %}
+                —
+            {% endif %}
+        </li>
+    </ul>
+</div>

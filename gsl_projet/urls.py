@@ -25,6 +25,11 @@ urlpatterns = [
         name="patch-dotation-projet",
     ),
     path(
+        "dotation/<int:pk>/assiette/",
+        views.DotationProjetAssietteUpdateView.as_view(),
+        name="patch-dotation-projet-assiette",
+    ),
+    path(
         "voir/<int:projet_id>/notes/",
         views.BaseProjetDetailView.as_view(
             template_name="gsl_projet/projet/tab_notes.html"

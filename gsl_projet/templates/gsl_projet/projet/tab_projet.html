@@ -22,6 +22,10 @@
                         : {{ projet.perimetre.arrondissement.name|default:"-" }}
                     </li>
                     <li>
+                        <span aria-hidden="true">📍</span> Demandeur
+                        : {{ dossier.ds_demandeur|default:"-" }}
+                    </li>
+                    <li>
                         <span aria-hidden="true">📆</span> Date de dépôt : {{ dossier.ds_date_depot|date }}
                     </li>
                     <li>
@@ -94,7 +98,7 @@
                             <b>Nature du porteur de projet</b> : {{ dossier.porteur_de_projet_nature }}
                         </li>
                         <li>
-                            <b>Nom du demandeur</b> : {{ dossier.porteur_fullname }}
+                            <b>Demandeur</b> : {{ dossier.ds_demandeur }}
                         </li>
                         <li>
                             <b>Département et arrondissement :</b> {{ dossier.porteur_de_projet_departement.name|default:"-" }}
@@ -111,6 +115,9 @@
                             {% else %}
                                 {{ dossier.porteur_de_projet_epci|default:"-" }}
                             {% endif %}
+                        </li>
+                        <li>
+                            <b>Nom du porteur</b> : {{ dossier.porteur_fullname }}
                         </li>
                         <li>
                             <b>La maîtrise d’ouvrage de l’opération sera-t-elle déléguée ?</b>
@@ -395,13 +402,12 @@
                             ({{ dossier.taux_demande|percent:3 }} du coût total)
                         </p>
                     </div>
-                    {% for dotation_projet in projet.dotationprojet_set.all %}
-                        {% if projet.dotationprojet_set.all|length > 1 %}
-                            <h6 class="fr-mb-2w fr-mt-6w">
-                                {{ dotation_projet.dotation }}
-                            </h6>
+                    {% for item in dotation_projet_items %}
+                        {% if item.dp.status == 'processing' and not projet.notified_at %}
+                            {% include "includes/forms/_assiette_dotation_projet_form.html" %}
+                        {% else %}
+                            {% include "includes/projet_detail/_dotation_projet_readonly_block.html" %}
                         {% endif %}
-                        {% include "includes/projet_detail/dotation_montant_info.html" with assiette=dotation_projet.assiette montant=dotation_projet.montant_retenu taux=dotation_projet.taux_retenu %}
                     {% endfor %}
                 </section>
             </div>

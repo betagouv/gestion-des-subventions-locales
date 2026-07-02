@@ -371,6 +371,26 @@ class DotationProjetForm(ModelForm):
         ]
 
 
+class DotationProjetAssietteForm(ModelForm, DsfrBaseForm):
+    assiette = forms.DecimalField(
+        label="Montant des dépenses éligibles retenues (€)",
+        required=True,
+        help_text=" Cette valeur est identique sur toutes les simulations de cette dotation.",
+        widget=forms.TextInput(
+            attrs={
+                "class": "fr-input",
+                "inputmode": "numeric",
+                "data-format-montant-target": "field",
+                "data-action": "change->format-montant#format",
+            }
+        ),
+    )
+
+    class Meta:
+        model = DotationProjet
+        fields = ["assiette"]
+
+
 class ProjetNoteForm(ModelForm, DsfrBaseForm):
     title = forms.CharField(
         label="Titre de la note",
