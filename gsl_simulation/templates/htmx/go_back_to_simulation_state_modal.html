@@ -2,12 +2,12 @@
 {% load simulation_filters %}
 {% if action_origin == "button" %}
     {% block button %}
-        <button class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-draft-fill processing-color"
+        <button class="fr-nav__link gsl-projet-table__status-option"
                 id="{{ modal_button_id }}"
                 aria-controls="{{ modal_id }}"
                 type="button"
                 data-fr-opened="false">
-            Repasser en traitement
+            {{ new_simulation_status|status_to_label }}
         </button>
     {% endblock button %}
 {% else %}
@@ -15,6 +15,9 @@
         {{ new_simulation_status|status_to_label }}
     {% endblock button_label %}
 {% endif %}
+
+{% block dialog_close_behavior %}
+{% endblock dialog_close_behavior %}
 
 {% block content %}
     <h1 class="fr-modal__title">
