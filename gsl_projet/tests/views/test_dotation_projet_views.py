@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -49,6 +50,95 @@ def accepted_simulation_projet(collegue, perimetre_departemental):
         montant=1_000,
         simulation=simulation,
     )
+
+
+@pytest.fixture
+def processing_dotation_projet(perimetre_departemental):
+    return DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
+        assiette=10_000,
+        projet__dossier_ds__perimetre=perimetre_departemental,
+        projet__notified_at=None,
+    )
+
+
+def _assiette_url(dp):
+    return reverse("gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk})
+
+
+def test_patch_assiette_saves_value(
+    client_with_user_logged, processing_dotation_projet
+):
+    client_with_user_logged.post(
+        _assiette_url(processing_dotation_projet), {"assiette": "50000"}
+    )
+    processing_dotation_projet.refresh_from_db()
+    assert processing_dotation_projet.assiette == 50_000
+
+
+def test_patch_assiette_shows_success_message(
+    client_with_user_logged, processing_dotation_projet
+):
+    response = client_with_user_logged.post(
+        _assiette_url(processing_dotation_projet), {"assiette": "50000"}, follow=True
+    )
+    messages = [m.message for m in response.context["messages"]]
+    assert any("enregistrées avec succès" in m for m in messages)
+
+
+def test_patch_assiette_invalid_does_not_save(
+    client_with_user_logged, processing_dotation_projet
+):
+    client_with_user_logged.post(
+        _assiette_url(processing_dotation_projet), {"assiette": ""}
+    )
+    processing_dotation_projet.refresh_from_db()
+    assert processing_dotation_projet.assiette == 10_000
+
+
+def test_patch_assiette_invalid_stores_errors_in_session(
+    client_with_user_logged, processing_dotation_projet
+):
+    client_with_user_logged.post(
+        _assiette_url(processing_dotation_projet), {"assiette": ""}
+    )
+    assert (
+        f"assiette_errors_{processing_dotation_projet.pk}"
+        in client_with_user_logged.session
+    )
+
+
+def test_patch_assiette_get_returns_405(
+    client_with_user_logged, processing_dotation_projet
+):
+    response = client_with_user_logged.get(_assiette_url(processing_dotation_projet))
+    assert response.status_code == 405
+
+
+def test_patch_assiette_notified_projet_returns_404(
+    client_with_user_logged, perimetre_departemental
+):
+    dp = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
+        projet__dossier_ds__perimetre=perimetre_departemental,
+        projet__notified_at=timezone.now(),
+    )
+    response = client_with_user_logged.post(_assiette_url(dp), {"assiette": "50000"})
+    assert response.status_code == 404
+
+
+def test_patch_assiette_out_of_perimeter_returns_404(client_with_user_logged):
+    other_perimetre = PerimetreDepartementalFactory()
+    dp = DotationProjetFactory(
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
+        projet__dossier_ds__perimetre=other_perimetre,
+        projet__notified_at=None,
+    )
+    response = client_with_user_logged.post(_assiette_url(dp), {"assiette": "50000"})
+    assert response.status_code == 404
 
 
 @pytest.mark.parametrize(
