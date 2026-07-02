@@ -39,6 +39,14 @@ class OpenHtmxModalMixin:
         )
 
 
+class FilterSkiplinksMixin:
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "extra_skiplinks": [{"link": "#filters", "label": "Filtres"}],
+        }
+
+
 class NoFeedbackHtmxFormViewMixin:
     """
     A view to handle forms submitted via htmx, which provides no feedback to the user.
