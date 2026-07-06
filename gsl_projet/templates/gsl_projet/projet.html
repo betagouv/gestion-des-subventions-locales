@@ -103,6 +103,14 @@
                 </form>
             </li>
         {% endif %}
+        {% if dossier.ds_demandeur.siren %}
+            <li>
+                <a href="{% url 'suivi_financier:beneficiaire-detail' dossier.ds_demandeur.siren %}"
+                   class="fr-btn fr-btn--icon-right fr-icon-time-line fr-btn--secondary">
+                    Historique bénéficiaire
+                </a>
+            </li>
+        {% endif %}
         {% comment %}
         <li>
             <a href="@todo" class="fr-btn fr-btn--icon-right fr-icon-article-line fr-btn--secondary">

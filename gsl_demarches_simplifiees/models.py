@@ -163,6 +163,7 @@ class PersonneMorale(models.Model):
         entreprise_data = ds_data.get("entreprise")
         if entreprise_data:
             self.raison_sociale = entreprise_data.get("raisonSociale")
+            self.siren = entreprise_data.get("siren")
             self.forme_juridique, _ = FormeJuridique.objects.get_or_create(
                 code=entreprise_data.get("formeJuridiqueCode"),
                 defaults={"libelle": entreprise_data.get("formeJuridique")},
@@ -719,6 +720,12 @@ class Dossier(BaseModel):
             code = parts[0]
             return f"{ANNUAIRE_ENTREPRISE_URL}{code}"
         return None
+
+    @property
+    def ds_demandeur_url(self) -> str | None:
+        if not self.ds_demandeur or not self.ds_demandeur.siren:
+            return None
+        return f"{ANNUAIRE_ENTREPRISE_URL}{self.ds_demandeur.siren}"
 
     @property
     def demande_montant_is_greater_than_min_montant_for_detr_commission(self):

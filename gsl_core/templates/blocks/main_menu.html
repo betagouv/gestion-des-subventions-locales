@@ -98,6 +98,13 @@
                             </div>
                         {% endif %}
                     </li>
+                    <li class="fr-nav__item">
+                        {% url 'suivi_financier:beneficiaire-list' as beneficiaires_url %}
+                        <a class="fr-nav__link"
+                           href="{{ beneficiaires_url }}"
+                           target="_self"
+                           {% if "/beneficiaires/" in request.path %}aria-current="true"{% endif %}>Bénéficiaires</a>
+                    </li>
                 {% endif %}
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">
