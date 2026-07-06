@@ -738,6 +738,46 @@ def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
     )
 
 
+@mock.patch("gsl_demarches_simplifiees.services.DsService.repasser_en_instruction")
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notified(
+    _mock_update_ds, mock_repasser_en_instruction
+):
+    projet = ProjetFactory(notified_at=timezone.now())
+    user = CollegueFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+
+    dotation_projet.set_back_status_to_processing(user=user)
+    dotation_projet.save()
+
+    mock_repasser_en_instruction.assert_called_once_with(
+        dotation_projet.projet.dossier_ds, user
+    )
+
+
+@mock.patch("gsl_demarches_simplifiees.services.DsService.repasser_en_instruction")
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_when_not_notified(
+    _mock_update_ds, mock_repasser_en_instruction
+):
+    projet = ProjetFactory(notified_at=None)
+    user = CollegueFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+
+    dotation_projet.set_back_status_to_processing(user=user)
+    dotation_projet.save()
+
+    mock_repasser_en_instruction.assert_not_called()
+
+
 @pytest.mark.django_db
 def test_categorie_detr_departement_constraint():
     dep1 = DepartementFactory()
