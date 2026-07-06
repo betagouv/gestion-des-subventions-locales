@@ -128,7 +128,7 @@ class TestSimulationUpdatedAtOnFieldChange:
         before = accepted_simulation_projet.simulation.updated_at
         url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
         client_with_user_logged.post(
-            url, {"taux": "50"}, headers={"HX-Request": "true"}
+            url, {"taux": "50", "confirmed": "1"}, headers={"HX-Request": "true"}
         )
         accepted_simulation_projet.simulation.refresh_from_db()
         assert accepted_simulation_projet.simulation.updated_at > before
@@ -143,7 +143,7 @@ class TestSimulationUpdatedAtOnStatusChange:
     ):
         before = simulation_projet.simulation.updated_at
         page_url = reverse(
-            "simulation:simulation-projet-detail", args=[simulation_projet.id]
+            "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
         )
         url = reverse(
             "simulation:simulation-projet-update-simulation-status",
@@ -162,7 +162,7 @@ class TestSimulationUpdatedAtOnStatusChange:
     ):
         before = simulation_projet.simulation.updated_at
         page_url = reverse(
-            "simulation:simulation-projet-detail", args=[simulation_projet.id]
+            "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
         )
         url = reverse(
             "simulation:simulation-projet-update-simulation-status",

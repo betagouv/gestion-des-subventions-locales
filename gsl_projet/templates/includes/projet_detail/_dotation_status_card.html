@@ -1,0 +1,42 @@
+{% load ui_tags %}
+<div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-container fr-pb-2w fr-pt-3w fr-px-3w fr-mb-2w">
+    <div class='status_action_header'>
+        <h2 class="fr-callout__title">
+            <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
+            {{ dotation_projet.dotation }}
+        </h2>
+    </div>
+    <div class="fr-callout__text notification_status_message fr-mb-2w">
+        {% if dotation_projet.dotation == "DETR" and projet.can_have_a_commission_detr_avis %}
+            <div class="fr-text--sm fr-mb-1w">
+                <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
+                      aria-hidden="true"></span>Avis de la commission
+                {% if projet.dotation_detr.detr_avis_commission %}
+                    <span class="fr-icon-chat-check-fill green-color" aria-hidden="true"></span> Oui
+                {% elif projet.dotation_detr.detr_avis_commission is False %}
+                    <span class="fr-icon-chat-delete-fill red-color" aria-hidden="true"></span> Non
+                {% else %}
+                    <span class="fr-icon-message-2-fill grey-color" aria-hidden="true"></span> En cours
+                {% endif %}
+            {% endif %}
+        </div>
+
+        {% ui_status_badge type=dotation_projet.status class="fr-mr-1w" %}
+
+        {% if projet.display_notification_message %}
+            {% if projet.to_notify %}
+                <span class="fr-badge fr-badge--no-icon">
+                    À notifier
+                </span>
+            {% elif projet.notified_at %}
+                <span class="fr-badge fr-badge--success fr-badge--no-icon">
+                    Notifié
+                </span>
+            {% else %}
+                <span class="fr-badge fr-badge--info fr-badge--no-icon">
+                    En attente de la décision {{ projet.dotation_not_treated }}
+                </span>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

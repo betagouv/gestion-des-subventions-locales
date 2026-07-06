@@ -3,7 +3,7 @@
     {{ projet.dotations|join:" et " }}
 {% else %}
     <form id="simulation-projet-dotation-form-{{ simu.id }}"
-          action="{% url 'simulation:patch-projet' simu.id %}{% querystring %}"
+          action="{% url 'projet:patch-projet' projet_id=simu.projet.pk %}{% querystring %}"
           method="POST"
           data-controller="dotation-dropdown"
           data-dotation-dropdown-target="form"

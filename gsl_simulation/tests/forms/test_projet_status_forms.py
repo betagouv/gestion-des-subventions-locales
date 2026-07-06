@@ -96,29 +96,6 @@ def test_update_status_with_accepted(mock_ds_update, user):
     )
 
 
-@pytest.mark.parametrize(
-    ("initial_status"),
-    (
-        SimulationProjet.STATUS_ACCEPTED,
-        SimulationProjet.STATUS_REFUSED,
-        SimulationProjet.STATUS_DISMISSED,
-    ),
-)
-def test_update_status_with_processing_from_accepted_or_refused_or_dismissed(
-    initial_status, user
-):
-    simulation_projet = SimulationProjetFactory(status=initial_status)
-    new_status = SimulationProjet.STATUS_PROCESSING
-
-    with mock.patch(
-        "gsl_projet.models.DotationProjet.set_back_status_to_processing"
-    ) as mock_set_back_a_simulation_projet_to_processing:
-        form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
-        form.save(user)
-
-        mock_set_back_a_simulation_projet_to_processing.assert_called_once()
-
-
 def test_update_status_with_processing(user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
@@ -130,115 +107,6 @@ def test_update_status_with_processing(user):
 
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == new_status
-
-
-SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS = {
-    SimulationProjet.STATUS_ACCEPTED: PROJET_STATUS_ACCEPTED,
-    SimulationProjet.STATUS_REFUSED: PROJET_STATUS_REFUSED,
-    SimulationProjet.STATUS_PROCESSING: PROJET_STATUS_PROCESSING,
-    SimulationProjet.STATUS_DISMISSED: PROJET_STATUS_DISMISSED,
-    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: PROJET_STATUS_PROCESSING,
-}
-
-
-@pytest.mark.parametrize(
-    ("initial_status"),
-    (
-        SimulationProjet.STATUS_ACCEPTED,
-        SimulationProjet.STATUS_REFUSED,
-        SimulationProjet.STATUS_DISMISSED,
-    ),
-)
-@pytest.mark.parametrize(
-    "new_status",
-    (
-        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
-    ),
-)
-def test_update_status_with_provisionally_accepted_from_refused_or_accepted_or_dismissed(
-    initial_status, new_status, user
-):
-    dotation_projet = DotationProjetFactory(
-        status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
-    )
-    simulation_projet = SimulationProjetFactory(
-        status=initial_status,
-        dotation_projet=dotation_projet,
-    )
-    assert (
-        dotation_projet.status
-        == SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
-    )
-    SimulationProjetFactory.create_batch(
-        3,
-        dotation_projet=dotation_projet,
-        status=initial_status,
-    )
-
-    with mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    ) as mock_ds_update:
-        form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
-        form.save(user)
-
-        mock_ds_update.assert_called_once_with(
-            dossier=simulation_projet.projet.dossier_ds,
-            user=user,
-            dotations_to_be_checked=[],
-        )
-
-    simulation_projet.refresh_from_db()
-    assert simulation_projet.status == new_status
-    assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
-
-    other_simulation_projets = SimulationProjet.objects.exclude(pk=simulation_projet.pk)
-    assert other_simulation_projets.count() == 3
-    for other_simulation_projet in other_simulation_projets:
-        assert other_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-
-
-@pytest.mark.parametrize(
-    ("initial_status"),
-    (
-        SimulationProjet.STATUS_ACCEPTED,
-        SimulationProjet.STATUS_REFUSED,
-    ),
-)
-def test_update_status_with_provisionally_accepted_remove_programmation_projet_from_accepted_or_refused(
-    initial_status, user
-):
-    dotation_projet = DotationProjetFactory(
-        status=SIMULATION_PROJET_STATUS_TO_DOTATION_PROJET_STATUS[initial_status]
-    )
-    simulation_projet = SimulationProjetFactory(
-        status=initial_status,
-        dotation_projet=dotation_projet,
-    )
-    ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
-
-    with mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    ) as mock_ds_update:
-        form = SimulationProjetStatusForm(
-            instance=simulation_projet,
-            status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        )
-        form.save(user)
-        mock_ds_update.assert_called_once_with(
-            dossier=simulation_projet.projet.dossier_ds,
-            user=user,
-            dotations_to_be_checked=[],
-        )
-
-    simulation_projet.refresh_from_db()
-    assert simulation_projet.status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
-    assert (
-        ProgrammationProjet.objects.filter(
-            dotation_projet=simulation_projet.dotation_projet
-        ).count()
-        == 0
-    )
 
 
 @mock.patch(
@@ -345,3 +213,107 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     programmation_projet = programmation_projets_qs.first()
     assert programmation_projet.enveloppe == mother_enveloppe
     assert programmation_projet.status == programmation_status_expected
+
+
+# ---------------------------------------------------------------------------
+# Revert to processing from a final status (new elif branch in save())
+# ---------------------------------------------------------------------------
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+@pytest.mark.parametrize(
+    "initial_simulation_status, initial_dotation_status",
+    (
+        (SimulationProjet.STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (SimulationProjet.STATUS_REFUSED, PROJET_STATUS_REFUSED),
+        (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+    ),
+)
+def test_revert_from_final_status_resets_dotation_projet_to_processing(
+    mock_ds_update,
+    initial_simulation_status,
+    initial_dotation_status,
+    user,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_simulation_status,
+        dotation_projet__status=initial_dotation_status,
+    )
+    form = SimulationProjetStatusForm(
+        instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
+    )
+    form.save(user)
+
+    simulation_projet.dotation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+@pytest.mark.parametrize(
+    "initial_simulation_status, initial_dotation_status",
+    (
+        (SimulationProjet.STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (SimulationProjet.STATUS_REFUSED, PROJET_STATUS_REFUSED),
+        (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+    ),
+)
+def test_revert_from_final_status_deletes_programmation_projet(
+    mock_ds_update,
+    initial_simulation_status,
+    initial_dotation_status,
+    user,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_simulation_status,
+        dotation_projet__status=initial_dotation_status,
+    )
+    ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
+    form = SimulationProjetStatusForm(
+        instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
+    )
+    form.save(user)
+
+    assert not ProgrammationProjet.objects.filter(
+        dotation_projet=simulation_projet.dotation_projet
+    ).exists()
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+@pytest.mark.parametrize(
+    "initial_status, new_status",
+    (
+        (
+            SimulationProjet.STATUS_PROCESSING,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        ),
+        (
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+            SimulationProjet.STATUS_PROCESSING,
+        ),
+        (
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
+            SimulationProjet.STATUS_PROCESSING,
+        ),
+    ),
+)
+def test_pending_to_pending_does_not_revert_dotation_projet(
+    mock_ds_update,
+    initial_status,
+    new_status,
+    user,
+):
+    simulation_projet = SimulationProjetFactory(
+        status=initial_status,
+        dotation_projet__status=PROJET_STATUS_PROCESSING,
+    )
+    form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
+    form.save(user)
+
+    simulation_projet.dotation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING

@@ -12,6 +12,12 @@
                {% if request.path == notes_url %}aria-selected="true"{% endif %}
                class="fr-tabs__tab fr-icon-edit-line fr-tabs__tab--icon-left">Notes</a>
         </li>
+        <li>
+            {% url "projet:get-projet-simulations" projet_id=projet.id as simulations_url %}
+            <a href="{{ simulations_url }}{% querystring %}"
+               {% if request.path == simulations_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-money-euro-circle-fill fr-tabs__tab--icon-left">Simulations</a>
+        </li>
         {% if projet.can_display_notification_tab %}
             <li>
                 {% url 'gsl_notification:documents' projet.id as notifications_url %}

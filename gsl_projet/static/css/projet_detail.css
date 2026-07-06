@@ -1,3 +1,7 @@
+.simulation-projet-card {
+  background-image: none;
+}
+
 .projet-header {
   display: flex;
   flex-direction: row;
@@ -7,12 +11,7 @@
 
 .projet-header__status {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-#projet-panel {
-  padding: 4rem
+  gap: 16px;
 }
 
 .status_action_header {
@@ -23,4 +22,50 @@
 
 .status_action_header > span.blue-color {
   color: var(--blue-france-sun-113-625);
+}
+
+.separator {
+  width: 100%;
+  background-color: var(--border-default-blue-france);
+  margin-bottom: 0.5rem;
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.fr-fieldset__element .fr-radio-group input[type="radio"] ~ label {
+  flex-direction: row;
+  font-size: calc(14rem / 16);
+  font-weight: 500;
+}
+
+.fr-fieldset__element .fr-radio-group input[type="radio"] ~ label i {
+  opacity: 0.8;
+  margin-left: 0.25rem;
+}
+
+
+.avis-commission-detr-select-and-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avis-commission-detr-select-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 150px;
+}
+
+#id_is_budget_vert {
+  width: 180px;
+}
+
+.submit-projet-note-form-container {
+  display: flex;
+  justify-content: end;
+}
+
+#projet_note_form {
+  display: none;
 }

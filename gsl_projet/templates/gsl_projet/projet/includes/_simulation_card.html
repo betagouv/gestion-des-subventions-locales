@@ -1,0 +1,47 @@
+{% load gsl_filters simulation_filters %}
+<div id="simulation-card-{{ simu.pk }}" class="fr-col-12 fr-col-md-6">
+    <div class="fr-callout fr-callout--blue-ecume simulation-projet-card fr-pb-2w fr-pt-3w fr-px-3w fr-mb-4w">
+        <h3 class="fr-callout__title fr-h5 fr-mb-1w">
+            <a href="{% url "simulation:simulation-detail" slug=simu.simulation.slug %}"
+               class="fr-link">
+                {{ simu.simulation.title }}
+            </a>
+        </h3>
+
+        <div class="fr-mb-2w">
+            <span class="fr-badge fr-badge--icon-left fr-icon-money-euro-box-fill">{{ simu.dotation }}</span>
+        </div>
+
+        <div class="fr-mb-2w">
+            {% if projet.notified_at is None %}
+                {% include "includes/_status_dropdown_buttons.html" %}
+            {% else %}
+                <span class="fr-badge badge-projet-status__{{ simu.status }}">
+                    {{ simu.get_status_display|remove_first_word }}
+                </span>
+                <span class="fr-badge fr-badge--success fr-badge--no-icon fr-ml-1w">Notifié</span>
+            {% endif %}
+        </div>
+
+        {% if projet.notified_at is None %}
+            <form id="{{ form_id }}"
+                  action="{% url "simulation:simulation-projet-card-update" pk=simu.pk %}"
+                  method="post"
+                  hx-post="{% url "simulation:simulation-projet-card-update" pk=simu.pk %}"
+                  hx-target="#simulation-card-{{ simu.pk }}"
+                  hx-swap="outerHTML"
+                  data-controller="bind-amount-fields"
+                  data-bind-amount-fields-cout-total-value="{{ dossier.finance_cout_total }}"
+                  data-action="submit->bind-amount-fields#onSubmit">
+                {% csrf_token %}
+                {{ simulation_projet_form }}
+
+                <button class="fr-btn fr-btn--sm" type="submit" form="{{ form_id }}">
+                    Enregistrer
+                </button>
+            </form>
+        {% else %}
+            {% include "includes/projet_detail/dotation_montant_info.html" with assiette=dotation_projet.assiette montant=simu.montant taux=simu.taux %}
+        {% endif %}
+    </div>
+</div>

@@ -1,6 +1,9 @@
 {% extends "htmx/_base_htmx_modal.html" %}
 {% load simulation_filters %}
 
+{% block dialog_close_behavior %}
+{% endblock dialog_close_behavior %}
+
 {% block button_label %}
     {{ new_simulation_status|status_to_label }}
 {% endblock button_label %}

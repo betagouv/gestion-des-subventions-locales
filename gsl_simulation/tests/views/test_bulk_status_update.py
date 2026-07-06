@@ -79,7 +79,7 @@ def test_bulk_status_update_marks_all_selected_rows(
     )
 
     assert response.status_code == 200
-    assert response.headers.get("HX-Refresh") == "true"
+    assert "HX-Redirect" in response.headers
     for sp in (sp1, sp2, sp3):
         sp.refresh_from_db()
         assert sp.status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
@@ -135,7 +135,7 @@ def test_bulk_status_update_to_refused_or_dismissed_commits_directly(
     )
 
     assert response.status_code == 200
-    assert response.headers.get("HX-Refresh") == "true"
+    assert "HX-Redirect" in response.headers
     sp.refresh_from_db()
     assert sp.status == target_status
 
@@ -173,7 +173,7 @@ def test_bulk_status_update_switches_between_refused_and_dismissed(
     )
 
     assert response.status_code == 200
-    assert response.headers.get("HX-Refresh") == "true"
+    assert "HX-Redirect" in response.headers
     sp.refresh_from_db()
     assert sp.status == target_status
 
@@ -384,7 +384,7 @@ def test_preflight_without_ds_id_but_no_dn_target_commits_directly(
     )
 
     assert response.status_code == 200
-    assert response.headers.get("HX-Refresh") == "true"
+    assert "HX-Redirect" in response.headers
     sp.refresh_from_db()
     assert sp.status == SimulationProjet.STATUS_PROVISIONALLY_REFUSED
 
