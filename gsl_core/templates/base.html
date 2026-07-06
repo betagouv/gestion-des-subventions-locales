@@ -80,7 +80,7 @@
     </head>
     <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
         {% block skiplinks %}
-            {% dsfr_skiplinks skiplinks %}
+            {% dsfr_skiplinks skiplinks|add:extra_skiplinks %}
         {% endblock skiplinks %}
 
         {% block header %}
@@ -98,7 +98,7 @@
         {% endblock messages %}
 
         <div class="fr-container fr-mt-4w fr-mb-6w">
-            <main id="content" role="main">
+            <main id="content" role="main" tabindex="-1">
                 {% block content %}
                 {% endblock content %}
             </main>

@@ -2,7 +2,9 @@
 
 <link rel="stylesheet" href="{% static 'css/projet_list_filters.css' %}">
 
-<form method="get"
+<form id="filters"
+      tabindex="-1"
+      method="get"
       action="{{ request.path }}{% querystring %}"
       class="fr-background-alt--blue-france">
     {% comment %}
