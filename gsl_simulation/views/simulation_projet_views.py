@@ -586,8 +586,11 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
             f"{target_status}:{len(valid_projets)}",
         )
 
-        return HttpResponseClientRedirect(
-            request.headers.get("HX-Current-URL", request.path)
+        return trigger_client_event(
+            HttpResponseClientRedirect(
+                request.headers.get("HX-Current-URL", request.path)
+            ),
+            "bulk-status-updated",
         )
 
     @staticmethod

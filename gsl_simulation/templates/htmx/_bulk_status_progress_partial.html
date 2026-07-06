@@ -1,6 +1,9 @@
 {% load custom_pluralize simulation_filters %}
-<div id="bulk-status-progress-body"
-     {% if job.is_running %}hx-get="{% url 'simulation:bulk-status-job-progress' pk=job.pk %}" hx-trigger="every 500ms" hx-swap="outerHTML" hx-target="this"{% endif %}>
+<div id="bulk-status-progress-body" data-action="bulk-status-updated->checkbox-selection#clearSelection"
+    {% if job.is_running %}
+        hx-get="{% url 'simulation:bulk-status-job-progress' pk=job.pk %}" hx-trigger="every 500ms" hx-swap="outerHTML" hx-target="this"
+    {% endif %}
+    >
     <div class="fr-modal__header">
         {% if not job.is_running %}
             <button aria-controls="{{ modal_id }}"

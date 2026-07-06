@@ -270,6 +270,7 @@ class GenerateDocumentsStatusView(DetailView):
                     "refreshed_programmation_projets": refreshed_ordered,
                 }
             )
-            return render(request, self.SUCCESS_TEMPLATE, context)
+            response = render(request, self.SUCCESS_TEMPLATE, context)
+            return trigger_client_event(response, "documents-generated")
 
         return render(request, self.ERROR_TEMPLATE, context)

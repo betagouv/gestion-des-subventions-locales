@@ -87,7 +87,7 @@ class BulkStatusJobStartView(CreateView):
             f"{job.target_status}:{job.total}",
         )
 
-        return render(
+        response = render(
             self.request,
             "htmx/_bulk_status_progress_partial.html",
             {
@@ -96,6 +96,9 @@ class BulkStatusJobStartView(CreateView):
                 "simulation_projets_to_refresh": [],
             },
         )
+        if not job.is_running:
+            response = trigger_client_event(response, "bulk-status-updated")
+        return response
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -130,6 +133,12 @@ class BulkStatusJobProgressView(DetailView):
         context["columns"] = SIMULATION_TABLE_COLUMNS
         context["dotations"] = DOTATIONS
         return context
+
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        if not self.object.is_running:
+            response = trigger_client_event(response, "bulk-status-updated")
+        return response
 
     def _get_simulation_projets_to_refresh(self):
         if self.object.status != BulkStatusJob.STATUS_DONE:
