@@ -17,87 +17,13 @@
   list-style: none;
 }
 
-.arrete-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  list-style: none;
-  padding: 0;
-}
-
-.arrete-card {
-  border: 1px solid var(--border-default-grey);
-  background: #fff;
-  padding: 1rem;
-  width: fit-content;
+.document-name-cell {
+  display: inline-block;
   max-width: 300px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.arrete-card__image {
-  border: 1px solid var(--border-default-grey);
-}
-
-.show-on-hover {
-  display: none;
-  position: absolute;
-  width: 50%;
-  left: 25%;
-  top: 30%;
-  background: #fff;
-}
-
-.arrete-card__image-container:hover .show-on-hover {
-  display: flex;
-}
-
-.arrete-card >div,
-.arrete-card .fr-enlarge-link{
-  max-width: 100%;
-}
-
-.arrete-card .fr-enlarge-link a {
-  display: block;
-}
-
-.arrete-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 1rem;
-}
-
-.arrete-card__actions {
-  width: 200px;
-  padding: 0;
-  gap: 0;
-  min-width: 0;
-}
-
-.arrete-card__actions-button {
-  box-shadow: none;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.arrete-card__action {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  box-shadow: none;
-  padding: 0;
-}
-
-.arrete-card__action:focus-visible {
-  outline-offset: -2px;
-}
-
-.arrete-card__actions li:not(:first-of-type) {
-  box-shadow: 0 0 0 1px var(--border-default-grey);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .next-step-buttons {
@@ -105,7 +31,7 @@
   justify-content: end;
   gap: 8px;
   align-items: center;
-  margin-top:1rem;
+  margin-top: 1rem;
 }
 
 #editor > div {
@@ -122,14 +48,14 @@
 
 .arrete-modele-list {
   display: grid;
-  gap: 24px
+  gap: 24px;
 }
 
 .no-documents-info {
   width: 100%;
   text-align: center;
   margin-top: 4rem;
-  margin-bottom: 4rem
+  margin-bottom: 4rem;
 }
 
 /* Modeles arrêtés */
@@ -153,8 +79,13 @@
 
 /* Spinner animation pour la modale de génération en masse */
 @keyframes generate-docs-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .generate-docs-spinner {

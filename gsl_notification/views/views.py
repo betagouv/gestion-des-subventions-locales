@@ -72,6 +72,8 @@ class NotificationDocumentsView(DetailView):
             **{
                 "dossier": self.object.dossier_ds,
                 "dotation_projets": self.object.dotationprojet_set.all(),
+                "generated_documents": self.object.generated_documents,
+                "imported_documents": self.object.imported_documents,
                 "title": title,
                 "is_instructor": self.request.user.ds_id
                 in self.object.dossier_ds.ds_instructeurs.values_list(

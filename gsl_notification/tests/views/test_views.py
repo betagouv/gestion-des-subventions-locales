@@ -619,12 +619,12 @@ def test_change_document_view_valid_without_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == f"L'arrêté “arrêté-attributif-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créé."
+            == f"L'arrêté “Arrêté {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créé."
         )
     else:
         assert (
             message.message
-            == f"La lettre de notification “lettre-notification-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créée."
+            == f"La lettre de notification “Lettre {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créée."
         )
 
 
@@ -678,12 +678,12 @@ def test_change_document_view_valid_with_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == f"L'arrêté “arrêté-attributif-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifié."
+            == f"L'arrêté “Arrêté {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifié."
         )
     else:
         assert (
             message.message
-            == f"La lettre de notification “lettre-notification-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifiée."
+            == f"La lettre de notification “Lettre {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifiée."
         )
 
 

@@ -1,6 +1,12 @@
 import pytest
 
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
+from gsl_notification.tests.factories import (
+    AnnexeFactory,
+    ArreteFactory,
+    LettreEtArreteSignesFactory,
+    LettreNotificationFactory,
+)
 from gsl_programmation.models import ProgrammationProjet as pp
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import (
@@ -611,3 +617,57 @@ def test_zonage_and_contracts_provided_by_instructor_excludes_other_fields():
     assert (
         "Projet concourant à la transition écologique au sens budget vert" not in result
     )
+
+
+def test_generated_documents_sorted_by_dotation_then_type():
+    projet = ProjetFactory()
+    detr_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    dsil_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+    )
+    detr_pp = ProgrammationProjetFactory(dotation_projet=detr_dp)
+    dsil_pp = ProgrammationProjetFactory(dotation_projet=dsil_dp)
+
+    # Created in a deliberately mixed order to prove the sort, not the creation order.
+    lettre_dsil = LettreNotificationFactory(programmation_projet=dsil_pp)
+    arrete_dsil = ArreteFactory(programmation_projet=dsil_pp)
+    lettre_detr = LettreNotificationFactory(programmation_projet=detr_pp)
+    arrete_detr = ArreteFactory(programmation_projet=detr_pp)
+
+    assert projet.generated_documents == [
+        arrete_detr,
+        lettre_detr,
+        arrete_dsil,
+        lettre_dsil,
+    ]
+
+
+def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
+    projet = ProjetFactory()
+    detr_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    dsil_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+    )
+    detr_pp = ProgrammationProjetFactory(dotation_projet=detr_dp)
+    dsil_pp = ProgrammationProjetFactory(dotation_projet=dsil_dp)
+
+    # Created in a deliberately mixed order to prove the sort, not the creation order.
+    annexe_dsil = AnnexeFactory(programmation_projet=dsil_pp)
+    lettre_et_arrete_signes_dsil = LettreEtArreteSignesFactory(
+        programmation_projet=dsil_pp
+    )
+    annexe_detr = AnnexeFactory(programmation_projet=detr_pp)
+    lettre_et_arrete_signes_detr = LettreEtArreteSignesFactory(
+        programmation_projet=detr_pp
+    )
+
+    assert projet.imported_documents == [
+        lettre_et_arrete_signes_detr,
+        annexe_detr,
+        lettre_et_arrete_signes_dsil,
+        annexe_dsil,
+    ]

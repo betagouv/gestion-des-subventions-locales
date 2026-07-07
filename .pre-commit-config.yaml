@@ -16,6 +16,9 @@ repos:
   hooks:
     - id: stylelint
       args: [--fix, --allow-empty-input]
+      additional_dependencies:
+        - stylelint@16.23.1
+        - stylelint-config-standard@39.0.0
 - repo: https://github.com/standard/standard
   rev: master
   hooks:

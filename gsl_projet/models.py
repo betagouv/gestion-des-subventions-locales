@@ -22,10 +22,13 @@ from django_fsm import FSMField, transition
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
+from gsl_notification.models import DOCUMENTS
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
+    DOTATIONS,
+    IMPORTED_DOCUMENT_TYPES_ORDER,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
@@ -481,34 +484,39 @@ class Projet(BaseModel):
         )
 
     @property
-    def documents(self):
-        from gsl_notification.models import (
-            Annexe,
-            Arrete,
-            LettreEtArreteSignes,
-            LettreNotification,
+    def generated_documents(self):
+        from gsl_notification.models import Arrete, LettreNotification
+
+        documents = [
+            *Arrete.objects.filter(programmation_projet__dotation_projet__projet=self),
+            *LettreNotification.objects.filter(
+                programmation_projet__dotation_projet__projet=self
+            ),
+        ]
+        return sorted(
+            documents,
+            key=lambda d: (
+                DOTATIONS.index(d.programmation_projet.dotation),
+                list(DOCUMENTS.keys()).index(d.document_type),
+            ),
         )
 
-        return sorted(
-            (
-                document
-                for document in (
-                    *Arrete.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                    *LettreNotification.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                    *LettreEtArreteSignes.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                    *Annexe.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                )
-                if document
+    @property
+    def imported_documents(self):
+        from gsl_notification.models import Annexe, LettreEtArreteSignes
+
+        documents = [
+            *LettreEtArreteSignes.objects.filter(
+                programmation_projet__dotation_projet__projet=self
             ),
-            key=lambda d: d.created_at,
+            *Annexe.objects.filter(programmation_projet__dotation_projet__projet=self),
+        ]
+        return sorted(
+            documents,
+            key=lambda d: (
+                DOTATIONS.index(d.programmation_projet.dotation),
+                IMPORTED_DOCUMENT_TYPES_ORDER.index(d.document_type),
+            ),
         )
 
     @property

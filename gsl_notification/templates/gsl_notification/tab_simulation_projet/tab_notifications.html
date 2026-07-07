@@ -10,34 +10,127 @@
 {% endblock extra_css %}
 
 {% block tab_projet %}
-    <h2 class="fr-mb-8w fr-mr-10w">
-        Génération des documents et envoi de la notification au demandeur
-    </h2>
-
     {% block notification_content %}
-        <div class="fond-gris fr-p-4w">
-            <h3>
-                <i class="fr-icon-folder-2-fill blue-color" aria-hidden="true"></i>
-                Documents de notification
+        <h3>
+            1 - Générer
+        </h3>
+        <a href="{% url 'gsl_notification:choose-generated-document-type' projet.id %}"
+           class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
+            Générer un document
+        </a>
+        <div data-controller="qr-code-toggle">
+        </div>
+        <div class="fr-checkbox-group fr-mt-3w">
+            <input type="checkbox"
+                   id="with-qr-code"
+                   checked
+                   data-qr-code-toggle-target="checkbox"
+                   data-action="change->qr-code-toggle#toggle"
+                   aria-describedby="with-qr-code-hint">
+            <label class="fr-label" for="with-qr-code">
+                Inclure le QR code de suivi sur les documents
+                <span class="fr-hint-text" id="with-qr-code-hint">
+                    Le QR code permet de rattacher automatiquement un document
+                    signé scanné au bon projet. Il est retiré lors de l’import.
+                </span>
+            </label>
+        </div>
+
+        <div data-controller="delete-notification-document-modal"
+             data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
+             data-delete-notification-document-modal-form-id-value="delete-document-form">
+            {% if generated_documents %}
+                <div class="fr-table fr-mt-3w">
+                    <div class="fr-table__wrapper">
+                        <div class="fr-table__container">
+                            <div class="fr-table__content">
+                                <table>
+                                    <caption class="fr-sr-only">Documents générés</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" class="fr-cell--center">
+                                                Date de génération
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                Dotation
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                Nom du document
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                Actions
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                <span class="fr-sr-only">Supprimer</span>
+                                                <i class="fr-icon-delete-fill fr-mr-1w" aria-hidden="true"></i>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for document in generated_documents %}
+                                            <tr>
+                                                <td>
+                                                    {{ document.created_at|date:"d/m/Y H\hi" }}
+                                                </td>
+                                                <td>
+                                                    {{ document.programmation_projet.dotation }}
+                                                </td>
+                                                <td>
+                                                    <span class="document-name-cell" title="{{ document.name }}">{{ document.name }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="fr-btns-group fr-btns-group--inline-sm fr-btns-group--centers fr-btns-group--icon-left fr-btns-group--sm">
+                                                        <a href="{{ document.get_view_url }}"
+                                                           class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-eye-line"
+                                                           data-qr-code-toggle-target="link">
+                                                            Visualiser
+                                                        </a>
+                                                        <a href="{{ document.get_download_url }}"
+                                                           class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line"
+                                                           data-qr-code-toggle-target="link">
+                                                            Télécharger
+                                                        </a>
+                                                        <a href="{% url "notification:modifier-document" document.programmation_projet.projet.id document.programmation_projet.dotation document.document_type %}"
+                                                           class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-edit-line">
+                                                            Modifier
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="fr-btns-group fr-btns-group--sm fr-btns-group--centers">
+                                                        <button type="button"
+                                                                class="fr-btn fr-btn--secondary fr-btn--icon-only fr-icon-delete-line"
+                                                                aria-controls="delete-document-confirmation-modal"
+                                                                aria-expanded="false"
+                                                                data-fr-opened="false"
+                                                                data-name="{{ document.name }}"
+                                                                data-type="{{ document.document_type }}"
+                                                                data-form-action="{% url "notification:delete-document" document.document_type document.id %}"
+                                                                data-delete-title="{{ document.delete_title }}"
+                                                                data-delete-question="{{ document.delete_question }}"
+                                                                data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction"
+                                                                aria-label="Supprimer {{ document.name }}">
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="no-documents-info">
+                    Il n’y a pas de document généré pour le moment.
+                </div>
+            {% endif %}
+
+            <h3 class="fr-mt-6w">
+                2 - Importer
             </h3>
             <div class="notification-btns">
-                {% if programmation_projet.arrete and programmation_projet.lettre_notification %}
-                    <button class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line"
-                            disabled
-                            aria-describedby="tooltip-import-arrete">
-                        Générer un document
-                    </button>
-                    <span class="fr-tooltip fr-placement"
-                          id="tooltip-import-arrete"
-                          role="tooltip">
-                        Un arrêté et une lettre de notification ont déjà été générés pour ce projet.
-                    </span>
-                {% else %}
-                    <a href="{% url 'gsl_notification:choose-generated-document-type' projet.id %}"
-                       class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
-                        Générer un document
-                    </a>
-                {% endif %}
                 <a href="{% url 'gsl_notification:choose-uploaded-document-type' projet.id %}"
                    class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
                     Importer un document
@@ -48,42 +141,101 @@
                     Imprimer tous les documents
                 </button>
             </div>
-            {% if projet.documents %}
-                <div data-controller="qr-code-toggle">
-                    <ul class="arrete-list"
-                        data-controller="delete-notification-document-modal"
-                        data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
-                        data-delete-notification-document-modal-form-id-value="delete-document-form"
-                        data-delete-notification-document-modal-warning-value="Cette action est irréversible.">
-                        {% for document in projet.documents %}
-                            {% include "includes/_document_card.html" %}
-                        {% endfor %}
-                    </ul>
-                    <div class="fr-checkbox-group fr-mt-3w">
-                        <input type="checkbox"
-                               id="with-qr-code"
-                               checked
-                               data-qr-code-toggle-target="checkbox"
-                               data-action="change->qr-code-toggle#toggle"
-                               aria-describedby="with-qr-code-hint">
-                        <label class="fr-label" for="with-qr-code">
-                            Inclure le QR code de suivi sur les documents
-                            <span class="fr-hint-text" id="with-qr-code-hint">
-                                Le QR code permet de rattacher automatiquement un document
-                                signé scanné au bon projet. Il est retiré lors de l’import.
-                            </span>
-                        </label>
+            {% if imported_documents %}
+                <div class="fr-table fr-mt-3w">
+                    <div class="fr-table__wrapper">
+                        <div class="fr-table__container">
+                            <div class="fr-table__content">
+                                <table>
+                                    <caption class="fr-sr-only">Documents importés</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" class="fr-cell--center">
+                                                Date d'import
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                Dotation
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                Nom du document
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                Actions
+                                            </th>
+                                            <th scope="col" class="fr-cell--center">
+                                                <span class="fr-sr-only">Supprimer</span>
+                                                <i class="fr-icon-delete-fill fr-mr-1w" aria-hidden="true"></i>
+
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for document in imported_documents %}
+                                            <tr>
+                                                <td>
+                                                    {{ document.created_at|date:"d/m/Y H\hi" }}
+                                                </td>
+                                                <td>
+                                                    {{ document.programmation_projet.dotation }}
+                                                </td>
+                                                <td>
+                                                    <span class="document-name-cell" title="{{ document.name }}">{{ document.name }}</span>
+                                                </td>
+                                                <td>
+                                                    {% if document.is_downloadable %}
+                                                        <div class="fr-btns-group fr-btns-group--inline-sm fr-btns-group--centers fr-btns-group--icon-left fr-btns-group--sm">
+                                                            <a href="{{ document.get_view_url }}"
+                                                               class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-eye-line fr-btn--icon-left">
+                                                                Visualiser
+                                                            </a>
+                                                            <a href="{{ document.get_download_url }}"
+                                                               class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left">
+                                                                Télécharger
+                                                            </a>
+                                                        </div>
+                                                    {% elif document.is_infected %}
+                                                        <span class="fr-error-text fr-text--sm">
+                                                            Fichier infecté détecté par l'antivirus
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="fr-info-text fr-text--sm">
+                                                            Analyse antivirus en cours…
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="fr-btns-group fr-btns-group--sm fr-btns-group--centers">
+                                                        <button type="button"
+                                                                class="fr-btn fr-btn--secondary fr-btn--icon-only fr-icon-delete-line"
+                                                                aria-controls="delete-document-confirmation-modal"
+                                                                aria-expanded="false"
+                                                                data-fr-opened="false"
+                                                                data-name="{{ document.name }}"
+                                                                data-type="{{ document.document_type }}"
+                                                                data-form-action="{% url "notification:delete-document" document.document_type document.id %}"
+                                                                data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction"
+                                                                aria-label="Supprimer {{ document.name }}">
+                                                        </button>
+                                                    </div>
+
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             {% else %}
                 <div class="no-documents-info">
-                    Il n’y a pas de document pour le moment.
+                    Il n’y a pas de document importé pour le moment.
                 </div>
             {% endif %}
         </div>
 
         <h3 class="fr-mt-6w">
-            <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i> Message de notification
+            3 - Notifier
         </h3>
         {% if projet.notified_at %}
             <p class="fr-text-default--success">
@@ -123,6 +275,18 @@
             </a>
         {% endif %}
 
+        <h3 class="fr-mt-6w">
+            4 - Notifié
+        </h3>
+        {% if projet.notified_at %}
+            <p>
+                Notifié le {{ projet.notified_at|date }} par TODO.
+            </p>
+        {% else %}
+            <p class="fr-mt-3w fr-mb-1w">
+                Aucune notification.
+            </p>
+        {% endif %}
     {% endblock notification_content %}
 {% endblock tab_projet %}
 
