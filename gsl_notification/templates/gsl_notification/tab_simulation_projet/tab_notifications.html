@@ -14,27 +14,40 @@
         <h3>
             1 - Générer
         </h3>
-        <a href="{% url 'gsl_notification:choose-generated-document-type' projet.id %}"
-           class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
-            Générer un document
-        </a>
-        <div data-controller="qr-code-toggle">
-        </div>
-        <div class="fr-checkbox-group fr-mt-3w">
-            <input type="checkbox"
-                   id="with-qr-code"
-                   checked
-                   data-qr-code-toggle-target="checkbox"
-                   data-action="change->qr-code-toggle#toggle"
-                   aria-describedby="with-qr-code-hint">
-            <label class="fr-label" for="with-qr-code">
-                Inclure le QR code de suivi sur les documents
-                <span class="fr-hint-text" id="with-qr-code-hint">
-                    Le QR code permet de rattacher automatiquement un document
-                    signé scanné au bon projet. Il est retiré lors de l’import.
-                </span>
-            </label>
-        </div>
+        <form method="post"
+              data-controller="form-utils"
+              data-action="submit->form-utils#disableButtons">
+            {% csrf_token %}
+            <div class="fr-grid-row fr-grid-row--gutters">
+                {% for dotation, fields in generate_documents_form.dotation_fields.items %}
+                    <div class="fr-col-12 fr-col-md-6">
+                        <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
+                            <h4 class="fr-callout__title">
+                                {{ dotation }}
+                            </h4>
+                            {% ui_status_badge type="accepted" dotation=dotation %}
+
+                            <div class="fr-callout__text fr-mt-2w"
+                                 data-controller="skip-document-toggle">
+                                {{ fields.modele_arrete.as_field_group }}
+                                {{ fields.skip_arrete.as_field_group }}
+                            </div>
+                            <div class="fr-callout__text" data-controller="skip-document-toggle">
+                                {{ fields.modele_lettre.as_field_group }}
+                                {{ fields.skip_lettre.as_field_group }}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {{ generate_documents_form.hide_qr_code.as_field_group }}
+
+            <button type="submit"
+                    class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left">
+                Générer les documents
+            </button>
+        </form>
 
         <div data-controller="delete-notification-document-modal"
              data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
@@ -88,7 +101,7 @@
                                                         <a href="{{ document.get_download_url }}"
                                                            class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line"
                                                            data-qr-code-toggle-target="link">
-                                                            Télécharger
+                                                            Télécharger ({{ document.size|filesizeformat }})
                                                         </a>
                                                         <a href="{% url "notification:modifier-document" document.programmation_projet.projet.id document.programmation_projet.dotation document.document_type %}"
                                                            class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-edit-line">
@@ -190,7 +203,7 @@
                                                             </a>
                                                             <a href="{{ document.get_download_url }}"
                                                                class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left">
-                                                                Télécharger
+                                                                Télécharger ({{ document.size|filesizeformat }})
                                                             </a>
                                                         </div>
                                                     {% elif document.is_infected %}

@@ -25,6 +25,7 @@ from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
     ChooseDocumentTypeForGenerationForm,
+    GenerateAcceptedDotationsDocumentsForm,
     NotificationMessageForm,
     RefusedDismissedNotificationForm,
 )
@@ -38,6 +39,7 @@ from gsl_notification.utils import (
     get_modele_class,
     get_modele_perimetres,
     get_uploaded_document_class,
+    log_generated_document_action,
     replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
@@ -79,8 +81,25 @@ class NotificationDocumentsView(DetailView):
                 in self.object.dossier_ds.ds_instructeurs.values_list(
                     "ds_id", flat=True
                 ),
+                "generate_documents_form": kwargs.get("generate_documents_form")
+                or GenerateAcceptedDotationsDocumentsForm(
+                    projet=self.object, user=self.request.user
+                ),
                 **get_projet_go_back_context(self.request),
             }
+        )
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = GenerateAcceptedDotationsDocumentsForm(
+            request.POST, projet=self.object, user=request.user
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Les documents ont bien été générés.")
+            return redirect("gsl_notification:documents", projet_id=self.object.id)
+        return self.render_to_response(
+            self.get_context_data(generate_documents_form=form)
         )
 
 
@@ -362,7 +381,7 @@ def change_document_view(request, projet_id, dotation, document_type):
                     action,
                     programmation_projet.dotation_projet.dotation,
                 )
-            _log_generated_document_action(
+            log_generated_document_action(
                 request.user, programmation_projet, document_type, is_creating
             )
             return redirect(
@@ -523,27 +542,6 @@ class PrintDocumentView(DetailView):
 
 class DownloadDocumentView(PrintDocumentView):
     pdf_attachment = True
-
-
-def _log_generated_document_action(
-    user, programmation_projet, document_type, is_creating
-):
-    from gsl_historique.models import ProjetAction
-
-    action_type = (
-        ProjetAction.TYPE_DOC_GENERATED
-        if is_creating
-        else ProjetAction.TYPE_DOC_MODIFIED
-    )
-    doc_label = "arrêté" if document_type == ARRETE else "lettre de notification"
-    ProjetAction.objects.create(
-        projet=programmation_projet.dotation_projet.projet,
-        action_type=action_type,
-        actor=user,
-        source=ProjetAction.SOURCE_TURGOT,
-        dotation=programmation_projet.dotation_projet.dotation,
-        document_name=doc_label,
-    )
 
 
 def _enrich_context_for_create_or_get_arrete_view(

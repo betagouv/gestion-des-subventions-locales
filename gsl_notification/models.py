@@ -177,11 +177,13 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         super().__init_subclass__(**kwargs)
         DOCUMENTS[cls.document_type] = cls
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, with_qr_code=True, **kwargs):
         from gsl_notification.utils import generate_pdf_for_generated_document
 
         if getattr(settings, "GENERATE_DOCUMENT_SIZE", True):
-            pdf_bytes = generate_pdf_for_generated_document(self)
+            pdf_bytes = generate_pdf_for_generated_document(
+                self, with_qr_code=with_qr_code
+            )
             self.size = len(pdf_bytes)
         super().save(*args, **kwargs)
 

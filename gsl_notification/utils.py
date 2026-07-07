@@ -613,6 +613,27 @@ def _build_qr_css_rules(document: Arrete | LettreNotification, page_count: int) 
     return "\n".join(rules)
 
 
+def log_generated_document_action(
+    user, programmation_projet, document_type, is_creating
+):
+    from gsl_historique.models import ProjetAction
+
+    action_type = (
+        ProjetAction.TYPE_DOC_GENERATED
+        if is_creating
+        else ProjetAction.TYPE_DOC_MODIFIED
+    )
+    doc_label = "arrêté" if document_type == ARRETE else "lettre de notification"
+    ProjetAction.objects.create(
+        projet=programmation_projet.dotation_projet.projet,
+        action_type=action_type,
+        actor=user,
+        source=ProjetAction.SOURCE_TURGOT,
+        dotation=programmation_projet.dotation_projet.dotation,
+        document_name=doc_label,
+    )
+
+
 def merge_documents_into_pdf(
     documents: list[LettreEtArreteSignes | Annexe],
     filename: str = "documents.pdf",

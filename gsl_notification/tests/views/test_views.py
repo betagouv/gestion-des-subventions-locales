@@ -24,7 +24,13 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
+from gsl_projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    PROJET_STATUS_ACCEPTED,
+)
 
 ## FIXTURES
 
@@ -56,6 +62,15 @@ def correct_perimetre_client_with_user_logged(perimetre):
 def different_perimetre_client_with_user_logged():
     user = CollegueFactory()
     return ClientWithLoggedUserFactory(user)
+
+
+@pytest.fixture
+def accepted_detr_programmation_projet(perimetre):
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        dotation_projet__dotation=DOTATION_DETR,
+        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+    )
 
 
 ## TESTS
@@ -130,6 +145,57 @@ def test_get_documents_with_external_back_url_falls_back_to_projet_list(
     assert response.status_code == 200
     expected_back = reverse("projet:list")
     assert response.context["go_back_link"] == expected_back
+
+
+### documents (POST - generate accepted dotations documents) -----------------
+
+
+def test_post_documents_creates_generated_documents_and_redirects(
+    accepted_detr_programmation_projet,
+    perimetre,
+    correct_perimetre_client_with_user_logged,
+):
+    pp = accepted_detr_programmation_projet
+    projet = pp.dotation_projet.projet
+    modele_arrete = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    modele_lettre = ModeleLettreNotificationFactory(
+        dotation=DOTATION_DETR, perimetre=perimetre
+    )
+    url = reverse("notification:documents", kwargs={"projet_id": projet.id})
+
+    response = correct_perimetre_client_with_user_logged.post(
+        url,
+        {
+            f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
+            f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+        },
+    )
+
+    assert response.status_code == 302
+    assert response["Location"] == url
+    assert Arrete.objects.filter(programmation_projet=pp).exists()
+    assert LettreNotification.objects.filter(programmation_projet=pp).exists()
+
+
+def test_post_documents_invalid_rerenders_page_with_errors(
+    accepted_detr_programmation_projet, correct_perimetre_client_with_user_logged
+):
+    pp = accepted_detr_programmation_projet
+    projet = pp.dotation_projet.projet
+    url = reverse("notification:documents", kwargs={"projet_id": projet.id})
+
+    response = correct_perimetre_client_with_user_logged.post(url, {})
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/tab_simulation_projet/tab_notifications.html"
+    )
+    assert (
+        f"modele_arrete_{DOTATION_DETR}"
+        in response.context["generate_documents_form"].errors
+    )
+    assert not Arrete.objects.filter(programmation_projet=pp).exists()
 
 
 #### select-modele -----------------------------------

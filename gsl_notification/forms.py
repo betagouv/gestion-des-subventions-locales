@@ -29,6 +29,7 @@ from gsl_notification.utils import (
     get_generated_document_class,
     get_modele_class,
     get_modele_perimetres,
+    log_generated_document_action,
     merge_documents_into_pdf,
     replace_mentions_in_html,
 )
@@ -208,6 +209,160 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
             "type": doc_type,
             "dotation": dotation,
         }
+
+
+class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
+    """
+    Inline "1 - Générer" card on the notifications tab: one box per accepted
+    dotation, each with a modele selector + skip checkbox for the arrêté and
+    for the lettre. Submitting (re)generates every non-skipped document,
+    deleting and recreating it if it already exists.
+    """
+
+    hide_qr_code = forms.BooleanField(
+        required=False,
+        label="Masquer le QR code de suivi",
+        help_text=(
+            "Le QR code permet de rattacher automatiquement un document signé "
+            "scanné au bon projet. Il est retiré lors de l’import."
+        ),
+    )
+
+    def __init__(self, *args, projet, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.accepted_dotation_projets = list(
+            projet.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED).order_by(
+                "dotation"
+            )
+        )
+
+        for dp in self.accepted_dotation_projets:
+            perimetres = get_modele_perimetres(dp.dotation, user.perimetre)
+            pp = dp.programmation_projet
+            existing_arrete = getattr(pp, "arrete", None)
+            existing_lettre = getattr(pp, "lettre_notification", None)
+
+            self.fields[f"modele_arrete_{dp.dotation}"] = forms.ModelChoiceField(
+                queryset=get_modele_class(ARRETE).objects.filter(
+                    dotation=dp.dotation, perimetre__in=perimetres
+                ),
+                required=False,
+                empty_label="Sélectionner un modèle",
+                label="Modèle d'arrêté",
+                initial=existing_arrete.modele if existing_arrete else None,
+                widget=forms.Select(
+                    attrs={"data-skip-document-toggle-target": "select"}
+                ),
+            )
+            self.fields[f"skip_arrete_{dp.dotation}"] = forms.BooleanField(
+                required=False,
+                label="Ne pas générer l'arrêté",
+                widget=forms.CheckboxInput(
+                    attrs={
+                        "data-skip-document-toggle-target": "checkbox",
+                        "data-action": "change->skip-document-toggle#toggle",
+                    }
+                ),
+            )
+            self.fields[f"modele_lettre_{dp.dotation}"] = forms.ModelChoiceField(
+                queryset=get_modele_class(LETTRE).objects.filter(
+                    dotation=dp.dotation, perimetre__in=perimetres
+                ),
+                required=False,
+                empty_label="Sélectionner un modèle",
+                label="Modèle de lettre",
+                initial=existing_lettre.modele if existing_lettre else None,
+                widget=forms.Select(
+                    attrs={"data-skip-document-toggle-target": "select"}
+                ),
+            )
+            self.fields[f"skip_lettre_{dp.dotation}"] = forms.BooleanField(
+                required=False,
+                label="Ne pas générer la lettre",
+                widget=forms.CheckboxInput(
+                    attrs={
+                        "data-skip-document-toggle-target": "checkbox",
+                        "data-action": "change->skip-document-toggle#toggle",
+                    }
+                ),
+            )
+
+        self.dotation_fields = {
+            dp.dotation: {
+                "modele_arrete": self[f"modele_arrete_{dp.dotation}"],
+                "skip_arrete": self[f"skip_arrete_{dp.dotation}"],
+                "modele_lettre": self[f"modele_lettre_{dp.dotation}"],
+                "skip_lettre": self[f"skip_lettre_{dp.dotation}"],
+            }
+            for dp in self.accepted_dotation_projets
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for dp in self.accepted_dotation_projets:
+            if not cleaned_data.get(
+                f"skip_arrete_{dp.dotation}"
+            ) and not cleaned_data.get(f"modele_arrete_{dp.dotation}"):
+                self.add_error(
+                    f"modele_arrete_{dp.dotation}",
+                    "Sélectionnez un modèle ou cochez la case pour ne pas générer l'arrêté.",
+                )
+            if not cleaned_data.get(
+                f"skip_lettre_{dp.dotation}"
+            ) and not cleaned_data.get(f"modele_lettre_{dp.dotation}"):
+                self.add_error(
+                    f"modele_lettre_{dp.dotation}",
+                    "Sélectionnez un modèle ou cochez la case pour ne pas générer la lettre.",
+                )
+        return cleaned_data
+
+    @transaction.atomic
+    def save(self):
+        with_qr_code = not self.cleaned_data["hide_qr_code"]
+        documents = []
+        for dp in self.accepted_dotation_projets:
+            pp = dp.programmation_projet
+            if not self.cleaned_data[f"skip_arrete_{dp.dotation}"]:
+                documents.append(
+                    self._generate_document(
+                        pp,
+                        ARRETE,
+                        self.cleaned_data[f"modele_arrete_{dp.dotation}"],
+                        with_qr_code,
+                    )
+                )
+            if not self.cleaned_data[f"skip_lettre_{dp.dotation}"]:
+                documents.append(
+                    self._generate_document(
+                        pp,
+                        LETTRE,
+                        self.cleaned_data[f"modele_lettre_{dp.dotation}"],
+                        with_qr_code,
+                    )
+                )
+        return documents
+
+    def _generate_document(
+        self, programmation_projet, document_type, modele, with_qr_code
+    ):
+        document_class = get_generated_document_class(document_type)
+        pp_attribute = "arrete" if document_type == ARRETE else "lettre_notification"
+        is_creating = not hasattr(programmation_projet, pp_attribute)
+        if not is_creating:
+            getattr(programmation_projet, pp_attribute).delete()
+
+        document = document_class(
+            programmation_projet=programmation_projet,
+            modele=modele,
+            created_by=self.user,
+            content=replace_mentions_in_html(modele.content, programmation_projet),
+        )
+        document.save(with_qr_code=with_qr_code)
+        log_generated_document_action(
+            self.user, programmation_projet, document_type, is_creating
+        )
+        return document
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -741,7 +896,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             actor=self.user,
             source=ProjetAction.SOURCE_TURGOT,
             dotation=pp.dotation_projet.dotation,
-            document_name=document_class._meta.verbose_name,
+            document_name=document_class._meta.verbose_name.lower(),
             form_id=f"{type(self).__module__}.{type(self).__qualname__}",
         )
 
