@@ -2,6 +2,7 @@ import json
 
 from django.contrib import messages
 from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
+from django.http import QueryDict
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -152,7 +153,6 @@ def _redirect_to_referer_or_projet(request, projet):
 class ProjetUpdateView(BaseProjetDetailView, UpdateView):
     form_class = ProjetForm
     http_method_names = ["post"]
-    template_name = "gsl_projet/projet.html"
 
     def get_queryset(self):
         return Projet.objects.active().for_user(self.request.user)
@@ -161,12 +161,6 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if "form" in kwargs:
-            context["projet_form"] = kwargs["form"]
-        return context
 
     def form_valid(self, form):
         try:
@@ -189,7 +183,10 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
         )
         for error in form.non_field_errors():
             messages.error(self.request, error)
-        return self.render_to_response(self.get_context_data(form=form))
+        self.request.session[f"projet_errors_{self.object.pk}"] = (
+            self.request.POST.urlencode()
+        )
+        return _redirect_to_referer_or_projet(self.request, self.object)
 
 
 class DotationProjetUpdateView(UpdateView):
@@ -250,7 +247,7 @@ class DotationProjetAssietteUpdateView(UpdateView):
 
     def form_invalid(self, form):
         self.request.session[f"assiette_errors_{self.object.pk}"] = (
-            self.request.POST.dict()
+            self.request.POST.urlencode()
         )
         return _redirect_to_referer_or_projet(self.request, self.object.projet)
 
@@ -285,7 +282,7 @@ class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
 
 
 def _build_projet_page_context(projet, request):
-    projet_form = ProjetForm(instance=projet)
+    projet_form = _build_projet_form(projet, request)
     dotation_field = projet_form.fields.get("dotations")
     dotation_projets = list(projet.dotationprojet_set.order_by("dotation").all())
     context = {
@@ -313,10 +310,20 @@ def _build_projet_page_context(projet, request):
     return context
 
 
+def _build_projet_form(projet, request):
+    session_key = f"projet_errors_{projet.pk}"
+    if session_key in request.session:
+        form_data = QueryDict(request.session.pop(session_key))
+        form = ProjetForm(data=form_data, instance=projet, user=request.user)
+        form.is_valid()
+        return form
+    return ProjetForm(instance=projet)
+
+
 def _build_dotation_projet_item(dp, request):
     session_key = f"assiette_errors_{dp.pk}"
     if session_key in request.session:
-        form_data = request.session.pop(session_key)
+        form_data = QueryDict(request.session.pop(session_key))
         form = DotationProjetAssietteForm(data=form_data, instance=dp)
         form.is_valid()
     else:

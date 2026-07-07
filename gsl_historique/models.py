@@ -107,10 +107,10 @@ class ProjetAction(models.Model):
 
     @property
     def action_label(self):
-        doc = self.document_name
+        doc = self.document_name.lower() if self.document_name else ""
         labels = {
             self.TYPE_STATUS_CHANGE: self._status_change_label,
-            self.TYPE_DOC_GENERATED: f"Export {doc}",
+            self.TYPE_DOC_GENERATED: f"Génération : {doc}",
             self.TYPE_DOC_MODIFIED: f"Modification : {doc}",
             self.TYPE_DOC_DELETED: f"Suppression : {doc}",
             self.TYPE_DOC_UPLOADED: f"Import {doc}",

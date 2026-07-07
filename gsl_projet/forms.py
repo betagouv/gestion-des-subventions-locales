@@ -77,7 +77,12 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     autre_zonage_local = forms.CharField(
         label="Nom du zonage local",
         required=False,
-        widget=forms.TextInput(attrs={"form": "projet-form"}),
+        widget=forms.TextInput(
+            attrs={
+                "form": "projet-form",
+                "data-projet-form-target": "autreZonageLocalInput",
+            }
+        ),
     )
 
     is_contrat_local = forms.BooleanField(
@@ -95,7 +100,12 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     contrat_local = forms.CharField(
         label="Nom du contrat local",
         required=False,
-        widget=forms.TextInput(attrs={"form": "projet-form"}),
+        widget=forms.TextInput(
+            attrs={
+                "form": "projet-form",
+                "data-projet-form-target": "contratLocalInput",
+            }
+        ),
     )
 
     dotations = forms.MultipleChoiceField(
