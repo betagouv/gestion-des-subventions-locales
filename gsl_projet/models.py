@@ -216,11 +216,6 @@ class ProjetQuerySet(models.QuerySet):
             notified_at__isnull=True,
         )
 
-    def can_send_notification(self):
-        return self.to_notify().exclude(
-            dotationprojet__in=DotationProjet.objects.without_signed_document()
-        )
-
     def with_at_least_one_programmed_dotation(self):
         from gsl_programmation.models import ProgrammationProjet
 
@@ -435,13 +430,6 @@ class Projet(BaseModel):
                 and d.programmation_projet.notified_at is None
             )
             for d in dotations
-        )
-
-    @property
-    def can_send_notification(self) -> bool:
-        return (
-            self.to_notify
-            and not self.dotationprojet_set.without_signed_document().exists()
         )
 
     @property

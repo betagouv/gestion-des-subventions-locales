@@ -1,7 +1,6 @@
 import json
 import os
 from functools import cached_property
-from pathlib import Path
 
 from django import forms
 from django.conf import settings
@@ -40,6 +39,7 @@ from gsl_programmation.utils.programmation_projet_filters import (
 )
 from gsl_projet.constants import (
     ARRETE,
+    DOTATIONS,
     LETTRE,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -399,83 +399,36 @@ class ModeleDocumentStepThreeForm(forms.ModelForm, DsfrBaseForm):
         fields = ("content",)
 
 
-class AnnexeChoiceField(forms.ModelMultipleChoiceField):
-    def label_from_instance(self, obj: Annexe):
-        return f"Annexe - {obj.name}"
-
-
 class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
-    annexes = AnnexeChoiceField(
-        widget=forms.CheckboxSelectMultiple,
-        queryset=Annexe.objects.none(),
-        label="Pièces jointes",
+    message = forms.CharField(
+        label="Message de notification",
         required=False,
-    )
-    justification = forms.CharField(
-        label="Justification de l'acceptation du dossier (facultatif)",
-        required=False,
-        widget=forms.Textarea,
-    )
-    nom_du_fichier = forms.CharField(
-        label="Nom du fichier (facultatif)",
-        required=False,
-        widget=forms.TextInput,
-        help_text="Si non renseigné, le nom du premier document signé importé sera utilisé.",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+            }
+        ),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["annexes"].queryset = Annexe.objects.filter(
-            programmation_projet__dotation_projet__projet=self.instance
-        )
-        first_lettre = LettreEtArreteSignes.objects.filter(
-            programmation_projet__dotation_projet__projet=self.instance
-        ).first()
-        if first_lettre:
-            self[
-                "nom_du_fichier"
-            ].help_text = f"Si non renseigné, le nom du premier document signé importé sera utilisé : « {first_lettre.name} »."
-            # We don't use self.fields because DsfrBaseForm adds the necessary classes on relevant fields in __init__, so we need to update the help_text on the already initialized field.
+    class Meta:
+        model = Projet
+        fields = ()
 
-    def clean_nom_du_fichier(self):
-        value = self.cleaned_data["nom_du_fichier"].strip()
-        if not value:
-            return value
-        if Path(value).name != value:
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.instance.dotationprojet_set.without_signed_document().exists():
             raise forms.ValidationError(
-                'Le nom du fichier ne peut pas contenir de "/".'
+                "Impossible d'envoyer la notification : il manque des documents "
+                "signés obligatoires."
             )
-        stem, ext = os.path.splitext(value)
-        if ext.lower() == ".pdf":
-            return stem
-        if ext:
-            raise forms.ValidationError(
-                "Le nom du fichier ne peut pas avoir une extension autre que .pdf."
-            )
-        return value
+        return cleaned_data
 
     def save(self, user):
         from gsl_historique.models import ProjetAction
 
-        lettres = LettreEtArreteSignes.objects.filter(
-            programmation_projet__dotation_projet__projet=self.instance
-        )
-        nom = self.cleaned_data.get("nom_du_fichier")
-        if not nom:
-            nom = (
-                os.path.splitext(lettres.first().name)[0]
-                if lettres.exists()
-                else "documents"
-            )
-        filename = nom + ".pdf"
-
-        justificatif_file = merge_documents_into_pdf(
-            [
-                *lettres,
-                *self.cleaned_data["annexes"],
-            ],
-            filename=filename,
-        )
+        documents = self._documents_to_merge()
+        filename = self._notification_filename(documents)
+        justificatif_file = merge_documents_into_pdf(documents, filename=filename)
 
         # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
@@ -489,7 +442,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             DsMutator().dossier_accepter(
                 self.instance.dossier_ds,
                 user.ds_id,
-                motivation=self.cleaned_data.get("justification", ""),
+                motivation=self.cleaned_data.get("message", ""),
                 document=justificatif_file,
             )
             ProjetAction.objects.create(
@@ -502,9 +455,34 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
             return self.instance
 
-    class Meta:
-        model = Projet
-        fields = ()
+    def _documents_to_merge(self):
+        documents = []
+        for dotation in DOTATIONS:
+            lettre = LettreEtArreteSignes.objects.filter(
+                programmation_projet__dotation_projet__projet=self.instance,
+                programmation_projet__dotation_projet__dotation=dotation,
+            ).first()
+            if lettre:
+                documents.append(lettre)
+            documents += list(
+                Annexe.objects.filter(
+                    programmation_projet__dotation_projet__projet=self.instance,
+                    programmation_projet__dotation_projet__dotation=dotation,
+                )
+            )
+        return documents
+
+    def _notification_filename(self, documents):
+        accepted_dotations = set(
+            self.instance.dotationprojet_set.filter(
+                status=PROJET_STATUS_ACCEPTED
+            ).values_list("dotation", flat=True)
+        )
+        if len(accepted_dotations) <= 1:
+            return os.path.splitext(documents[0].name)[0] + ".pdf"
+        ordered = [d for d in DOTATIONS if d in accepted_dotations]
+        ds_number = self.instance.dossier_ds.ds_number
+        return f"Notification {ds_number} {'-'.join(ordered)}.pdf"
 
 
 class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):

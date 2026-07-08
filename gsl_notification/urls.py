@@ -29,7 +29,6 @@ from gsl_notification.views.views import (
     DeleteDocumentView,
     DownloadDocumentView,
     NotificationDocumentsView,
-    NotificationMessageView,
     PrintDocumentView,
     RefusedDismissedNotificationModalView,
     change_document_view,
@@ -41,11 +40,6 @@ urlpatterns = [
         "<int:projet_id>/documents/",
         NotificationDocumentsView.as_view(),
         name="documents",
-    ),
-    path(
-        "<int:projet_id>/message/",
-        NotificationMessageView.as_view(),
-        name="message",
     ),
     path(
         "<int:projet_id>/notifier/refus-ou-classement/",

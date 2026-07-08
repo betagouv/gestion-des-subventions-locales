@@ -84,12 +84,19 @@ class NotificationDocumentsView(DetailView):
                 or GenerateAcceptedDotationsDocumentsForm(
                     projet=self.object, user=self.request.user
                 ),
+                "notification_message_form": kwargs.get("notification_message_form")
+                or NotificationMessageForm(instance=self.object),
                 **get_projet_go_back_context(self.request),
             }
         )
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if "send_notification" in request.POST:
+            return self._post_notification_message(request)
+        return self._post_generate_documents(request)
+
+    def _post_generate_documents(self, request):
         form = GenerateAcceptedDotationsDocumentsForm(
             request.POST, projet=self.object, user=request.user
         )
@@ -101,57 +108,33 @@ class NotificationDocumentsView(DetailView):
             self.get_context_data(generate_documents_form=form)
         )
 
-
-class NotificationMessageView(UpdateView):
-    template_name = (
-        "gsl_notification/tab_simulation_projet/tab_notifications_message.html"
-    )
-
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-    form_class = NotificationMessageForm
-
-    def get_queryset(self):
-        return (
-            Projet.objects.active().for_user(self.request.user).can_send_notification()
-        )
-
-    def get_context_data(self, **kwargs):
-        title = self.object.dossier_ds.projet_intitule
-        return super().get_context_data(
-            **{
-                "dossier": self.object.dossier_ds,
-                "title": title,
-            }
-        )
-
-    def form_valid(self, form):
+    def _post_notification_message(self, request):
+        form = NotificationMessageForm(request.POST, instance=self.object)
+        if not form.is_valid():
+            return self.render_to_response(
+                self.get_context_data(notification_message_form=form)
+            )
         try:
-            form.save(user=self.request.user)
+            form.save(user=request.user)
         except DsServiceException as e:
             messages.error(
-                self.request,
+                request,
                 f"Une erreur est survenue lors de l'envoi de la notification. {str(e)}",
             )
-            return self.form_invalid(form)
+            return self.render_to_response(
+                self.get_context_data(notification_message_form=form)
+            )
 
         messages.success(
-            self.request,
-            "Le dossier a bien été accepté sur Démarche Numérique.",
+            request, "Le dossier a bien été accepté sur Démarche Numérique."
         )
         queue_matomo_event(
-            self.request,
+            request,
             MATOMO_CATEGORY_NOTIFICATION,
             MATOMO_ACTION_ENVOI_DN,
             "accepte",
         )
-        return redirect(self.get_success_url())
-
-    def get_success_url(self):
-        return reverse(
-            "projet:get-projet",
-            args=[self.object.id],
-        )
+        return redirect("gsl_notification:documents", projet_id=self.object.id)
 
 
 @method_decorator(htmx_only, name="dispatch")
