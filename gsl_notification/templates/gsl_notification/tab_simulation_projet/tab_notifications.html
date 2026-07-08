@@ -18,6 +18,9 @@
               data-controller="form-utils"
               data-action="submit->form-utils#disableButtons">
             {% csrf_token %}
+
+            {% ui_form_errors form=generate_documents_form %}
+
             <div class="fr-grid-row fr-grid-row--gutters">
                 {% for dotation, fields in generate_documents_form.dotation_fields.items %}
                     <div class="fr-col-12 fr-col-md-6">

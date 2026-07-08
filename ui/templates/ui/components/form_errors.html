@@ -1,0 +1,14 @@
+{% if self.form.non_field_errors %}
+    <div class="fr-alert fr-alert--error fr-mb-3w">
+        <p class="fr-alert__title">
+            {{ self.title }}
+        </p>
+        <ul>
+            {% for error in self.form.non_field_errors %}
+                <li>
+                    {{ error }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}

@@ -150,6 +150,22 @@ def ui_status_badge(*args, **kwargs) -> dict:
     }
 
 
+@register.inclusion_tag("ui/components/form_errors.html")
+def ui_form_errors(*args, **kwargs) -> dict:
+    """
+    ```python
+    data_dict = {
+        "form": "The form whose non-field errors will be displayed",
+        "title": "(Optional) Alert title, 'Erreur dans le formulaire' by default",
+    }
+    ```"""
+    allowed_keys = ["form", "title"]
+    tag_data = parse_tag_args(args, kwargs, allowed_keys)
+    tag_data.setdefault("title", "Erreur dans le formulaire")
+
+    return {"self": tag_data}
+
+
 @register.inclusion_tag("ui/components/tiptap_editor.html")
 def ui_tiptap_editor(*args, **kwargs) -> dict:
     """
