@@ -246,55 +246,7 @@
         <h3 class="fr-mt-6w">
             3 - Notifier
         </h3>
-        {% if projet.notified_at %}
-            <p class="fr-text-default--success">
-                Message de notification envoyé le {{ projet.notified_at|date }} sur Démarche Numérique.
-            </p>
-        {% elif not is_instructor %}
-            <button class="fr-btn fr-mt-6w fr-icon-edit-line fr-btn--icon-right"
-                    aria-controls="not-instructeur-modal"
-                    data-fr-opened="false">
-                Rédiger le message de notification
-            </button>
-        {% elif projet.dotation_not_treated %}
-            <p class="fr-mt-3w fr-mb-1w">
-                La dotation {{ projet.dotation_not_treated }} est en attente de traitement.
-            </p>
-        {% else %}
-            <div class="fr-grid-row">
-                <div class="fr-col-12 fr-col-md-9 fr-col-lg-6">
-                    <form method="post"
-                          data-controller="form-utils"
-                          data-action="submit->form-utils#disableButtons">
-                        {% csrf_token %}
-                        <input type="hidden" name="send_notification" value="1">
-
-                        {{ notification_message_form.message.as_field_group }}
-
-                        {% if projet.dotationprojet_set.without_signed_document %}
-                            <div role="alert" class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">
-                                <p>
-                                    Documents manquants pour notifier&nbsp;:
-                                </p>
-                                <ul>
-                                    {% for dotation_projet in projet.dotationprojet_set.without_signed_document %}
-                                        <li>
-                                            Lettre de notification et arrêté signés {{ dotation_projet.dotation }}
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        {% endif %}
-
-                        <button type="submit"
-                                class="fr-btn fr-mt-3w fr-icon-mail-line fr-btn--icon-right"
-                                {% if projet.dotationprojet_set.without_signed_document %}disabled{% endif %}>
-                            Notifier
-                        </button>
-                    </form>
-                </div>
-            </div>
-        {% endif %}
+        {% include "gsl_notification/includes/notification_message_form.html" %}
 
         <h3 class="fr-mt-6w">
             4 - Notifié

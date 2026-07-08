@@ -131,16 +131,16 @@ class TestForm:
 class TestView:
     def test_post_send_notification_success(self, client_with_user_logged, perimetre):
         projet = _accepted_projet(perimetre)
-        url = f"/notification/{projet.id}/documents/"
+        url = f"/notification/{projet.id}/notifier/"
         with (
             mock.patch("gsl_notification.forms.DsMutator.dossier_accepter"),
             mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
         ):
             response = client_with_user_logged.post(
-                url, {"message": "Bravo", "send_notification": "1"}
+                url, {"message": "Bravo"}, headers={"HX-Request": "true"}
             )
-        assert response.status_code == 302
-        assert response.url == url
+        assert response.status_code == 200
+        assert response.headers.get("HX-Refresh") == "true"
         projet.refresh_from_db()
         assert projet.notified_at is not None
         assert ProjetAction.objects.filter(
@@ -151,9 +151,9 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _accepted_projet(perimetre, with_signed_document=False)
-        url = f"/notification/{projet.id}/documents/"
+        url = f"/notification/{projet.id}/notifier/"
         response = client_with_user_logged.post(
-            url, {"message": "", "send_notification": "1"}
+            url, {"message": ""}, headers={"HX-Request": "true"}
         )
         assert response.status_code == 200
         projet.refresh_from_db()
@@ -161,3 +161,11 @@ class TestView:
         assert not ProjetAction.objects.filter(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         ).exists()
+
+    def test_post_without_htmx_header_is_rejected(
+        self, client_with_user_logged, perimetre
+    ):
+        projet = _accepted_projet(perimetre)
+        url = f"/notification/{projet.id}/notifier/"
+        response = client_with_user_logged.post(url, {"message": "Bravo"})
+        assert response.status_code == 400

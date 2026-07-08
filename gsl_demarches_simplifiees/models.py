@@ -730,6 +730,9 @@ class Dossier(BaseModel):
     def is_sans_pieces(self) -> bool:
         return "SANS" in self.demande_renouvellement
 
+    def is_instructeur(self, user) -> bool:
+        return self.ds_instructeurs.filter(ds_id=user.ds_id).exists()
+
     @property
     def dotations_demande(self) -> list[POSSIBLE_DOTATIONS]:
         dotations = []
