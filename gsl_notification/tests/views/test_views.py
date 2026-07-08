@@ -150,7 +150,7 @@ def test_get_documents_with_external_back_url_falls_back_to_projet_list(
 ### documents (POST - generate accepted dotations documents) -----------------
 
 
-def test_post_documents_creates_generated_documents_and_redirects(
+def test_post_documents_creates_generated_documents_and_refreshes(
     accepted_detr_programmation_projet,
     perimetre,
     correct_perimetre_client_with_user_logged,
@@ -161,7 +161,9 @@ def test_post_documents_creates_generated_documents_and_redirects(
     modele_lettre = ModeleLettreNotificationFactory(
         dotation=DOTATION_DETR, perimetre=perimetre
     )
-    url = reverse("notification:documents", kwargs={"projet_id": projet.id})
+    url = reverse(
+        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+    )
 
     response = correct_perimetre_client_with_user_logged.post(
         url,
@@ -169,27 +171,32 @@ def test_post_documents_creates_generated_documents_and_redirects(
             f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
             f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
         },
+        headers={"HX-Request": "true"},
     )
 
-    assert response.status_code == 302
-    assert response["Location"] == url
+    assert response.status_code == 200
+    assert response.headers.get("HX-Refresh") == "true"
     assert Arrete.objects.filter(programmation_projet=pp).exists()
     assert LettreNotification.objects.filter(programmation_projet=pp).exists()
 
 
-def test_post_documents_invalid_rerenders_page_with_errors(
+def test_post_documents_invalid_rerenders_block_with_errors(
     accepted_detr_programmation_projet, correct_perimetre_client_with_user_logged
 ):
     pp = accepted_detr_programmation_projet
     projet = pp.dotation_projet.projet
-    url = reverse("notification:documents", kwargs={"projet_id": projet.id})
+    url = reverse(
+        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+    )
 
-    response = correct_perimetre_client_with_user_logged.post(url, {})
+    response = correct_perimetre_client_with_user_logged.post(
+        url, {}, headers={"HX-Request": "true"}
+    )
 
     assert response.status_code == 200
     assert (
         response.templates[0].name
-        == "gsl_notification/tab_simulation_projet/tab_notifications.html"
+        == "gsl_notification/includes/generate_documents_form.html"
     )
     assert (
         f"modele_arrete_{DOTATION_DETR}"

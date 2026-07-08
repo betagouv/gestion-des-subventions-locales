@@ -28,6 +28,7 @@ from gsl_notification.views.uploaded_document_views import (
 from gsl_notification.views.views import (
     DeleteDocumentView,
     DownloadDocumentView,
+    GenerateDocumentsFormView,
     NotificationDocumentsView,
     NotificationMessageFormView,
     PrintDocumentView,
@@ -46,6 +47,11 @@ urlpatterns = [
         "<int:projet_id>/notifier/",
         NotificationMessageFormView.as_view(),
         name="notification_message_form",
+    ),
+    path(
+        "<int:projet_id>/generer-documents/",
+        GenerateDocumentsFormView.as_view(),
+        name="generate-documents-form",
     ),
     path(
         "<int:projet_id>/notifier/refus-ou-classement/",

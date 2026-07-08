@@ -7,7 +7,7 @@ from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
-from django.views.generic import DeleteView, DetailView, UpdateView
+from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.utils.csp import csp_update
@@ -89,21 +89,47 @@ class NotificationDocumentsView(DetailView):
             }
         )
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        return self._post_generate_documents(request)
 
-    def _post_generate_documents(self, request):
-        form = GenerateAcceptedDotationsDocumentsForm(
-            request.POST, projet=self.object, user=request.user
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsFormView(FormView):
+    """
+    HTMX endpoint backing the "1 - Générer" block of the notifications tab.
+    Always re-renders the whole #generate-documents-block, which is also
+    its own hx-target, so the response can swap itself in place.
+
+    Not an UpdateView: GenerateAcceptedDotationsDocumentsForm is a plain
+    Form (projet/user passed as custom kwargs), not a ModelForm, so
+    ModelFormMixin's get_form_kwargs (which injects `instance`) would break it.
+    """
+
+    form_class = GenerateAcceptedDotationsDocumentsForm
+    template_name = "gsl_notification/includes/generate_documents_form.html"
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.projet = get_object_or_404(
+            Projet.objects.active()
+            .for_user(request.user)
+            .with_at_least_one_accepted_dotation(),
+            pk=kwargs["projet_id"],
         )
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Les documents ont bien été générés.")
-            return redirect("gsl_notification:documents", projet_id=self.object.id)
-        return self.render_to_response(
-            self.get_context_data(generate_documents_form=form)
-        )
+
+    def get_form_kwargs(self):
+        return {
+            **super().get_form_kwargs(),
+            "projet": self.projet,
+            "user": self.request.user,
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["projet"] = self.projet
+        context["generate_documents_form"] = context["form"]
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        return HttpResponseClientRefresh()
 
 
 @method_decorator(htmx_only, name="dispatch")
