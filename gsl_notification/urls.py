@@ -26,7 +26,6 @@ from gsl_notification.views.uploaded_document_views import (
     view_uploaded_document,
 )
 from gsl_notification.views.views import (
-    ChooseDocumentTypeForGenerationView,
     DeleteDocumentView,
     DownloadDocumentView,
     NotificationDocumentsView,
@@ -54,11 +53,6 @@ urlpatterns = [
         name="notify-refused-dismissed",
     ),
     # Generated files
-    path(
-        "<int:projet_id>/choix-du-type/",
-        ChooseDocumentTypeForGenerationView.as_view(),
-        name="choose-generated-document-type",
-    ),
     path(
         "<int:projet_id>/selection-d-un-modele/<str:dotation>/<str:document_type>",
         select_modele,

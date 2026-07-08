@@ -134,33 +134,6 @@ class BaseChooseDocumentTypeForm(DsfrBaseForm, forms.Form):
     )
 
 
-class ChooseDocumentTypeForGenerationForm(BaseChooseDocumentTypeForm):
-    def __init__(self, *args, instance, **kwargs):
-        # Not a ModelForm, but we get instance from the view which is an UpdateView.
-        super().__init__(*args, **kwargs)
-        self.fields["document"].choices = [
-            (
-                (
-                    ""
-                    if model.objects.filter(
-                        programmation_projet__dotation_projet=dp
-                    ).exists()
-                    else f"{model.document_type}-{dp.dotation}"
-                ),
-                f"{model._meta.verbose_name} {dp.dotation}",
-            )
-            for model in (Arrete, LettreNotification)
-            for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED)
-        ]
-
-    def clean_document(self):
-        doc_type, dotation = self.cleaned_data["document"].split("-")
-        return {
-            "type": doc_type,
-            "dotation": dotation,
-        }
-
-
 class ChooseDocumentTypeForMultipleGenerationForm(BaseChooseDocumentTypeForm):
     pass
 

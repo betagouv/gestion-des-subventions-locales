@@ -24,7 +24,6 @@ from gsl_core.matomo_constants import (
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
-    ChooseDocumentTypeForGenerationForm,
     GenerateAcceptedDotationsDocumentsForm,
     NotificationMessageForm,
     RefusedDismissedNotificationForm,
@@ -221,40 +220,6 @@ class RefusedDismissedNotificationModalView(OpenHtmxModalMixin, UpdateView):
 
 
 # Edition form for arrêté --------------------------------------------------------------
-
-
-class ChooseDocumentTypeForGenerationView(UpdateView):
-    template_name = (
-        "gsl_notification/generated_document/choose_generated_document_type.html"
-    )
-    context_object_name = "projet"
-    pk_url_kwarg = "projet_id"
-    form_class = ChooseDocumentTypeForGenerationForm
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["dossier"] = self.object.dossier_ds
-        context["cancel_link"] = reverse("projet:get-projet", args=[self.object.id])
-        return context
-
-    def get_queryset(self):
-        return (
-            Projet.objects.active()
-            .for_user(self.request.user)
-            .with_at_least_one_accepted_dotation()
-        )
-
-    def form_valid(self, form):
-        return redirect(
-            reverse(
-                "gsl_notification:select-modele",
-                args=[
-                    self.object.id,
-                    form.cleaned_data["document"]["dotation"],
-                    form.cleaned_data["document"]["type"],
-                ],
-            )
-        )
 
 
 @require_http_methods(["GET"])

@@ -34,14 +34,6 @@ def test_notify_refused_dismissed_url():
 # Document URLs
 
 
-def test_choose_type_for_document_generation_url():
-    url = reverse(
-        "gsl_notification:choose-generated-document-type",
-        kwargs={"projet_id": 123},
-    )
-    assert url == "/notification/123/choix-du-type/"
-
-
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
 def test_select_modele_url(document_type):
     url = reverse(
