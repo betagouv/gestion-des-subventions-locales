@@ -21,11 +21,33 @@
 
                         <div class="fr-callout__text fr-mt-2w"
                              data-controller="skip-document-toggle">
-                            {{ fields.modele_arrete.as_field_group }}
+                            {% if fields.has_modele_arrete %}
+                                {{ fields.modele_arrete.as_field_group }}
+                            {% else %}
+                                <p class="fr-text-default--warning fr-mb-1w">
+                                    Aucun modèle d'arrêté disponible.
+                                </p>
+                                <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
+                                   class="fr-link fr-icon-add-line fr-link--icon-left fr-mb-2w">
+                                    Créer un modèle d'arrêté
+                                </a>
+                            {% endif %}
                             {{ fields.skip_arrete.as_field_group }}
                         </div>
                         <div class="fr-callout__text" data-controller="skip-document-toggle">
-                            {{ fields.modele_lettre.as_field_group }}
+                            {% if fields.has_modele_lettre %}
+                                {{ fields.modele_lettre.as_field_group }}
+                            {% else %}
+                                <div class="fr-mb-4w">
+                                    <p class="fr-text-default--warning fr-mb-1w">
+                                        Aucun modèle de lettre disponible.
+                                    </p>
+                                    <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
+                                       class="fr-link fr-icon-add-line fr-link--icon-left">
+                                        Créer un modèle de lettre
+                                    </a>
+                                </div>
+                            {% endif %}
                             {{ fields.skip_lettre.as_field_group }}
                         </div>
                     </div>

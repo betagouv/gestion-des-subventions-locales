@@ -267,6 +267,12 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
                 "skip_arrete": self[f"skip_arrete_{dp.dotation}"],
                 "modele_lettre": self[f"modele_lettre_{dp.dotation}"],
                 "skip_lettre": self[f"skip_lettre_{dp.dotation}"],
+                "has_modele_arrete": self.fields[
+                    f"modele_arrete_{dp.dotation}"
+                ].queryset.exists(),
+                "has_modele_lettre": self.fields[
+                    f"modele_lettre_{dp.dotation}"
+                ].queryset.exists(),
             }
             for dp in self.accepted_dotation_projets
         }
