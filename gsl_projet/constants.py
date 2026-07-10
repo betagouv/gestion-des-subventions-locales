@@ -21,7 +21,7 @@ PROJET_STATUS_CHOICES = (
 
 ARRETE = "arrete"
 LETTRE = "lettre"
-POSSIBLES_DOCUMENTS = Literal["arrete", "lettre"]
+LETTRE_REFUS = "refus"
 
 LETTRE_ET_ARRETE_SIGNES = "lettre_et_arrete_signes"
 ANNEXE = "annexe"

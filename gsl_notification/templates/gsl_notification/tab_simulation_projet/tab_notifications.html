@@ -53,7 +53,8 @@
                     <ul class="arrete-list"
                         data-controller="delete-notification-document-modal"
                         data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
-                        data-delete-notification-document-modal-form-id-value="delete-document-form">
+                        data-delete-notification-document-modal-form-id-value="delete-document-form"
+                        data-delete-notification-document-modal-warning-value="Cette action est irréversible.">
                         {% for document in projet.documents %}
                             {% include "includes/_document_card.html" %}
                         {% endfor %}

@@ -8,21 +8,11 @@
 {% block more_content_in_form %}
     <div class="fr-mb-3w">
         <h4>
-            Rédiger le contenu de ce modèle
-            {% if type == "arrete" %}
-                d'arrêté
-            {% else %}
-                de lettre de notification
-            {% endif %}
+            Rédiger le contenu de ce {{ modele_verbose_name }}
         </h4>
         <p>
-            Veuillez remplir le contenu de votre
-            {% if type == "arrete" %}
-                arrêté
-            {% else %}
-                lettre de notification
-            {% endif %}
-            . Pour ajouter des variables des valeurs de remplissage automatique pour le publipostage, merci d’utiliser le signe "@".
+            Veuillez remplir le contenu de votre modèle.
+            Pour ajouter des variables des valeurs de remplissage automatique pour le publipostage, merci d’utiliser le signe "@".
         </p>
         {% if type == "arrete" %}
             <button class="fr-btn fr-btn--tertiary fr-btn--icon-left fr-icon-file-text-line"

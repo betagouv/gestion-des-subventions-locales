@@ -11,6 +11,7 @@ from ..models import (
     LettreNotification,
     ModeleArrete,
     ModeleLettreNotification,
+    ModeleLettreRefus,
 )
 
 
@@ -34,6 +35,11 @@ class ModeleArreteFactory(factory.django.DjangoModelFactory):
 class ModeleLettreNotificationFactory(ModeleArreteFactory):
     class Meta:
         model = ModeleLettreNotification
+
+
+class ModeleLettreRefusFactory(ModeleArreteFactory):
+    class Meta:
+        model = ModeleLettreRefus
 
 
 class ArreteFactory(factory.django.DjangoModelFactory):

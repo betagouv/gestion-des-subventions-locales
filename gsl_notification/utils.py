@@ -27,12 +27,12 @@ from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_notification.models import (
+    DOCUMENTS,
+    MODELES,
     Annexe,
     Arrete,
     LettreEtArreteSignes,
     LettreNotification,
-    ModeleArrete,
-    ModeleLettreNotification,
 )
 from gsl_notification.qr import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
@@ -43,7 +43,6 @@ from gsl_projet.constants import (
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
     POSSIBLE_DOTATIONS,
-    POSSIBLES_DOCUMENTS,
     POSSIBLES_DOCUMENTS_TELEVERSABLES,
 )
 
@@ -350,19 +349,15 @@ def get_s3_object(file_name):
 
 
 def get_modele_class(modele_type):
-    if modele_type not in [ARRETE, LETTRE]:
+    if modele_type not in MODELES:
         raise ValueError("Type inconnu")
-    if modele_type == LETTRE:
-        return ModeleLettreNotification
-    return ModeleArrete
+    return MODELES[modele_type]
 
 
 def get_generated_document_class(document_type):
-    if document_type not in [ARRETE, LETTRE]:
+    if document_type not in DOCUMENTS:
         raise ValueError("Type inconnu")
-    if document_type == LETTRE:
-        return LettreNotification
-    return Arrete
+    return DOCUMENTS[document_type]
 
 
 def get_form_class(document_type):
@@ -375,7 +370,7 @@ def get_form_class(document_type):
     return ArreteForm
 
 
-def get_doc_title(document_type: POSSIBLES_DOCUMENTS):
+def get_doc_title(document_type: str):
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == LETTRE:
@@ -383,7 +378,7 @@ def get_doc_title(document_type: POSSIBLES_DOCUMENTS):
     return "Arrêté d'attribution"
 
 
-def get_programmation_projet_attribute(document_type: POSSIBLES_DOCUMENTS):
+def get_programmation_projet_attribute(document_type: str):
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == LETTRE:

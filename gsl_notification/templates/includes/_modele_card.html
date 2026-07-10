@@ -29,7 +29,7 @@
                         {% else %}
                             <button class="fr-btn {{ action.class }}"
                                     type="button"
-                                    {% if action.aria_controls %} aria-controls="{{ action.aria_controls }}" data-fr-opened="false" data-name="{{ modele.name }}" data-type="modele_{{ modele.type }}"{% endif %}
+                                    {% if action.aria_controls %} aria-controls="{{ action.aria_controls }}" data-fr-opened="false" data-name="{{ modele.name }}" data-type="modele_{{ modele.type }}" data-delete-title="{{ modele.delete_title }}" data-delete-question="{{ modele.delete_question }}"{% endif %}
                                     data-form-action="{% url 'gsl_notification:delete-modele' modele.type modele.id %}"
                                     data-action="click->delete-notification-document-modal#updateModaleTitleAndSubmitAction">
                                 {{ action.label }}
