@@ -11,10 +11,10 @@ install-js:
     npm run build # to build tiptap bundle
 
 run-celery:
-    python -m celery --app gsl worker --beat --loglevel INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    uv run celery --app gsl worker --beat --loglevel INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
 manage command:
-    python manage.py {{command}}
+    uv run python manage.py {{command}}
 
 
 # Django shorthands
@@ -22,17 +22,17 @@ runserver: (manage "runserver")
 migrate: (manage "migrate")
 shell: (manage "shell")
 makemigrations: (manage "makemigrations")
-    ruff format */migrations/*.py
+    uv run ruff format */migrations/*.py
 
 migr app migration_number:
-    python manage.py migrate {{app}} {{migration_number}}
+    uv run python manage.py migrate {{app}} {{migration_number}}
 
 test:
-    pytest
+    uv run pytest
 
 # Watch the repo and launch pytest on files save
 test-watching folder_or_file:
-    git ls-files | entr -c pytest -vv {{folder_or_file}}
+    git ls-files | entr -c uv run pytest -vv {{folder_or_file}}
 
 
 # Create a release tag (vYY.MM.DD) and push it to trigger production deployment

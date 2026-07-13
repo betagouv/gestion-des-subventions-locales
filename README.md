@@ -43,27 +43,24 @@ Tapez `\q` pour quitter l'invite de commandes PostgreSQL.
 Ensuite, il est temps de procéder à l'installation du code et de ses dépendances :
 
 ```bash
-# Création et activation d’un venv
-python -m venv venv
-source venv/bin/activate
-
 # Installation des dépendances
-pip install -r requirements.txt -r requirements-dev.txt
+# (uv crée le venv et récupère Python 3.13 au besoin — cf. https://docs.astral.sh/uv/)
+uv sync
 
 # Paramétrage
 cp .env.example .env
 
 # install pre-commit hooks
-pre-commit install
+uv run pre-commit install
 
 # Initialisation de la base de données
-python manage.py migrate
+uv run python manage.py migrate
 
 # Création d'un superuser
-python manage.py createsuperuser
+uv run python manage.py createsuperuser
 
 # Lancement du serveur !
-python manage.py runserver
+uv run python manage.py runserver
 ```
 
 

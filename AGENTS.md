@@ -10,21 +10,19 @@ This file provides shared, project-wide guidance for any coding agent (Claude Co
 
 ### Setup & Dependencies
 ```bash
-# Initial setup
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
+# Initial setup (uv crée le venv et installe Python 3.13 au besoin)
+uv sync
 npm install && just install-js
 cp .env.example .env
-pre-commit install
-python manage.py migrate
-python manage.py createsuperuser
+uv run pre-commit install
+uv run python manage.py migrate
+uv run python manage.py createsuperuser
 
 # Run development server
-python manage.py runserver
+uv run python manage.py runserver
 
 # Interactive Django shell
-python manage.py shell_plus --ipython
+uv run python manage.py shell_plus --ipython
 ```
 
 ### Development Commands
@@ -761,8 +759,8 @@ See `.env.example` for required variables:
 | `gsl_programmation/models.py` | Enveloppe, ProgrammationProjet models |
 | `gsl_notification/models.py` | Template and document models |
 | `package.json` | JS dependencies and build scripts |
-| `requirements.txt` | Python production dependencies |
-| `requirements-dev.txt` | Development dependencies (pytest, ruff, etc.) |
+| `pyproject.toml` | Python dependencies, declared for uv (main deps + `dev` group) |
+| `uv.lock` | Pinned Python dependency lockfile (managed by uv) |
 | `gsl_core/view_mixins.py` | Reusable HTMX/DSFR view mixins (`OpenHtmxModalMixin`, `NoFeedbackHtmxFormViewMixin`) |
 | `gsl_core/middlewares.py` | OTP verification and Perimeter check middlewares |
 

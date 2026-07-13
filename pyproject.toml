@@ -1,6 +1,7 @@
 [project]
 name = "gsl"
 dynamic = ["version"]
+requires-python = ">=3.13,<3.14"
 authors = [
     { name = "Agnès Haasser", email = "agnes.haasser@beta.gouv.fr" },
     { name = "Maud Royer", email = "maud.royer@beta.gouv.fr" },
@@ -58,7 +59,10 @@ packages = ["gsl"]
 requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
-[project.optional-dependencies]
+[tool.uv]
+package = false
+
+[dependency-groups]
 dev = [
     "diff-cover",
     "django-debug-toolbar",
@@ -66,9 +70,7 @@ dev = [
     "djlint",
     "factory_boy",
     "freezegun",
-    "pip-tools",
     "pre-commit",
-    "pyproject.toml",
     "pytest-cov",
     "pytest-django",
     "pytest-ruff",
