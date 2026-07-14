@@ -381,8 +381,15 @@ class DotationProjetForm(ModelForm):
         ]
 
 
+class FrenchDecimalField(forms.DecimalField):
+    def to_python(self, value):
+        if isinstance(value, str):
+            value = "".join(value.split()).replace(",", ".")
+        return super().to_python(value)
+
+
 class DotationProjetAssietteForm(ModelForm, DsfrBaseForm):
-    assiette = forms.DecimalField(
+    assiette = FrenchDecimalField(
         label="Montant des dépenses éligibles retenues (€)",
         required=True,
         help_text=" Cette valeur est identique sur toutes les simulations de cette dotation.",
@@ -390,6 +397,7 @@ class DotationProjetAssietteForm(ModelForm, DsfrBaseForm):
             attrs={
                 "class": "fr-input",
                 "inputmode": "numeric",
+                "data-controller": "format-montant",
                 "data-format-montant-target": "field",
                 "data-action": "change->format-montant#format",
             }

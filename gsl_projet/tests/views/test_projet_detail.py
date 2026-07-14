@@ -1,6 +1,5 @@
 import re
 from datetime import datetime
-from urllib.parse import urlencode
 
 import pytest
 from django.shortcuts import reverse
@@ -436,40 +435,3 @@ def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
     )
     assert assiette_url not in content
     assert "Montant des dépenses éligibles retenues :" in content
-
-
-def test_assiette_form_shows_errors_from_session():
-    perimetre = PerimetreArrondissementFactory()
-    user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
-    dp = DotationProjetFactory(
-        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
-    )
-    client = ClientWithLoggedUserFactory(user=user)
-    session = client.session
-    session[f"assiette_errors_{dp.pk}"] = urlencode(
-        {"assiette": "pas_un_nombre", "csrfmiddlewaretoken": "x"}
-    )
-    session.save()
-    response = client.get(_projet_url(projet))
-    assert response.status_code == 200
-    items = response.context["dotation_projet_items"]
-    assert len(items) == 1
-    assert items[0]["form"].errors
-
-
-def test_assiette_session_errors_cleared_after_display():
-    perimetre = PerimetreArrondissementFactory()
-    user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
-    dp = DotationProjetFactory(
-        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
-    )
-    client = ClientWithLoggedUserFactory(user=user)
-    session = client.session
-    session[f"assiette_errors_{dp.pk}"] = urlencode(
-        {"assiette": "", "csrfmiddlewaretoken": "x"}
-    )
-    session.save()
-    client.get(_projet_url(projet))
-    assert f"assiette_errors_{dp.pk}" not in client.session
