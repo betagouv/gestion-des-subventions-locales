@@ -7,7 +7,6 @@ from django.db.models import ProtectedError, Q
 from django.db.models.fields import files
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.defaultfilters import pluralize
 from django.urls import reverse
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
@@ -31,22 +30,18 @@ from gsl_notification.forms import (
     ModeleDocumentStepTwoForm,
     ModeleDocumentStepZeroForm,
 )
-from gsl_notification.models import (
-    ModeleArrete,
-    ModeleLettreNotification,
-)
+from gsl_notification.models import MODELES, ModeleDocument
 from gsl_notification.utils import (
     MENTIONS,
     duplicate_field_file,
     get_modele_class,
     get_modele_perimetres,
 )
-from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, DOTATIONS, LETTRE
-
-TAG_LABEL_MAPPING = {
-    ARRETE: "Arrêté",
-    LETTRE: "Lettre de notification",
-}
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    DOTATIONS,
+)
 
 
 class ModeleListView(ListView):
@@ -54,15 +49,12 @@ class ModeleListView(ListView):
 
     def get_queryset(self):
         return sorted(
-            list(
-                ModeleArrete.objects.filter(
+            (
+                modele
+                for klass in MODELES.values()
+                for modele in klass.objects.filter(
                     dotation=self.dotation, perimetre__in=self.perimetres
-                )
-            )
-            + list(
-                ModeleLettreNotification.objects.filter(
-                    dotation=self.dotation, perimetre__in=self.perimetres
-                )
+                ).defer("content", "top_right_text")
             ),
             key=lambda modele: modele.created_at,
         )
@@ -89,8 +81,10 @@ class ModeleListView(ListView):
                         "id": obj.id,
                         "name": obj.name,
                         "description": obj.description,
-                        "type_label": TAG_LABEL_MAPPING[obj.type],
+                        "type_label": obj.type_label,
                         "type": obj.type,
+                        "delete_title": obj.delete_title,
+                        "delete_question": obj.delete_question,
                         "actions": [
                             {
                                 "label": "Modifier le modèle",
@@ -157,13 +151,6 @@ class ChooseModeleDocumentType(FormView):
         return context
 
 
-TEMPLATES = {
-    "step_zero": "gsl_notification/modele/modele_form_step_1.html",
-    "step_one": "gsl_notification/modele/modele_form_step_2.html",
-    "step_two": "gsl_notification/modele/modele_form_step_3.html",
-}
-
-
 class CreateModelDocumentWizard(SessionWizardView):
     form_list = (
         ModeleDocumentStepOneForm,
@@ -201,7 +188,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         return response
 
     def done(self, form_list, **kwargs):
-        instance: ModeleLettreNotification | ModeleArrete = self.instance
+        instance: ModeleDocument = self.instance
         is_creating = instance.pk is None
 
         for form in form_list:
@@ -233,12 +220,9 @@ class CreateModelDocumentWizard(SessionWizardView):
         pass
 
     def _set_success_message(self, instance, verbe="créé", extra_tags="success"):
-        type_and_article = (
-            "d’arrêté" if self.modele_type == ARRETE else "de lettre de notification"
-        )
         messages.success(
             self.request,
-            f'Le modèle {type_and_article} "{instance.name}" a bien été {verbe}.',
+            f'Le {instance.verbose_name()} "{instance.name}" a bien été {verbe}.',
             extra_tags=extra_tags,
         )
 
@@ -292,6 +276,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         context.update(
             {
                 "type": self.modele_type,
+                "modele_verbose_name": self._class.verbose_name(),
                 "dotation": self.dotation,
                 "current_tab": self.dotation,
                 "title": self._get_form_title(),
@@ -301,7 +286,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         step_titles = {
             "0": "Titre du modèle",
             "1": "En-tête du modèle",
-            "2": self._get_step_2_title(),
+            "2": f"Contenu du {self._class.verbose_name()} pour le publipostage",
         }
 
         context.update(
@@ -319,14 +304,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         return f"gsl_notification/modele/modele_form_step_{self.steps.current}.html"
 
     def _get_form_title(self):
-        if self.modele_type == ARRETE:
-            return f"Création d’un nouveau modèle d'arrêté {self.dotation}"
-        return f"Création d’un nouveau modèle de lettre de notification {self.dotation}"
-
-    def _get_step_2_title(self):
-        if self.modele_type == LETTRE:
-            return "Contenu de la lettre de notification pour le publipostage"
-        return "Contenu de l’arrêté pour le publipostage"
+        return f"Création d’un nouveau {self._class.verbose_name()} {self.dotation}"
 
 
 class UpdateModele(CreateModelDocumentWizard):
@@ -421,21 +399,17 @@ class DeleteModeleView(DeleteView):
         )
 
     def form_valid(self, form):
-        modele_type = self.kwargs["modele_type"]
         name = self.object.name
 
         try:
             response = super().form_valid(form)
-        except ProtectedError as e:
-            _add_error_message(self.request, len(e.protected_objects), modele_type)
+        except ProtectedError as err:
+            _add_error_message(self.request, err.protected_objects)
             return redirect(self.get_success_url())
 
-        type_and_article = (
-            "d’arrêté" if modele_type == ARRETE else "de lettre de notification"
-        )
         messages.info(
             self.request,
-            f"Le modèle {type_and_article} “{name}” a été supprimé.",
+            f"Le {self.object.verbose_name()} “{name}” a été supprimé.",
             extra_tags="delete_modele_arrete",
         )
         return response
@@ -450,13 +424,13 @@ def get_generic_modele(request, dotation):
     raise Http404(user_message="Dotation inconnue")
 
 
-def _add_error_message(request, objects_count: int, modele_type: str):
-    modele_type_name = (
-        f"arrêté{pluralize(objects_count, 's')}"
-        if modele_type == ARRETE
-        else f"lettre{pluralize(objects_count, 's')} de notification"
+def _add_error_message(request, protected_objects):
+    count = len(protected_objects)
+    instance = list(protected_objects)[0]
+    message = (
+        "Le modèle n'a pas été supprimé car il est utilisé "
+        f"par {count} {instance.verbose_name(count)}."
     )
-    message = f"Le modèle n'a pas été supprimé car il est utilisé par {objects_count} {modele_type_name}."
 
     messages.error(
         request,

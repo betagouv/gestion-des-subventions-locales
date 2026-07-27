@@ -44,7 +44,6 @@ from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ARRETE,
     LETTRE,
-    POSSIBLES_DOCUMENTS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
 )
@@ -420,7 +419,7 @@ def _get_pp_attribute_page_title_and_page_step_title(
 
 
 def _add_success_message(
-    request, is_creating: bool, document_type: POSSIBLES_DOCUMENTS, document_name: str
+    request, is_creating: bool, document_type: str, document_name: str
 ):
     verbe = "créé" if is_creating else "modifié"
     type_and_article = (

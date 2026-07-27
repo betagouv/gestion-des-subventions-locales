@@ -15,7 +15,8 @@
     <div class="fr-my-4w"
          data-controller="delete-notification-document-modal"
          data-delete-notification-document-modal-modal-id-value="delete-modele-arrete"
-         data-delete-notification-document-modal-form-id-value="delete-modele-arrete-form">
+         data-delete-notification-document-modal-form-id-value="delete-modele-arrete-form"
+         data-delete-notification-document-modal-warning-value="<b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>">
         <div class="text-align-right fr-mt-4v fr-mb-4v">
             <a class="fr-btn fr-btn--icon-left fr-icon-add-line"
                href="{% url "notification:modele-creer-choix-du-type" dotation %}">Créer un modèle {{ dotation }}</a>

@@ -15,6 +15,7 @@ from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
+    MODELES,
     Annexe,
     Arrete,
     DocumentImportJob,
@@ -240,10 +241,7 @@ class AnnexeForm(forms.ModelForm, DsfrBaseForm):
 
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):
-    TYPE_CHOICES = (
-        (ARRETE, "Arrêté attributif"),
-        (LETTRE, "Lettre de notification"),
-    )
+    TYPE_CHOICES = tuple((type_, klass.type_label) for type_, klass in MODELES.items())
     type = forms.ChoiceField(
         label="Type de document", choices=TYPE_CHOICES, widget=forms.RadioSelect
     )

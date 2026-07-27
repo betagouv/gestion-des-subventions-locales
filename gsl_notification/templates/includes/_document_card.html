@@ -35,6 +35,8 @@
                             aria-expanded="false"
                             data-name="{{ document.name }}"
                             data-type="{{ document.document_type }}"
+                            data-delete-title="{{ document.delete_title }}"
+                            data-delete-question="{{ document.delete_question }}"
                             data-form-action="{% url "notification:delete-document" document.document_type document.id %}"
                             data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction">
                         Supprimer

@@ -1,27 +1,10 @@
 import { Controller } from 'stimulus'
 
-const TYPE_TO_TITLE = {
-  modele_arrete: 'du modèle d’arrêté',
-  modele_lettre: 'du modèle de lettre de notification',
-  arrete: "de l'arrêté",
-  lettre: 'de la lettre de notification',
-  lettre_et_arrete_signes: "de la lettre et de l'arrêté signés",
-  annexe: "de l'annexe"
-}
-
-const TYPE_TO_BODY = {
-  modele_arrete: "Êtes-vous sûr de vouloir supprimer ce modèle d'arrêté ?<br><b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>",
-  modele_lettre: 'Êtes-vous sûr de vouloir supprimer ce modèle de lettre de notification ?<br><b>⚠️ Les autres utilisateurs ayant accès à ce modèle ne pourront plus l’utiliser ni le voir.</b>',
-  arrete: 'Êtes-vous sûr de vouloir supprimer cet arrêté ?<br>Cette action est irréversible.',
-  lettre: 'Êtes-vous sûr de vouloir supprimer cette lettre de notification ?<br>Cette action est irréversible.',
-  lettre_et_arrete_signes: 'Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?<br>Cette action est irréversible.',
-  annexe: 'Êtes-vous sûr de vouloir supprimer cette annexe ?<br>Cette action est irréversible.'
-}
-
 export class DeleteNotificationDocumentModal extends Controller {
   static values = {
     modalId: String,
-    formId: String
+    formId: String,
+    warning: String
   }
 
   connect () {
@@ -32,10 +15,8 @@ export class DeleteNotificationDocumentModal extends Controller {
   updateModaleTitleAndSubmitAction (evt) {
     const btn = evt.target
     if (this.modal) {
-      const type = btn.dataset.type
-      const title = 'Suppression ' + TYPE_TO_TITLE[type] + ' “' + btn.dataset.name + '“'
-      this.modal.querySelector('.modal-title').innerText = title
-      this.modal.querySelector('.modal-body').innerHTML = TYPE_TO_BODY[type]
+      this.modal.querySelector('.modal-title').innerText = btn.dataset.deleteTitle
+      this.modal.querySelector('.modal-body').innerHTML = btn.dataset.deleteQuestion + '<br>' + this.warningValue
     }
     if (this.form) {
       this.form.setAttribute('action', btn.dataset.formAction)

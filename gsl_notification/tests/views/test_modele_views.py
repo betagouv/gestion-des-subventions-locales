@@ -15,6 +15,7 @@ from gsl_core.tests.factories import (
 from gsl_notification.models import (
     ModeleArrete,
     ModeleLettreNotification,
+    ModeleLettreRefus,
 )
 from gsl_notification.tests.factories import (
     ArreteFactory,
@@ -22,9 +23,16 @@ from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
+    ModeleLettreRefusFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
+from gsl_projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    LETTRE_REFUS,
+)
 
 
 @pytest.fixture
@@ -90,6 +98,7 @@ def test_list_modele_view(client, perimetre):
     (
         (ARRETE, ModeleArrete),
         (LETTRE, ModeleLettreNotification),
+        (LETTRE_REFUS, ModeleLettreRefus),
     ),
 )
 def test_create_modele_arrete_views(client, modele_type, _class):
@@ -151,6 +160,7 @@ def test_create_modele_arrete_views(client, modele_type, _class):
     (
         (ARRETE, ModeleArreteFactory),
         (LETTRE, ModeleLettreNotificationFactory),
+        (LETTRE_REFUS, ModeleLettreRefusFactory),
     ),
 )
 def test_update_modele_arrete_view_complete_workflow(
@@ -236,6 +246,7 @@ def test_update_modele_arrete_view_complete_workflow(
     (
         (ARRETE, ModeleArreteFactory),
         (LETTRE, ModeleLettreNotificationFactory),
+        (LETTRE_REFUS, ModeleLettreRefusFactory),
     ),
 )
 def test_update_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
@@ -256,6 +267,7 @@ def test_update_modele_arrete_view_wrong_perimetre(client, modele_type, factory)
     (
         ARRETE,
         LETTRE,
+        LETTRE_REFUS,
     ),
 )
 def test_update_nonexistent_modele_arrete(client, modele_type):
@@ -280,6 +292,11 @@ def test_update_nonexistent_modele_arrete(client, modele_type):
             LETTRE,
             ModeleLettreNotification,
             ModeleLettreNotificationFactory,
+        ),
+        (
+            LETTRE_REFUS,
+            ModeleLettreRefus,
+            ModeleLettreRefusFactory,
         ),
     ),
 )
@@ -366,6 +383,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(
     (
         (ARRETE, ModeleArreteFactory),
         (LETTRE, ModeleLettreNotificationFactory),
+        (LETTRE_REFUS, ModeleLettreRefusFactory),
     ),
 )
 def test_duplicate_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
@@ -386,6 +404,7 @@ def test_duplicate_modele_arrete_view_wrong_perimetre(client, modele_type, facto
     (
         ARRETE,
         LETTRE,
+        LETTRE_REFUS,
     ),
 )
 def test_duplicate_nonexistent_modele_arrete(client, modele_type):
@@ -403,17 +422,31 @@ def test_duplicate_nonexistent_modele_arrete(client, modele_type):
 
 
 @pytest.mark.parametrize(
-    ("modele_type, _class, factory"),
+    ("modele_type, _class, factory, expected_message"),
     (
-        (ARRETE, ModeleArrete, ModeleArreteFactory),
+        (
+            ARRETE,
+            ModeleArrete,
+            ModeleArreteFactory,
+            "Le modèle d’arrêté “Mon modèle” a été supprimé.",
+        ),
         (
             LETTRE,
             ModeleLettreNotification,
             ModeleLettreNotificationFactory,
+            "Le modèle de lettre de notification “Mon modèle” a été supprimé.",
+        ),
+        (
+            LETTRE_REFUS,
+            ModeleLettreRefus,
+            ModeleLettreRefusFactory,
+            "Le modèle de lettre de refus ou classement sans suite “Mon modèle” a été supprimé.",
         ),
     ),
 )
-def test_delete_modele_with_correct_perimetre(modele_type, _class, factory):
+def test_delete_modele_with_correct_perimetre(
+    modele_type, _class, factory, expected_message
+):
     departement_perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=departement_perimetre)
     client = ClientWithLoggedUserFactory(user)
@@ -436,13 +469,7 @@ def test_delete_modele_with_correct_perimetre(modele_type, _class, factory):
     assert len(messages) == 1
     message = list(messages)[0]
     assert message.level == 20
-    if modele_type == ARRETE:
-        assert message.message == "Le modèle d’arrêté “Mon modèle” a été supprimé."
-    else:
-        assert (
-            message.message
-            == "Le modèle de lettre de notification “Mon modèle” a été supprimé."
-        )
+    assert message.message == expected_message
 
 
 @pytest.mark.parametrize(
@@ -520,6 +547,11 @@ def test_delete_modele_with_modele_used_by_an_arrete(
             ModeleLettreNotification,
             ModeleLettreNotificationFactory,
         ),
+        (
+            LETTRE_REFUS,
+            ModeleLettreRefus,
+            ModeleLettreRefusFactory,
+        ),
     ),
 )
 def test_delete_modele_with_wrong_perimetre(modele_type, _class, factory):
@@ -543,6 +575,7 @@ def test_delete_modele_with_wrong_perimetre(modele_type, _class, factory):
     (
         ARRETE,
         LETTRE,
+        LETTRE_REFUS,
     ),
 )
 def test_delete_nonexistent_modele_arrete(client, modele_type):

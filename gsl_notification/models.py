@@ -17,6 +17,7 @@ from gsl_projet.constants import (
     DOTATION_CHOICES,
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
+    LETTRE_REFUS,
 )
 
 
@@ -26,10 +27,22 @@ def tokenized_file_in_timestamped_folder(_, filename):
     return f"modeles_logos/{time_path}/{base_filename}_{token_urlsafe(8)}{extension}"
 
 
-class ModeleDocument(models.Model):
-    TYPE_ARRETE = "arrete"
-    TYPE_LETTRE = "lettre"
+MODELES = {}
 
+
+class VerboseNameMixin:
+    @classmethod
+    def verbose_name(cls, count=1):
+        meta = cls._meta
+        name = meta.verbose_name if count == 1 else meta.verbose_name_plural
+        return name.lower()
+
+    @property
+    def delete_title(self):
+        return f"{self.delete_label} “{self.name}“"
+
+
+class ModeleDocument(VerboseNameMixin, models.Model):
     # Metadata
     name = models.CharField(
         verbose_name="Nom du modèle", help_text="Exemple : “Modèle DSIL 2025”"
@@ -42,7 +55,7 @@ class ModeleDocument(models.Model):
         Perimetre,
         on_delete=models.PROTECT,
         verbose_name="Périmètre",
-        related_name="modeles_arrete",
+        related_name="modeles_%(class)s",
     )
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
 
@@ -91,6 +104,10 @@ class ModeleDocument(models.Model):
         verbose_name_plural = "Modèles de document"
         abstract = True
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        MODELES[cls.type] = cls
+
     def __str__(self):
         return self.name
 
@@ -99,45 +116,44 @@ class ModeleDocument(models.Model):
         return self.created_at.year
 
     @property
-    def type(self):
-        raise NotImplementedError
+    def delete_question(self):
+        return f"Êtes-vous sûr de vouloir supprimer ce {self.verbose_name()} ?"
 
 
 class ModeleArrete(ModeleDocument):
-    perimetre = models.ForeignKey(
-        Perimetre,
-        on_delete=models.PROTECT,
-        verbose_name="Périmètre",
-        related_name="modeles_arrete",
-    )
+    type = ARRETE
+    type_label = "Arrêté attributif"
+    delete_label = "Suppression du modèle d’arrêté"
 
     class Meta:
         verbose_name = "Modèle d’arrêté"
         verbose_name_plural = "Modèles d’arrêté"
 
-    @property
-    def type(self):
-        return ARRETE
-
 
 class ModeleLettreNotification(ModeleDocument):
-    perimetre = models.ForeignKey(
-        Perimetre,
-        on_delete=models.PROTECT,
-        verbose_name="Périmètre",
-        related_name="modeles_lettre_notification",
-    )
+    type = LETTRE
+    type_label = "Lettre de notification"
+    delete_label = "Suppression du modèle de lettre de notification"
 
     class Meta:
         verbose_name = "Modèle de lettre de notification"
         verbose_name_plural = "Modèles de lettre de notification"
 
-    @property
-    def type(self):
-        return LETTRE
+
+class ModeleLettreRefus(ModeleDocument):
+    type = LETTRE_REFUS
+    type_label = "Lettre de refus ou classement sans suite"
+    delete_label = "Suppression du modèle de lettre de refus ou classement sans suite"
+
+    class Meta:
+        verbose_name = "Modèle de lettre de refus ou classement sans suite"
+        verbose_name_plural = "Modèles de lettre de refus ou classement sans suite"
 
 
-class GeneratedDocument(models.Model):
+DOCUMENTS = {}
+
+
+class GeneratedDocument(VerboseNameMixin, models.Model):
     document_type = None
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
@@ -156,6 +172,10 @@ class GeneratedDocument(models.Model):
 
     class Meta:
         abstract = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        DOCUMENTS[cls.document_type] = cls
 
     def save(self, *args, **kwargs):
         from gsl_notification.utils import generate_pdf_for_generated_document
@@ -207,6 +227,8 @@ class GeneratedDocument(models.Model):
 
 class Arrete(GeneratedDocument):
     document_type = ARRETE
+    delete_label = "Suppression de l’arrêté"
+    delete_question = "Êtes-vous sûr de vouloir supprimer cet arrêté ?"
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
@@ -229,6 +251,10 @@ class Arrete(GeneratedDocument):
 
 class LettreNotification(GeneratedDocument):
     document_type = LETTRE
+    delete_label = "Suppression de la lettre de notification"
+    delete_question = (
+        "Êtes-vous sûr de vouloir supprimer cette lettre de notification ?"
+    )
     programmation_projet = models.OneToOneField(
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
@@ -249,7 +275,7 @@ class LettreNotification(GeneratedDocument):
         return f"lettre-notification-{self.programmation_projet.enveloppe.dotation}-{self.created_at.strftime('%Y-%m-%d')} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
 
 
-class UploadedDocument(models.Model):
+class UploadedDocument(VerboseNameMixin, models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
@@ -302,6 +328,10 @@ class UploadedDocument(models.Model):
 
 
 class LettreEtArreteSignes(UploadedDocument):
+    delete_label = "Suppression de la lettre et de l’arrêté signés"
+    delete_question = (
+        "Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?"
+    )
     file = models.FileField(
         upload_to="arrete_et_lettre_signes/", validators=[document_file_validator]
     )
@@ -455,6 +485,8 @@ class ExportJob(BaseModel):
 
 
 class Annexe(UploadedDocument):
+    delete_label = "Suppression de l’annexe"
+    delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
     file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
 
     programmation_projet = models.ForeignKey(
