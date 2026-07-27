@@ -3,17 +3,17 @@ import { Controller } from 'stimulus'
 export class ProjetForm extends Controller {
   static targets = [
     'contratLocalCheckbox',
-    'contratLocalWrapper',
+    'contratLocalInput',
     'autreZonageLocalCheckbox',
-    'autreZonageLocalWrapper'
+    'autreZonageLocalInput'
   ]
 
   connect () {
-    if (this.hasContratLocalCheckboxTarget && this.hasContratLocalWrapperTarget) {
-      this._toggle(this.contratLocalWrapperTarget, this.contratLocalCheckboxTarget.checked)
+    if (this.hasContratLocalCheckboxTarget && this.hasContratLocalInputTarget) {
+      this._toggle(this.contratLocalInputTarget, this.contratLocalCheckboxTarget.checked)
     }
-    if (this.hasAutreZonageLocalCheckboxTarget && this.hasAutreZonageLocalWrapperTarget) {
-      this._toggle(this.autreZonageLocalWrapperTarget, this.autreZonageLocalCheckboxTarget.checked)
+    if (this.hasAutreZonageLocalCheckboxTarget && this.hasAutreZonageLocalInputTarget) {
+      this._toggle(this.autreZonageLocalInputTarget, this.autreZonageLocalCheckboxTarget.checked)
     }
   }
 
@@ -31,14 +31,14 @@ export class ProjetForm extends Controller {
   }
 
   toggleContratLocal (evt) {
-    this._toggle(this.contratLocalWrapperTarget, evt.target.checked)
+    this._toggle(this.contratLocalInputTarget, evt.target.checked)
   }
 
   toggleAutreZonageLocal (evt) {
-    this._toggle(this.autreZonageLocalWrapperTarget, evt.target.checked)
+    this._toggle(this.autreZonageLocalInputTarget, evt.target.checked)
   }
 
-  _toggle (wrapper, show) {
-    wrapper.classList.toggle('fr-hidden', !show)
+  _toggle (input, show) {
+    input.closest('.fr-input-group').classList.toggle('fr-hidden', !show)
   }
 }

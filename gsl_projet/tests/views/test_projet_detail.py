@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from urllib.parse import urlencode
 
 import pytest
 from django.shortcuts import reverse
@@ -446,10 +447,9 @@ def test_assiette_form_shows_errors_from_session():
     )
     client = ClientWithLoggedUserFactory(user=user)
     session = client.session
-    session[f"assiette_errors_{dp.pk}"] = {
-        "assiette": "pas_un_nombre",
-        "csrfmiddlewaretoken": "x",
-    }
+    session[f"assiette_errors_{dp.pk}"] = urlencode(
+        {"assiette": "pas_un_nombre", "csrfmiddlewaretoken": "x"}
+    )
     session.save()
     response = client.get(_projet_url(projet))
     assert response.status_code == 200
@@ -467,7 +467,9 @@ def test_assiette_session_errors_cleared_after_display():
     )
     client = ClientWithLoggedUserFactory(user=user)
     session = client.session
-    session[f"assiette_errors_{dp.pk}"] = {"assiette": "", "csrfmiddlewaretoken": "x"}
+    session[f"assiette_errors_{dp.pk}"] = urlencode(
+        {"assiette": "", "csrfmiddlewaretoken": "x"}
+    )
     session.save()
     client.get(_projet_url(projet))
     assert f"assiette_errors_{dp.pk}" not in client.session
