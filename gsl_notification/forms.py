@@ -432,7 +432,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
     def save(self, user):
         from gsl_historique.models import ProjetAction
 
-        documents = self._documents_to_merge()
+        documents = self.instance.imported_documents
         filename = self._notification_filename(documents)
         justificatif_file = merge_documents_into_pdf(documents, filename=filename)
 
@@ -460,23 +460,6 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             )
 
             return self.instance
-
-    def _documents_to_merge(self):
-        documents = []
-        for dotation in DOTATIONS:
-            lettre = LettreEtArreteSignes.objects.filter(
-                programmation_projet__dotation_projet__projet=self.instance,
-                programmation_projet__dotation_projet__dotation=dotation,
-            ).first()
-            if lettre:
-                documents.append(lettre)
-            documents += list(
-                Annexe.objects.filter(
-                    programmation_projet__dotation_projet__projet=self.instance,
-                    programmation_projet__dotation_projet__dotation=dotation,
-                )
-            )
-        return documents
 
     def _notification_filename(self, documents):
         accepted_dotations = set(

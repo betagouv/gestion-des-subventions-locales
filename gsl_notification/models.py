@@ -154,7 +154,7 @@ DOCUMENTS = {}
 
 
 class GeneratedDocument(VerboseNameMixin, models.Model):
-    document_type = None
+    document_type: str | None = None
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
@@ -277,7 +277,11 @@ class LettreNotification(GeneratedDocument):
         return f"Lettre {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
 
 
+UPLOADED_DOCUMENTS = {}
+
+
 class UploadedDocument(VerboseNameMixin, models.Model):
+    document_type: str | None = None
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
@@ -293,6 +297,10 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
     class Meta:
         abstract = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        UPLOADED_DOCUMENTS[cls.document_type] = cls
 
     @property
     def is_downloadable(self):
@@ -324,12 +332,9 @@ class UploadedDocument(VerboseNameMixin, models.Model):
     def size(self):
         return self.file.size
 
-    @property
-    def document_type(self):
-        raise NotImplementedError
-
 
 class LettreEtArreteSignes(UploadedDocument):
+    document_type = LETTRE_ET_ARRETE_SIGNES
     delete_label = "Suppression de la lettre et de l’arrêté signés"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?"
@@ -351,9 +356,25 @@ class LettreEtArreteSignes(UploadedDocument):
     def __str__(self):
         return f"Lettre et arrêté signés #{self.id}"
 
-    @property
-    def document_type(self):
-        return LETTRE_ET_ARRETE_SIGNES
+
+class Annexe(UploadedDocument):
+    document_type = ANNEXE
+    delete_label = "Suppression de l’annexe"
+    delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
+    file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
+
+    programmation_projet = models.ForeignKey(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="annexes",
+    )
+
+    class Meta:
+        verbose_name = "Annexe"
+        verbose_name_plural = "Annexes"
+
+    def __str__(self):
+        return f"Annexe #{self.id}"
 
 
 class DocumentImportJob(BaseModel):
@@ -484,26 +505,3 @@ class ExportJob(BaseModel):
     @property
     def is_running(self) -> bool:
         return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
-
-
-class Annexe(UploadedDocument):
-    delete_label = "Suppression de l’annexe"
-    delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
-    file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
-
-    programmation_projet = models.ForeignKey(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        related_name="annexes",
-    )
-
-    class Meta:
-        verbose_name = "Annexe"
-        verbose_name_plural = "Annexes"
-
-    def __str__(self):
-        return f"Annexe #{self.id}"
-
-    @property
-    def document_type(self):
-        return ANNEXE

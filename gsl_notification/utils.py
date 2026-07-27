@@ -26,6 +26,7 @@ from weasyprint import HTML
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
+from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
     DOCUMENTS,
     MODELES,
@@ -43,7 +44,6 @@ from gsl_projet.constants import (
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
     POSSIBLE_DOTATIONS,
-    POSSIBLES_DOCUMENTS_TELEVERSABLES,
 )
 
 
@@ -386,7 +386,7 @@ def get_programmation_projet_attribute(document_type: str):
     return "arrete"
 
 
-def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+def get_uploaded_document_class(document_type: str):
     if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == ANNEXE:
@@ -394,7 +394,7 @@ def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES
     return LettreEtArreteSignes
 
 
-def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+def get_uploaded_form_class(document_type: str):
     from gsl_notification.forms import AnnexeForm, ArreteEtLettreSigneForm
 
     if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
@@ -616,8 +616,6 @@ def _build_qr_css_rules(document: Arrete | LettreNotification, page_count: int) 
 def log_generated_document_action(
     user, programmation_projet, document_type, is_creating
 ):
-    from gsl_historique.models import ProjetAction
-
     action_type = (
         ProjetAction.TYPE_DOC_GENERATED
         if is_creating

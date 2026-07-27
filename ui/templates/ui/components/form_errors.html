@@ -1,10 +1,10 @@
-{% if self.form.non_field_errors %}
+{% if form.non_field_errors %}
     <div class="fr-alert fr-alert--error fr-mb-3w">
         <p class="fr-alert__title">
-            {{ self.title }}
+            {{ title }}
         </p>
         <ul>
-            {% for error in self.form.non_field_errors %}
+            {% for error in form.non_field_errors %}
                 <li>
                     {{ error }}
                 </li>

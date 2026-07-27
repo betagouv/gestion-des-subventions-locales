@@ -79,12 +79,12 @@ class NotificationDocumentsView(DetailView):
                 "is_instructor": self.object.dossier_ds.is_instructeur(
                     self.request.user
                 ),
-                "generate_documents_form": kwargs.get("generate_documents_form")
-                or GenerateAcceptedDotationsDocumentsForm(
+                "generate_documents_form": GenerateAcceptedDotationsDocumentsForm(
                     projet=self.object, user=self.request.user
                 ),
-                "notification_message_form": kwargs.get("notification_message_form")
-                or NotificationMessageForm(instance=self.object),
+                "notification_message_form": NotificationMessageForm(
+                    instance=self.object
+                ),
                 **get_projet_go_back_context(self.request),
             }
         )

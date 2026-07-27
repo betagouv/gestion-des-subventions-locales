@@ -2,7 +2,7 @@
 <div id="generate-documents-block">
     <form method="post"
           data-controller="form-utils"
-          data-action="submit->form-utils#disableButtons"
+          data-action="form-utils#disableButtons"
           hx-post="{% url 'gsl_notification:generate-documents-form' projet.pk %}"
           hx-target="#generate-documents-block"
           hx-swap="outerHTML">

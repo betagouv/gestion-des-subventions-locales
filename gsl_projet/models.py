@@ -22,13 +22,17 @@ from django_fsm import FSMField, transition
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
-from gsl_notification.models import DOCUMENTS
+from gsl_notification.models import (
+    DOCUMENTS,
+    UPLOADED_DOCUMENTS,
+    Arrete,
+    LettreNotification,
+)
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
     DOTATIONS,
-    IMPORTED_DOCUMENT_TYPES_ORDER,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
@@ -473,8 +477,6 @@ class Projet(BaseModel):
 
     @property
     def generated_documents(self):
-        from gsl_notification.models import Arrete, LettreNotification
-
         documents = [
             *Arrete.objects.filter(programmation_projet__dotation_projet__projet=self),
             *LettreNotification.objects.filter(
@@ -503,7 +505,7 @@ class Projet(BaseModel):
             documents,
             key=lambda d: (
                 DOTATIONS.index(d.programmation_projet.dotation),
-                IMPORTED_DOCUMENT_TYPES_ORDER.index(d.document_type),
+                list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
 
