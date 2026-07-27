@@ -184,6 +184,84 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
         }
 
 
+class _DotationDocumentFields:
+    """
+    The "widget" for one dotation on the generate-documents card: a modele
+    selector + skip checkbox for the arrêté, and the same pair for the
+    lettre. Registers its 4 fields on the form and returns them grouped for
+    template consumption.
+    """
+
+    def __init__(self, form: "GenerateAcceptedDotationsDocumentsForm", dotation_projet):
+        self.form = form
+        self.dotation = dotation_projet.dotation
+        self.dotation_projet = dotation_projet
+
+    def build(self) -> dict:
+        perimetres = get_modele_perimetres(self.dotation, self.form.user.perimetre)
+        pp = self.dotation_projet.programmation_projet
+        existing_arrete = getattr(pp, "arrete", None)
+        existing_lettre = getattr(pp, "lettre_notification", None)
+
+        modele_arrete = self._add_modele_field(
+            "modele_arrete", ARRETE, perimetres, "Modèle d'arrêté", existing_arrete
+        )
+        has_modele_arrete = self.form.fields[modele_arrete].queryset.exists()
+        skip_arrete = self._add_skip_field(
+            "skip_arrete", "Ne pas générer l'arrêté", disabled=not has_modele_arrete
+        )
+        modele_lettre = self._add_modele_field(
+            "modele_lettre", LETTRE, perimetres, "Modèle de lettre", existing_lettre
+        )
+        has_modele_lettre = self.form.fields[modele_lettre].queryset.exists()
+        skip_lettre = self._add_skip_field(
+            "skip_lettre", "Ne pas générer la lettre", disabled=not has_modele_lettre
+        )
+
+        return {
+            "modele_arrete": self.form[modele_arrete],
+            "skip_arrete": self.form[skip_arrete],
+            "modele_lettre": self.form[modele_lettre],
+            "skip_lettre": self.form[skip_lettre],
+            "has_modele_arrete": has_modele_arrete,
+            "has_modele_lettre": has_modele_lettre,
+        }
+
+    def _add_modele_field(
+        self, prefix, document_type, perimetres, label, existing_document
+    ) -> str:
+        name = f"{prefix}_{self.dotation}"
+        self.form.fields[name] = forms.ModelChoiceField(
+            queryset=get_modele_class(document_type).objects.filter(
+                dotation=self.dotation, perimetre__in=perimetres
+            ),
+            required=False,
+            empty_label="Sélectionner un modèle",
+            label=label,
+            initial=existing_document.modele if existing_document else None,
+            widget=forms.Select(attrs={"data-skip-document-toggle-target": "select"}),
+        )
+        return name
+
+    def _add_skip_field(self, prefix, label, *, disabled: bool) -> str:
+        # disabled=True both forces cleaned_data to the initial value (True),
+        # ignoring whatever is posted, and renders the checkbox non-interactive.
+        name = f"{prefix}_{self.dotation}"
+        self.form.fields[name] = forms.BooleanField(
+            required=False,
+            label=label,
+            initial=disabled,
+            disabled=disabled,
+            widget=forms.CheckboxInput(
+                attrs={
+                    "data-skip-document-toggle-target": "checkbox",
+                    "data-action": "change->skip-document-toggle#toggle",
+                }
+            ),
+        )
+        return name
+
+
 class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
     """
     Inline "1 - Générer" card on the notifications tab: one box per accepted
@@ -210,70 +288,8 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
             )
         )
 
-        for dp in self.accepted_dotation_projets:
-            perimetres = get_modele_perimetres(dp.dotation, user.perimetre)
-            pp = dp.programmation_projet
-            existing_arrete = getattr(pp, "arrete", None)
-            existing_lettre = getattr(pp, "lettre_notification", None)
-
-            self.fields[f"modele_arrete_{dp.dotation}"] = forms.ModelChoiceField(
-                queryset=get_modele_class(ARRETE).objects.filter(
-                    dotation=dp.dotation, perimetre__in=perimetres
-                ),
-                required=False,
-                empty_label="Sélectionner un modèle",
-                label="Modèle d'arrêté",
-                initial=existing_arrete.modele if existing_arrete else None,
-                widget=forms.Select(
-                    attrs={"data-skip-document-toggle-target": "select"}
-                ),
-            )
-            self.fields[f"skip_arrete_{dp.dotation}"] = forms.BooleanField(
-                required=False,
-                label="Ne pas générer l'arrêté",
-                widget=forms.CheckboxInput(
-                    attrs={
-                        "data-skip-document-toggle-target": "checkbox",
-                        "data-action": "change->skip-document-toggle#toggle",
-                    }
-                ),
-            )
-            self.fields[f"modele_lettre_{dp.dotation}"] = forms.ModelChoiceField(
-                queryset=get_modele_class(LETTRE).objects.filter(
-                    dotation=dp.dotation, perimetre__in=perimetres
-                ),
-                required=False,
-                empty_label="Sélectionner un modèle",
-                label="Modèle de lettre",
-                initial=existing_lettre.modele if existing_lettre else None,
-                widget=forms.Select(
-                    attrs={"data-skip-document-toggle-target": "select"}
-                ),
-            )
-            self.fields[f"skip_lettre_{dp.dotation}"] = forms.BooleanField(
-                required=False,
-                label="Ne pas générer la lettre",
-                widget=forms.CheckboxInput(
-                    attrs={
-                        "data-skip-document-toggle-target": "checkbox",
-                        "data-action": "change->skip-document-toggle#toggle",
-                    }
-                ),
-            )
-
         self.dotation_fields = {
-            dp.dotation: {
-                "modele_arrete": self[f"modele_arrete_{dp.dotation}"],
-                "skip_arrete": self[f"skip_arrete_{dp.dotation}"],
-                "modele_lettre": self[f"modele_lettre_{dp.dotation}"],
-                "skip_lettre": self[f"skip_lettre_{dp.dotation}"],
-                "has_modele_arrete": self.fields[
-                    f"modele_arrete_{dp.dotation}"
-                ].queryset.exists(),
-                "has_modele_lettre": self.fields[
-                    f"modele_lettre_{dp.dotation}"
-                ].queryset.exists(),
-            }
+            dp.dotation: _DotationDocumentFields(self, dp).build()
             for dp in self.accepted_dotation_projets
         }
 

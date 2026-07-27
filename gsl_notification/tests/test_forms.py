@@ -300,12 +300,33 @@ def test_generate_accepted_dotations_documents_form_requires_modele_unless_skipp
     user = CollegueFactory()
     pp = _make_accepted_dotation_projet(DOTATION_DETR)
     projet = pp.dotation_projet.projet
+    ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
+    ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
 
     form = GenerateAcceptedDotationsDocumentsForm({}, projet=projet, user=user)
 
     assert not form.is_valid()
     assert f"modele_arrete_{DOTATION_DETR}" in form.errors
     assert f"modele_lettre_{DOTATION_DETR}" in form.errors
+
+
+@pytest.mark.django_db
+def test_generate_accepted_dotations_documents_form_forces_skip_when_no_modele():
+    user = CollegueFactory()
+    pp = _make_accepted_dotation_projet(DOTATION_DETR)
+    projet = pp.dotation_projet.projet
+
+    form = GenerateAcceptedDotationsDocumentsForm({}, projet=projet, user=user)
+
+    fields = form.dotation_fields[DOTATION_DETR]
+    assert fields["has_modele_arrete"] is False
+    assert fields["has_modele_lettre"] is False
+    assert form.fields[f"skip_arrete_{DOTATION_DETR}"].disabled
+    assert form.fields[f"skip_lettre_{DOTATION_DETR}"].disabled
+
+    assert form.is_valid(), form.errors
+    assert form.cleaned_data[f"skip_arrete_{DOTATION_DETR}"] is True
+    assert form.cleaned_data[f"skip_lettre_{DOTATION_DETR}"] is True
 
 
 @pytest.mark.django_db

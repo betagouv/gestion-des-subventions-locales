@@ -181,10 +181,16 @@ def test_post_documents_creates_generated_documents_and_refreshes(
 
 
 def test_post_documents_invalid_rerenders_block_with_errors(
-    accepted_detr_programmation_projet, correct_perimetre_client_with_user_logged
+    accepted_detr_programmation_projet,
+    perimetre,
+    correct_perimetre_client_with_user_logged,
 ):
     pp = accepted_detr_programmation_projet
     projet = pp.dotation_projet.projet
+    # A modele must exist, otherwise the skip checkbox is forced on and the
+    # form becomes valid without a modele selection.
+    ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=perimetre)
     url = reverse(
         "notification:generate-documents-form", kwargs={"projet_id": projet.id}
     )
