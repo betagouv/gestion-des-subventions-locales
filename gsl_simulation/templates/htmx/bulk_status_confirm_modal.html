@@ -46,7 +46,7 @@ Context:
                             </h1>
                             <p>
                                 Vous allez passer {{ simulation_projets|length }} projet{{ simulation_projets|length|custom_pluralize }} au statut
-                                <strong>{{ target_status|status_to_label|safe }}</strong>.
+                                <strong>{{ target_status|status_to_label|split_symbol_and_status|safe }}</strong>.
                             </p>
                             <p>
                                 Cette opération effectue une mise à jour sur Démarches Numériques.

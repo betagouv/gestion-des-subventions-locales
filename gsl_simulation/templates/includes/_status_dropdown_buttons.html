@@ -1,11 +1,11 @@
-{% load simulation_filters %}
+{% load simulation_filters gsl_filters %}
 <div class="fr-nav fr-translate gsl-projet-table__status-select gsl-projet-table__status-select--{{ simu.status }}">
     <div class="fr-nav__item{% if table %} fr-nav__item--align-right{% endif %}">
         <button class="fr-select fr-btn--{% if table %}sm{% else %}lg{% endif %} fr-dropdown__button"
                 aria-expanded="false"
                 aria-controls="status-dropdown-{{ simu.pk }}"
-                aria-label="{{ simu.get_status_display }}. Changer le statut du projet">
-            {{ simu.get_status_display }}
+                aria-label="{{ simu.get_status_display|remove_first_word }}. Changer le statut du projet">
+            {{ simu.get_status_display|split_symbol_and_status|safe }}
         </button>
         <div class="fr-collapse fr-menu"
              aria-label="Options de statut"

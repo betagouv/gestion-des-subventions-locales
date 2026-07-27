@@ -17,7 +17,7 @@
     {% else %}
         <div class="add-simulation-button-container">
             <a href="{% url 'gsl_simulation:simulation-form' %}"
-               class="fr-btn fr-mr-1w fr-pl-3v"><i class="fr-icon-add-line"></i> Nouvelle simulation</a>
+               class="fr-btn fr-mr-1w fr-pl-3v"><i class="fr-icon-add-line" aria-hidden="true"></i> Nouvelle simulation</a>
         </div>
         <ul class="simulation-cards-list no-list-style">
             {% for simulation in object_list %}
@@ -55,7 +55,7 @@
                             <div class="fr-sr-only">
                                 Voir la simulation {{ simulation.title }}
                             </div>
-                            <i class="fr-icon-arrow-right-line"></i>
+                            <i class="fr-icon-arrow-right-line" aria-hidden="true"></i>
                         </a>
                     </div>
                 </li>
