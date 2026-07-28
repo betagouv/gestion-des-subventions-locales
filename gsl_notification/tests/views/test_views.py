@@ -201,12 +201,10 @@ def test_post_documents_invalid_rerenders_block_with_errors(
 
     assert response.status_code == 200
     assert (
-        response.templates[0].name
-        == "gsl_notification/includes/generate_documents_form.html"
+        response.templates[0].name == "includes/_generate_documents_form.html"
     )
     assert (
-        f"modele_arrete_{DOTATION_DETR}"
-        in response.context["generate_documents_form"].errors
+        f"modele_arrete_{DOTATION_DETR}" in response.context["form"].errors
     )
     assert not Arrete.objects.filter(programmation_projet=pp).exists()
 

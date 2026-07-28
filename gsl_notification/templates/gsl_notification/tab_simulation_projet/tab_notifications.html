@@ -14,12 +14,12 @@
         <h3>
             1 - Générer
         </h3>
-        {% include "gsl_notification/includes/generate_documents_form.html" %}
+        {% generate_documents_form projet %}
 
         <div data-controller="delete-notification-document-modal"
              data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
              data-delete-notification-document-modal-form-id-value="delete-document-form">
-            {% include "gsl_notification/includes/documents_table.html" with documents=generated_documents caption="Documents générés" date_label="Date de génération" is_imported=False empty_message="Il n’y a pas de document généré pour le moment." %}
+            {% include "includes/_documents_table.html" with documents=generated_documents caption="Documents générés" date_label="Date de génération" is_imported=False empty_message="Il n’y a pas de document généré pour le moment." %}
 
             <h3 class="fr-mt-6w">
                 2 - Importer
@@ -28,7 +28,7 @@
                class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
                 Importer un document
             </a>
-            {% include "gsl_notification/includes/documents_table.html" with documents=imported_documents caption="Documents importés" date_label="Date d'import" is_imported=True empty_message="Il n’y a pas de document importé pour le moment." %}
+            {% include "includes/_documents_table.html" with documents=imported_documents caption="Documents importés" date_label="Date d'import" is_imported=True empty_message="Il n’y a pas de document importé pour le moment." %}
         </div>
 
         <h3 class="fr-mt-6w">

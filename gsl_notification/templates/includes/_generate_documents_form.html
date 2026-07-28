@@ -8,10 +8,10 @@
           hx-swap="outerHTML">
         {% csrf_token %}
 
-        {% ui_form_errors form=generate_documents_form %}
+        {% ui_form_errors form=form %}
 
         <div class="fr-grid-row fr-grid-row--gutters">
-            {% for dotation, fields in generate_documents_form.dotation_fields.items %}
+            {% for dotation, fields in form.dotation_fields.items %}
                 <div class="fr-col-12 fr-col-md-6">
                     <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
                         <h4 class="fr-callout__title">
@@ -55,7 +55,7 @@
             {% endfor %}
         </div>
 
-        {{ generate_documents_form.hide_qr_code.as_field_group }}
+        {{ form.hide_qr_code.as_field_group }}
 
         <button type="submit"
                 class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left">

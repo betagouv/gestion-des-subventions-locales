@@ -76,9 +76,6 @@ class NotificationDocumentsView(DetailView):
                 "generated_documents": self.object.generated_documents,
                 "imported_documents": self.object.imported_documents,
                 "title": title,
-                "generate_documents_form": GenerateAcceptedDotationsDocumentsForm(
-                    projet=self.object, user=self.request.user
-                ),
                 **get_projet_go_back_context(self.request),
             }
         )
@@ -97,7 +94,7 @@ class GenerateDocumentsFormView(FormView):
     """
 
     form_class = GenerateAcceptedDotationsDocumentsForm
-    template_name = "gsl_notification/includes/generate_documents_form.html"
+    template_name = "includes/_generate_documents_form.html"
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
@@ -118,7 +115,6 @@ class GenerateDocumentsFormView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["projet"] = self.projet
-        context["generate_documents_form"] = context["form"]
         return context
 
     def form_valid(self, form):
