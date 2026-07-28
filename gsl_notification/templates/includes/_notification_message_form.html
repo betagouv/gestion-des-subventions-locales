@@ -9,14 +9,14 @@
             <div class="fr-col-12 fr-col-md-9 fr-col-lg-6">
                 <form method="post"
                       data-controller="form-utils"
-                      data-action="submit->form-utils#disableButtons"
-                      hx-post="{% url 'gsl_notification:notification_message_form' projet.pk %}"
+                      data-action="form-utils#disableButtons"
+                      hx-post="{% url 'gsl_notification:notification-message-form' projet.pk %}"
                       hx-target="#notification-message-block"
                       hx-swap="outerHTML">
                     {% csrf_token %}
-                    {% ui_form_errors form=notification_message_form %}
+                    {% ui_form_errors form=form %}
 
-                    {{ notification_message_form.message.as_field_group }}
+                    {{ form.message.as_field_group }}
 
                     {% if projet.dotation_not_treated %}
                         <div role="alert" class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">

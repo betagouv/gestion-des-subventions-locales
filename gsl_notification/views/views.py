@@ -76,14 +76,8 @@ class NotificationDocumentsView(DetailView):
                 "generated_documents": self.object.generated_documents,
                 "imported_documents": self.object.imported_documents,
                 "title": title,
-                "is_instructor": self.object.dossier_ds.is_instructeur(
-                    self.request.user
-                ),
                 "generate_documents_form": GenerateAcceptedDotationsDocumentsForm(
                     projet=self.object, user=self.request.user
-                ),
-                "notification_message_form": NotificationMessageForm(
-                    instance=self.object
                 ),
                 **get_projet_go_back_context(self.request),
             }
@@ -141,7 +135,7 @@ class NotificationMessageFormView(UpdateView):
     """
 
     form_class = NotificationMessageForm
-    template_name = "gsl_notification/includes/notification_message_form.html"
+    template_name = "includes/_notification_message_form.html"
     pk_url_kwarg = "projet_id"
     context_object_name = "projet"
     model = Projet
@@ -155,7 +149,9 @@ class NotificationMessageFormView(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["notification_message_form"] = context["form"]
+        context["is_instructor"] = self.object.dossier_ds.is_instructeur(
+            self.request.user
+        )
         return context
 
     def form_valid(self, form):

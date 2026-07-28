@@ -46,7 +46,7 @@ urlpatterns = [
     path(
         "<int:projet_id>/notifier/",
         NotificationMessageFormView.as_view(),
-        name="notification_message_form",
+        name="notification-message-form",
     ),
     path(
         "<int:projet_id>/generer-documents/",
