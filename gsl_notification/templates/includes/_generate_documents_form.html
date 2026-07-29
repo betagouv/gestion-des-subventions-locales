@@ -11,7 +11,7 @@
         {% ui_form_errors form=form %}
 
         <div class="fr-grid-row fr-grid-row--gutters">
-            {% for dotation, fields in form.dotation_fields.items %}
+            {% for dotation, dotation_fields in form.dotation_fields.items %}
                 <div class="fr-col-12 fr-col-md-6">
                     <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
                         <h4 class="fr-callout__title">
@@ -19,37 +19,25 @@
                         </h4>
                         {% ui_status_badge type="accepted" dotation=dotation %}
 
-                        <div class="fr-callout__text fr-mt-2w"
-                             data-controller="skip-document-toggle">
-                            {% if fields.has_modele_arrete %}
-                                {{ fields.modele_arrete.as_field_group }}
-                            {% else %}
-                                <p class="fr-text-default--warning fr-mb-1w">
-                                    Aucun modèle d'arrêté disponible.
-                                </p>
-                                <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
-                                   class="fr-link fr-icon-add-line fr-link--icon-left fr-mb-2w">
-                                    Créer un modèle d'arrêté
-                                </a>
-                            {% endif %}
-                            {{ fields.skip_arrete.as_field_group }}
-                        </div>
-                        <div class="fr-callout__text" data-controller="skip-document-toggle">
-                            {% if fields.has_modele_lettre %}
-                                {{ fields.modele_lettre.as_field_group }}
-                            {% else %}
-                                <div class="fr-mb-4w">
+                        {% for modele_type, fields in dotation_fields.items %}
+                            <div class="fr-callout__text fr-mt-4w"
+                                 data-controller="skip-document-toggle">
+                                {% if fields.has_modele %}
+                                    {{ fields.modele.as_field_group }}
+                                {% else %}
                                     <p class="fr-text-default--warning fr-mb-1w">
-                                        Aucun modèle de lettre disponible.
+                                        Aucun {{ fields.modele_class.verbose_name }} disponible.
                                     </p>
-                                    <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
-                                       class="fr-link fr-icon-add-line fr-link--icon-left">
-                                        Créer un modèle de lettre
-                                    </a>
-                                </div>
-                            {% endif %}
-                            {{ fields.skip_lettre.as_field_group }}
-                        </div>
+                                    <p class="fr-mb-2w">
+                                        <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
+                                           class="fr-link fr-icon-add-line fr-link--icon-left">
+                                            Créer un {{ fields.modele_class.verbose_name }}
+                                        </a>
+                                    </p>
+                                {% endif %}
+                                {{ fields.skip.as_field_group }}
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             {% endfor %}

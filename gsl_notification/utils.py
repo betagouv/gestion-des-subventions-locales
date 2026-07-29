@@ -28,7 +28,6 @@ from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
-    DOCUMENTS,
     MODELES,
     Annexe,
     Arrete,
@@ -352,12 +351,6 @@ def get_modele_class(modele_type):
     if modele_type not in MODELES:
         raise ValueError("Type inconnu")
     return MODELES[modele_type]
-
-
-def get_generated_document_class(document_type):
-    if document_type not in DOCUMENTS:
-        raise ValueError("Type inconnu")
-    return DOCUMENTS[document_type]
 
 
 def get_form_class(document_type):

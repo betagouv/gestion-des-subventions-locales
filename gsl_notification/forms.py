@@ -25,7 +25,6 @@ from gsl_notification.models import (
 )
 from gsl_notification.tasks import run_document_import_job
 from gsl_notification.utils import (
-    get_generated_document_class,
     get_modele_class,
     get_modele_perimetres,
     log_generated_document_action,
@@ -192,64 +191,61 @@ class _DotationDocumentFields:
     template consumption.
     """
 
+    modeles = [MODELES[modele] for modele in [ARRETE, LETTRE]]
+
     def __init__(self, form: "GenerateAcceptedDotationsDocumentsForm", dotation_projet):
         self.form = form
         self.dotation = dotation_projet.dotation
         self.dotation_projet = dotation_projet
 
     def build(self) -> dict:
+        widget_fields = {}
+
         perimetres = get_modele_perimetres(self.dotation, self.form.user.perimetre)
-        pp = self.dotation_projet.programmation_projet
-        existing_arrete = getattr(pp, "arrete", None)
-        existing_lettre = getattr(pp, "lettre_notification", None)
+        for modele_class in self.modeles:
+            modele_fields = {}
+            modele_bound_field = self._add_modele_field(
+                modele_class,
+                perimetres,
+            )
+            has_modele_document = modele_bound_field.field.queryset.exists()
+            skip_bound_field = self._add_skip_field(
+                modele_class,
+                disabled=not has_modele_document,
+            )
 
-        modele_arrete = self._add_modele_field(
-            "modele_arrete", ARRETE, perimetres, "Modèle d'arrêté", existing_arrete
-        )
-        has_modele_arrete = self.form.fields[modele_arrete].queryset.exists()
-        skip_arrete = self._add_skip_field(
-            "skip_arrete", "Ne pas générer l'arrêté", disabled=not has_modele_arrete
-        )
-        modele_lettre = self._add_modele_field(
-            "modele_lettre", LETTRE, perimetres, "Modèle de lettre", existing_lettre
-        )
-        has_modele_lettre = self.form.fields[modele_lettre].queryset.exists()
-        skip_lettre = self._add_skip_field(
-            "skip_lettre", "Ne pas générer la lettre", disabled=not has_modele_lettre
-        )
+            modele_fields["modele"] = modele_bound_field
+            modele_fields["has_modele"] = has_modele_document
+            modele_fields["skip"] = skip_bound_field
+            modele_fields["modele_class"] = modele_class
+            widget_fields[modele_class.type] = modele_fields
 
-        return {
-            "modele_arrete": self.form[modele_arrete],
-            "skip_arrete": self.form[skip_arrete],
-            "modele_lettre": self.form[modele_lettre],
-            "skip_lettre": self.form[skip_lettre],
-            "has_modele_arrete": has_modele_arrete,
-            "has_modele_lettre": has_modele_lettre,
-        }
+        return widget_fields
 
-    def _add_modele_field(
-        self, prefix, document_type, perimetres, label, existing_document
-    ) -> str:
-        name = f"{prefix}_{self.dotation}"
+    def _add_modele_field(self, modele_class, perimetres):
+        name = f"modele_{modele_class.type}_{self.dotation}"
+        existing_document = getattr(
+            self.dotation_projet.programmation_projet, modele_class.type, None
+        )
         self.form.fields[name] = forms.ModelChoiceField(
-            queryset=get_modele_class(document_type).objects.filter(
+            queryset=modele_class.objects.filter(
                 dotation=self.dotation, perimetre__in=perimetres
             ),
             required=False,
             empty_label="Sélectionner un modèle",
-            label=label,
+            label=modele_class.verbose_name().capitalize(),
             initial=existing_document.modele if existing_document else None,
             widget=forms.Select(attrs={"data-skip-document-toggle-target": "select"}),
         )
-        return name
+        return self.form[name]
 
-    def _add_skip_field(self, prefix, label, *, disabled: bool) -> str:
+    def _add_skip_field(self, modele_class, disabled: bool):
         # disabled=True both forces cleaned_data to the initial value (True),
         # ignoring whatever is posted, and renders the checkbox non-interactive.
-        name = f"{prefix}_{self.dotation}"
+        name = f"skip_{modele_class.type}_{self.dotation}"
         self.form.fields[name] = forms.BooleanField(
             required=False,
-            label=label,
+            label=f"Ne pas générer {modele_class.article_name}",
             initial=disabled,
             disabled=disabled,
             widget=forms.CheckboxInput(
@@ -259,7 +255,7 @@ class _DotationDocumentFields:
                 }
             ),
         )
-        return name
+        return self.form[name]
 
 
 class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
@@ -317,35 +313,27 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
         with_qr_code = not self.cleaned_data["hide_qr_code"]
         documents = []
         for dp in self.accepted_dotation_projets:
-            pp = dp.programmation_projet
-            if not self.cleaned_data[f"skip_arrete_{dp.dotation}"]:
-                documents.append(
-                    self._generate_document(
-                        pp,
-                        ARRETE,
-                        self.cleaned_data[f"modele_arrete_{dp.dotation}"],
-                        with_qr_code,
+            for modele_class in _DotationDocumentFields.modeles:
+                field_name = f"modele_{modele_class.type}_{dp.dotation}"
+                skip_field_name = f"skip_{modele_class.type}_{dp.dotation}"
+                if not self.cleaned_data[skip_field_name]:
+                    documents.append(
+                        self._generate_document(
+                            modele_class,
+                            dp.programmation_projet,
+                            self.cleaned_data[field_name],
+                            with_qr_code,
+                        )
                     )
-                )
-            if not self.cleaned_data[f"skip_lettre_{dp.dotation}"]:
-                documents.append(
-                    self._generate_document(
-                        pp,
-                        LETTRE,
-                        self.cleaned_data[f"modele_lettre_{dp.dotation}"],
-                        with_qr_code,
-                    )
-                )
         return documents
 
     def _generate_document(
-        self, programmation_projet, document_type, modele, with_qr_code
+        self, modele_class, programmation_projet, modele, with_qr_code
     ):
-        document_class = get_generated_document_class(document_type)
-        pp_attribute = "arrete" if document_type == ARRETE else "lettre"
-        is_creating = not hasattr(programmation_projet, pp_attribute)
+        document_class = modele_class.generated_document_class
+        is_creating = not hasattr(programmation_projet, modele_class.type)
         if not is_creating:
-            getattr(programmation_projet, pp_attribute).delete()
+            getattr(programmation_projet, modele_class.type).delete()
 
         document = document_class(
             programmation_projet=programmation_projet,
@@ -355,7 +343,7 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
         )
         document.save(with_qr_code=with_qr_code)
         log_generated_document_action(
-            self.user, programmation_projet, document_type, is_creating
+            self.user, programmation_projet, modele_class.type, is_creating
         )
         return document
 
@@ -863,7 +851,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         modele_by_type = {ARRETE: modele_arrete, LETTRE: modele_lettre}
         for doc_type in self.selected_types:
             self._create_documents_of_type(
-                pps, doc_type, modele_by_type[doc_type], overwrite_strategy
+                pps, modele_by_type[doc_type], overwrite_strategy
             )
 
         return list(
@@ -886,9 +874,9 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         )
 
     def _create_documents_of_type(
-        self, programmation_projets, document_type, modele, overwrite_strategy
+        self, programmation_projets, modele, overwrite_strategy
     ):
-        document_class = get_generated_document_class(document_type)
+        document_class = modele.generated_document_class
 
         if overwrite_strategy == GenerateDocumentsStep2Form.STRATEGY_REMPLACER:
             document_class.objects.filter(

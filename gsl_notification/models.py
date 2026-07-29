@@ -99,6 +99,11 @@ class ModeleDocument(VerboseNameMixin, models.Model):
         null=True,
     )
 
+    # Set by GeneratedDocument.__init_subclass__ for modeles that have a
+    # corresponding generated document (e.g. ModeleArrete -> Arrete). Stays
+    # None for modeles that don't (e.g. ModeleLettreRefus).
+    generated_document_class: "type[GeneratedDocument] | None" = None
+
     class Meta:
         verbose_name = "Modèle de document"
         verbose_name_plural = "Modèles de document"
@@ -124,6 +129,7 @@ class ModeleArrete(ModeleDocument):
     type = ARRETE
     type_label = "Arrêté attributif"
     delete_label = "Suppression du modèle d’arrêté"
+    article_name = "l'arrêté"
 
     class Meta:
         verbose_name = "Modèle d’arrêté"
@@ -134,6 +140,7 @@ class ModeleLettreNotification(ModeleDocument):
     type = LETTRE
     type_label = "Lettre de notification"
     delete_label = "Suppression du modèle de lettre de notification"
+    article_name = "la lettre de notification"
 
     class Meta:
         verbose_name = "Modèle de lettre de notification"
@@ -144,6 +151,7 @@ class ModeleLettreRefus(ModeleDocument):
     type = LETTRE_REFUS
     type_label = "Lettre de refus ou classement sans suite"
     delete_label = "Suppression du modèle de lettre de refus ou classement sans suite"
+    article_name = "la lettre de refus ou classement sans suite"
 
     class Meta:
         verbose_name = "Modèle de lettre de refus ou classement sans suite"
@@ -176,6 +184,7 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         DOCUMENTS[cls.document_type] = cls
+        MODELES[cls.document_type].generated_document_class = cls
 
     def save(self, *args, with_qr_code=True, **kwargs):
         from gsl_notification.utils import generate_pdf_for_generated_document

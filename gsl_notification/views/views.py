@@ -34,7 +34,6 @@ from gsl_notification.models import (
 from gsl_notification.utils import (
     generate_pdf_for_generated_document,
     get_form_class,
-    get_generated_document_class,
     get_modele_class,
     get_modele_perimetres,
     get_uploaded_document_class,
@@ -318,8 +317,8 @@ def change_document_view(request, projet_id, dotation, document_type):
         )
     )
     try:
-        document_class = get_generated_document_class(document_type)
         modele_class = get_modele_class(document_type)
+        document_class = modele_class.generated_document_class
         form_class = get_form_class(document_type)
     except ValueError:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
@@ -447,7 +446,11 @@ class DeleteDocumentView(DeleteView):
 
     def get_queryset(self):
         try:
-            document_class = get_generated_document_class(self.kwargs["document_type"])
+            document_class = get_modele_class(
+                self.kwargs["document_type"]
+            ).generated_document_class
+            if document_class is None:
+                raise ValueError("Type inconnu")
         except ValueError:
             try:
                 document_class = get_uploaded_document_class(
@@ -504,7 +507,11 @@ class PrintDocumentView(DetailView):
     def get_queryset(self):
         self.document_type = self.kwargs["document_type"]
         try:
-            document_class = get_generated_document_class(self.document_type)
+            document_class = get_modele_class(
+                self.document_type
+            ).generated_document_class
+            if document_class is None:
+                raise ValueError("Type inconnu")
         except ValueError:
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
