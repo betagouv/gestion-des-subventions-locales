@@ -23,7 +23,7 @@ from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
-    DOCUMENTS,
+    GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
     Arrete,
     LettreNotification,
@@ -487,7 +487,7 @@ class Projet(BaseModel):
             documents,
             key=lambda d: (
                 DOTATIONS.index(d.programmation_projet.dotation),
-                list(DOCUMENTS.keys()).index(d.document_type),
+                list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
 

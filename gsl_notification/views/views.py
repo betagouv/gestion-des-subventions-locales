@@ -23,12 +23,15 @@ from gsl_core.matomo_constants import (
 )
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_historique.models import ProjetAction
 from gsl_notification.forms import (
     GenerateAcceptedDotationsDocumentsForm,
     NotificationMessageForm,
     RefusedDismissedNotificationForm,
 )
 from gsl_notification.models import (
+    GENERATED_DOCUMENTS,
+    UPLOADED_DOCUMENTS,
     GeneratedDocument,
 )
 from gsl_notification.utils import (
@@ -36,7 +39,6 @@ from gsl_notification.utils import (
     get_form_class,
     get_modele_class,
     get_modele_perimetres,
-    get_uploaded_document_class,
     log_generated_document_action,
     replace_mentions_in_html,
 )
@@ -446,20 +448,11 @@ class DeleteDocumentView(DeleteView):
 
     def get_queryset(self):
         try:
-            document_class = get_modele_class(
-                self.kwargs["document_type"]
-            ).generated_document_class
-            if document_class is None:
-                raise ValueError("Type inconnu")
-        except ValueError:
-            try:
-                document_class = get_uploaded_document_class(
-                    self.kwargs["document_type"]
-                )
-            except ValueError:
-                raise Http404(
-                    user_message="Le type de document sélectionné n'existe pas."
-                )
+            DOCUMENTS = {**GENERATED_DOCUMENTS, **UPLOADED_DOCUMENTS}
+            document_class = DOCUMENTS[self.kwargs["document_type"]]
+        except KeyError:
+            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
+
         return document_class.objects.filter(
             programmation_projet__dotation_projet__projet__in=Projet.objects.active().for_user(
                 self.request.user
@@ -467,8 +460,6 @@ class DeleteDocumentView(DeleteView):
         )
 
     def form_valid(self, form):
-        from gsl_historique.models import ProjetAction
-
         pp = self.object.programmation_projet
         doc_class_name = self.object.__class__._meta.verbose_name
         action_type = (

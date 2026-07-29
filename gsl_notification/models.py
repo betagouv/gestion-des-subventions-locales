@@ -158,7 +158,7 @@ class ModeleLettreRefus(ModeleDocument):
         verbose_name_plural = "Modèles de lettre de refus ou classement sans suite"
 
 
-DOCUMENTS = {}
+GENERATED_DOCUMENTS = {}
 
 
 class GeneratedDocument(VerboseNameMixin, models.Model):
@@ -183,7 +183,7 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        DOCUMENTS[cls.document_type] = cls
+        GENERATED_DOCUMENTS[cls.document_type] = cls
         MODELES[cls.document_type].generated_document_class = cls
 
     def save(self, *args, with_qr_code=True, **kwargs):
