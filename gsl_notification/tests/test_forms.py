@@ -26,6 +26,7 @@ from gsl_projet.constants import (
     ARRETE,
     DOTATION_DETR,
     DOTATION_DSIL,
+    LETTRE,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
@@ -368,7 +369,7 @@ def test_generate_accepted_dotations_documents_form_creates_documents():
     pp.refresh_from_db()
     assert pp.arrete.modele == modele_arrete
     assert pp.arrete.created_by == user
-    assert pp.lettre_notification.modele == modele_lettre
+    assert pp.lettre.modele == modele_lettre
 
 
 @pytest.mark.django_db

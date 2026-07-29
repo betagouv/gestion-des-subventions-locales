@@ -342,7 +342,7 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
         self, programmation_projet, document_type, modele, with_qr_code
     ):
         document_class = get_generated_document_class(document_type)
-        pp_attribute = "arrete" if document_type == ARRETE else "lettre_notification"
+        pp_attribute = "arrete" if document_type == ARRETE else "lettre"
         is_creating = not hasattr(programmation_projet, pp_attribute)
         if not is_creating:
             getattr(programmation_projet, pp_attribute).delete()
@@ -871,8 +871,8 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             .select_related(
                 "arrete",
                 "arrete__modele",
-                "lettre_notification",
-                "lettre_notification__modele",
+                "lettre",
+                "lettre__modele",
                 "lettre_et_arrete_signes",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",

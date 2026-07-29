@@ -261,7 +261,7 @@ class LettreNotification(GeneratedDocument):
         "gsl_programmation.ProgrammationProjet",
         on_delete=models.CASCADE,
         verbose_name="Programmation projet",
-        related_name="lettre_notification",
+        related_name="lettre",
     )
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
 

@@ -398,10 +398,11 @@ def change_document_view(request, projet_id, dotation, document_type):
     )
 
 
+# TODO remove this function and use modele classes attributes
 def _get_pp_attribute_page_title_and_page_step_title(
     document_type, programmation_projet: ProgrammationProjet, step=1
 ):
-    pp_attribute = "arrete" if document_type == ARRETE else "lettre_notification"
+    pp_attribute = "arrete" if document_type == ARRETE else "lettre"
     is_creating = not hasattr(programmation_projet, pp_attribute)
     page_title = (
         f"{'Création' if is_creating else 'Modification'} de l'arrêté attributif"

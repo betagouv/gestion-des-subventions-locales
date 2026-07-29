@@ -382,7 +382,7 @@ def get_programmation_projet_attribute(document_type: str):
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == LETTRE:
-        return "lettre_notification"
+        return "lettre"
     return "arrete"
 
 

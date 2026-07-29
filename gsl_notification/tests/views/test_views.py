@@ -200,12 +200,8 @@ def test_post_documents_invalid_rerenders_block_with_errors(
     )
 
     assert response.status_code == 200
-    assert (
-        response.templates[0].name == "includes/_generate_documents_form.html"
-    )
-    assert (
-        f"modele_arrete_{DOTATION_DETR}" in response.context["form"].errors
-    )
+    assert response.templates[0].name == "includes/_generate_documents_form.html"
+    assert f"modele_arrete_{DOTATION_DETR}" in response.context["form"].errors
     assert not Arrete.objects.filter(programmation_projet=pp).exists()
 
 
@@ -1009,7 +1005,7 @@ def test_delete_document_with_correct_perimetre(
         kwargs={"document_type": document_type, "document_id": document.id},
     )
 
-    attr = ARRETE if document_type == ARRETE else "lettre_notification"
+    attr = ARRETE if document_type == ARRETE else "lettre"
     assert hasattr(programmation_projet, attr)
 
     response = correct_perimetre_client_with_user_logged.post(url)

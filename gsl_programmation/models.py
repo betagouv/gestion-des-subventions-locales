@@ -411,7 +411,7 @@ class ProgrammationProjet(models.Model):
         else:
             if hasattr(self, "arrete"):
                 summary.append("1 arrêté")
-            if hasattr(self, "lettre_notification"):
+            if hasattr(self, "lettre"):
                 summary.append("1 lettre")
 
         annexes_count = len(self.annexes.all())
