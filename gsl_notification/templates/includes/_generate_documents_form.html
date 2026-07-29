@@ -11,15 +11,16 @@
         {% ui_form_errors form=form %}
 
         <div class="fr-grid-row fr-grid-row--gutters">
-            {% for dotation, dotation_fields in form.dotation_fields.items %}
+            {% for dotation, dotation_data in form.dotation_fields.items %}
                 <div class="fr-col-12 fr-col-md-6">
                     <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
                         <h4 class="fr-callout__title">
                             {{ dotation }}
                         </h4>
                         {% ui_status_badge type="accepted" dotation=dotation %}
+                        {% ui_status_badge type=dotation_data.dotation_projet.notification_status %}
 
-                        {% for modele_type, fields in dotation_fields.items %}
+                        {% for modele_type, fields in dotation_data.fields.items %}
                             <div class="fr-callout__text fr-mt-4w"
                                  data-controller="skip-document-toggle">
                                 {% if fields.has_modele %}

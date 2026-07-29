@@ -322,6 +322,10 @@ class ProgrammationProjet(models.Model):
         return self.dotation_projet.dotation
 
     @property
+    def has_lettre_and_arrete_signes(self):
+        return hasattr(self, "lettre_et_arrete_signes")
+
+    @property
     @deprecated("Use `Projet.notified_at` instead.")
     def notified_at(self):
         return self.projet.notified_at

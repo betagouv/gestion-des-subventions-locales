@@ -319,7 +319,7 @@ def test_generate_accepted_dotations_documents_form_forces_skip_when_no_modele()
 
     form = GenerateAcceptedDotationsDocumentsForm({}, projet=projet, user=user)
 
-    fields = form.dotation_fields[DOTATION_DETR]
+    fields = form.dotation_fields[DOTATION_DETR]["fields"]
     assert fields[ARRETE]["has_modele"] is False
     assert fields[LETTRE]["has_modele"] is False
     assert form.fields[f"skip_arrete_{DOTATION_DETR}"].disabled
