@@ -384,19 +384,19 @@ ul.no-list-style li {
 #projet-table-wrapper {
     --sticky-checkbox-width: 0px;
     --sticky-left-1-width: 100px;
-    --sticky-right-2-width: 120px;
+    --sticky-right-2-width: 130px;
 }
 
 #simulation-table-wrapper {
     --sticky-checkbox-width: 2.75rem;
     --sticky-left-1-width: 100px;
-    --sticky-right-2-width: 120px;
+    --sticky-right-2-width: 130px;
 }
 
 #programmation-table-wrapper {
     --sticky-checkbox-width: 0px;
     --sticky-left-1-width: 60px;
-    --sticky-right-2-width: 120px;
+    --sticky-right-2-width: 130px;
 }
 
 /* Left offsets for tables with Date as first column (projets, simulation).

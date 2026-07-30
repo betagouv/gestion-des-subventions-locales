@@ -32,6 +32,7 @@ from gsl_core.table_columns import (
     TextAlign,
 )
 from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
+from gsl_simulation.table_columns import COLUMN_NOTIFICATION
 
 
 def _intitule_url(ctx):
@@ -170,13 +171,7 @@ COLUMN_STATUT = Column(
     getter=lambda ctx: ctx["programmation_projet"].get_status_display(),
     other_dotation_getter=_get_other_dotation_statut,
     sticky=StickyPosition.RIGHT_1,
-)
-
-COLUMN_NOTIFICATION = Column(
-    key="notification",
-    label="Notification",
-    template_name="gsl_programmation/table_cells/notification.html",
-    sticky=StickyPosition.RIGHT_2,
+    text_align=TextAlign.CENTER,
 )
 
 PROGRAMMATION_TABLE_COLUMNS = (

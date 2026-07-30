@@ -169,6 +169,7 @@ class NotificationMessageFormView(UpdateView):
         return HttpResponseClientRefresh()
 
 
+# TODO remove this, once the notification tab is fully implemented and the modal is no longer used
 @method_decorator(htmx_only, name="dispatch")
 class RefusedDismissedNotificationModalView(OpenHtmxModalMixin, UpdateView):
     """

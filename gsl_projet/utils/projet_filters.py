@@ -27,6 +27,7 @@ from gsl_demarches_simplifiees.models import (
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
+    NOTIFICATION_STATUS_CHOICES,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_CHOICES,
     PROJET_STATUS_DISMISSED,
@@ -379,6 +380,13 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
+    notification_status = MultipleChoiceFilter(
+        label="Statut de notification",
+        method="filter_notification_status",
+        choices=NOTIFICATION_STATUS_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
     territoire = LabelFromInstanceFilter(
         label="Territoire",
         method="filter_territoire",
@@ -477,6 +485,15 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
     def filter_status(self, queryset, _name, values: list[str]):
         return queryset.annotate_status().filter(_status__in=values)
 
+    def filter_notification_status(self, queryset, _name, values: list[str]):
+        # Unlike `status`, this matches a projet as soon as ONE of its
+        # dotations has the selected notification status, rather than
+        # reducing to a single aggregated value first.
+        dotation_qs = DotationProjet.objects.annotate_notification_status().filter(
+            projet=OuterRef("pk"), _notification_status__in=values
+        )
+        return queryset.filter(Exists(dotation_qs))
+
     class Meta:
         model = Projet
         fields = (
@@ -488,6 +505,7 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
             "categorie_detr",
             "categorie_dsil",
             "status",
+            "notification_status",
             "budget_vert_demandeur",
             "budget_vert_instructeur",
             "dotation_sollicitee",

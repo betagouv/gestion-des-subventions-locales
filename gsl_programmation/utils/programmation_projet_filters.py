@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from django.db.models import Case, DecimalField, F, Q, When
+from django.db.models import Case, DecimalField, F, OuterRef, Q, Subquery, When
 from django_filters import (
     CharFilter,
     ChoiceFilter,
@@ -25,7 +25,12 @@ from gsl_programmation.models import (
     Enveloppe,
     ProgrammationProjet,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    NOTIFICATION_STATUS_CHOICES,
+)
+from gsl_projet.models import DotationProjet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -58,6 +63,7 @@ PROGRAMMATION_ORDERING_MAP = {
     "dotation_projet__projet__dossier_ds__demande_priorite_dsil_detr": "priorite",
     "dotation_projet__assiette": "assiette",
     "prog_taux": "taux",
+    "_notification_status": "notification",
 }
 
 
@@ -123,6 +129,13 @@ class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
         label="Statut",
         field_name="status",
         choices=(ProgrammationProjet.STATUS_CHOICES),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    notification_status = MultipleChoiceFilter(
+        label="Statut de notification",
+        field_name="_notification_status",
+        choices=NOTIFICATION_STATUS_CHOICES,
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
@@ -277,6 +290,7 @@ class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
             "zonage",
             "contractualisation",
             "status",
+            "notification_status",
             "date_depot",
             "date_debut",
             "date_achevement",
@@ -284,6 +298,17 @@ class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Annotated here (not lazily in `qs`, unlike `prog_taux`) so it's
+        # ready both for the notification_status filter and for sorting.
+        self.queryset = self.queryset.annotate(
+            _notification_status=Subquery(
+                DotationProjet.objects.annotate_notification_status()
+                .filter(pk=OuterRef("dotation_projet_id"))
+                .values("_notification_status")[:1]
+            )
+        )
+
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
             self.filters["territoire"].queryset = Perimetre.objects.filter(

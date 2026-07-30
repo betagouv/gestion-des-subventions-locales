@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import format_html
 
@@ -26,10 +27,12 @@ from gsl_core.table_columns import (
     COLUMN_ZONAGE,
     CellLink,
     Column,
+    ColumnWidth,
     StickyPosition,
     TextAlign,
 )
 from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
+from ui.templatetags.ui_tags import ui_status_badge
 
 
 def _simulation_intitule_url(ctx):
@@ -123,6 +126,16 @@ def _get_simu_other_dotation_statut(context):
     )
 
 
+def _get_simu_other_dotation_notification_statut(context):
+    dp = context["other_dotation"]
+    if not dp.notification_status:
+        return "/"
+    return render_to_string(
+        "ui/components/status_badge.html",
+        ui_status_badge(type=dp.notification_status, **{"class": "fr-badge--sm"}),
+    )
+
+
 COLUMN_ASSIETTE = Column(
     key="assiette",
     label="Assiette (€)",
@@ -159,13 +172,16 @@ COLUMN_STATUT = Column(
     template_name="gsl_simulation/table_cells/statut.html",
     other_dotation_getter=_get_simu_other_dotation_statut,
     sticky=StickyPosition.RIGHT_1,
+    width=ColumnWidth.MIN_180,
 )
 
 COLUMN_NOTIFICATION = Column(
     key="notification",
     label="Notification",
     template_name="gsl_core/table_cells/notification.html",
+    other_dotation_getter=_get_simu_other_dotation_notification_statut,
     sticky=StickyPosition.RIGHT_2,
+    sort_param="notification",
 )
 
 

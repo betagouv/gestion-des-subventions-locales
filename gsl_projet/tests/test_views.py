@@ -21,6 +21,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
+from gsl_notification.tests.factories import ArreteFactory, LettreNotificationFactory
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import Projet
@@ -798,6 +799,53 @@ def test_filter_by_status_refused_excludes_project_without_dotation(req, view):
 
     assert qs.count() == 1
     assert qs.first().pk == projet_refuse.pk
+
+
+### Test du filtre par statut de notification
+
+
+@pytest.fixture
+def projet_with_mixed_notification_statuses() -> Projet:
+    """Une dotation DETR 'to_sign' (arrêté + lettre générés) et une dotation
+    DSIL 'to_generate' (aucun document). L'agrégat par projet (le moins
+    avancé gagne) donnerait 'to_generate', mais le filtre doit quand même
+    trouver le projet via sa dotation DETR."""
+    projet = ProjetFactory()
+
+    to_sign_dp = DetrProjetFactory(projet=projet, status="accepted")
+    to_sign_pp = ProgrammationProjetFactory(dotation_projet=to_sign_dp)
+    ArreteFactory(programmation_projet=to_sign_pp)
+    LettreNotificationFactory(programmation_projet=to_sign_pp)
+
+    to_generate_dp = DsilProjetFactory(projet=projet, status="accepted")
+    ProgrammationProjetFactory(dotation_projet=to_generate_dp)
+
+    return projet
+
+
+@pytest.mark.parametrize(
+    "notification_status,expected_count",
+    [
+        ("to_generate", 1),
+        ("to_sign", 1),
+        ("to_notify", 0),
+        ("notified", 0),
+    ],
+)
+def test_filter_by_notification_status_matches_projet_if_any_dotation_matches(
+    req,
+    view,
+    projet_with_mixed_notification_statuses,
+    notification_status,
+    expected_count,
+):
+    request = req.get("/", data={"notification_status": notification_status})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == expected_count
+    if expected_count == 1:
+        assert qs.first().pk == projet_with_mixed_notification_statuses.pk
 
 
 ### Test du filtre par territoire

@@ -22,21 +22,8 @@
         {% endif %}
 
         {% ui_status_badge type=dotation_projet.status class="fr-mr-1w" %}
-
-        {% if projet.display_notification_message %}
-            {% if projet.to_notify %}
-                <span class="fr-badge fr-badge--no-icon">
-                    À notifier
-                </span>
-            {% elif projet.notified_at %}
-                <span class="fr-badge fr-badge--success fr-badge--no-icon">
-                    Notifié
-                </span>
-            {% else %}
-                <span class="fr-badge fr-badge--info fr-badge--no-icon">
-                    En attente de la décision {{ projet.dotation_not_treated }}
-                </span>
-            {% endif %}
+        {% if dotation_projet.notification_status %}
+            {% ui_status_badge type=dotation_projet.notification_status class="fr-mr-1w" %}
         {% endif %}
     </div>
 </div>

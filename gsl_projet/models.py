@@ -547,6 +547,36 @@ class DotationProjetQuerySet(models.QuerySet):
     def active(self):
         return self.filter(projet__dossier_ds__is_active=True)
 
+    def annotate_notification_status(self):
+        # Mirrors DotationProjet.notification_status. The REFUSED/DISMISSED +
+        # LETTRE_REFUS branch from the property is intentionally not
+        # reproduced here: LETTRE_REFUS ("refus") isn't a real related_name
+        # on ProgrammationProjet, so that branch is already unreachable in
+        # the property today, and referencing it here would raise a
+        # FieldError instead of silently doing nothing.
+        # TODO update with refused and dismissed statuses.
+        return self.annotate(
+            _notification_status=Case(
+                When(programmation_projet__isnull=True, then=Value(None)),
+                When(
+                    projet__notified_at__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_NOTIFIED),
+                ),
+                When(
+                    programmation_projet__lettre_et_arrete_signes__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_TO_NOTIFY),
+                ),
+                When(
+                    status=PROJET_STATUS_ACCEPTED,
+                    programmation_projet__lettre__isnull=False,
+                    programmation_projet__arrete__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                ),
+                default=Value(NOTIFICATION_STATUS_TO_GENERATE),
+                output_field=models.CharField(null=True),
+            )
+        )
+
 
 class DotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
     pass

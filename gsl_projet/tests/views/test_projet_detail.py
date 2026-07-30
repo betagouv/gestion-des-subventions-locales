@@ -101,53 +101,31 @@ def test_projet_detail_page_has_dotation_status_card_with_not_processing_double_
 
 
 @pytest.mark.parametrize(
-    "dotation_status_1, dotation_status_2, notification_status_message",
+    "dotation_status_1, dotation_status_2",
     (
-        (
-            PROJET_STATUS_ACCEPTED,
-            PROJET_STATUS_ACCEPTED,
-            "À notifier",
-        ),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, "À notifier"),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, "À notifier"),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, "À notifier"),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, "À notifier"),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, "À notifier"),
-        (
-            PROJET_STATUS_ACCEPTED,
-            PROJET_STATUS_PROCESSING,
-            "En attente de la décision DSIL",
-        ),
-        (
-            PROJET_STATUS_REFUSED,
-            PROJET_STATUS_PROCESSING,
-            "En attente de la décision DSIL",
-        ),
-        (
-            PROJET_STATUS_DISMISSED,
-            PROJET_STATUS_PROCESSING,
-            "En attente de la décision DSIL",
-        ),
-        (
-            PROJET_STATUS_PROCESSING,
-            PROJET_STATUS_ACCEPTED,
-            "En attente de la décision DETR",
-        ),
-        (
-            PROJET_STATUS_PROCESSING,
-            PROJET_STATUS_REFUSED,
-            "En attente de la décision DETR",
-        ),
-        (
-            PROJET_STATUS_PROCESSING,
-            PROJET_STATUS_DISMISSED,
-            "En attente de la décision DETR",
-        ),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_REFUSED),
+        (PROJET_STATUS_PROCESSING, PROJET_STATUS_DISMISSED),
     ),
 )
-def test_projet_detail_page_has_correct_notification_status_message_when_no_notification_date_has_been_set(
-    dotation_status_1, dotation_status_2, notification_status_message
+def test_projet_detail_page_shows_to_generate_badge_for_decided_dotation_without_documents(
+    dotation_status_1, dotation_status_2
 ):
+    """Une dotation décidée (accepted/refused/dismissed) sans document
+    généré affiche le badge de statut de notification "À générer"
+    (`NOTIFICATION_STATUS_TO_GENERATE`, valeur par défaut de
+    `DotationProjet.notification_status`). Une dotation encore "processing"
+    n'a pas de `programmation_projet`, donc pas de badge de notification du
+    tout (seul son badge de statut "En traitement" s'affiche)."""
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -174,12 +152,8 @@ def test_projet_detail_page_has_correct_notification_status_message_when_no_noti
     )
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
-    if notification_status_message == "À notifier":
-        assert projet.to_notify is True
-        assert projet.notified_at is None
-
     assert response.context["projet"].all_dotations_have_processing_status is False
-    assert notification_status_message in response.content.decode()
+    assert "À générer" in response.content.decode()
 
 
 @pytest.mark.parametrize(

@@ -18,8 +18,12 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import Projet
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    NOTIFICATION_STATUS_CHOICES,
+)
+from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -58,6 +62,19 @@ class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
     def __init__(self, *args, slug=None, dotation=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.slug = slug or self.request.resolver_match.kwargs.get("slug")
+
+        # Annotated here (not lazily in `qs`) so it's ready both for the
+        # notification_status filter and for the `order` OrderingFilter.
+        self.queryset = self.queryset.annotate(
+            _notification_status=Subquery(
+                DotationProjet.objects.annotate_notification_status()
+                .filter(
+                    projet=models.OuterRef("pk"),
+                    simulationprojet__simulation__slug=self.slug,
+                )
+                .values("_notification_status")[:1]
+            )
+        )
 
         if hasattr(self.request, "user") and self.request.user.perimetre:
             perimetre = self.request.user.perimetre
@@ -148,6 +165,13 @@ class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
         label="Demandeur",
         field_name="dossier_ds__porteur_de_projet_nature__type",
         choices=NaturePorteurProjet.TYPE_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    notification_status = MultipleChoiceFilter(
+        label="Statut de notification",
+        field_name="_notification_status",
+        choices=NOTIFICATION_STATUS_CHOICES,
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
@@ -330,6 +354,7 @@ class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
             "porteur",
             "dossier_complet",
             "status",
+            "notification_status",
             "cout",
             "montant_demande",
             "montant_previsionnel",
