@@ -39,9 +39,10 @@
                         </div>
                     {% endif %}
 
+                    {% comment %} TODO simplify this with a new and more precise projet.to_notify ? {% endcomment %}
                     <button type="submit"
                             class="fr-btn fr-mt-3w fr-icon-mail-line fr-btn--icon-right"
-                            {% if projet.dotationprojet_set.without_signed_document %}disabled{% endif %}>
+                            {% if projet.dotation_not_treated or projet.dotationprojet_set.without_signed_document %}disabled{% endif %}>
                         Notifier
                     </button>
                 </form>
@@ -49,7 +50,7 @@
         </div>
     {% else %}
         <p class="fr-text-default--info">
-            Vous ne pouvez pas notifier le projet car vous n'êtes pas instructeur de ce dossiers.
+            Vous ne pouvez pas notifier le projet car vous n'êtes pas instructeur de ce dossier.
         </p>
     {% endif %}
 </div>

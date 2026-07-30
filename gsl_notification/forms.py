@@ -25,7 +25,6 @@ from gsl_notification.models import (
 )
 from gsl_notification.tasks import run_document_import_job
 from gsl_notification.utils import (
-    get_modele_class,
     get_modele_perimetres,
     log_generated_document_action,
     merge_documents_into_pdf,
@@ -292,20 +291,16 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
     def clean(self):
         cleaned_data = super().clean()
         for dp in self.accepted_dotation_projets:
-            if not cleaned_data.get(
-                f"skip_arrete_{dp.dotation}"
-            ) and not cleaned_data.get(f"modele_arrete_{dp.dotation}"):
-                self.add_error(
-                    f"modele_arrete_{dp.dotation}",
-                    "Sélectionnez un modèle ou cochez la case pour ne pas générer l'arrêté.",
-                )
-            if not cleaned_data.get(
-                f"skip_lettre_{dp.dotation}"
-            ) and not cleaned_data.get(f"modele_lettre_{dp.dotation}"):
-                self.add_error(
-                    f"modele_lettre_{dp.dotation}",
-                    "Sélectionnez un modèle ou cochez la case pour ne pas générer la lettre.",
-                )
+            for fields in self.dotation_fields[dp.dotation].values():
+                modele_name = fields["modele"].name
+                skip_name = fields["skip"].name
+                if not cleaned_data.get(skip_name) and not cleaned_data.get(
+                    modele_name
+                ):
+                    self.add_error(
+                        modele_name,
+                        f"Sélectionnez un modèle ou cochez la case pour ne pas générer {fields['modele_class'].article_name}.",
+                    )
         return cleaned_data
 
     @transaction.atomic
@@ -313,15 +308,13 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
         with_qr_code = not self.cleaned_data["hide_qr_code"]
         documents = []
         for dp in self.accepted_dotation_projets:
-            for modele_class in _DotationDocumentFields.modeles:
-                field_name = f"modele_{modele_class.type}_{dp.dotation}"
-                skip_field_name = f"skip_{modele_class.type}_{dp.dotation}"
-                if not self.cleaned_data[skip_field_name]:
+            for fields in self.dotation_fields[dp.dotation].values():
+                if not self.cleaned_data[fields["skip"].name]:
                     documents.append(
                         self._generate_document(
-                            modele_class,
+                            fields["modele_class"],
                             dp.programmation_projet,
-                            self.cleaned_data[field_name],
+                            self.cleaned_data[fields["modele"].name],
                             with_qr_code,
                         )
                     )
@@ -759,7 +752,7 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
 
     def _modeles_queryset(self, document_type):
         perimetres = get_modele_perimetres(self.dotation, self.user.perimetre)
-        return get_modele_class(document_type).objects.filter(
+        return MODELES[document_type].objects.filter(
             dotation=self.dotation, perimetre__in=perimetres
         )
 

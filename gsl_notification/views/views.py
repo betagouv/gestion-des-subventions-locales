@@ -31,13 +31,13 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
+    MODELES,
     UPLOADED_DOCUMENTS,
     GeneratedDocument,
 )
 from gsl_notification.utils import (
     generate_pdf_for_generated_document,
     get_form_class,
-    get_modele_class,
     get_modele_perimetres,
     log_generated_document_action,
     replace_mentions_in_html,
@@ -138,11 +138,7 @@ class NotificationMessageFormView(UpdateView):
     model = Projet
 
     def get_queryset(self):
-        return (
-            Projet.objects.active()
-            .for_user(self.request.user)
-            .with_at_least_one_accepted_dotation()
-        )
+        return Projet.objects.active().for_user(self.request.user).to_notify()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -259,8 +255,8 @@ def select_modele(request, projet_id, dotation, document_type):
     dotation = programmation_projet.dotation_projet.dotation
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
     try:
-        modele_class = get_modele_class(document_type)
-    except ValueError:
+        modele_class = MODELES[document_type]
+    except KeyError:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     modeles = modele_class.objects.filter(dotation=dotation, perimetre__in=perimetres)
 
@@ -319,10 +315,10 @@ def change_document_view(request, projet_id, dotation, document_type):
         )
     )
     try:
-        modele_class = get_modele_class(document_type)
+        modele_class = MODELES[document_type]
         document_class = modele_class.generated_document_class
         form_class = get_form_class(document_type)
-    except ValueError:
+    except KeyError:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
     if hasattr(programmation_projet, pp_attribute):
@@ -498,12 +494,10 @@ class PrintDocumentView(DetailView):
     def get_queryset(self):
         self.document_type = self.kwargs["document_type"]
         try:
-            document_class = get_modele_class(
-                self.document_type
-            ).generated_document_class
+            document_class = MODELES[self.document_type].generated_document_class
             if document_class is None:
                 raise ValueError("Type inconnu")
-        except ValueError:
+        except (ValueError, KeyError):
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
         return document_class.objects.filter(

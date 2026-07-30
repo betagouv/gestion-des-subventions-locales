@@ -28,7 +28,6 @@ from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
-    MODELES,
     Annexe,
     Arrete,
     LettreEtArreteSignes,
@@ -345,12 +344,6 @@ def get_s3_object(file_name):
         return s3.get_object(Bucket=bucket, Key=file_name)
     except s3.exceptions.NoSuchKey:
         raise Http404(user_message="Fichier non trouvé")
-
-
-def get_modele_class(modele_type):
-    if modele_type not in MODELES:
-        raise ValueError("Type inconnu")
-    return MODELES[modele_type]
 
 
 def get_form_class(document_type):

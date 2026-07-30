@@ -8,6 +8,7 @@ from typing import cast
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import (
@@ -24,7 +25,12 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL, PROJET_STATUS_ACCEPTED
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -169,3 +175,27 @@ class TestView:
         url = f"/notification/{projet.id}/notifier/"
         response = client_with_user_logged.post(url, {"message": "Bravo"})
         assert response.status_code == 400
+
+    def test_view_excludes_projets_with_a_dotation_still_processing(
+        self, client_with_user_logged, perimetre
+    ):
+        """One dotation still being processed means the projet isn't notifiable yet."""
+        projet = _accepted_projet(perimetre, dotation=DOTATION_DETR)
+        DotationProjetFactory(
+            projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+        )
+
+        url = f"/notification/{projet.id}/notifier/"
+        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+        assert response.status_code == 404
+
+    def test_view_excludes_already_notified_projets(
+        self, client_with_user_logged, perimetre
+    ):
+        projet = _accepted_projet(perimetre)
+        projet.notified_at = timezone.now()
+        projet.save()
+
+        url = f"/notification/{projet.id}/notifier/"
+        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+        assert response.status_code == 404

@@ -25,7 +25,9 @@ from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
+    Annexe,
     Arrete,
+    LettreEtArreteSignes,
     LettreNotification,
 )
 from gsl_projet.constants import (
@@ -493,8 +495,6 @@ class Projet(BaseModel):
 
     @property
     def imported_documents(self):
-        from gsl_notification.models import Annexe, LettreEtArreteSignes
-
         documents = [
             *LettreEtArreteSignes.objects.filter(
                 programmation_projet__dotation_projet__projet=self
