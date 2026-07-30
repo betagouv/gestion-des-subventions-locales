@@ -1,7 +1,7 @@
 {% extends "gsl_projet/projet.html" %}
 {% load static gsl_filters dsfr_tags %}
 {% dsfr_theme_modale %}
-{% load dsfr_tags static ui_tags %}
+{% load dsfr_tags static ui_tags notification_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/projet_detail.css' %}">
@@ -10,119 +10,44 @@
 {% endblock extra_css %}
 
 {% block tab_projet %}
-    <h2 class="fr-mb-8w fr-mr-10w">
-        Génération des documents et envoi de la notification au demandeur
-    </h2>
-
     {% block notification_content %}
-        <div class="fond-gris fr-p-4w">
-            <h3>
-                <i class="fr-icon-folder-2-fill blue-color" aria-hidden="true"></i>
-                Documents de notification
+        <h3>
+            1 - Générer
+        </h3>
+        {% generate_documents_form projet %}
+
+        <div data-controller="delete-notification-document-modal"
+             data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
+             data-delete-notification-document-modal-form-id-value="delete-document-form">
+            {% include "includes/_documents_table.html" with documents=generated_documents caption="Documents générés" date_label="Date de génération" is_imported=False empty_message="Il n’y a pas de document généré pour le moment." %}
+
+            <h3 class="fr-mt-6w">
+                2 - Importer
             </h3>
-            <div class="notification-btns">
-                {% if programmation_projet.arrete and programmation_projet.lettre_notification %}
-                    <button class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line"
-                            disabled
-                            aria-describedby="tooltip-import-arrete">
-                        Générer un document
-                    </button>
-                    <span class="fr-tooltip fr-placement"
-                          id="tooltip-import-arrete"
-                          role="tooltip">
-                        Un arrêté et une lettre de notification ont déjà été générés pour ce projet.
-                    </span>
-                {% else %}
-                    <a href="{% url 'gsl_notification:choose-generated-document-type' projet.id %}"
-                       class="fr-btn fr-btn--icon-left fr-btn--secondary fr-icon-file-text-line">
-                        Générer un document
-                    </a>
-                {% endif %}
-                <a href="{% url 'gsl_notification:choose-uploaded-document-type' projet.id %}"
-                   class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
-                    Importer un document
-                </a>
-                <button class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-printer-line"
-                        title="Cette action sera disponible une fois les documents générés."
-                        disabled>
-                    Imprimer tous les documents
-                </button>
-            </div>
-            {% if projet.documents %}
-                <div data-controller="qr-code-toggle">
-                    <ul class="arrete-list"
-                        data-controller="delete-notification-document-modal"
-                        data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
-                        data-delete-notification-document-modal-form-id-value="delete-document-form"
-                        data-delete-notification-document-modal-warning-value="Cette action est irréversible.">
-                        {% for document in projet.documents %}
-                            {% include "includes/_document_card.html" %}
-                        {% endfor %}
-                    </ul>
-                    <div class="fr-checkbox-group fr-mt-3w">
-                        <input type="checkbox"
-                               id="with-qr-code"
-                               checked
-                               data-qr-code-toggle-target="checkbox"
-                               data-action="change->qr-code-toggle#toggle"
-                               aria-describedby="with-qr-code-hint">
-                        <label class="fr-label" for="with-qr-code">
-                            Inclure le QR code de suivi sur les documents
-                            <span class="fr-hint-text" id="with-qr-code-hint">
-                                Le QR code permet de rattacher automatiquement un document
-                                signé scanné au bon projet. Il est retiré lors de l’import.
-                            </span>
-                        </label>
-                    </div>
-                </div>
-            {% else %}
-                <div class="no-documents-info">
-                    Il n’y a pas de document pour le moment.
-                </div>
-            {% endif %}
+            <a href="{% url 'gsl_notification:choose-uploaded-document-type' projet.id %}"
+               class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
+                Importer un document
+            </a>
+            {% include "includes/_documents_table.html" with documents=imported_documents caption="Documents importés" date_label="Date d'import" is_imported=True empty_message="Il n’y a pas de document importé pour le moment." %}
         </div>
 
         <h3 class="fr-mt-6w">
-            <i class="fr-icon-mail-fill blue-color" aria-hidden="true"></i> Message de notification
+            3 - Notifier
+        </h3>
+        {% notification_message_form projet %}
+
+        <h3 class="fr-mt-6w">
+            4 - Notifié
         </h3>
         {% if projet.notified_at %}
-            <p class="fr-text-default--success">
-                Message de notification envoyé le {{ projet.notified_at|date }} sur Démarche Numérique.
+            <p>
+                Notifié le {{ projet.notified_at|date }}.
             </p>
-        {% elif not is_instructor %}
-            <button class="fr-btn fr-mt-6w fr-icon-edit-line fr-btn--icon-right"
-                    aria-controls="not-instructeur-modal"
-                    data-fr-opened="false">
-                Rédiger le message de notification
-            </button>
-        {% elif not projet.can_send_notification %}
-            {% if projet.dotation_not_treated %}
-                <p class="fr-mt-3w fr-mb-1w">
-                    La dotation {{ projet.dotation_not_treated }} est en attente de traitement.
-                </p>
-            {% endif %}
-            {% if projet.dotationprojet_set.without_signed_document|length > 0 %}
-                <p class="fr-mt-3w fr-mb-1w">
-                    Ajoutez les documents suivants pour notifier le demandeur&nbsp;:
-                </p>
-                <ul>
-                    {% for dotation_projet in projet.dotationprojet_set.without_signed_document %}
-                        <li>
-                            Lettre de notification et arrêté signés {{ dotation_projet.dotation }}
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-            <a class="fr-btn fr-mt-2w fr-icon-edit-line fr-btn--icon-right">
-                Rédiger le message de notification
-            </a>
         {% else %}
-            <a href="{% url 'gsl_notification:message' projet.id %}"
-               class="fr-btn fr-mt-3w fr-icon-edit-line fr-btn--icon-right">
-                Rédiger le message de notification
-            </a>
+            <p class="fr-mt-3w fr-mb-1w">
+                Aucune notification.
+            </p>
         {% endif %}
-
     {% endblock notification_content %}
 {% endblock tab_projet %}
 

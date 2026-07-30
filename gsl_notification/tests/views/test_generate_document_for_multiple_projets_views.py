@@ -502,9 +502,9 @@ def test_wizard_step4_creates_documents_and_returns_success(
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
-        assert hasattr(pp, "lettre_notification")
-        assert pp.lettre_notification.modele == detr_lettre_modele
-        assert pp.lettre_notification.created_by == client.user
+        assert hasattr(pp, "lettre")
+        assert pp.lettre.modele == detr_lettre_modele
+        assert pp.lettre.created_by == client.user
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (3 docs)
@@ -526,7 +526,7 @@ def test_wizard_step4_replaces_existing_doc(
     )
     response = _post_step4(client)
     pp.refresh_from_db()
-    assert pp.lettre_notification.id != old_lettre.id
+    assert pp.lettre.id != old_lettre.id
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -587,11 +587,11 @@ def test_wizard_step4_conserver_creates_only_missing_documents(
     )
 
     pp_with_existing.refresh_from_db()
-    assert pp_with_existing.lettre_notification.id == old_lettre.id
+    assert pp_with_existing.lettre.id == old_lettre.id
     for pp in pps_without:
         pp.refresh_from_db()
-        assert hasattr(pp, "lettre_notification")
-        assert pp.lettre_notification.modele == detr_lettre_modele
+        assert hasattr(pp, "lettre")
+        assert pp.lettre.modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -620,8 +620,8 @@ def test_wizard_step4_remplacer_when_all_covered_replaces_all(
     )
     for pp, old_id in zip(programmation_projets, old_ids, strict=True):
         pp.refresh_from_db()
-        assert pp.lettre_notification.id != old_id
-        assert pp.lettre_notification.modele == detr_lettre_modele
+        assert pp.lettre.id != old_id
+        assert pp.lettre.modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -696,8 +696,8 @@ def test_wizard_step4_both_creates_arrete_and_lettre(
         pp.refresh_from_db()
         assert hasattr(pp, "arrete")
         assert pp.arrete.modele == detr_arrete_modele
-        assert hasattr(pp, "lettre_notification")
-        assert pp.lettre_notification.modele == detr_lettre_modele
+        assert hasattr(pp, "lettre")
+        assert pp.lettre.modele == detr_lettre_modele
 
     key, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (6 docs)
@@ -732,7 +732,7 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
 
     key, body = _read_storage_body(response.context["download_url"])
     filename = os.path.basename(key)
-    assert filename == pps[0].lettre_notification.name
+    assert filename == pps[0].lettre.name
     assert body[:4] == b"%PDF"
 
 

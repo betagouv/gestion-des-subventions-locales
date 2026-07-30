@@ -34,7 +34,6 @@ from gsl_notification.models import MODELES, ModeleDocument
 from gsl_notification.utils import (
     MENTIONS,
     duplicate_field_file,
-    get_modele_class,
     get_modele_perimetres,
 )
 from gsl_projet.constants import (
@@ -177,7 +176,7 @@ class CreateModelDocumentWizard(SessionWizardView):
             raise Http404(user_message="Dotation inconnue")
         self.dotation = dotation
         self.modele_type = modele_type
-        self._class = get_modele_class(modele_type)
+        self._class = MODELES[self.modele_type]
 
         perimetre = request.user.perimetre
         if instanciate_new_modele:
@@ -318,7 +317,7 @@ class UpdateModele(CreateModelDocumentWizard):
         *args,
         **kwargs,
     ):
-        self._class = get_modele_class(modele_type)
+        self._class = MODELES[modele_type]
         self.instance = get_object_or_404(
             self._class,
             id=modele_id,
@@ -379,7 +378,7 @@ class DeleteModeleView(DeleteView):
     pk_url_kwarg = "modele_id"
 
     def get_queryset(self):
-        _class = get_modele_class(self.kwargs["modele_type"])
+        _class = MODELES[self.kwargs["modele_type"]]
         user = self.request.user
         if user.is_staff:
             return _class.objects.all()

@@ -26,9 +26,8 @@ from weasyprint import HTML
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
+from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
-    DOCUMENTS,
-    MODELES,
     Annexe,
     Arrete,
     LettreEtArreteSignes,
@@ -43,7 +42,6 @@ from gsl_projet.constants import (
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
     POSSIBLE_DOTATIONS,
-    POSSIBLES_DOCUMENTS_TELEVERSABLES,
 )
 
 
@@ -348,18 +346,6 @@ def get_s3_object(file_name):
         raise Http404(user_message="Fichier non trouvé")
 
 
-def get_modele_class(modele_type):
-    if modele_type not in MODELES:
-        raise ValueError("Type inconnu")
-    return MODELES[modele_type]
-
-
-def get_generated_document_class(document_type):
-    if document_type not in DOCUMENTS:
-        raise ValueError("Type inconnu")
-    return DOCUMENTS[document_type]
-
-
 def get_form_class(document_type):
     from gsl_notification.forms import ArreteForm, LettreNotificationForm
 
@@ -382,11 +368,11 @@ def get_programmation_projet_attribute(document_type: str):
     if document_type not in [ARRETE, LETTRE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == LETTRE:
-        return "lettre_notification"
+        return "lettre"
     return "arrete"
 
 
-def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+def get_uploaded_document_class(document_type: str):
     if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
     if document_type == ANNEXE:
@@ -394,7 +380,7 @@ def get_uploaded_document_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES
     return LettreEtArreteSignes
 
 
-def get_uploaded_form_class(document_type: POSSIBLES_DOCUMENTS_TELEVERSABLES):
+def get_uploaded_form_class(document_type: str):
     from gsl_notification.forms import AnnexeForm, ArreteEtLettreSigneForm
 
     if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
@@ -611,6 +597,25 @@ def _build_qr_css_rules(document: Arrete | LettreNotification, page_count: int) 
             f"@page :nth({page}) {{ @bottom-left {{ content: url('{data_uri}'); }} }}"
         )
     return "\n".join(rules)
+
+
+def log_generated_document_action(
+    user, programmation_projet, document_type, is_creating
+):
+    action_type = (
+        ProjetAction.TYPE_DOC_GENERATED
+        if is_creating
+        else ProjetAction.TYPE_DOC_MODIFIED
+    )
+    doc_label = "arrêté" if document_type == ARRETE else "lettre de notification"
+    ProjetAction.objects.create(
+        projet=programmation_projet.dotation_projet.projet,
+        action_type=action_type,
+        actor=user,
+        source=ProjetAction.SOURCE_TURGOT,
+        dotation=programmation_projet.dotation_projet.dotation,
+        document_name=doc_label,
+    )
 
 
 def merge_documents_into_pdf(

@@ -22,10 +22,19 @@ from django_fsm import FSMField, transition
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
+from gsl_notification.models import (
+    GENERATED_DOCUMENTS,
+    UPLOADED_DOCUMENTS,
+    Annexe,
+    Arrete,
+    LettreEtArreteSignes,
+    LettreNotification,
+)
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
+    DOTATIONS,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
@@ -211,11 +220,6 @@ class ProjetQuerySet(models.QuerySet):
             dotations_count__gt=0,
             dotations_count=F("programmation_count"),
             notified_at__isnull=True,
-        )
-
-    def can_send_notification(self):
-        return self.to_notify().exclude(
-            dotationprojet__in=DotationProjet.objects.without_signed_document()
         )
 
     def with_at_least_one_programmed_dotation(self):
@@ -435,13 +439,6 @@ class Projet(BaseModel):
         )
 
     @property
-    def can_send_notification(self) -> bool:
-        return (
-            self.to_notify
-            and not self.dotationprojet_set.without_signed_document().exists()
-        )
-
-    @property
     def has_accepted_dotation(self) -> bool:
         return any(
             d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
@@ -481,34 +478,35 @@ class Projet(BaseModel):
         )
 
     @property
-    def documents(self):
-        from gsl_notification.models import (
-            Annexe,
-            Arrete,
-            LettreEtArreteSignes,
-            LettreNotification,
+    def generated_documents(self):
+        documents = [
+            *Arrete.objects.filter(programmation_projet__dotation_projet__projet=self),
+            *LettreNotification.objects.filter(
+                programmation_projet__dotation_projet__projet=self
+            ),
+        ]
+        return sorted(
+            documents,
+            key=lambda d: (
+                DOTATIONS.index(d.programmation_projet.dotation),
+                list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
+            ),
         )
 
-        return sorted(
-            (
-                document
-                for document in (
-                    *Arrete.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                    *LettreNotification.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                    *LettreEtArreteSignes.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                    *Annexe.objects.filter(
-                        programmation_projet__dotation_projet__projet=self
-                    ),
-                )
-                if document
+    @property
+    def imported_documents(self):
+        documents = [
+            *LettreEtArreteSignes.objects.filter(
+                programmation_projet__dotation_projet__projet=self
             ),
-            key=lambda d: d.created_at,
+            *Annexe.objects.filter(programmation_projet__dotation_projet__projet=self),
+        ]
+        return sorted(
+            documents,
+            key=lambda d: (
+                DOTATIONS.index(d.programmation_projet.dotation),
+                list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
+            ),
         )
 
     @property

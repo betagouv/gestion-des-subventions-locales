@@ -25,6 +25,7 @@ from gsl_projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
@@ -284,6 +285,19 @@ class TestView:
         projet = _refused_projet(perimetre)
         projet.notified_at = timezone.now()
         projet.save()
+
+        url = f"/notification/{projet.id}/notifier/refus-ou-classement/"
+        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+        assert response.status_code == 404
+
+    def test_view_excludes_projets_with_a_dotation_still_processing(
+        self, client_with_user_logged, perimetre
+    ):
+        """One dotation still being processed means the projet isn't notifiable yet."""
+        projet = _refused_projet(perimetre, dotation=DOTATION_DETR)
+        DotationProjetFactory(
+            projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+        )
 
         url = f"/notification/{projet.id}/notifier/refus-ou-classement/"
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})

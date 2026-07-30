@@ -24,7 +24,13 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
+from gsl_projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    PROJET_STATUS_ACCEPTED,
+)
 
 ## FIXTURES
 
@@ -56,6 +62,15 @@ def correct_perimetre_client_with_user_logged(perimetre):
 def different_perimetre_client_with_user_logged():
     user = CollegueFactory()
     return ClientWithLoggedUserFactory(user)
+
+
+@pytest.fixture
+def accepted_detr_programmation_projet(perimetre):
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        dotation_projet__dotation=DOTATION_DETR,
+        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+    )
 
 
 ## TESTS
@@ -130,6 +145,64 @@ def test_get_documents_with_external_back_url_falls_back_to_projet_list(
     assert response.status_code == 200
     expected_back = reverse("projet:list")
     assert response.context["go_back_link"] == expected_back
+
+
+### documents (POST - generate accepted dotations documents) -----------------
+
+
+def test_post_documents_creates_generated_documents_and_refreshes(
+    accepted_detr_programmation_projet,
+    perimetre,
+    correct_perimetre_client_with_user_logged,
+):
+    pp = accepted_detr_programmation_projet
+    projet = pp.dotation_projet.projet
+    modele_arrete = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    modele_lettre = ModeleLettreNotificationFactory(
+        dotation=DOTATION_DETR, perimetre=perimetre
+    )
+    url = reverse(
+        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+    )
+
+    response = correct_perimetre_client_with_user_logged.post(
+        url,
+        {
+            f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
+            f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers.get("HX-Refresh") == "true"
+    assert Arrete.objects.filter(programmation_projet=pp).exists()
+    assert LettreNotification.objects.filter(programmation_projet=pp).exists()
+
+
+def test_post_documents_invalid_rerenders_block_with_errors(
+    accepted_detr_programmation_projet,
+    perimetre,
+    correct_perimetre_client_with_user_logged,
+):
+    pp = accepted_detr_programmation_projet
+    projet = pp.dotation_projet.projet
+    # A modele must exist, otherwise the skip checkbox is forced on and the
+    # form becomes valid without a modele selection.
+    ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    url = reverse(
+        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+    )
+
+    response = correct_perimetre_client_with_user_logged.post(
+        url, {}, headers={"HX-Request": "true"}
+    )
+
+    assert response.status_code == 200
+    assert response.templates[0].name == "includes/_generate_documents_form.html"
+    assert f"modele_arrete_{DOTATION_DETR}" in response.context["form"].errors
+    assert not Arrete.objects.filter(programmation_projet=pp).exists()
 
 
 #### select-modele -----------------------------------
@@ -619,12 +692,12 @@ def test_change_document_view_valid_without_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == f"L'arrêté “arrêté-attributif-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créé."
+            == f"L'arrêté “Arrêté {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créé."
         )
     else:
         assert (
             message.message
-            == f"La lettre de notification “lettre-notification-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créée."
+            == f"La lettre de notification “Lettre {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créée."
         )
 
 
@@ -678,12 +751,12 @@ def test_change_document_view_valid_with_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == f"L'arrêté “arrêté-attributif-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifié."
+            == f"L'arrêté “Arrêté {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifié."
         )
     else:
         assert (
             message.message
-            == f"La lettre de notification “lettre-notification-DETR-2025-08-11 - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifiée."
+            == f"La lettre de notification “Lettre {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifiée."
         )
 
 
@@ -932,7 +1005,7 @@ def test_delete_document_with_correct_perimetre(
         kwargs={"document_type": document_type, "document_id": document.id},
     )
 
-    attr = ARRETE if document_type == ARRETE else "lettre_notification"
+    attr = ARRETE if document_type == ARRETE else "lettre"
     assert hasattr(programmation_projet, attr)
 
     response = correct_perimetre_client_with_user_logged.post(url)

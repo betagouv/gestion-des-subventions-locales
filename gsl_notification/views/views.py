@@ -7,7 +7,7 @@ from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
-from django.views.generic import DeleteView, DetailView, UpdateView
+from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.utils.csp import csp_update
@@ -23,21 +23,23 @@ from gsl_core.matomo_constants import (
 )
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_historique.models import ProjetAction
 from gsl_notification.forms import (
-    ChooseDocumentTypeForGenerationForm,
+    GenerateAcceptedDotationsDocumentsForm,
     NotificationMessageForm,
     RefusedDismissedNotificationForm,
 )
 from gsl_notification.models import (
+    GENERATED_DOCUMENTS,
+    MODELES,
+    UPLOADED_DOCUMENTS,
     GeneratedDocument,
 )
 from gsl_notification.utils import (
     generate_pdf_for_generated_document,
     get_form_class,
-    get_generated_document_class,
-    get_modele_class,
     get_modele_perimetres,
-    get_uploaded_document_class,
+    log_generated_document_action,
     replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
@@ -72,52 +74,91 @@ class NotificationDocumentsView(DetailView):
             **{
                 "dossier": self.object.dossier_ds,
                 "dotation_projets": self.object.dotationprojet_set.all(),
+                "generated_documents": self.object.generated_documents,
+                "imported_documents": self.object.imported_documents,
                 "title": title,
-                "is_instructor": self.request.user.ds_id
-                in self.object.dossier_ds.ds_instructeurs.values_list(
-                    "ds_id", flat=True
-                ),
                 **get_projet_go_back_context(self.request),
             }
         )
 
 
-class NotificationMessageView(UpdateView):
-    template_name = (
-        "gsl_notification/tab_simulation_projet/tab_notifications_message.html"
-    )
+@method_decorator(htmx_only, name="dispatch")
+class GenerateDocumentsFormView(FormView):
+    """
+    HTMX endpoint backing the "1 - Générer" block of the notifications tab.
+    Always re-renders the whole #generate-documents-block, which is also
+    its own hx-target, so the response can swap itself in place.
 
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-    form_class = NotificationMessageForm
+    Not an UpdateView: GenerateAcceptedDotationsDocumentsForm is a plain
+    Form (projet/user passed as custom kwargs), not a ModelForm, so
+    ModelFormMixin's get_form_kwargs (which injects `instance`) would break it.
+    """
 
-    def get_queryset(self):
-        return (
-            Projet.objects.active().for_user(self.request.user).can_send_notification()
+    form_class = GenerateAcceptedDotationsDocumentsForm
+    template_name = "includes/_generate_documents_form.html"
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.projet = get_object_or_404(
+            Projet.objects.active()
+            .for_user(request.user)
+            .with_at_least_one_accepted_dotation(),
+            pk=kwargs["projet_id"],
         )
+
+    def get_form_kwargs(self):
+        return {
+            **super().get_form_kwargs(),
+            "projet": self.projet,
+            "user": self.request.user,
+        }
 
     def get_context_data(self, **kwargs):
-        title = self.object.dossier_ds.projet_intitule
-        return super().get_context_data(
-            **{
-                "dossier": self.object.dossier_ds,
-                "title": title,
-            }
+        context = super().get_context_data(**kwargs)
+        context["projet"] = self.projet
+        return context
+
+    def form_valid(self, form):
+        form.save()
+        return HttpResponseClientRefresh()
+
+
+@method_decorator(htmx_only, name="dispatch")
+class NotificationMessageFormView(UpdateView):
+    """
+    HTMX endpoint backing the "3 - Notifier" block of the notifications tab.
+    Always re-renders the whole #notification-message-block, which is also
+    its own hx-target, so the response can swap itself in place.
+    """
+
+    form_class = NotificationMessageForm
+    template_name = "includes/_notification_message_form.html"
+    pk_url_kwarg = "projet_id"
+    context_object_name = "projet"
+    model = Projet
+
+    def get_queryset(self):
+        return Projet.objects.active().for_user(self.request.user).to_notify()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_instructor"] = self.object.dossier_ds.is_instructeur(
+            self.request.user
         )
+        return context
 
     def form_valid(self, form):
         try:
             form.save(user=self.request.user)
         except DsServiceException as e:
-            messages.error(
-                self.request,
+            form.add_error(
+                None,
                 f"Une erreur est survenue lors de l'envoi de la notification. {str(e)}",
             )
             return self.form_invalid(form)
 
         messages.success(
-            self.request,
-            "Le dossier a bien été accepté sur Démarche Numérique.",
+            self.request, "Le dossier a bien été accepté sur Démarche Numérique."
         )
         queue_matomo_event(
             self.request,
@@ -125,13 +166,7 @@ class NotificationMessageView(UpdateView):
             MATOMO_ACTION_ENVOI_DN,
             "accepte",
         )
-        return redirect(self.get_success_url())
-
-    def get_success_url(self):
-        return reverse(
-            "projet:get-projet",
-            args=[self.object.id],
-        )
+        return HttpResponseClientRefresh()
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -202,40 +237,6 @@ class RefusedDismissedNotificationModalView(OpenHtmxModalMixin, UpdateView):
 # Edition form for arrêté --------------------------------------------------------------
 
 
-class ChooseDocumentTypeForGenerationView(UpdateView):
-    template_name = (
-        "gsl_notification/generated_document/choose_generated_document_type.html"
-    )
-    context_object_name = "projet"
-    pk_url_kwarg = "projet_id"
-    form_class = ChooseDocumentTypeForGenerationForm
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["dossier"] = self.object.dossier_ds
-        context["cancel_link"] = reverse("projet:get-projet", args=[self.object.id])
-        return context
-
-    def get_queryset(self):
-        return (
-            Projet.objects.active()
-            .for_user(self.request.user)
-            .with_at_least_one_accepted_dotation()
-        )
-
-    def form_valid(self, form):
-        return redirect(
-            reverse(
-                "gsl_notification:select-modele",
-                args=[
-                    self.object.id,
-                    form.cleaned_data["document"]["dotation"],
-                    form.cleaned_data["document"]["type"],
-                ],
-            )
-        )
-
-
 @require_http_methods(["GET"])
 def select_modele(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
@@ -254,8 +255,8 @@ def select_modele(request, projet_id, dotation, document_type):
     dotation = programmation_projet.dotation_projet.dotation
     perimetres = get_modele_perimetres(dotation, request.user.perimetre)
     try:
-        modele_class = get_modele_class(document_type)
-    except ValueError:
+        modele_class = MODELES[document_type]
+    except KeyError:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     modeles = modele_class.objects.filter(dotation=dotation, perimetre__in=perimetres)
 
@@ -314,10 +315,10 @@ def change_document_view(request, projet_id, dotation, document_type):
         )
     )
     try:
-        document_class = get_generated_document_class(document_type)
-        modele_class = get_modele_class(document_type)
+        modele_class = MODELES[document_type]
+        document_class = modele_class.generated_document_class
         form_class = get_form_class(document_type)
-    except ValueError:
+    except KeyError:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
     if hasattr(programmation_projet, pp_attribute):
@@ -360,7 +361,7 @@ def change_document_view(request, projet_id, dotation, document_type):
                     action,
                     programmation_projet.dotation_projet.dotation,
                 )
-            _log_generated_document_action(
+            log_generated_document_action(
                 request.user, programmation_projet, document_type, is_creating
             )
             return redirect(
@@ -394,10 +395,11 @@ def change_document_view(request, projet_id, dotation, document_type):
     )
 
 
+# TODO remove this function and use modele classes attributes
 def _get_pp_attribute_page_title_and_page_step_title(
     document_type, programmation_projet: ProgrammationProjet, step=1
 ):
-    pp_attribute = "arrete" if document_type == ARRETE else "lettre_notification"
+    pp_attribute = "arrete" if document_type == ARRETE else "lettre"
     is_creating = not hasattr(programmation_projet, pp_attribute)
     page_title = (
         f"{'Création' if is_creating else 'Modification'} de l'arrêté attributif"
@@ -442,16 +444,11 @@ class DeleteDocumentView(DeleteView):
 
     def get_queryset(self):
         try:
-            document_class = get_generated_document_class(self.kwargs["document_type"])
-        except ValueError:
-            try:
-                document_class = get_uploaded_document_class(
-                    self.kwargs["document_type"]
-                )
-            except ValueError:
-                raise Http404(
-                    user_message="Le type de document sélectionné n'existe pas."
-                )
+            DOCUMENTS = {**GENERATED_DOCUMENTS, **UPLOADED_DOCUMENTS}
+            document_class = DOCUMENTS[self.kwargs["document_type"]]
+        except KeyError:
+            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
+
         return document_class.objects.filter(
             programmation_projet__dotation_projet__projet__in=Projet.objects.active().for_user(
                 self.request.user
@@ -459,8 +456,6 @@ class DeleteDocumentView(DeleteView):
         )
 
     def form_valid(self, form):
-        from gsl_historique.models import ProjetAction
-
         pp = self.object.programmation_projet
         doc_class_name = self.object.__class__._meta.verbose_name
         action_type = (
@@ -499,8 +494,10 @@ class PrintDocumentView(DetailView):
     def get_queryset(self):
         self.document_type = self.kwargs["document_type"]
         try:
-            document_class = get_generated_document_class(self.document_type)
-        except ValueError:
+            document_class = MODELES[self.document_type].generated_document_class
+            if document_class is None:
+                raise ValueError("Type inconnu")
+        except (ValueError, KeyError):
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
         return document_class.objects.filter(
@@ -521,27 +518,6 @@ class PrintDocumentView(DetailView):
 
 class DownloadDocumentView(PrintDocumentView):
     pdf_attachment = True
-
-
-def _log_generated_document_action(
-    user, programmation_projet, document_type, is_creating
-):
-    from gsl_historique.models import ProjetAction
-
-    action_type = (
-        ProjetAction.TYPE_DOC_GENERATED
-        if is_creating
-        else ProjetAction.TYPE_DOC_MODIFIED
-    )
-    doc_label = "arrêté" if document_type == ARRETE else "lettre de notification"
-    ProjetAction.objects.create(
-        projet=programmation_projet.dotation_projet.projet,
-        action_type=action_type,
-        actor=user,
-        source=ProjetAction.SOURCE_TURGOT,
-        dotation=programmation_projet.dotation_projet.dotation,
-        document_name=doc_label,
-    )
 
 
 def _enrich_context_for_create_or_get_arrete_view(

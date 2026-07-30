@@ -241,7 +241,7 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
 
 # The unified projet page is driven by the projet's state, not by the entry
 # point: a programmed/accepted projet opened from the "Projets" menu shows the
-# same decision card, "Notifications du demandeur" tab and notify button that
+# same decision card, "Notifications" tab and notify button that
 # used to be reserved to the programmation detail page.
 
 
@@ -262,7 +262,7 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     assert response.status_code == 200
     content = response.content.decode()
     assert "notification_status_message" in content
-    assert "Notifications du demandeur" in content
+    assert "Notifications" in content
 
 
 def test_unified_projet_page_hides_decision_card_and_notification_tab_for_processing_projet():
@@ -274,7 +274,7 @@ def test_unified_projet_page_hides_decision_card_and_notification_tab_for_proces
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     content = response.content.decode()
-    assert "Notifications du demandeur" not in content
+    assert "Notifications" not in content
 
 
 def test_unified_projet_page_back_button_defaults_to_projet_list():

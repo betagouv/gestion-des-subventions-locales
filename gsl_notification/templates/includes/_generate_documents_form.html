@@ -1,0 +1,53 @@
+{% load ui_tags %}
+<div id="generate-documents-block">
+    <form method="post"
+          data-controller="form-utils"
+          data-action="form-utils#disableButtons"
+          hx-post="{% url 'gsl_notification:generate-documents-form' projet.pk %}"
+          hx-target="#generate-documents-block"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+
+        {% ui_form_errors form=form %}
+
+        <div class="fr-grid-row fr-grid-row--gutters">
+            {% for dotation, dotation_fields in form.dotation_fields.items %}
+                <div class="fr-col-12 fr-col-md-6">
+                    <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
+                        <h4 class="fr-callout__title">
+                            {{ dotation }}
+                        </h4>
+                        {% ui_status_badge type="accepted" dotation=dotation %}
+
+                        {% for modele_type, fields in dotation_fields.items %}
+                            <div class="fr-callout__text fr-mt-4w"
+                                 data-controller="skip-document-toggle">
+                                {% if fields.has_modele %}
+                                    {{ fields.modele.as_field_group }}
+                                {% else %}
+                                    <p class="fr-text-default--warning fr-mb-1w">
+                                        Aucun {{ fields.modele_class.verbose_name }} disponible.
+                                    </p>
+                                    <p class="fr-mb-2w">
+                                        <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
+                                           class="fr-link fr-icon-add-line fr-link--icon-left">
+                                            Créer un {{ fields.modele_class.verbose_name }}
+                                        </a>
+                                    </p>
+                                {% endif %}
+                                {{ fields.skip.as_field_group }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {{ form.hide_qr_code.as_field_group }}
+
+        <button type="submit"
+                class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left">
+            Générer les documents
+        </button>
+    </form>
+</div>

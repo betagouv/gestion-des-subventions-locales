@@ -1,7 +1,6 @@
 import json
 import os
 from functools import cached_property
-from pathlib import Path
 
 from django import forms
 from django.conf import settings
@@ -26,9 +25,8 @@ from gsl_notification.models import (
 )
 from gsl_notification.tasks import run_document_import_job
 from gsl_notification.utils import (
-    get_generated_document_class,
-    get_modele_class,
     get_modele_perimetres,
+    log_generated_document_action,
     merge_documents_into_pdf,
     replace_mentions_in_html,
 )
@@ -39,6 +37,7 @@ from gsl_programmation.utils.programmation_projet_filters import (
 )
 from gsl_projet.constants import (
     ARRETE,
+    DOTATIONS,
     LETTRE,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -133,33 +132,6 @@ class BaseChooseDocumentTypeForm(DsfrBaseForm, forms.Form):
     )
 
 
-class ChooseDocumentTypeForGenerationForm(BaseChooseDocumentTypeForm):
-    def __init__(self, *args, instance, **kwargs):
-        # Not a ModelForm, but we get instance from the view which is an UpdateView.
-        super().__init__(*args, **kwargs)
-        self.fields["document"].choices = [
-            (
-                (
-                    ""
-                    if model.objects.filter(
-                        programmation_projet__dotation_projet=dp
-                    ).exists()
-                    else f"{model.document_type}-{dp.dotation}"
-                ),
-                f"{model._meta.verbose_name} {dp.dotation}",
-            )
-            for model in (Arrete, LettreNotification)
-            for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED)
-        ]
-
-    def clean_document(self):
-        doc_type, dotation = self.cleaned_data["document"].split("-")
-        return {
-            "type": doc_type,
-            "dotation": dotation,
-        }
-
-
 class ChooseDocumentTypeForMultipleGenerationForm(BaseChooseDocumentTypeForm):
     pass
 
@@ -208,6 +180,165 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
             "type": doc_type,
             "dotation": dotation,
         }
+
+
+class _DotationDocumentFields:
+    """
+    The "widget" for one dotation on the generate-documents card: a modele
+    selector + skip checkbox for the arrêté, and the same pair for the
+    lettre. Registers its 4 fields on the form and returns them grouped for
+    template consumption.
+    """
+
+    modeles = [MODELES[modele] for modele in [ARRETE, LETTRE]]
+
+    def __init__(self, form: "GenerateAcceptedDotationsDocumentsForm", dotation_projet):
+        self.form = form
+        self.dotation = dotation_projet.dotation
+        self.dotation_projet = dotation_projet
+
+    def build(self) -> dict:
+        widget_fields = {}
+
+        perimetres = get_modele_perimetres(self.dotation, self.form.user.perimetre)
+        for modele_class in self.modeles:
+            modele_fields = {}
+            modele_bound_field = self._add_modele_field(
+                modele_class,
+                perimetres,
+            )
+            has_modele_document = modele_bound_field.field.queryset.exists()
+            skip_bound_field = self._add_skip_field(
+                modele_class,
+                disabled=not has_modele_document,
+            )
+
+            modele_fields["modele"] = modele_bound_field
+            modele_fields["has_modele"] = has_modele_document
+            modele_fields["skip"] = skip_bound_field
+            modele_fields["modele_class"] = modele_class
+            widget_fields[modele_class.type] = modele_fields
+
+        return widget_fields
+
+    def _add_modele_field(self, modele_class, perimetres):
+        name = f"modele_{modele_class.type}_{self.dotation}"
+        existing_document = getattr(
+            self.dotation_projet.programmation_projet, modele_class.type, None
+        )
+        self.form.fields[name] = forms.ModelChoiceField(
+            queryset=modele_class.objects.filter(
+                dotation=self.dotation, perimetre__in=perimetres
+            ),
+            required=False,
+            empty_label="Sélectionner un modèle",
+            label=modele_class.verbose_name().capitalize(),
+            initial=existing_document.modele if existing_document else None,
+            widget=forms.Select(attrs={"data-skip-document-toggle-target": "select"}),
+        )
+        return self.form[name]
+
+    def _add_skip_field(self, modele_class, disabled: bool):
+        # disabled=True both forces cleaned_data to the initial value (True),
+        # ignoring whatever is posted, and renders the checkbox non-interactive.
+        name = f"skip_{modele_class.type}_{self.dotation}"
+        self.form.fields[name] = forms.BooleanField(
+            required=False,
+            label=f"Ne pas générer {modele_class.article_name}",
+            initial=disabled,
+            disabled=disabled,
+            widget=forms.CheckboxInput(
+                attrs={
+                    "data-skip-document-toggle-target": "checkbox",
+                    "data-action": "change->skip-document-toggle#toggle",
+                }
+            ),
+        )
+        return self.form[name]
+
+
+class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
+    """
+    Inline "1 - Générer" card on the notifications tab: one box per accepted
+    dotation, each with a modele selector + skip checkbox for the arrêté and
+    for the lettre. Submitting (re)generates every non-skipped document,
+    deleting and recreating it if it already exists.
+    """
+
+    hide_qr_code = forms.BooleanField(
+        required=False,
+        label="Masquer le QR code de suivi",
+        help_text=(
+            "Le QR code permet de rattacher automatiquement un document signé "
+            "scanné au bon projet. Il est retiré lors de l’import."
+        ),
+    )
+
+    def __init__(self, *args, projet, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.accepted_dotation_projets = list(
+            projet.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED).order_by(
+                "dotation"
+            )
+        )
+
+        self.dotation_fields = {
+            dp.dotation: _DotationDocumentFields(self, dp).build()
+            for dp in self.accepted_dotation_projets
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        for dp in self.accepted_dotation_projets:
+            for fields in self.dotation_fields[dp.dotation].values():
+                modele_name = fields["modele"].name
+                skip_name = fields["skip"].name
+                if not cleaned_data.get(skip_name) and not cleaned_data.get(
+                    modele_name
+                ):
+                    self.add_error(
+                        modele_name,
+                        f"Sélectionnez un modèle ou cochez la case pour ne pas générer {fields['modele_class'].article_name}.",
+                    )
+        return cleaned_data
+
+    @transaction.atomic
+    def save(self):
+        with_qr_code = not self.cleaned_data["hide_qr_code"]
+        documents = []
+        for dp in self.accepted_dotation_projets:
+            for fields in self.dotation_fields[dp.dotation].values():
+                if not self.cleaned_data[fields["skip"].name]:
+                    documents.append(
+                        self._generate_document(
+                            fields["modele_class"],
+                            dp.programmation_projet,
+                            self.cleaned_data[fields["modele"].name],
+                            with_qr_code,
+                        )
+                    )
+        return documents
+
+    def _generate_document(
+        self, modele_class, programmation_projet, modele, with_qr_code
+    ):
+        document_class = modele_class.generated_document_class
+        is_creating = not hasattr(programmation_projet, modele_class.type)
+        if not is_creating:
+            getattr(programmation_projet, modele_class.type).delete()
+
+        document = document_class(
+            programmation_projet=programmation_projet,
+            modele=modele,
+            created_by=self.user,
+            content=replace_mentions_in_html(modele.content, programmation_projet),
+        )
+        document.save(with_qr_code=with_qr_code)
+        log_generated_document_action(
+            self.user, programmation_projet, modele_class.type, is_creating
+        )
+        return document
 
 
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
@@ -271,83 +402,36 @@ class ModeleDocumentStepThreeForm(forms.ModelForm, DsfrBaseForm):
         fields = ("content",)
 
 
-class AnnexeChoiceField(forms.ModelMultipleChoiceField):
-    def label_from_instance(self, obj: Annexe):
-        return f"Annexe - {obj.name}"
-
-
 class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
-    annexes = AnnexeChoiceField(
-        widget=forms.CheckboxSelectMultiple,
-        queryset=Annexe.objects.none(),
-        label="Pièces jointes",
+    message = forms.CharField(
+        label="Message de notification",
         required=False,
-    )
-    justification = forms.CharField(
-        label="Justification de l'acceptation du dossier (facultatif)",
-        required=False,
-        widget=forms.Textarea,
-    )
-    nom_du_fichier = forms.CharField(
-        label="Nom du fichier (facultatif)",
-        required=False,
-        widget=forms.TextInput,
-        help_text="Si non renseigné, le nom du premier document signé importé sera utilisé.",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+            }
+        ),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["annexes"].queryset = Annexe.objects.filter(
-            programmation_projet__dotation_projet__projet=self.instance
-        )
-        first_lettre = LettreEtArreteSignes.objects.filter(
-            programmation_projet__dotation_projet__projet=self.instance
-        ).first()
-        if first_lettre:
-            self[
-                "nom_du_fichier"
-            ].help_text = f"Si non renseigné, le nom du premier document signé importé sera utilisé : « {first_lettre.name} »."
-            # We don't use self.fields because DsfrBaseForm adds the necessary classes on relevant fields in __init__, so we need to update the help_text on the already initialized field.
+    class Meta:
+        model = Projet
+        fields = ()
 
-    def clean_nom_du_fichier(self):
-        value = self.cleaned_data["nom_du_fichier"].strip()
-        if not value:
-            return value
-        if Path(value).name != value:
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.instance.dotationprojet_set.without_signed_document().exists():
             raise forms.ValidationError(
-                'Le nom du fichier ne peut pas contenir de "/".'
+                "Impossible d'envoyer la notification : il manque des documents "
+                "signés obligatoires."
             )
-        stem, ext = os.path.splitext(value)
-        if ext.lower() == ".pdf":
-            return stem
-        if ext:
-            raise forms.ValidationError(
-                "Le nom du fichier ne peut pas avoir une extension autre que .pdf."
-            )
-        return value
+        return cleaned_data
 
     def save(self, user):
         from gsl_historique.models import ProjetAction
 
-        lettres = LettreEtArreteSignes.objects.filter(
-            programmation_projet__dotation_projet__projet=self.instance
-        )
-        nom = self.cleaned_data.get("nom_du_fichier")
-        if not nom:
-            nom = (
-                os.path.splitext(lettres.first().name)[0]
-                if lettres.exists()
-                else "documents"
-            )
-        filename = nom + ".pdf"
-
-        justificatif_file = merge_documents_into_pdf(
-            [
-                *lettres,
-                *self.cleaned_data["annexes"],
-            ],
-            filename=filename,
-        )
+        documents = self.instance.imported_documents
+        filename = self._notification_filename(documents)
+        justificatif_file = merge_documents_into_pdf(documents, filename=filename)
 
         # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
@@ -361,7 +445,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             DsMutator().dossier_accepter(
                 self.instance.dossier_ds,
                 user.ds_id,
-                motivation=self.cleaned_data.get("justification", ""),
+                motivation=self.cleaned_data.get("message", ""),
                 document=justificatif_file,
             )
             ProjetAction.objects.create(
@@ -374,9 +458,17 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
             return self.instance
 
-    class Meta:
-        model = Projet
-        fields = ()
+    def _notification_filename(self, documents):
+        accepted_dotations = set(
+            self.instance.dotationprojet_set.filter(
+                status=PROJET_STATUS_ACCEPTED
+            ).values_list("dotation", flat=True)
+        )
+        if len(accepted_dotations) <= 1:
+            return os.path.splitext(documents[0].name)[0] + ".pdf"
+        ordered = [d for d in DOTATIONS if d in accepted_dotations]
+        ds_number = self.instance.dossier_ds.ds_number
+        return f"Notification {ds_number} {'-'.join(ordered)}.pdf"
 
 
 class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
@@ -660,7 +752,7 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
 
     def _modeles_queryset(self, document_type):
         perimetres = get_modele_perimetres(self.dotation, self.user.perimetre)
-        return get_modele_class(document_type).objects.filter(
+        return MODELES[document_type].objects.filter(
             dotation=self.dotation, perimetre__in=perimetres
         )
 
@@ -741,7 +833,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             actor=self.user,
             source=ProjetAction.SOURCE_TURGOT,
             dotation=pp.dotation_projet.dotation,
-            document_name=document_class._meta.verbose_name,
+            document_name=document_class._meta.verbose_name.lower(),
             form_id=f"{type(self).__module__}.{type(self).__qualname__}",
         )
 
@@ -752,7 +844,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         modele_by_type = {ARRETE: modele_arrete, LETTRE: modele_lettre}
         for doc_type in self.selected_types:
             self._create_documents_of_type(
-                pps, doc_type, modele_by_type[doc_type], overwrite_strategy
+                pps, modele_by_type[doc_type], overwrite_strategy
             )
 
         return list(
@@ -760,8 +852,8 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             .select_related(
                 "arrete",
                 "arrete__modele",
-                "lettre_notification",
-                "lettre_notification__modele",
+                "lettre",
+                "lettre__modele",
                 "lettre_et_arrete_signes",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",
@@ -775,9 +867,9 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         )
 
     def _create_documents_of_type(
-        self, programmation_projets, document_type, modele, overwrite_strategy
+        self, programmation_projets, modele, overwrite_strategy
     ):
-        document_class = get_generated_document_class(document_type)
+        document_class = modele.generated_document_class
 
         if overwrite_strategy == GenerateDocumentsStep2Form.STRATEGY_REMPLACER:
             document_class.objects.filter(

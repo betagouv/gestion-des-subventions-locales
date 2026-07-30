@@ -30,6 +30,12 @@ migr app migration_number:
 test:
     uv run pytest
 
+ruff-format:
+    uv run ruff format
+
+ruff-check:
+    uv run ruff check
+
 # Watch the repo and launch pytest on files save
 test-watching folder_or_file:
     git ls-files | entr -c uv run pytest -vv {{folder_or_file}}

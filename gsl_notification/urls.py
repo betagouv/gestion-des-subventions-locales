@@ -26,11 +26,11 @@ from gsl_notification.views.uploaded_document_views import (
     view_uploaded_document,
 )
 from gsl_notification.views.views import (
-    ChooseDocumentTypeForGenerationView,
     DeleteDocumentView,
     DownloadDocumentView,
+    GenerateDocumentsFormView,
     NotificationDocumentsView,
-    NotificationMessageView,
+    NotificationMessageFormView,
     PrintDocumentView,
     RefusedDismissedNotificationModalView,
     change_document_view,
@@ -44,9 +44,14 @@ urlpatterns = [
         name="documents",
     ),
     path(
-        "<int:projet_id>/message/",
-        NotificationMessageView.as_view(),
-        name="message",
+        "<int:projet_id>/notifier/",
+        NotificationMessageFormView.as_view(),
+        name="notification-message-form",
+    ),
+    path(
+        "<int:projet_id>/generer-documents/",
+        GenerateDocumentsFormView.as_view(),
+        name="generate-documents-form",
     ),
     path(
         "<int:projet_id>/notifier/refus-ou-classement/",
@@ -54,11 +59,6 @@ urlpatterns = [
         name="notify-refused-dismissed",
     ),
     # Generated files
-    path(
-        "<int:projet_id>/choix-du-type/",
-        ChooseDocumentTypeForGenerationView.as_view(),
-        name="choose-generated-document-type",
-    ),
     path(
         "<int:projet_id>/selection-d-un-modele/<str:dotation>/<str:document_type>",
         select_modele,

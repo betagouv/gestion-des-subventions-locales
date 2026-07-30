@@ -1,5 +1,6 @@
 import pytest
 
+from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.models import Dossier, DossierData
 from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,
@@ -132,3 +133,15 @@ def test_deleting_dossier_cascade_deletes_dossier_data():
     dossier.delete()
 
     assert not DossierData.objects.filter(pk=dossier_data_id).exists()
+
+
+def test_is_instructeur_returns_false_for_user_without_ds_profile():
+    """
+    A Collegue without a ds_profile has ds_id == "". This test pins down the
+    current behavior rather than changing it.
+    """
+    dossier = DossierFactory()
+    user = CollegueFactory(ds_profile=None)
+
+    assert user.ds_id == ""
+    assert dossier.is_instructeur(user) is False

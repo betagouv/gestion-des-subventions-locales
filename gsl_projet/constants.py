@@ -25,7 +25,6 @@ LETTRE_REFUS = "refus"
 
 LETTRE_ET_ARRETE_SIGNES = "lettre_et_arrete_signes"
 ANNEXE = "annexe"
-POSSIBLES_DOCUMENTS_TELEVERSABLES = Literal["lettre_et_arrete_signes", "annexe"]
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
 

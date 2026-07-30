@@ -150,6 +150,11 @@ def ui_status_badge(*args, **kwargs) -> dict:
     }
 
 
+@register.inclusion_tag("ui/components/form_errors.html")
+def ui_form_errors(form, title=None):
+    return {"form": form, "title": title or "Erreur dans le formulaire"}
+
+
 @register.inclusion_tag("ui/components/tiptap_editor.html")
 def ui_tiptap_editor(*args, **kwargs) -> dict:
     """

@@ -250,9 +250,7 @@ class GenerateDocumentsStatusView(DetailView):
             pp_ids = job.pp_ids
             refreshed = list(
                 ProgrammationProjet.objects.filter(pk__in=pp_ids)
-                .select_related(
-                    "arrete", "lettre_notification", "lettre_et_arrete_signes"
-                )
+                .select_related("arrete", "lettre", "lettre_et_arrete_signes")
                 .prefetch_related("annexes")
             )
             pk_to_pp = {pp.pk: pp for pp in refreshed}
