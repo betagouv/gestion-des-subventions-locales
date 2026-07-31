@@ -226,10 +226,12 @@ class DotationProjetUpdateView(UpdateView):
         return _redirect_to_referer_or_projet(self.request, self.object.projet)
 
 
+@method_decorator(htmx_only, name="dispatch")
 class DotationProjetAssietteUpdateView(UpdateView):
     model = DotationProjet
     form_class = DotationProjetAssietteForm
     http_method_names = ["post"]
+    template_name = "includes/forms/_assiette_dotation_projet_form.html"
 
     def get_queryset(self):
         return DotationProjet.objects.filter(
@@ -237,19 +239,14 @@ class DotationProjetAssietteUpdateView(UpdateView):
             projet__notified_at__isnull=True,
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["dotation_projet"] = self.object
+        return context
+
     def form_valid(self, form):
         form.save()
-        messages.success(
-            self.request,
-            "Les modifications ont été enregistrées avec succès.",
-        )
-        return _redirect_to_referer_or_projet(self.request, self.object.projet)
-
-    def form_invalid(self, form):
-        self.request.session[f"assiette_errors_{self.object.pk}"] = (
-            self.request.POST.urlencode()
-        )
-        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+        return self.render_to_response(self.get_context_data(form=form, saved=True))
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -297,9 +294,6 @@ def _build_projet_page_context(projet, request):
         "initial_dotations": (
             json.dumps(dotation_field.initial) if dotation_field else "[]"
         ),
-        "dotation_projet_items": [
-            _build_dotation_projet_item(dp, request) for dp in dotation_projets
-        ],
         **get_projet_go_back_context(request),
     }
     detr_dotation = projet.dotation_detr
@@ -318,17 +312,6 @@ def _build_projet_form(projet, request):
         form.is_valid()
         return form
     return ProjetForm(instance=projet)
-
-
-def _build_dotation_projet_item(dp, request):
-    session_key = f"assiette_errors_{dp.pk}"
-    if session_key in request.session:
-        form_data = QueryDict(request.session.pop(session_key))
-        form = DotationProjetAssietteForm(data=form_data, instance=dp)
-        form.is_valid()
-    else:
-        form = DotationProjetAssietteForm(instance=dp)
-    return {"dp": dp, "form": form}
 
 
 class ProjetNoteCreateView(CreateView):

@@ -1,15 +1,20 @@
 <form method="post"
-      action="{% url 'gsl_projet:patch-dotation-projet-assiette' item.dp.pk %}"
-      data-controller="format-montant"
-      data-action="submit->format-montant#unformat">
+      hx-post="{% url 'gsl_projet:patch-dotation-projet-assiette' dotation_projet.pk %}"
+      hx-target="this"
+      hx-swap="outerHTML">
     {% csrf_token %}
     <div class="fr-callout fr-background-alt--blue-france fr-ml-0 fr-mt-2w">
         <h5 class="fr-callout__title">
-            {{ item.dp.dotation }}
+            {{ dotation_projet.dotation }}
         </h5>
-        {{ item.form }}
+        {{ form }}
     </div>
     <button class="fr-btn fr-btn--secondary" type="submit">
         Enregistrer
     </button>
+    {% if saved %}
+        <span class="fr-badge fr-badge--success"
+              role="status"
+              data-controller="auto-dismiss">Modifications enregistrées</span>
+    {% endif %}
 </form>

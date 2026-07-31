@@ -65,7 +65,8 @@
                     "projetNotes": "{% static 'js/controllers/projetNotes.js' %}",
                     "projetNoteCard": "{% static 'js/controllers/projetNoteCard.js' %}",
                     "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}",
-                    "formatMontant": "{% static 'js/controllers/formatMontant.js' %}"
+                    "formatMontant": "{% static 'js/controllers/formatMontant.js' %}",
+                    "autoDismiss": "{% static 'js/controllers/autoDismiss.js' %}"
                 }
             }
             </script>
@@ -126,24 +127,25 @@
         <script src="{% static "js/sticky_table_headers.js" %}" defer></script>
         <script type="module" nonce="{{ csp_nonce }}">
             import { Application } from "stimulus"
-            import { DoubleDotation } from "doubleDotation"
-            import { Modal } from "modal"
-            import { DocumentImport } from "documentImport"
-            import { TipTapEditor } from "tiptapEditor"
-            import { ModeleArreteForm } from "modeleArreteForm"
-            import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
-            import { QrCodeToggle } from "qrCodeToggle"
-            import { SkipDocumentToggle } from "skipDocumentToggle"
-            import { CheckboxSelection } from "checkboxSelection"
+            import { AutoDismiss } from "autoDismiss"
             import { BindAmountFields } from "bindAmountFields"
-            import { FormUtils } from "formUtils"
-            import { DotationDropdown } from "dotationDropdown"
+            import { CheckboxSelection } from "checkboxSelection"
             import { CommentArbitrage } from "commentArbitrage"
-            import { ProjetForm } from "projetForm"
-            import { ProjetNotes } from "projetNotes"
-            import { ProjetNoteCard } from "projetNoteCard"
-            import { RadioNavigate } from "radioNavigate"
+            import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
+            import { DocumentImport } from "documentImport"
+            import { DotationDropdown } from "dotationDropdown"
+            import { DoubleDotation } from "doubleDotation"
             import { FormatMontant } from "formatMontant"
+            import { FormUtils } from "formUtils"
+            import { Modal } from "modal"
+            import { ModeleArreteForm } from "modeleArreteForm"
+            import { ProjetForm } from "projetForm"
+            import { ProjetNoteCard } from "projetNoteCard"
+            import { ProjetNotes } from "projetNotes"
+            import { QrCodeToggle } from "qrCodeToggle"
+            import { RadioNavigate } from "radioNavigate"
+            import { SkipDocumentToggle } from "skipDocumentToggle"
+            import { TipTapEditor } from "tiptapEditor"
 
             window.Stimulus = Application.start()
 
@@ -165,6 +167,7 @@
             Stimulus.register("projet-note-card", ProjetNoteCard)
             Stimulus.register("radio-navigate", RadioNavigate)
             Stimulus.register("format-montant", FormatMontant)
+            Stimulus.register("auto-dismiss", AutoDismiss)
         </script>
 
         {% block extra_js %}
@@ -172,11 +175,9 @@
 
         {% if MATOMO_SITE_ID and matomo_pending_events %}
             <script nonce="{{ csp_nonce }}">
-                window.addEventListener("DOMContentLoaded", function() {
-                    var _paq = (window._paq = window._paq || []);
-                    {% for event in matomo_pending_events %}
-                        _paq.push(["trackEvent", "{{ event.category|escapejs }}", "{{ event.action|escapejs }}", "{{ event.name|escapejs }}"]);
-                    {% endfor %}
+                window.addEventListener("DOMContentLoaded", () => {
+                    var _paq = (window._paq = window._paq || []);% for event in matomo_pending_events %
+                        _paq.push(["trackEvent", "{{ event.category|escapejs }}", "{{ event.action|escapejs }}", "{{ event.name|escapejs }}"]);% endfor %
                 });
             </script>
         {% endif %}

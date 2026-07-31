@@ -11,12 +11,6 @@ export class FormatMontant extends Controller {
     this._format(event.target)
   }
 
-  unformat () {
-    this.fieldTargets.forEach(field => {
-      field.value = field.value.replace(/\s/g, '').replace(',', '.')
-    })
-  }
-
   _format (field) {
     const n = parseFloat(field.value.replace(',', '.').replace(/\s/g, ''))
     if (!isNaN(n)) {

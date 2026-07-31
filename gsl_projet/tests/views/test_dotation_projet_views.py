@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
@@ -67,53 +69,80 @@ def _assiette_url(dp):
     return reverse("gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk})
 
 
-def test_patch_assiette_saves_value(
+def test_patch_assiette_saves_value_and_returns_updated_fragment(
     client_with_user_logged, processing_dotation_projet
 ):
-    client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet), {"assiette": "50000"}
+    response = client_with_user_logged.post(
+        _assiette_url(processing_dotation_projet),
+        {"assiette": "50000"},
+        headers={"HX-Request": "true"},
     )
     processing_dotation_projet.refresh_from_db()
     assert processing_dotation_projet.assiette == 50_000
 
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert _assiette_url(processing_dotation_projet) in content
+    assert 'value="50000"' in content
+    assert "Modifications enregistrées" in content
+    assert "fr-input-group--error" not in content
 
-def test_patch_assiette_shows_success_message(
+
+def test_patch_assiette_accepts_french_formatted_value(
     client_with_user_logged, processing_dotation_projet
 ):
     response = client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet), {"assiette": "50000"}, follow=True
+        _assiette_url(processing_dotation_projet),
+        {"assiette": "50 000,50"},
+        headers={"HX-Request": "true"},
     )
-    messages = [m.message for m in response.context["messages"]]
-    assert any("enregistrées avec succès" in m for m in messages)
+    processing_dotation_projet.refresh_from_db()
+    assert processing_dotation_projet.assiette == Decimal("50000.50")
+    assert response.status_code == 200
 
 
 def test_patch_assiette_invalid_does_not_save(
     client_with_user_logged, processing_dotation_projet
 ):
     client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet), {"assiette": ""}
+        _assiette_url(processing_dotation_projet),
+        {"assiette": ""},
+        headers={"HX-Request": "true"},
     )
     processing_dotation_projet.refresh_from_db()
     assert processing_dotation_projet.assiette == 10_000
 
 
-def test_patch_assiette_invalid_stores_errors_in_session(
+def test_patch_assiette_invalid_returns_errors_inline(
     client_with_user_logged, processing_dotation_projet
 ):
-    client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet), {"assiette": ""}
+    response = client_with_user_logged.post(
+        _assiette_url(processing_dotation_projet),
+        {"assiette": ""},
+        headers={"HX-Request": "true"},
     )
-    assert (
-        f"assiette_errors_{processing_dotation_projet.pk}"
-        in client_with_user_logged.session
-    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "fr-input-group--error" in content
+    assert "Modifications enregistrées" not in content
 
 
 def test_patch_assiette_get_returns_405(
     client_with_user_logged, processing_dotation_projet
 ):
-    response = client_with_user_logged.get(_assiette_url(processing_dotation_projet))
+    response = client_with_user_logged.get(
+        _assiette_url(processing_dotation_projet), headers={"HX-Request": "true"}
+    )
     assert response.status_code == 405
+
+
+def test_patch_assiette_non_htmx_returns_400(
+    client_with_user_logged, processing_dotation_projet
+):
+    response = client_with_user_logged.post(
+        _assiette_url(processing_dotation_projet), {"assiette": "50000"}
+    )
+    assert response.status_code == 400
 
 
 def test_patch_assiette_notified_projet_returns_404(
@@ -125,7 +154,9 @@ def test_patch_assiette_notified_projet_returns_404(
         projet__dossier_ds__perimetre=perimetre_departemental,
         projet__notified_at=timezone.now(),
     )
-    response = client_with_user_logged.post(_assiette_url(dp), {"assiette": "50000"})
+    response = client_with_user_logged.post(
+        _assiette_url(dp), {"assiette": "50000"}, headers={"HX-Request": "true"}
+    )
     assert response.status_code == 404
 
 
@@ -137,7 +168,9 @@ def test_patch_assiette_out_of_perimeter_returns_404(client_with_user_logged):
         projet__dossier_ds__perimetre=other_perimetre,
         projet__notified_at=None,
     )
-    response = client_with_user_logged.post(_assiette_url(dp), {"assiette": "50000"})
+    response = client_with_user_logged.post(
+        _assiette_url(dp), {"assiette": "50000"}, headers={"HX-Request": "true"}
+    )
     assert response.status_code == 404
 
 

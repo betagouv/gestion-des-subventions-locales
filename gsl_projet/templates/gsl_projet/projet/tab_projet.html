@@ -1,5 +1,5 @@
 {% load dsfr_tags %}
-{% load static gsl_filters %}
+{% load static gsl_filters projet_tags %}
 
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-3w"
      data-controller="projet-form">
@@ -402,9 +402,9 @@
                             ({{ dossier.taux_demande|percent:3 }} du coût total)
                         </p>
                     </div>
-                    {% for item in dotation_projet_items %}
-                        {% if item.dp.status == 'processing' and not projet.notified_at %}
-                            {% include "includes/forms/_assiette_dotation_projet_form.html" %}
+                    {% for dp in dotation_projets %}
+                        {% if dp.status == 'processing' and not projet.notified_at %}
+                            {% assiette_dotation_form dp %}
                         {% else %}
                             {% include "includes/projet_detail/_dotation_projet_readonly_block.html" %}
                         {% endif %}
