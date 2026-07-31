@@ -43,6 +43,7 @@ class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):
         return (
             Projet.objects.active()
             .for_user(self.request.user)
+            .to_notify()
             .filter(dotationprojet__status=PROJET_STATUS_ACCEPTED)
             .distinct()
         )
@@ -66,6 +67,7 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
 
     programmation_projet = get_object_or_404(
         ProgrammationProjet.objects.active().visible_to_user(request.user),
+        dotation_projet__projet__notified_at=None,
         dotation_projet__projet_id=projet_id,
         enveloppe__dotation=dotation,
         status=ProgrammationProjet.STATUS_ACCEPTED,

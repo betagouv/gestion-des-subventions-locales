@@ -46,7 +46,8 @@
         {{ form.hide_qr_code.as_field_group }}
 
         <button type="submit"
-                class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left">
+                class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left"
+                {% if projet.notified_at %}disabled{% endif %}>
             Générer les documents
         </button>
     </form>

@@ -7,7 +7,7 @@ from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods, require_POST
-from django.views.generic import DeleteView, DetailView, FormView, UpdateView
+from django.views.generic import DeleteView, DetailView, UpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.utils.csp import csp_update
@@ -51,15 +51,14 @@ from gsl_projet.constants import (
 )
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.projet_page import get_projet_go_back_context
+from gsl_projet.views import BaseProjetDetailView
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts
 
 
-class NotificationDocumentsView(DetailView):
+class NotificationDocumentsView(BaseProjetDetailView):
     template_name = "gsl_notification/tab_simulation_projet/tab_notifications.html"
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
 
     def get_queryset(self):
         return (
@@ -83,44 +82,46 @@ class NotificationDocumentsView(DetailView):
 
 
 @method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsFormView(FormView):
+class GenerateDocumentsFormView(UpdateView):
     """
     HTMX endpoint backing the "1 - Générer" block of the notifications tab.
     Always re-renders the whole #generate-documents-block, which is also
     its own hx-target, so the response can swap itself in place.
 
-    Not an UpdateView: GenerateAcceptedDotationsDocumentsForm is a plain
-    Form (projet/user passed as custom kwargs), not a ModelForm, so
-    ModelFormMixin's get_form_kwargs (which injects `instance`) would break it.
+    GenerateAcceptedDotationsDocumentsForm is a plain Form (projet/user
+    passed as custom kwargs), not a ModelForm, so ModelFormMixin's
+    get_form_kwargs (which injects `instance`) must be stripped before
+    calling the form.
     """
 
+    model = Projet
     form_class = GenerateAcceptedDotationsDocumentsForm
     template_name = "includes/_generate_documents_form.html"
+    pk_url_kwarg = "projet_id"
+    context_object_name = "projet"
 
-    def setup(self, request, *args, **kwargs):
-        super().setup(request, *args, **kwargs)
-        self.projet = get_object_or_404(
+    def get_queryset(self):
+        return (
             Projet.objects.active()
-            .for_user(request.user)
-            .with_at_least_one_accepted_dotation(),
-            pk=kwargs["projet_id"],
+            .for_user(self.request.user)
+            .with_at_least_one_accepted_dotation()
+            .filter(notified_at__isnull=True)
         )
 
     def get_form_kwargs(self):
-        return {
-            **super().get_form_kwargs(),
-            "projet": self.projet,
-            "user": self.request.user,
-        }
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["projet"] = self.projet
-        return context
+        kwargs = super().get_form_kwargs()
+        kwargs.pop("instance", None)
+        kwargs["projet"] = self.object
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         form.save()
         return HttpResponseClientRefresh()
+
+    def form_invalid(self, form):
+        form.set_autofocus_on_first_error()  # TODO systemize this on form_invalid ??
+        return super().form_invalid(form)
 
 
 @method_decorator(htmx_only, name="dispatch")
