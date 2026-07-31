@@ -25,6 +25,7 @@ from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_historique.models import ProjetAction
 from gsl_notification.forms import (
+    GENERATED_DOCUMENT_TO_FORM,
     GenerateAcceptedDotationsDocumentsForm,
     NotificationMessageForm,
     RefusedDismissedNotificationForm,
@@ -37,7 +38,6 @@ from gsl_notification.models import (
 )
 from gsl_notification.utils import (
     generate_pdf_for_generated_document,
-    get_form_class,
     get_modele_perimetres,
     log_generated_document_action,
     replace_mentions_in_html,
@@ -64,7 +64,7 @@ class NotificationDocumentsView(BaseProjetDetailView):
         return (
             Projet.objects.active()
             .for_user(self.request.user)
-            .with_at_least_one_accepted_dotation()
+            .with_at_least_one_treated_dotation()
         )
 
     def get_context_data(self, **kwargs):
@@ -104,7 +104,7 @@ class GenerateDocumentsFormView(UpdateView):
         return (
             Projet.objects.active()
             .for_user(self.request.user)
-            .with_at_least_one_accepted_dotation()
+            .with_at_least_one_treated_dotation()
             .filter(notified_at__isnull=True)
         )
 
@@ -304,9 +304,7 @@ def select_modele(request, projet_id, dotation, document_type):
 @require_http_methods(["GET", "POST"])
 def change_document_view(request, projet_id, dotation, document_type):
     programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.active()
-        .visible_to_user(request.user)
-        .filter(status=ProgrammationProjet.STATUS_ACCEPTED),
+        ProgrammationProjet.objects.active().visible_to_user(request.user),
         dotation_projet__projet_id=projet_id,
         enveloppe__dotation=dotation,
     )
@@ -319,7 +317,7 @@ def change_document_view(request, projet_id, dotation, document_type):
     try:
         modele_class = MODELES[document_type]
         document_class = modele_class.generated_document_class
-        form_class = get_form_class(document_type)
+        form_class = GENERATED_DOCUMENT_TO_FORM[document_type]
     except KeyError:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 

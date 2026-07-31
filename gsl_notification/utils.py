@@ -39,7 +39,6 @@ from gsl_projet.constants import (
     ANNEXE,
     ARRETE,
     DOTATION_DETR,
-    LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
     POSSIBLE_DOTATIONS,
 )
@@ -346,32 +345,6 @@ def get_s3_object(file_name):
         raise Http404(user_message="Fichier non trouvé")
 
 
-def get_form_class(document_type):
-    from gsl_notification.forms import ArreteForm, LettreNotificationForm
-
-    if document_type not in [ARRETE, LETTRE]:
-        raise ValueError("Type inconnu")
-    if document_type == LETTRE:
-        return LettreNotificationForm
-    return ArreteForm
-
-
-def get_doc_title(document_type: str):
-    if document_type not in [ARRETE, LETTRE]:
-        raise ValueError(f"Document type {document_type} inconnu")
-    if document_type == LETTRE:
-        return "Lettre de notification"
-    return "Arrêté d'attribution"
-
-
-def get_programmation_projet_attribute(document_type: str):
-    if document_type not in [ARRETE, LETTRE]:
-        raise ValueError(f"Document type {document_type} inconnu")
-    if document_type == LETTRE:
-        return "lettre"
-    return "arrete"
-
-
 def get_uploaded_document_class(document_type: str):
     if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
         raise ValueError(f"Document type {document_type} inconnu")
@@ -563,7 +536,7 @@ def _render_document_as_pdf(
     html = render_to_string(
         "gsl_notification/pdf/document.html",
         {
-            "doc_title": get_doc_title(document.document_type),
+            "doc_title": document.verbose_name,
             "logo": get_logo_base64(document.modele.logo.url),
             "alt_logo": document.modele.logo_alt_text,
             "top_right_text": document.modele.top_right_text.strip(),

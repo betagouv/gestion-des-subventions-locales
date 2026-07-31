@@ -177,6 +177,12 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         null=True,
         blank=True,
     )
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        verbose_name="Programmation projet",
+        related_name="%(class)s",
+    )
 
     class Meta:
         abstract = True
@@ -240,12 +246,6 @@ class Arrete(GeneratedDocument):
     document_type = ARRETE
     delete_label = "Suppression de l’arrêté"
     delete_question = "Êtes-vous sûr de vouloir supprimer cet arrêté ?"
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        verbose_name="Programmation projet",
-        related_name="arrete",
-    )
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
 
     class Meta:
@@ -266,12 +266,6 @@ class LettreNotification(GeneratedDocument):
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre de notification ?"
     )
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        verbose_name="Programmation projet",
-        related_name="lettre",
-    )
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
 
     class Meta:
@@ -284,6 +278,24 @@ class LettreNotification(GeneratedDocument):
     @property
     def name(self):
         return f"Lettre {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
+
+
+class LettreRefus(GeneratedDocument):
+    document_type = LETTRE_REFUS
+    delete_label = "Suppression de la lettre de refus ou classement sans suite"
+    delete_question = "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou classement sans suite ?"
+    modele = models.ForeignKey(ModeleLettreRefus, on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = "Lettre de refus ou classement sans suite"
+        verbose_name_plural = "Lettres de refus ou classement sans suite"
+
+    def __str__(self):
+        return f"Lettre de refus ou classement sans suite #{self.id}"
+
+    @property
+    def name(self):
+        return f"Lettre de refus ou classement sans suite {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
 
 
 UPLOADED_DOCUMENTS = {}

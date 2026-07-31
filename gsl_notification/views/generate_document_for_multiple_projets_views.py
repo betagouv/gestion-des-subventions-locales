@@ -22,7 +22,6 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import ExportJob
 from gsl_notification.tasks import generate_export_task
-from gsl_notification.utils import get_programmation_projet_attribute
 from gsl_projet.constants import DOTATIONS
 
 logger = logging.getLogger(__name__)
@@ -190,7 +189,7 @@ class GenerateDocumentsWizard(SessionWizardView):
             overwrite_strategy=step2_data.get("overwrite_strategy"),
         )
 
-        attrs = [get_programmation_projet_attribute(t) for t in form.selected_types]
+        attrs = form.selected_types
         pp_ids = [pp.pk for pp in refreshed]
 
         job = ExportJob.objects.create(
