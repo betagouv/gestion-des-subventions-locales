@@ -284,14 +284,17 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
         )
 
         self.dotation_fields = {
-            dp.dotation: _DotationDocumentFields(self, dp).build()
+            dp.dotation: {
+                "dotation_projet": dp,
+                "fields": _DotationDocumentFields(self, dp).build(),
+            }
             for dp in self.accepted_dotation_projets
         }
 
     def clean(self):
         cleaned_data = super().clean()
         for dp in self.accepted_dotation_projets:
-            for fields in self.dotation_fields[dp.dotation].values():
+            for fields in self.dotation_fields[dp.dotation]["fields"].values():
                 modele_name = fields["modele"].name
                 skip_name = fields["skip"].name
                 if not cleaned_data.get(skip_name) and not cleaned_data.get(
@@ -308,7 +311,7 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
         with_qr_code = not self.cleaned_data["hide_qr_code"]
         documents = []
         for dp in self.accepted_dotation_projets:
-            for fields in self.dotation_fields[dp.dotation].values():
+            for fields in self.dotation_fields[dp.dotation]["fields"].values():
                 if not self.cleaned_data[fields["skip"].name]:
                     documents.append(
                         self._generate_document(

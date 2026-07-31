@@ -119,6 +119,26 @@ _STATUS_BADGE_CONFIGS = {
     "processing": {
         "label": "En traitement",
     },
+    "to_generate": {
+        "icon_class": "fr-icon-mail-add-fill",
+        "label": "À générer",
+        "badge_class": "fr-badge--info fr-badge--no-icon",
+    },
+    "to_sign": {
+        "icon_class": "fr-icon-mail-star-fill",
+        "label": "À signer",
+        "badge_class": "fr-badge--info fr-badge--no-icon",
+    },
+    "to_notify": {
+        "icon_class": "fr-icon-mail-send-fill",
+        "label": "À notifier",
+        "badge_class": "fr-badge--info fr-badge--no-icon",
+    },
+    "notified": {
+        "icon_class": "fr-icon-mail-check-fill",
+        "label": "Notifié",
+        "badge_class": "fr-badge--info fr-badge--no-icon",
+    },
 }
 
 
@@ -127,7 +147,7 @@ def ui_status_badge(*args, **kwargs) -> dict:
     """
     ```python
     data_dict = {
-        "type": "accepted | refused | dismissed | reported",
+        "type": "accepted | refused | dismissed | reported | processing | to_generate | to_sign | to_notify | notified",
         "dotation": "(Optional) Dotation prefix, e.g. 'DETR' or 'DSIL'",
         "class": "(Optional) Extra CSS classes on the <span>",
     }
