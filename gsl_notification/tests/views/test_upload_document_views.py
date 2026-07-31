@@ -59,7 +59,8 @@ def test_choose_uploaded_document_type_displays_correctly(perimetre):
 
     # Create a projet with an accepted DETR dotation
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    DetrProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
+    dp = DetrProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
+    ProgrammationProjetFactory(dotation_projet=dp)
 
     # Make GET request to the URL
     url = reverse(

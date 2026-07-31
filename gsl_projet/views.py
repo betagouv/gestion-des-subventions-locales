@@ -71,6 +71,7 @@ class BaseProjetDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(_build_projet_page_context(self.object, self.request))
+        context["extra_skiplinks"] = [{"link": "#projet-panel", "label": "Détail"}]
         return context
 
 

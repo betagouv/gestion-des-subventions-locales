@@ -24,8 +24,8 @@
             <h3 class="fr-mt-6w">
                 2 - Importer
             </h3>
-            <a href="{% url 'gsl_notification:choose-uploaded-document-type' projet.id %}"
-               class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line">
+            <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line"
+               {% if projet.notified_at %}disabled{% else %}href="{% url 'gsl_notification:choose-uploaded-document-type' projet.id %}"{% endif %}>
                 Importer un document
             </a>
             {% include "includes/_documents_table.html" with documents=imported_documents caption="Documents importés" date_label="Date d'import" is_imported=True empty_message="Il n’y a pas de document importé pour le moment." %}

@@ -180,6 +180,40 @@ def test_post_documents_creates_generated_documents_and_refreshes(
     assert LettreNotification.objects.filter(programmation_projet=pp).exists()
 
 
+def test_post_documents_after_notification_returns_404(
+    accepted_detr_programmation_projet,
+    perimetre,
+    correct_perimetre_client_with_user_logged,
+):
+    from django.utils import timezone
+
+    pp = accepted_detr_programmation_projet
+    projet = pp.dotation_projet.projet
+    projet.notified_at = timezone.now()
+    projet.save()
+
+    modele_arrete = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    modele_lettre = ModeleLettreNotificationFactory(
+        dotation=DOTATION_DETR, perimetre=perimetre
+    )
+    url = reverse(
+        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+    )
+
+    response = correct_perimetre_client_with_user_logged.post(
+        url,
+        {
+            f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
+            f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 404
+    assert not Arrete.objects.filter(programmation_projet=pp).exists()
+    assert not LettreNotification.objects.filter(programmation_projet=pp).exists()
+
+
 def test_post_documents_invalid_rerenders_block_with_errors(
     accepted_detr_programmation_projet,
     perimetre,
