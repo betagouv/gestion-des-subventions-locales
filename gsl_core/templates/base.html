@@ -66,7 +66,8 @@
                     "projetNoteCard": "{% static 'js/controllers/projetNoteCard.js' %}",
                     "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}",
                     "formatMontant": "{% static 'js/controllers/formatMontant.js' %}",
-                    "autoDismiss": "{% static 'js/controllers/autoDismiss.js' %}"
+                    "autoDismiss": "{% static 'js/controllers/autoDismiss.js' %}",
+                    "htmxError": "{% static 'js/controllers/htmxError.js' %}"
                 }
             }
             </script>
@@ -85,7 +86,8 @@
         {% block extra_head_js %}
         {% endblock extra_head_js %}
     </head>
-    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          data-controller="htmx-error">
         {% block skiplinks %}
             {% dsfr_skiplinks skiplinks|add:extra_skiplinks %}
         {% endblock skiplinks %}
@@ -137,6 +139,7 @@
             import { DoubleDotation } from "doubleDotation"
             import { FormatMontant } from "formatMontant"
             import { FormUtils } from "formUtils"
+            import { HtmxError } from "htmxError"
             import { Modal } from "modal"
             import { ModeleArreteForm } from "modeleArreteForm"
             import { ProjetForm } from "projetForm"
@@ -168,6 +171,7 @@
             Stimulus.register("radio-navigate", RadioNavigate)
             Stimulus.register("format-montant", FormatMontant)
             Stimulus.register("auto-dismiss", AutoDismiss)
+            Stimulus.register("htmx-error", HtmxError)
         </script>
 
         {% block extra_js %}
