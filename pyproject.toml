@@ -18,7 +18,7 @@ dependencies = [
     "django-axes",
     "django_celery_results",
     "django-celery-beat>=2.9.0",
-    "django-dsfr>=3.3.1",
+    "django-dsfr==3.5.2",
     "django-extensions",
     "django-filter",
     "django-fsm-2>=4.2.0",
