@@ -12,6 +12,7 @@ from django.db.models import (
     F,
     OuterRef,
     Q,
+    Subquery,
     Sum,
     UniqueConstraint,
     Value,

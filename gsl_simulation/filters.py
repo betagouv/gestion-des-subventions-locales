@@ -1,10 +1,6 @@
 from django.db import models
 from django.db.models import Case, DecimalField, F, Q, Subquery, When
 from django_filters import (
-    CharFilter,
-    DateFromToRangeFilter,
-    FilterSet,
-    ModelMultipleChoiceFilter,
     MultipleChoiceFilter,
     RangeFilter,
 )
@@ -14,40 +10,30 @@ from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
     Cofinancement,
-    NaturePorteurProjet,
     ProjetContractualisation,
     ProjetZonage,
 )
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    NOTIFICATION_STATUS_CHOICES,
 )
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
-    DsfrDateRangeWidget,
     DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import (
-    DOTATION_SOLLICITEE_CHOICES,
     ORDERING_MAP,
-    OUI_NON_CHOICES,
-    FixedFilterFieldsMixin,
-    LabelFromInstanceFilter,
+    CommonFiltersFields,
     ProjetOrderingFilter,
-    filter_boolean,
-    filter_dossier_complet,
-    filter_dotation_sollicitee,
-    filter_territoire,
     make_filter_search,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_simulation.models import SimulationProjet
 
 
-class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
+class SimulationProjetFilters(CommonFiltersFields):
     # Simulations have no "montant retenu" (programmation only); the fixed row
     # surfaces the "montant prévisionnel accordé" in its place.
     fixed_filter_fields = (
@@ -139,41 +125,8 @@ class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
         "simu_montant": "montant_previsionnel",
         "simu_assiette": "assiette",
         "simu_taux": "taux",
+        "_notification_status": "notification",
     }
-
-    search = CharFilter(
-        label="Recherche",
-        method="filter_search",
-    )
-
-    categorie_detr = LabelFromInstanceFilter(
-        label="Catégorie DETR",
-        field_name="dossier_ds__demande_categorie_detr",
-        queryset=CategorieDetr.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-        label_attr="complete_label",
-    )
-
-    categorie_dsil = ModelMultipleChoiceFilter(
-        label="Catégorie DSIL",
-        field_name="dossier_ds__demande_categorie_dsil",
-        queryset=CategorieDsil.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-    )
-
-    porteur = MultipleChoiceFilter(
-        label="Demandeur",
-        field_name="dossier_ds__porteur_de_projet_nature__type",
-        choices=NaturePorteurProjet.TYPE_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    notification_status = MultipleChoiceFilter(
-        label="Statut de notification",
-        field_name="_notification_status",
-        choices=NOTIFICATION_STATUS_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
 
     ordered_status = (
         SimulationProjet.STATUS_PROCESSING,
@@ -193,115 +146,11 @@ class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
         method="filter_status",
     )
 
-    cout = RangeFilter(
-        label="Coût total",
-        field_name="dossier_ds__finance_cout_total",
-        widget=DsfrRangeWidget(icon="fr-icon-coin-fill"),
-    )
-
-    montant_demande = RangeFilter(
-        label="Montant demandé",
-        field_name="dossier_ds__demande_montant",
-        widget=DsfrRangeWidget(
-            icon="fr-icon-money-euro-circle-fill",
-            display_template="includes/_filter_montant_demande.html",
-        ),
-    )
-
     montant_previsionnel = RangeFilter(
         label="Montant prévisionnel accordé",
         field_name="dotationprojet__simulationprojet__montant",
         widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
         method="filter_montant_previsionnel",
-    )
-
-    date_depot = DateFromToRangeFilter(
-        label="Date de dépôt",
-        field_name="dossier_ds__ds_date_depot__date",
-        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
-    )
-
-    date_debut = DateFromToRangeFilter(
-        label="Date de commencement",
-        field_name="dossier_ds__date_debut",
-        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
-    )
-
-    date_achevement = DateFromToRangeFilter(
-        label="Date d'achèvement",
-        field_name="dossier_ds__date_achevement",
-        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
-    )
-
-    territoire = LabelFromInstanceFilter(
-        label="Territoire",
-        method="filter_territoire",
-        queryset=Perimetre.objects.none(),
-        widget=CustomCheckboxSelectMultiple(
-            display_template="includes/_filter_territoire.html",
-            label_attr="entity_name",
-        ),
-        label_attr="entity_name",
-    )
-
-    budget_vert_demandeur = MultipleChoiceFilter(
-        label="Budget vert (demandeur)",
-        field_name="dossier_ds__environnement_transition_eco",
-        choices=OUI_NON_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-        method="filter_boolean",
-    )
-
-    budget_vert_instructeur = MultipleChoiceFilter(
-        label="Budget vert (instructeur)",
-        field_name="is_budget_vert",
-        choices=OUI_NON_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-        method="filter_boolean",
-    )
-
-    dotation_sollicitee = MultipleChoiceFilter(
-        label="Dotation sollicitée",
-        field_name="dossier_ds__demande_dispositif_sollicite",
-        choices=DOTATION_SOLLICITEE_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-        method="filter_dotation_sollicitee",
-    )
-
-    dossier_complet = MultipleChoiceFilter(
-        label="Dossier complet",
-        field_name="dossier_ds__ds_state",
-        choices=OUI_NON_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-        method="filter_dossier_complet",
-    )
-
-    cofinancement = ModelMultipleChoiceFilter(
-        label="Cofinancement",
-        field_name="dossier_ds__demande_cofinancements",
-        queryset=Cofinancement.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    zonage = ModelMultipleChoiceFilter(
-        label="Zonage",
-        field_name="dossier_ds__projet_zonage",
-        queryset=ProjetZonage.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    contractualisation = ModelMultipleChoiceFilter(
-        label="Contractualisation",
-        field_name="dossier_ds__projet_contractualisation",
-        queryset=ProjetContractualisation.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-    )
-
-    epci = MultipleChoiceFilter(
-        label="EPCI",
-        field_name="dossier_ds__porteur_de_projet_epci",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
     order = ProjetOrderingFilter(
@@ -310,10 +159,6 @@ class SimulationProjetFilters(FixedFilterFieldsMixin, FilterSet):
         widget=CustomSelectWidget,
     )
 
-    filter_territoire = staticmethod(filter_territoire)
-    filter_boolean = staticmethod(filter_boolean)
-    filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
-    filter_dossier_complet = staticmethod(filter_dossier_complet)
     filter_search = staticmethod(
         make_filter_search(
             intitule_field="dossier_ds__projet_intitule",

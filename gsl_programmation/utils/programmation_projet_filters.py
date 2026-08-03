@@ -2,11 +2,6 @@ from functools import cached_property
 
 from django.db.models import Case, DecimalField, F, OuterRef, Q, Subquery, When
 from django_filters import (
-    CharFilter,
-    ChoiceFilter,
-    DateFromToRangeFilter,
-    FilterSet,
-    ModelMultipleChoiceFilter,
     MultipleChoiceFilter,
     RangeFilter,
 )
@@ -17,7 +12,6 @@ from gsl_demarches_simplifiees.models import (
     CategorieDsil,
     Cofinancement,
     Dossier,
-    NaturePorteurProjet,
     ProjetContractualisation,
     ProjetZonage,
 )
@@ -28,24 +22,16 @@ from gsl_programmation.models import (
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    NOTIFICATION_STATUS_CHOICES,
 )
 from gsl_projet.models import DotationProjet
 from gsl_projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
-    DsfrDateRangeWidget,
     DsfrRangeWidget,
 )
 from gsl_projet.utils.projet_filters import (
-    DOTATION_SOLLICITEE_CHOICES,
-    OUI_NON_CHOICES,
-    FixedFilterFieldsMixin,
-    LabelFromInstanceFilter,
+    CommonFiltersFields,
     ProjetOrderingFilter,
-    filter_boolean,
-    filter_dossier_complet,
-    filter_dotation_sollicitee,
     make_filter_search,
 )
 
@@ -67,7 +53,12 @@ PROGRAMMATION_ORDERING_MAP = {
 }
 
 
-class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
+class ProgrammationProjetFilters(CommonFiltersFields):
+    # ProgrammationProjet reaches Projet via `dotation_projet__projet__`,
+    # unlike ProjetFilters/SimulationProjetFilters whose Meta.model is Projet
+    # directly; the common fields' field_name is prefixed accordingly.
+    dossier_field_prefix = "dotation_projet__projet__"
+
     fixed_filter_fields = (
         "search",
         "categorie_detr",
@@ -75,48 +66,6 @@ class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
         "cout",
         "montant_demande",
         "montant_retenu",
-    )
-
-    search = CharFilter(
-        label="Recherche",
-        method="filter_search",
-    )
-
-    categorie_detr = LabelFromInstanceFilter(
-        label="Catégorie DETR",
-        field_name="dotation_projet__projet__dossier_ds__demande_categorie_detr",
-        queryset=CategorieDetr.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-        label_attr="complete_label",
-    )
-
-    categorie_dsil = ModelMultipleChoiceFilter(
-        label="Catégorie DSIL",
-        field_name="dotation_projet__projet__dossier_ds__demande_categorie_dsil",
-        queryset=CategorieDsil.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-    )
-
-    porteur = MultipleChoiceFilter(
-        label="Demandeur",
-        field_name="dotation_projet__projet__dossier_ds__porteur_de_projet_nature__type",
-        choices=NaturePorteurProjet.TYPE_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    cout = RangeFilter(
-        label="Coût total",
-        field_name="dotation_projet__projet__dossier_ds__finance_cout_total",
-        widget=DsfrRangeWidget(icon="fr-icon-coin-fill"),
-    )
-
-    montant_demande = RangeFilter(
-        label="Montant demandé",
-        field_name="dotation_projet__projet__dossier_ds__demande_montant",
-        widget=DsfrRangeWidget(
-            icon="fr-icon-money-euro-circle-fill",
-            display_template="includes/_filter_montant_demande.html",
-        ),
     )
 
     montant_retenu = RangeFilter(
@@ -132,87 +81,6 @@ class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
-    notification_status = MultipleChoiceFilter(
-        label="Statut de notification",
-        field_name="_notification_status",
-        choices=NOTIFICATION_STATUS_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    territoire = LabelFromInstanceFilter(
-        label="Territoire",
-        method="filter_territoire",
-        queryset=Perimetre.objects.none(),
-        widget=CustomCheckboxSelectMultiple(
-            display_template="includes/_filter_territoire.html",
-            label_attr="entity_name",
-        ),
-        label_attr="entity_name",
-    )
-
-    budget_vert_demandeur = MultipleChoiceFilter(
-        label="Budget vert (demandeur)",
-        field_name="dotation_projet__projet__dossier_ds__environnement_transition_eco",
-        choices=OUI_NON_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-        method="filter_boolean",
-    )
-
-    budget_vert_instructeur = MultipleChoiceFilter(
-        label="Budget vert (instructeur)",
-        field_name="dotation_projet__projet__is_budget_vert",
-        choices=OUI_NON_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-        method="filter_boolean",
-    )
-
-    dotation_sollicitee = MultipleChoiceFilter(
-        label="Dotation sollicitée",
-        field_name="dotation_projet__projet__dossier_ds__demande_dispositif_sollicite",
-        choices=DOTATION_SOLLICITEE_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-        method="filter_dotation_sollicitee",
-    )
-
-    dossier_complet = MultipleChoiceFilter(
-        label="Dossier complet",
-        field_name="dotation_projet__projet__dossier_ds__ds_state",
-        choices=OUI_NON_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-        method="filter_dossier_complet",
-    )
-
-    cofinancement = ModelMultipleChoiceFilter(
-        label="Cofinancement",
-        field_name="dotation_projet__projet__dossier_ds__demande_cofinancements",
-        queryset=Cofinancement.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    zonage = ModelMultipleChoiceFilter(
-        label="Zonage",
-        field_name="dotation_projet__projet__dossier_ds__projet_zonage",
-        queryset=ProjetZonage.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    contractualisation = ModelMultipleChoiceFilter(
-        label="Contractualisation",
-        field_name="dotation_projet__projet__dossier_ds__projet_contractualisation",
-        queryset=ProjetContractualisation.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-    )
-
-    epci = MultipleChoiceFilter(
-        label="EPCI",
-        field_name="dotation_projet__projet__dossier_ds__porteur_de_projet_epci",
-        choices=[],
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    filter_boolean = staticmethod(filter_boolean)
-    filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
-    filter_dossier_complet = staticmethod(filter_dossier_complet)
     filter_search = staticmethod(
         make_filter_search(
             intitule_field="dotation_projet__projet__dossier_ds__projet_intitule",
@@ -220,48 +88,6 @@ class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
             ds_number_field="dotation_projet__projet__dossier_ds__ds_number",
         )
     )
-
-    date_depot = DateFromToRangeFilter(
-        label="Date de dépôt",
-        field_name="dotation_projet__projet__dossier_ds__ds_date_depot__date",
-        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
-    )
-
-    date_debut = DateFromToRangeFilter(
-        label="Date de commencement",
-        field_name="dotation_projet__projet__dossier_ds__date_debut",
-        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
-    )
-
-    date_achevement = DateFromToRangeFilter(
-        label="Date d'achèvement",
-        field_name="dotation_projet__projet__dossier_ds__date_achevement",
-        widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
-    )
-
-    notified = ChoiceFilter(
-        label="Demandeur notifié",
-        method="filter_notified",
-        choices=(("yes", "Oui"), ("no", "Non")),
-        empty_label="Tous",
-        widget=CustomSelectWidget,
-    )
-
-    def filter_territoire(self, queryset, _name, values):
-        if not values:
-            return queryset
-        result = queryset.none()
-        for perimetre in values:
-            result |= queryset.for_perimetre(perimetre)
-        return result
-
-    def filter_notified(self, queryset, _name, value: str):
-        if value == "yes":
-            return queryset.exclude(dotation_projet__projet__notified_at=None)
-        elif value == "no":
-            return queryset.filter(dotation_projet__projet__notified_at=None)
-        else:
-            return queryset
 
     order = ProjetOrderingFilter(
         fields=PROGRAMMATION_ORDERING_MAP,
@@ -279,7 +105,6 @@ class ProgrammationProjetFilters(FixedFilterFieldsMixin, FilterSet):
             "categorie_dsil",
             "porteur",
             "dossier_complet",
-            "notified",
             "cout",
             "montant_demande",
             "montant_retenu",
