@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
@@ -22,6 +23,7 @@ from gsl_notification.models import (
     LettreEtArreteSignes,
     LettreNotification,
     LettreRefus,
+    ModeleArrete,
     ModeleDocument,
 )
 from gsl_notification.tasks import run_document_import_job
@@ -411,6 +413,26 @@ class LettreRefusForm(ArreteForm):
             "modele",
             "with_qr_code",
         )
+
+
+class ModeleChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return format_html(
+            "{}<span class='fr-hint-text'>{}</span>", obj.name, obj.description
+        )
+
+
+class ChoixModeleForm(DsfrBaseForm):
+    modele = ModeleChoiceField(
+        queryset=ModeleArrete.objects.none(),
+        widget=forms.RadioSelect,
+        empty_label=None,
+        label="Modèle",
+    )
+
+    def __init__(self, *args, queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["modele"].queryset = queryset
 
 
 GENERATED_DOCUMENT_TO_FORM = {
@@ -913,8 +935,8 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             .select_related(
                 "arrete",
                 "arrete__modele",
-                "lettre",
-                "lettre__modele",
+                "lettrenotification",
+                "lettrenotification__modele",
                 "lettre_et_arrete_signes",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",

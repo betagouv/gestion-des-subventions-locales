@@ -297,15 +297,27 @@ def test_can_display_notification_tab_with_accepted_dotation():
     assert projet.can_display_notification_tab is True
 
 
+def test_can_display_notification_tab_with_processing_dotation():
+    """Project with only a processing dotation should return False."""
+    projet = ProjetFactory()
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    assert projet.can_display_notification_tab is False
+
+
 @pytest.mark.parametrize(
     "dotation_status",
-    [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING],
+    [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
 )
-def test_can_display_notification_tab_with_not_accepted_dotation(dotation_status):
-    """Project with not accepted dotation should return False."""
+def test_can_display_notification_tab_with_refused_or_dismissed_dotation(
+    dotation_status,
+):
+    """Refused/dismissed dotations are treated too: the notification tab is
+    where the "À notifier" action for them lives."""
     projet = ProjetFactory()
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=dotation_status)
-    assert projet.can_display_notification_tab is False
+    assert projet.can_display_notification_tab is True
 
 
 @pytest.mark.parametrize(
@@ -315,11 +327,11 @@ def test_can_display_notification_tab_with_not_accepted_dotation(dotation_status
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, True),
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, True),
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, True),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, False),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, True),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, True),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, True),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, True),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, True),
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),
     ],
 )

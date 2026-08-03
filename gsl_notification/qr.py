@@ -53,7 +53,7 @@ _DOCUMENT_TYPE_TO_CODE = {ARRETE: "A", LETTRE: "L", LETTRE_REFUS: "R"}
 _CODE_TO_DOCUMENT_TYPE = {v: k for k, v in _DOCUMENT_TYPE_TO_CODE.items()}
 
 _PAYLOAD_RE = re.compile(
-    r"^GSL1:(?P<ds_number>\d+):(?P<dotation>[DS]):(?P<document_type>[AL]):(?P<page>\d+)$"
+    r"^GSL1:(?P<ds_number>\d+):(?P<dotation>[DS]):(?P<document_type>[ALR]):(?P<page>\d+)$"
 )
 
 

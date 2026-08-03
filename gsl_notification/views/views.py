@@ -1,13 +1,13 @@
 from django.contrib import messages
 from django.db.models import Exists, OuterRef
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
-from django.views.decorators.http import require_http_methods, require_POST
-from django.views.generic import DeleteView, DetailView, UpdateView
+from django.views.decorators.http import require_POST
+from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.utils.csp import csp_update
@@ -15,10 +15,7 @@ from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
-    MATOMO_ACTION_CREATION_ARRETE,
-    MATOMO_ACTION_CREATION_LETTRE,
     MATOMO_ACTION_ENVOI_DN,
-    MATOMO_CATEGORY_DOCUMENT,
     MATOMO_CATEGORY_NOTIFICATION,
 )
 from gsl_core.view_mixins import OpenHtmxModalMixin
@@ -26,6 +23,7 @@ from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_historique.models import ProjetAction
 from gsl_notification.forms import (
     GENERATED_DOCUMENT_TO_FORM,
+    ChoixModeleForm,
     GenerateDotationsDocumentsForm,
     NotificationMessageForm,
     RefusedDismissedNotificationForm,
@@ -44,8 +42,6 @@ from gsl_notification.utils import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
-    ARRETE,
-    LETTRE,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
 )
@@ -239,198 +235,152 @@ class RefusedDismissedNotificationModalView(OpenHtmxModalMixin, UpdateView):
 # Edition form for arrêté --------------------------------------------------------------
 
 
-@require_http_methods(["GET"])
-def select_modele(request, projet_id, dotation, document_type):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.active()
-        .visible_to_user(request.user)
-        .filter(status=ProgrammationProjet.STATUS_ACCEPTED),
-        dotation_projet__projet_id=projet_id,
-        enveloppe__dotation=dotation,
-    )
-    _, page_title, page_step_title, _ = (
-        _get_pp_attribute_page_title_and_page_step_title(
-            document_type, programmation_projet, step=1
+class SelectModeleView(FormView):
+    template_name = "gsl_notification/generated_document/select_modele.html"
+    form_class = ChoixModeleForm
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.document_type = kwargs["document_type"]
+        try:
+            self.modele_class = MODELES[self.document_type]
+        except KeyError:
+            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
+        self.programmation_projet = get_object_or_404(
+            ProgrammationProjet.objects.active().visible_to_user(request.user),
+            dotation_projet__projet_id=kwargs["projet_id"],
+            enveloppe__dotation=kwargs["dotation"],
         )
-    )
 
-    dotation = programmation_projet.dotation_projet.dotation
-    perimetres = get_modele_perimetres(dotation, request.user.perimetre)
-    try:
-        modele_class = MODELES[document_type]
-    except KeyError:
-        raise Http404(user_message="Le type de document sélectionné n'existe pas.")
-    modeles = modele_class.objects.filter(dotation=dotation, perimetre__in=perimetres)
-
-    context = {
-        "projet": programmation_projet.projet,
-        "dossier": programmation_projet.projet.dossier_ds,
-        "programmation_projet": programmation_projet,
-        "dotation": programmation_projet.dotation,
-        "document_type": document_type,
-        "page_title": page_title,
-        "page_step_title": page_step_title,
-        "cancel_link": reverse("gsl_notification:documents", args=[projet_id]),
-        "modeles_list": [
-            {
-                "name": obj.name,
-                "description": obj.description,
-                "actions": [
-                    {
-                        "label": "Sélectionner",
-                        "href": reverse(
-                            "notification:modifier-document",
-                            kwargs={
-                                "projet_id": projet_id,
-                                "dotation": dotation,
-                                "document_type": document_type,
-                            },
-                            query={"modele_id": obj.id},
-                        ),
-                    },
-                ],
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        dotation = self.programmation_projet.dotation
+        perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
+        kwargs["queryset"] = self.modele_class.objects.filter(
+            dotation=dotation, perimetre__in=perimetres
+        )
+        if hasattr(self.programmation_projet, self.document_type):
+            kwargs["initial"] = {
+                "modele": getattr(
+                    self.programmation_projet, self.document_type
+                ).modele_id
             }
-            for obj in modeles
-        ],
-    }
-    return render(
-        request,
-        "gsl_notification/generated_document/select_modele.html",
-        context=context,
-    )
+        return kwargs
 
-
-@csp_update({"style-src": [CSP.SELF, CSP.UNSAFE_INLINE]})
-@require_http_methods(["GET", "POST"])
-def change_document_view(request, projet_id, dotation, document_type):
-    programmation_projet = get_object_or_404(
-        ProgrammationProjet.objects.active().visible_to_user(request.user),
-        dotation_projet__projet_id=projet_id,
-        enveloppe__dotation=dotation,
-    )
-    modele = None
-    pp_attribute, page_title, page_step_title, is_creating = (
-        _get_pp_attribute_page_title_and_page_step_title(
-            document_type, programmation_projet, step=1
-        )
-    )
-    try:
-        modele_class = MODELES[document_type]
-        document_class = modele_class.generated_document_class
-        form_class = GENERATED_DOCUMENT_TO_FORM[document_type]
-    except KeyError:
-        raise Http404(user_message="Le type de document sélectionné n'existe pas.")
-
-    if hasattr(programmation_projet, pp_attribute):
-        document = getattr(programmation_projet, pp_attribute)
-        modele = document.modele
-    else:
-        document = document_class()
-
-    if request.GET.get("modele_id"):
-        dotation = programmation_projet.dotation_projet.dotation
-        perimetres = get_modele_perimetres(dotation, request.user.perimetre)
-        modele = get_object_or_404(
-            modele_class,
-            id=request.GET.get("modele_id"),
-            dotation=dotation,
-            perimetre__in=perimetres,
-        )
-        document.content = replace_mentions_in_html(
-            modele.content, programmation_projet
-        )
-
-    if modele is None:
-        raise Http404(user_message="Il n'y a pas de modèle sélectionné.")
-
-    if request.method == "POST":
-        form = form_class(request.POST, instance=document)
-        if form.is_valid():
-            form.save()
-
-            _add_success_message(request, is_creating, document_type, document.name)
-            if is_creating:
-                action = (
-                    MATOMO_ACTION_CREATION_ARRETE
-                    if document_type == ARRETE
-                    else MATOMO_ACTION_CREATION_LETTRE
-                )
-                queue_matomo_event(
-                    request,
-                    MATOMO_CATEGORY_DOCUMENT,
-                    action,
-                    programmation_projet.dotation_projet.dotation,
-                )
-            log_generated_document_action(
-                request.user, programmation_projet, document_type, is_creating
+    def form_valid(self, form):
+        return redirect(
+            reverse(
+                "notification:modifier-document",
+                kwargs={
+                    "projet_id": self.kwargs["projet_id"],
+                    "dotation": self.kwargs["dotation"],
+                    "document_type": self.document_type,
+                },
+                query={"modele_id": form.cleaned_data["modele"].id},
             )
-            return redirect(
-                reverse(
-                    "gsl_notification:documents",
-                    kwargs={"projet_id": projet_id},
-                )
+        )
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(
+            **kwargs,
+            projet=self.programmation_projet.projet,
+            dossier=self.programmation_projet.projet.dossier_ds,
+            programmation_projet=self.programmation_projet,
+            dotation=self.programmation_projet.dotation,
+            document_type=self.document_type,
+            page_title=f"Modification de {self.modele_class.article_name}",
+            page_step_title=f"1 - Choix du modèle de {self.modele_class.article_name}",
+            cancel_link=reverse(
+                "gsl_notification:documents", args=[self.kwargs["projet_id"]]
+            ),
+        )
+
+
+@method_decorator(
+    csp_update({"style-src": [CSP.SELF, CSP.UNSAFE_INLINE]}), name="dispatch"
+)
+class ChangeDocumentView(UpdateView):
+    template_name = "gsl_notification/generated_document/change_document.html"
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.document_type = kwargs["document_type"]
+        try:
+            self.modele_class = MODELES[self.document_type]
+            self.form_class = GENERATED_DOCUMENT_TO_FORM[self.document_type]
+        except KeyError:
+            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
+
+    def get_object(self, queryset=None):
+        self.programmation_projet = get_object_or_404(
+            ProgrammationProjet.objects.active().visible_to_user(self.request.user),
+            dotation_projet__projet_id=self.kwargs["projet_id"],
+            enveloppe__dotation=self.kwargs["dotation"],
+        )
+        if not hasattr(self.programmation_projet, self.document_type):
+            raise Http404(user_message="Il n'y a pas de document à modifier.")
+        document = getattr(self.programmation_projet, self.document_type)
+        self.modele = document.modele
+
+        modele_id = self.request.GET.get("modele_id")
+        if modele_id:
+            dotation = self.programmation_projet.dotation
+            perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
+            self.modele = get_object_or_404(
+                self.modele_class,
+                id=modele_id,
+                dotation=dotation,
+                perimetre__in=perimetres,
             )
-        else:
-            messages.error(request, "Erreur dans le formulaire")
-            document = form.instance
-    else:
-        form = form_class(instance=document)
+            document.content = replace_mentions_in_html(
+                self.modele.content, self.programmation_projet
+            )
+        return document
 
-    context = {
-        "arrete_form": form,
-        "arrete_initial_content": mark_safe(document.content),
-        "page_title": page_title,
-        "page_step_title": page_step_title,
-        "modele": modele,
-        "document_type": document_type,
-        "dossier": programmation_projet.projet.dossier_ds,
-    }
-    _enrich_context_for_create_or_get_arrete_view(
-        context, programmation_projet, request
-    )
-    return render(
-        request,
-        "gsl_notification/generated_document/change_document.html",
-        context=context,
-    )
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        _add_success_message(self.request, self.object)
+        log_generated_document_action(
+            self.request.user,
+            self.programmation_projet,
+            self.document_type,
+            is_creating=False,
+        )
+        return response
 
+    def form_invalid(self, form):
+        messages.error(self.request, "Erreur dans le formulaire")
+        return super().form_invalid(form)
 
-# TODO remove this function and use modele classes attributes
-def _get_pp_attribute_page_title_and_page_step_title(
-    document_type, programmation_projet: ProgrammationProjet, step=1
-):
-    pp_attribute = "arrete" if document_type == ARRETE else "lettre"
-    is_creating = not hasattr(programmation_projet, pp_attribute)
-    page_title = (
-        f"{'Création' if is_creating else 'Modification'} de l'arrêté attributif"
-    )
-    if document_type == LETTRE:
-        page_title = f"{'Création' if is_creating else 'Modification'} de la lettre de notification"
+    def get_success_url(self):
+        return reverse(
+            "gsl_notification:documents",
+            kwargs={"projet_id": self.kwargs["projet_id"]},
+        )
 
-    if step == 1:
-        page_step_title = "1 - Choix du modèle de "
-    else:
-        page_step_title = "2 - Publipostage de "
-
-    if document_type == ARRETE:
-        page_step_title += "l'arrêté"
-    else:
-        page_step_title += "la lettre de notification"
-
-    return pp_attribute, page_title, page_step_title, is_creating
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["arrete_form"] = context["form"]
+        context["arrete_initial_content"] = mark_safe(self.object.content)
+        context["page_title"] = f"Modification de {self.modele_class.article_name}"
+        context["page_step_title"] = (
+            f"1 - Choix du modèle de {self.modele_class.article_name}"
+        )
+        context["modele"] = self.modele
+        context["document_type"] = self.document_type
+        _enrich_context_for_create_or_get_arrete_view(
+            context, self.programmation_projet, self.request
+        )
+        return context
 
 
-def _add_success_message(
-    request, is_creating: bool, document_type: str, document_name: str
-):
-    verbe = "créé" if is_creating else "modifié"
-    type_and_article = (
-        "L'arrêté" if document_type == ARRETE else "La lettre de notification"
-    )
-    accord = "e" if document_type == LETTRE else ""
+def _add_success_message(request, document):
+    article = document.article_name
+    type_and_article = article[0].upper() + article[1:]
+    accord = "e" if article.startswith("la ") else ""
     messages.info(
         request,
-        f"{type_and_article} “{document_name}” a bien été {verbe}{accord}.",
+        f"{type_and_article} “{document.name}” a bien été modifié{accord}.",
     )
 
 

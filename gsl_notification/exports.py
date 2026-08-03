@@ -39,7 +39,7 @@ def build_export(job) -> tuple[str, str, bytes]:
         pp.pk: pp
         for pp in ProgrammationProjet.objects.filter(pk__in=job.pp_ids).select_related(
             "arrete__modele",
-            "lettre__modele",
+            "lettrenotification__modele",
             "dotation_projet__projet__dossier_ds__ds_demandeur",
         )
     }

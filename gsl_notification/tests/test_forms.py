@@ -10,8 +10,8 @@ from gsl_notification.forms import (
     AnnexeForm,
     ArreteEtLettreSigneForm,
     ArreteForm,
-    GenerateDotationsDocumentsForm,
     GenerateDocumentsStep3Form,
+    GenerateDotationsDocumentsForm,
     LettreNotificationForm,
     ModeleDocumentStepTwoForm,
 )
