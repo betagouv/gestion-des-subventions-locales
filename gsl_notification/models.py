@@ -183,6 +183,7 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         verbose_name="Programmation projet",
         related_name="%(class)s",
     )
+    with_qr_code = models.BooleanField(default=True)
 
     class Meta:
         abstract = True
@@ -192,12 +193,12 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         GENERATED_DOCUMENTS[cls.document_type] = cls
         MODELES[cls.document_type].generated_document_class = cls
 
-    def save(self, *args, with_qr_code=True, **kwargs):
+    def save(self, *args, **kwargs):
         from gsl_notification.utils import generate_pdf_for_generated_document
 
         if getattr(settings, "GENERATE_DOCUMENT_SIZE", True):
             pdf_bytes = generate_pdf_for_generated_document(
-                self, with_qr_code=with_qr_code
+                self, with_qr_code=self.with_qr_code
             )
             self.size = len(pdf_bytes)
         super().save(*args, **kwargs)
@@ -236,6 +237,10 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
     @property
     def name(self):
         raise NotImplementedError
+
+    @property
+    def article_name(self):
+        return self.modele.article_name
 
     @property
     def file_type(self):

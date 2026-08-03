@@ -570,8 +570,8 @@ class DotationProjetQuerySet(models.QuerySet):
                 ),
                 When(
                     status=PROJET_STATUS_ACCEPTED,
-                    programmation_projet__lettre__isnull=False,
                     programmation_projet__arrete__isnull=False,
+                    programmation_projet__lettrenotification__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
                 # When(

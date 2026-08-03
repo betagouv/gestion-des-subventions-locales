@@ -10,7 +10,7 @@ from gsl_notification.forms import (
     AnnexeForm,
     ArreteEtLettreSigneForm,
     ArreteForm,
-    GenerateAcceptedDotationsDocumentsForm,
+    GenerateDotationsDocumentsForm,
     GenerateDocumentsStep3Form,
     LettreNotificationForm,
     ModeleDocumentStepTwoForm,
@@ -270,7 +270,7 @@ def test_generate_documents_step3_form_valid_without_qr_field_submitted():
     assert form.cleaned_data["with_qr_code"] is False
 
 
-# GenerateAcceptedDotationsDocumentsForm -------------------------------------
+# GenerateDotationsDocumentsForm -------------------------------------
 
 
 def _make_accepted_dotation_projet(dotation, projet=None):
@@ -291,7 +291,7 @@ def test_generate_accepted_dotations_documents_form_only_lists_accepted_dotation
     _make_accepted_dotation_projet(DOTATION_DETR, projet=projet)
     user = CollegueFactory()
 
-    form = GenerateAcceptedDotationsDocumentsForm(projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm(projet=projet, user=user)
 
     assert list(form.dotation_fields.keys()) == [DOTATION_DETR]
 
@@ -304,7 +304,7 @@ def test_generate_accepted_dotations_documents_form_requires_modele_unless_skipp
     ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
     ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
 
-    form = GenerateAcceptedDotationsDocumentsForm({}, projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm({}, projet=projet, user=user)
 
     assert not form.is_valid()
     assert f"modele_arrete_{DOTATION_DETR}" in form.errors
@@ -317,7 +317,7 @@ def test_generate_accepted_dotations_documents_form_forces_skip_when_no_modele()
     pp = _make_accepted_dotation_projet(DOTATION_DETR)
     projet = pp.dotation_projet.projet
 
-    form = GenerateAcceptedDotationsDocumentsForm({}, projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm({}, projet=projet, user=user)
 
     fields = form.dotation_fields[DOTATION_DETR]["fields"]
     assert fields[ARRETE]["has_modele"] is False
@@ -340,7 +340,7 @@ def test_generate_accepted_dotations_documents_form_skip_does_not_require_modele
         f"skip_arrete_{DOTATION_DETR}": "on",
         f"skip_lettre_{DOTATION_DETR}": "on",
     }
-    form = GenerateAcceptedDotationsDocumentsForm(data, projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
 
     assert form.is_valid(), form.errors
 
@@ -361,7 +361,7 @@ def test_generate_accepted_dotations_documents_form_creates_documents():
         f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
         f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
     }
-    form = GenerateAcceptedDotationsDocumentsForm(data, projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
     assert form.is_valid(), form.errors
     documents = form.save()
 
@@ -385,7 +385,7 @@ def test_generate_accepted_dotations_documents_form_skip_prevents_creation():
         f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
         f"skip_lettre_{DOTATION_DETR}": "on",
     }
-    form = GenerateAcceptedDotationsDocumentsForm(data, projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
     assert form.is_valid(), form.errors
     form.save()
 
@@ -409,7 +409,7 @@ def test_generate_accepted_dotations_documents_form_overwrites_existing_document
         f"modele_arrete_{DOTATION_DETR}": new_modele.id,
         f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
     }
-    form = GenerateAcceptedDotationsDocumentsForm(data, projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
     assert form.is_valid(), form.errors
     form.save()
 
@@ -442,7 +442,7 @@ def test_generate_accepted_dotations_documents_form_hide_qr_code_propagates(
         f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
         "hide_qr_code": "on",
     }
-    form = GenerateAcceptedDotationsDocumentsForm(data, projet=projet, user=user)
+    form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
     assert form.is_valid(), form.errors
     form.save()
 

@@ -1,7 +1,7 @@
 from django import template
 
 from gsl_notification.forms import (
-    GenerateAcceptedDotationsDocumentsForm,
+    GenerateDotationsDocumentsForm,
     NotificationMessageForm,
 )
 
@@ -21,7 +21,7 @@ def notification_message_form(context, projet):
 def generate_documents_form(context, projet):
     return {
         "projet": projet,
-        "form": GenerateAcceptedDotationsDocumentsForm(
+        "form": GenerateDotationsDocumentsForm(
             projet=projet, user=context["request"].user
         ),
     }

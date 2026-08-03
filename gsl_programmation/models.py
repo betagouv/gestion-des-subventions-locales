@@ -365,6 +365,10 @@ class ProgrammationProjet(models.Model):
     def lettre(self):
         return self.lettrenotification
 
+    @property
+    def refus(self):
+        return self.lettrerefus
+
     def clean(self):
         errors = {}
         self._validate_montant(errors)

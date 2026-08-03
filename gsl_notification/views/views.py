@@ -26,7 +26,7 @@ from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_historique.models import ProjetAction
 from gsl_notification.forms import (
     GENERATED_DOCUMENT_TO_FORM,
-    GenerateAcceptedDotationsDocumentsForm,
+    GenerateDotationsDocumentsForm,
     NotificationMessageForm,
     RefusedDismissedNotificationForm,
 )
@@ -95,7 +95,7 @@ class GenerateDocumentsFormView(UpdateView):
     """
 
     model = Projet
-    form_class = GenerateAcceptedDotationsDocumentsForm
+    form_class = GenerateDotationsDocumentsForm
     template_name = "includes/_generate_documents_form.html"
     pk_url_kwarg = "projet_id"
     context_object_name = "projet"
@@ -508,8 +508,9 @@ class PrintDocumentView(DetailView):
 
     def get(self, request, *args, **kwargs):
         document = self.get_object()
-        with_qr_code = request.GET.get("with_qr_code") != "0"
-        pdf = generate_pdf_for_generated_document(document, with_qr_code=with_qr_code)
+        pdf = generate_pdf_for_generated_document(
+            document, with_qr_code=document.with_qr_code
+        )
         disposition = "attachment" if self.pdf_attachment else "inline"
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = f'{disposition}; filename="{document.name}"'

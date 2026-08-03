@@ -30,6 +30,7 @@ from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
     Annexe,
     Arrete,
+    GeneratedDocument,
     LettreEtArreteSignes,
     LettreNotification,
 )
@@ -496,7 +497,7 @@ def _apply_col_pct_widths(cols, total: float) -> None:
 
 
 def generate_pdf_for_generated_document(
-    document: Arrete | LettreNotification, *, with_qr_code: bool = True
+    document: GeneratedDocument, *, with_qr_code: bool = True
 ) -> bytes:
     """
     Generate PDF bytes for a GeneratedDocument (Arrete or LettreNotification).

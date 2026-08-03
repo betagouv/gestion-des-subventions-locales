@@ -196,7 +196,7 @@ class DotationDocumentFields:
 
     modeles = []
 
-    def __init__(self, form: "GenerateAcceptedDotationsDocumentsForm", dotation_projet):
+    def __init__(self, form: "GenerateDotationsDocumentsForm", dotation_projet):
         self.form = form
         self.dotation = dotation_projet.dotation
         self.dotation_projet = dotation_projet
@@ -276,7 +276,7 @@ DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS = {
 }
 
 
-class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
+class GenerateDotationsDocumentsForm(DsfrBaseForm):
     """
     Inline "1 - Générer" card on the notifications tab: one box per accepted
     dotation, each with a modele selector + skip checkbox for the arrêté and
@@ -357,8 +357,9 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
             modele=modele,
             created_by=self.user,
             content=replace_mentions_in_html(modele.content, programmation_projet),
+            with_qr_code=with_qr_code,
         )
-        document.save(with_qr_code=with_qr_code)
+        document.save()
         log_generated_document_action(
             self.user, programmation_projet, modele_class.type, is_creating
         )
@@ -368,25 +369,48 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(
         required=True,
-        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
         widget=forms.HiddenInput(),
     )
 
     class Meta:
         model = Arrete
-        fields = ("content", "created_by", "programmation_projet", "modele")
+        fields = (
+            "content",
+            "created_by",
+            "programmation_projet",
+            "modele",
+            "with_qr_code",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields[
+            "content"
+        ].help_text = f"Contenu HTML de {self._meta.model.article_name}, utilisé pour les exports."
 
 
 class LettreNotificationForm(ArreteForm):
     class Meta:
         model = LettreNotification
-        fields = ("content", "created_by", "programmation_projet", "modele")
+        fields = (
+            "content",
+            "created_by",
+            "programmation_projet",
+            "modele",
+            "with_qr_code",
+        )
 
 
 class LettreRefusForm(ArreteForm):
     class Meta:
         model = LettreRefus
-        fields = ("content", "created_by", "programmation_projet", "modele")
+        fields = (
+            "content",
+            "created_by",
+            "programmation_projet",
+            "modele",
+            "with_qr_code",
+        )
 
 
 GENERATED_DOCUMENT_TO_FORM = {
