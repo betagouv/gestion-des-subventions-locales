@@ -12,7 +12,6 @@ from django.db.models import (
     F,
     OuterRef,
     Q,
-    Subquery,
     Sum,
     UniqueConstraint,
     Value,
@@ -573,6 +572,11 @@ class DotationProjetQuerySet(models.QuerySet):
                     programmation_projet__arrete__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
+                # When(
+                #     status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED],
+                #     programmation_projet__lettrerefus__isnull=False,
+                #     then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                # ), # TODO use it when LettreRefus is done
                 default=Value(NOTIFICATION_STATUS_TO_GENERATE),
                 output_field=models.CharField(null=True),
             )
@@ -768,6 +772,9 @@ class DotationProjet(BaseModel):
 
     @property
     def notification_status(self) -> str | None:
+        if hasattr(self, "_notification_status"):
+            return self._notification_status
+
         if not hasattr(self, "programmation_projet"):
             return None
 
