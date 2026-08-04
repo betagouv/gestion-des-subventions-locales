@@ -343,7 +343,7 @@ class ChangeDocumentView(UpdateView):
         log_generated_document_action(
             self.request.user,
             self.programmation_projet,
-            self.document_type,
+            self.get_object().__class__,
             is_creating=False,
         )
         return response

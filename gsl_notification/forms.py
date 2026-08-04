@@ -363,7 +363,7 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
         )
         document.save()
         log_generated_document_action(
-            self.user, programmation_projet, modele_class.type, is_creating
+            self.user, programmation_projet, document_class, is_creating
         )
         return document
 

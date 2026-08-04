@@ -38,7 +38,6 @@ from gsl_notification.qr import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     ANNEXE,
-    ARRETE,
     DOTATION_DETR,
     LETTRE_ET_ARRETE_SIGNES,
     POSSIBLE_DOTATIONS,
@@ -574,14 +573,14 @@ def _build_qr_css_rules(document: Arrete | LettreNotification, page_count: int) 
 
 
 def log_generated_document_action(
-    user, programmation_projet, document_type, is_creating
+    user, programmation_projet, document_class, is_creating
 ):
     action_type = (
         ProjetAction.TYPE_DOC_GENERATED
         if is_creating
         else ProjetAction.TYPE_DOC_MODIFIED
     )
-    doc_label = "arrêté" if document_type == ARRETE else "lettre de notification"
+    doc_label = document_class.verbose_name().lower()
     ProjetAction.objects.create(
         projet=programmation_projet.dotation_projet.projet,
         action_type=action_type,
