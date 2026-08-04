@@ -1,0 +1,97 @@
+{% extends "gsl_projet/projet.html" %}
+{% load gsl_filters %}
+
+{% block tab_projet %}
+    {% if suivi_date %}
+        <p class="fr-text--sm fr-mt-3w fr-mb-0">
+            Données Chorus au {{ suivi_date|date:"d/m/Y" }}.
+        </p>
+    {% endif %}
+    {% for groupe in par_dotation %}
+        <h2 class="fr-h4 fr-mt-4w">
+            Dotation {{ groupe.dotation }}
+        </h2>
+        <ul class="fr-mb-2w">
+            <li>
+                Montant engagé (net) : <strong>{{ groupe.engage|euro }}</strong>
+            </li>
+            <li>
+                Montant payé : <strong>{{ groupe.paye|euro }}</strong>
+            </li>
+            <li>
+                Reste à payer : <strong>{{ groupe.reste|euro }}</strong>
+            </li>
+            {% if groupe.accorde is not None %}
+                {% if groupe.ecart %}
+                    <li>
+                        Montant accordé (Turgot) : <strong>{{ groupe.accorde|euro }}</strong>
+                        <span class="fr-badge fr-badge--sm fr-badge--warning">
+                            écart avec l'engagé Chorus
+                        </span>
+                    </li>
+                {% endif %}
+            {% else %}
+                <li>
+                    Aucune dotation {{ groupe.dotation }} dans Turgot
+                </li>
+            {% endif %}
+        </ul>
+        <div class="fr-table fr-table--bordered">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table>
+                            <caption class="fr-sr-only">
+                                Suivi financier {{ groupe.dotation }} (données Chorus)
+                            </caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        EJ
+                                    </th>
+                                    <th scope="col">
+                                        Date d'engagement
+                                    </th>
+                                    <th scope="col">
+                                        Type de pièce
+                                    </th>
+                                    <th scope="col">
+                                        Type de mouvement
+                                    </th>
+                                    <th scope="col" class="fr-text--right">
+                                        Montant
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ligne in groupe.lignes %}
+                                    <tr>
+                                        <td>
+                                            {{ ligne.ej }}
+                                        </td>
+                                        <td>
+                                            {{ ligne.date_engagement|date:"d/m/Y"|default:"—" }}
+                                        </td>
+                                        <td>
+                                            {{ ligne.get_tv_display|default:"—" }}
+                                        </td>
+                                        <td>
+                                            {{ ligne.get_type_montant_display|default:"—" }}
+                                        </td>
+                                        <td class="fr-text--right">
+                                            {{ ligne.montant|euro }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p class="fr-mt-3w">
+            Aucune ligne de suivi financier Chorus n'est rattachée à ce projet.
+        </p>
+    {% endfor %}
+{% endblock tab_projet %}

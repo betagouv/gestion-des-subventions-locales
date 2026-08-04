@@ -32,5 +32,13 @@
                {% if request.path == historique_url %}aria-selected="true"{% endif %}
                class="fr-tabs__tab fr-icon-time-fill fr-tabs__tab--icon-left">Historique</a>
         </li>
+        {% if projet.can_display_suivi_financier_tab %}
+            <li>
+                {% url "projet:get-projet-suivi-financier" projet_id=projet.id as suivi_financier_url %}
+                <a href="{{ suivi_financier_url }}{% querystring %}"
+                   {% if request.path == suivi_financier_url %}aria-selected="true"{% endif %}
+                   class="fr-tabs__tab fr-icon-money-euro-circle-line fr-tabs__tab--icon-left">Suivi financier</a>
+            </li>
+        {% endif %}
     </ul>
 </nav>

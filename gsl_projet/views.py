@@ -18,6 +18,8 @@ from django.views.generic import (
 from django_filters.views import FilterView
 from django_htmx.http import HttpResponseClientRedirect
 
+from gsl_chorus.models import SuiviFinancier
+from gsl_chorus.utils import build_suivi_par_dotation
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import (
@@ -118,6 +120,21 @@ class ProjetHistoriqueView(BaseProjetDetailView):
         context["actions"] = self.object.actions.select_related("actor").order_by(
             "-created_at"
         )
+        return context
+
+
+class ProjetSuiviFinancierView(BaseProjetDetailView):
+    template_name = "gsl_projet/projet/tab_suivi_financier.html"
+
+    def get_queryset(self):
+        return super().get_queryset().with_at_least_one_treated_dotation()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["par_dotation"] = build_suivi_par_dotation(self.object)
+        context["suivi_date"] = SuiviFinancier.objects.aggregate(
+            date=Max("date_transaction")
+        )["date"]
         return context
 
 
