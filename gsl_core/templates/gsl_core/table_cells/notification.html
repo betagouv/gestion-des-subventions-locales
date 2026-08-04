@@ -1,10 +1,10 @@
 {% load ui_tags %}
 {% if dotation_projet.notification_status %}
-  {% ui_status_badge type=dotation_projet.notification_status class="fr-badge--sm" %}
+    {% ui_status_badge type=dotation_projet.notification_status class="fr-badge--sm" %}
 {% else %}
-  <div>
-    <span class="fr-badge fr-badge--sm" aria-label="Aucune notification">
-      /
-    </span>
-  </div>
+    <div>
+        <span class="fr-badge fr-badge--sm" aria-label="Aucune notification">
+            /
+        </span>
+    </div>
 {% endif %}
