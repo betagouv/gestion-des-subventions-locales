@@ -17,7 +17,9 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 from gsl_notification.models import (
     Annexe,
+    Arrete,
     LettreEtArreteSignes,
+    LettreNotification,
 )
 from gsl_notification.tests.factories import (
     AnnexeFactory,
@@ -29,6 +31,7 @@ from gsl_notification.utils import (
     generate_pdf_for_generated_document,
     get_modele_perimetres,
     merge_documents_into_pdf,
+    merge_generated_documents_into_pdf,
     replace_mentions_in_html,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
@@ -429,6 +432,68 @@ class TestMergeDocumentsIntoPdf:
         result = merge_documents_into_pdf([mock_annexe], filename="mon-rapport.pdf")
 
         assert result.name == "mon-rapport.pdf"
+
+
+class TestMergeGeneratedDocumentsIntoPdf:
+    """Tests for the merge_generated_documents_into_pdf function."""
+
+    @pytest.fixture
+    def sample_pdf_bytes(self):
+        pdf = Pdf.new()
+        pdf.add_blank_page(page_size=(612, 792))
+        bytes_io = io.BytesIO()
+        pdf.save(bytes_io)
+        bytes_io.seek(0)
+        return bytes_io.read()
+
+    @pytest.fixture
+    def sample_two_page_pdf_bytes(self):
+        pdf = Pdf.new()
+        pdf.add_blank_page(page_size=(612, 792))
+        pdf.add_blank_page(page_size=(612, 792))
+        bytes_io = io.BytesIO()
+        pdf.save(bytes_io)
+        bytes_io.seek(0)
+        return bytes_io.read()
+
+    @pytest.fixture
+    def mock_arrete(self):
+        arrete = Mock(spec=Arrete)
+        arrete.with_qr_code = True
+        return arrete
+
+    @pytest.fixture
+    def mock_lettre(self):
+        lettre = Mock(spec=LettreNotification)
+        lettre.with_qr_code = False
+        return lettre
+
+    @patch("gsl_notification.utils.generate_pdf_for_generated_document")
+    def test_merge_keeps_documents_order(
+        self,
+        mock_generate,
+        mock_arrete,
+        mock_lettre,
+        sample_pdf_bytes,
+        sample_two_page_pdf_bytes,
+    ):
+        mock_generate.side_effect = [sample_pdf_bytes, sample_two_page_pdf_bytes]
+
+        result = merge_generated_documents_into_pdf([mock_arrete, mock_lettre])
+
+        assert isinstance(result, bytes)
+        pdf = Pdf.open(io.BytesIO(result))
+        assert len(pdf.pages) == 3
+        assert mock_generate.call_args_list[0].args[0] is mock_arrete
+        assert mock_generate.call_args_list[0].kwargs["with_qr_code"] is True
+        assert mock_generate.call_args_list[1].args[0] is mock_lettre
+        assert mock_generate.call_args_list[1].kwargs["with_qr_code"] is False
+
+    def test_merge_empty_list(self):
+        result = merge_generated_documents_into_pdf([])
+
+        pdf = Pdf.open(io.BytesIO(result))
+        assert len(pdf.pages) == 0
 
 
 @pytest.mark.django_db

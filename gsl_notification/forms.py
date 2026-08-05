@@ -386,27 +386,13 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
 
 
 class LettreNotificationForm(ArreteForm):
-    class Meta:
+    class Meta(ArreteForm.Meta):
         model = LettreNotification
-        fields = (
-            "content",
-            "created_by",
-            "programmation_projet",
-            "modele",
-            "with_qr_code",
-        )
 
 
 class LettreRefusForm(ArreteForm):
-    class Meta:
+    class Meta(ArreteForm.Meta):
         model = LettreRefus
-        fields = (
-            "content",
-            "created_by",
-            "programmation_projet",
-            "modele",
-            "with_qr_code",
-        )
 
 
 class ModeleChoiceField(forms.ModelChoiceField):

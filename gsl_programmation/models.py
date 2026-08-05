@@ -7,6 +7,7 @@ from django.db.models import Sum
 from typing_extensions import deprecated
 
 from gsl_core.models import BaseModel, Perimetre
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.utils.utils import compute_taux
