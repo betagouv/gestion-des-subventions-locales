@@ -1,3 +1,4 @@
+import io
 from unittest.mock import patch
 
 import pytest
@@ -5,6 +6,7 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils.text import slugify
 from freezegun import freeze_time
+from pikepdf import Pdf
 
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -813,6 +815,49 @@ def test_document_download_url_with_wrong_perimetre(
         "notification:document-download",
         kwargs={"document_type": document_type, "document_id": document.id},
     )
+    response = different_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+### generated-documents-download (merged PDF)
+
+
+def test_generated_documents_download_merges_all_documents_in_table_order(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    projet = programmation_projet.dotation_projet.projet
+    ArreteFactory(programmation_projet=programmation_projet)
+    LettreNotificationFactory(programmation_projet=programmation_projet)
+
+    url = reverse("notification:generated-documents-download", args=[projet.id])
+    assert url == f"/notification/{projet.id}/documents-generes/telecharger/"
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        response = correct_perimetre_client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/pdf"
+    assert 'attachment; filename="' in response["Content-Disposition"]
+
+    pdf = Pdf.open(io.BytesIO(response.content))
+    expected_pages = len(projet.generated_documents)
+    assert len(pdf.pages) >= expected_pages
+
+
+def test_generated_documents_download_with_no_documents_returns_404(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    projet = programmation_projet.dotation_projet.projet
+    url = reverse("notification:generated-documents-download", args=[projet.id])
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+def test_generated_documents_download_with_wrong_perimetre(
+    programmation_projet, different_perimetre_client_with_user_logged
+):
+    ArreteFactory(programmation_projet=programmation_projet)
+    projet = programmation_projet.dotation_projet.projet
+    url = reverse("notification:generated-documents-download", args=[projet.id])
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 

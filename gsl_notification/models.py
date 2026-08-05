@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.text import slugify
 
 from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_notification.validators import document_file_validator, logo_file_validator
@@ -35,7 +34,7 @@ class VerboseNameMixin:
     def verbose_name(cls, count=1):
         meta = cls._meta
         name = meta.verbose_name if count == 1 else meta.verbose_name_plural
-        return name.lower()
+        return name
 
     @property
     def delete_title(self):
@@ -122,7 +121,7 @@ class ModeleDocument(VerboseNameMixin, models.Model):
 
     @property
     def delete_question(self):
-        return f"Êtes-vous sûr de vouloir supprimer ce {self.verbose_name()} ?"
+        return f"Êtes-vous sûr de vouloir supprimer ce {self.verbose_name().lower()} ?"
 
 
 class ModeleArrete(ModeleDocument):
