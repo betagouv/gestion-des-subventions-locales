@@ -3,6 +3,7 @@ from logging import getLogger
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 
 from gsl_core.models import (
     Adresse,
@@ -862,6 +863,10 @@ class Dossier(BaseModel):
                 )
 
         return details
+
+    @property
+    def name_for_document(self):
+        return f"{self.ds_number} - {slugify(self.ds_demandeur.raison_sociale)}"
 
 
 class DsChoiceLibelle(BaseModel):

@@ -301,7 +301,7 @@ class ProgrammationProjet(models.Model):
         return self.dotation_projet.projet
 
     @property
-    def dossier(self):
+    def dossier(self) -> Dossier:
         return self.projet.dossier_ds
 
     @property
