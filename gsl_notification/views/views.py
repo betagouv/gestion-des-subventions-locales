@@ -38,6 +38,7 @@ from gsl_notification.utils import (
     generate_pdf_for_generated_document,
     get_modele_perimetres,
     log_generated_document_action,
+    merge_generated_documents_into_pdf,
     replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
@@ -469,6 +470,32 @@ class PrintDocumentView(DetailView):
 
 class DownloadDocumentView(PrintDocumentView):
     pdf_attachment = True
+
+
+class DownloadMergedGeneratedDocumentsView(DetailView):
+    """Merges every generated document of a projet (arrêté, lettre...) into a
+    single PDF, in the same order as the documents table."""
+
+    pk_url_kwarg = "projet_id"
+
+    def get_queryset(self):
+        return (
+            Projet.objects.active()
+            .for_user(self.request.user)
+            .with_at_least_one_treated_dotation()
+        )
+
+    def get(self, request, *args, **kwargs):
+        projet = self.get_object()
+        documents = projet.generated_documents
+        if not documents:
+            raise Http404(user_message="Aucun document généré à télécharger.")
+        pdf = merge_generated_documents_into_pdf(documents)
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="Documents {projet.dossier_ds.name_for_document}.pdf"'
+        )
+        return response
 
 
 def _enrich_context_for_create_or_get_arrete_view(

@@ -27,12 +27,12 @@
                                     {{ fields.modele.as_field_group }}
                                 {% else %}
                                     <p class="fr-text-default--warning fr-mb-1w">
-                                        Aucun {{ fields.modele_class.verbose_name }} disponible.
+                                        Aucun {{ fields.modele_class.verbose_name.lower }} disponible.
                                     </p>
                                     <p class="fr-mb-2w">
                                         <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
                                            class="fr-link fr-icon-add-line fr-link--icon-left">
-                                            Créer un {{ fields.modele_class.verbose_name }}
+                                            Créer un {{ fields.modele_class.verbose_name.lower }}
                                         </a>
                                     </p>
                                 {% endif %}

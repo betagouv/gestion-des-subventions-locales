@@ -596,16 +596,34 @@ def merge_documents_into_pdf(
     filename: str = "documents.pdf",
 ) -> SimpleUploadedFile:
     documents_file_bytes = [_get_uploaded_document_pdf(doc) for doc in documents]
+    return SimpleUploadedFile(
+        name=filename,
+        content=_merge_pdf_bytes(documents_file_bytes),
+        content_type="application/pdf",
+    )
 
+
+def merge_generated_documents_into_pdf(
+    documents: list[GeneratedDocument],
+) -> bytes:
+    """Merge already-generated documents (e.g. arrêté, lettre) into one PDF,
+    in the given order."""
+    documents_file_bytes = [
+        io.BytesIO(
+            generate_pdf_for_generated_document(doc, with_qr_code=doc.with_qr_code)
+        )
+        for doc in documents
+    ]
+    return _merge_pdf_bytes(documents_file_bytes)
+
+
+def _merge_pdf_bytes(files: list[io.BytesIO]) -> bytes:
     pdf = Pdf.new()
 
-    for file in documents_file_bytes:
+    for file in files:
         src = Pdf.open(file)
         pdf.pages.extend(src.pages)
 
-    bytes = io.BytesIO()
-    pdf.save(bytes)
-    bytes.seek(0)
-    return SimpleUploadedFile(
-        name=filename, content=bytes.read(), content_type="application/pdf"
-    )
+    output = io.BytesIO()
+    pdf.save(output)
+    return output.getvalue()

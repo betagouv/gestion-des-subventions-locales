@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.text import slugify
 
 from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_notification.validators import document_file_validator, logo_file_validator
@@ -35,7 +34,7 @@ class VerboseNameMixin:
     def verbose_name(cls, count=1):
         meta = cls._meta
         name = meta.verbose_name if count == 1 else meta.verbose_name_plural
-        return name.lower()
+        return name
 
     @property
     def delete_title(self):
@@ -122,7 +121,7 @@ class ModeleDocument(VerboseNameMixin, models.Model):
 
     @property
     def delete_question(self):
-        return f"Êtes-vous sûr de vouloir supprimer ce {self.verbose_name()} ?"
+        return f"Êtes-vous sûr de vouloir supprimer ce {self.verbose_name().lower()} ?"
 
 
 class ModeleArrete(ModeleDocument):
@@ -193,6 +192,9 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         GENERATED_DOCUMENTS[cls.document_type] = cls
         MODELES[cls.document_type].generated_document_class = cls
 
+    def __str__(self):
+        return f"{self.verbose_name()} #{self.id}"
+
     def save(self, *args, **kwargs):
         from gsl_notification.utils import generate_pdf_for_generated_document
 
@@ -236,7 +238,7 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
 
     @property
     def name(self):
-        raise NotImplementedError
+        return f"{self.verbose_name()} {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.name_for_document}.pdf"
 
     @property
     def article_name(self):
@@ -257,13 +259,6 @@ class Arrete(GeneratedDocument):
         verbose_name = "Arrêté"
         verbose_name_plural = "Arrêtés"
 
-    def __str__(self):
-        return f"Arrêté #{self.id}"
-
-    @property
-    def name(self):
-        return f"Arrêté {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
-
 
 class LettreNotification(GeneratedDocument):
     document_type = LETTRE
@@ -277,12 +272,9 @@ class LettreNotification(GeneratedDocument):
         verbose_name = "Lettre de notification"
         verbose_name_plural = "Lettres de notification"
 
-    def __str__(self):
-        return f"Lettre de notification #{self.id}"
-
     @property
     def name(self):
-        return f"Lettre {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
+        return f"Lettre {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.name_for_document}.pdf"
 
 
 class LettreRefus(GeneratedDocument):
@@ -294,13 +286,6 @@ class LettreRefus(GeneratedDocument):
     class Meta:
         verbose_name = "Lettre de refus ou classement sans suite"
         verbose_name_plural = "Lettres de refus ou classement sans suite"
-
-    def __str__(self):
-        return f"Lettre de refus ou classement sans suite #{self.id}"
-
-    @property
-    def name(self):
-        return f"Lettre de refus ou classement sans suite {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
 
 
 UPLOADED_DOCUMENTS = {}
