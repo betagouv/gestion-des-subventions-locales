@@ -22,8 +22,7 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import ExportJob
 from gsl_notification.tasks import generate_export_task
-from gsl_notification.utils import get_programmation_projet_attribute
-from gsl_projet.constants import DOTATIONS
+from gsl_projet.constants import ARRETE, DOTATIONS, LETTRE
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +189,10 @@ class GenerateDocumentsWizard(SessionWizardView):
             overwrite_strategy=step2_data.get("overwrite_strategy"),
         )
 
-        attrs = [get_programmation_projet_attribute(t) for t in form.selected_types]
+        # attr_names is stored as JSON: selected_types is a frozenset, so pin a
+        # deterministic order (lettre before arrete, matching the wizard's display
+        # order elsewhere) rather than storing the set itself.
+        attrs = [t for t in (LETTRE, ARRETE) if t in form.selected_types]
         pp_ids = [pp.pk for pp in refreshed]
 
         job = ExportJob.objects.create(
@@ -250,7 +252,9 @@ class GenerateDocumentsStatusView(DetailView):
             pp_ids = job.pp_ids
             refreshed = list(
                 ProgrammationProjet.objects.filter(pk__in=pp_ids)
-                .select_related("arrete", "lettre", "lettre_et_arrete_signes")
+                .select_related(
+                    "arrete", "lettrenotification", "lettre_et_arrete_signes"
+                )
                 .prefetch_related("annexes")
             )
             pk_to_pp = {pp.pk: pp for pp in refreshed}

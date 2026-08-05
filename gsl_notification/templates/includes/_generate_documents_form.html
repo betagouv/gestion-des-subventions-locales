@@ -17,7 +17,7 @@
                         <h4 class="fr-callout__title">
                             {{ dotation }}
                         </h4>
-                        {% ui_status_badge type="accepted" dotation=dotation %}
+                        {% ui_status_badge type=dotation_data.dotation_projet.status dotation=dotation %}
                         {% ui_status_badge type=dotation_data.dotation_projet.notification_status %}
 
                         {% for modele_type, fields in dotation_data.fields.items %}

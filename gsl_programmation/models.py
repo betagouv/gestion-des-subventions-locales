@@ -361,6 +361,14 @@ class ProgrammationProjet(models.Model):
             key=lambda d: d.created_at,
         )
 
+    @property
+    def lettre(self):
+        return self.lettrenotification
+
+    @property
+    def refus(self):
+        return self.lettrerefus
+
     def clean(self):
         errors = {}
         self._validate_montant(errors)

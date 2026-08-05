@@ -51,7 +51,7 @@ class ProgrammationProjetListView(FilterSkiplinksMixin, FilterView, ListView):
             )
             .prefetch_related(
                 "arrete",
-                "lettre",
+                "lettrenotification",
                 "lettre_et_arrete_signes",
                 "enveloppe",
                 "annexes",
@@ -60,7 +60,7 @@ class ProgrammationProjetListView(FilterSkiplinksMixin, FilterView, ListView):
                 "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__arrete",
-                "dotation_projet__projet__dotationprojet_set__programmation_projet__lettre",
+                "dotation_projet__projet__dotationprojet_set__programmation_projet__lettrenotification",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__lettre_et_arrete_signes",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__enveloppe",
                 "dotation_projet__projet__dotationprojet_set__programmation_projet__annexes",

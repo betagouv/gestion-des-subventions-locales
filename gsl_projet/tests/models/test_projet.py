@@ -198,56 +198,65 @@ def test_for_user_and_at_least_one_programmated_dotation():
     )
 
 
-def test_with_at_least_one_accepted_dotation():
+def test_with_at_least_one_treated_dotation():
     """Project with at least one accepted programmation should be included."""
     projet = ProjetFactory()
     dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_ACCEPTED)
-    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 1
-    assert projet in Projet.objects.with_at_least_one_accepted_dotation()
+    assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
 
-def test_with_at_least_one_accepted_dotation_without_programmation():
+def test_with_at_least_one_treated_dotation_without_programmation():
     """Project without programmation should not be included."""
     projet = ProjetFactory()
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 0
-    assert projet not in Projet.objects.with_at_least_one_accepted_dotation()
+    assert Projet.objects.with_at_least_one_treated_dotation().count() == 0
+    assert projet not in Projet.objects.with_at_least_one_treated_dotation()
 
 
-def test_with_at_least_one_accepted_dotation_with_non_accepted_status():
-    """Project with programmation but not accepted status should not be included."""
+def test_with_at_least_one_treated_dotation_with_refused_status():
+    """Project with a refused programmation should be included."""
     projet = ProjetFactory()
     dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_REFUSED)
-    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 0
-    assert projet not in Projet.objects.with_at_least_one_accepted_dotation()
+    assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
 
-def test_with_at_least_one_accepted_dotation_when_projet_has_two_accepted_programmations():
+def test_with_at_least_one_treated_dotation_with_dismissed_status():
+    """Project with a dismissed programmation should be included."""
+    projet = ProjetFactory()
+    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_DISMISSED)
+    assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_treated_dotation()
+
+
+def test_with_at_least_one_treated_dotation_when_projet_has_two_accepted_programmations():
     """Project with two accepted programmations should be included once."""
     projet = ProjetFactory()
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
     ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
     ProgrammationProjetFactory(dotation_projet=dotation_dsil, status=pp.STATUS_ACCEPTED)
-    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 1
-    assert projet in Projet.objects.with_at_least_one_accepted_dotation()
+    assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
 
-def test_with_at_least_one_accepted_dotation_with_one_accepted_one_refused():
+def test_with_at_least_one_treated_dotation_with_one_accepted_one_refused():
     """Project with one accepted and one refused programmation should be included."""
     projet = ProjetFactory()
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
     ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
     ProgrammationProjetFactory(dotation_projet=dotation_dsil, status=pp.STATUS_REFUSED)
-    assert Projet.objects.with_at_least_one_accepted_dotation().count() == 1
-    assert projet in Projet.objects.with_at_least_one_accepted_dotation()
+    assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
+    assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
 
-def test_with_at_least_one_accepted_dotation_for_user():
-    """Test with_at_least_one_accepted_dotation combined with for_user filter."""
+def test_with_at_least_one_treated_dotation_for_user():
+    """Test with_at_least_one_treated_dotation combined with for_user filter."""
     perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -264,12 +273,12 @@ def test_with_at_least_one_accepted_dotation_for_user():
     )
 
     assert (
-        Projet.objects.for_user(user).with_at_least_one_accepted_dotation().count() == 1
+        Projet.objects.for_user(user).with_at_least_one_treated_dotation().count() == 1
     )
-    assert projet in Projet.objects.for_user(user).with_at_least_one_accepted_dotation()
+    assert projet in Projet.objects.for_user(user).with_at_least_one_treated_dotation()
     assert (
         projet_not_in_perimeter
-        not in Projet.objects.for_user(user).with_at_least_one_accepted_dotation()
+        not in Projet.objects.for_user(user).with_at_least_one_treated_dotation()
     )
 
 
@@ -288,15 +297,27 @@ def test_can_display_notification_tab_with_accepted_dotation():
     assert projet.can_display_notification_tab is True
 
 
+def test_can_display_notification_tab_with_processing_dotation():
+    """Project with only a processing dotation should return False."""
+    projet = ProjetFactory()
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    assert projet.can_display_notification_tab is False
+
+
 @pytest.mark.parametrize(
     "dotation_status",
-    [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING],
+    [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
 )
-def test_can_display_notification_tab_with_not_accepted_dotation(dotation_status):
-    """Project with not accepted dotation should return False."""
+def test_can_display_notification_tab_with_refused_or_dismissed_dotation(
+    dotation_status,
+):
+    """Refused/dismissed dotations are treated too: the notification tab is
+    where the "À notifier" action for them lives."""
     projet = ProjetFactory()
     DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=dotation_status)
-    assert projet.can_display_notification_tab is False
+    assert projet.can_display_notification_tab is True
 
 
 @pytest.mark.parametrize(
@@ -306,11 +327,11 @@ def test_can_display_notification_tab_with_not_accepted_dotation(dotation_status
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, True),
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, True),
         (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, True),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, False),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, False),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, True),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, True),
+        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, True),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, True),
+        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, True),
         (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),
     ],
 )

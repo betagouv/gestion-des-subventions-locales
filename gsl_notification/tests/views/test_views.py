@@ -320,24 +320,21 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
         },
     )
     response = client.get(url)
-    assert len(response.context["modeles_list"]) == 1, (
-        "Seul le modèle avec le bon périmètre doit être proposé"
-    )
+    assert list(response.context["form"].fields["modele"].queryset) == [
+        detr_modele_dep_1
+    ], "Seul le modèle avec le bon périmètre doit être proposé"
     projet = programmation_projet.dotation_projet.projet
     dotation = programmation_projet.enveloppe.dotation
-    assert response.context["modeles_list"][0] == {
-        "actions": [
-            {
-                "href": f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}?modele_id={detr_modele_dep_1.id}",
-                "label": "Sélectionner",
-            },
-        ],
-        "description": detr_modele_dep_1.description,
-        "name": detr_modele_dep_1.name,
-    }
     assert (
         url
         == f"/notification/{projet.id}/selection-d-un-modele/{dotation}/{document_type}"
+    )
+
+    response = client.post(url, {"modele": detr_modele_dep_1.id})
+    assert response.status_code == 302
+    assert (
+        response["Location"]
+        == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}?modele_id={detr_modele_dep_1.id}"
     )
 
 
@@ -448,7 +445,7 @@ def test_modify_arrete_url_with_arrete(
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == "<p>Contenu de l’arrêté</p>"
     if document_type == ARRETE:
-        assert response.context["page_title"] == "Modification de l'arrêté attributif"
+        assert response.context["page_title"] == "Modification de l'arrêté"
     else:
         assert (
             response.context["page_title"]
@@ -459,88 +456,6 @@ def test_modify_arrete_url_with_arrete(
         response.templates[0].name
         == "gsl_notification/generated_document/change_document.html"
     )
-
-
-####### With modele_id
-######### Without an existing document
-########### With correct modele_perimetre
-
-
-@pytest.mark.parametrize(
-    "document_type, modele_factory",
-    ((ARRETE, ModeleArreteFactory), (LETTRE, ModeleLettreNotificationFactory)),
-)
-def test_modify_arrete_url_without_document_and_with_modele_id(
-    programmation_projet,
-    correct_perimetre_client_with_user_logged,
-    document_type,
-    modele_factory,
-):
-    modele = modele_factory(
-        perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
-        dotation=programmation_projet.dotation_projet.dotation,
-    )
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
-    url = reverse(
-        "notification:modifier-document",
-        kwargs={
-            "projet_id": projet.id,
-            "dotation": dotation,
-            "document_type": document_type,
-        },
-    )
-    data = {"modele_id": modele.id}
-    assert (
-        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
-    )
-    response = correct_perimetre_client_with_user_logged.get(url, data)
-    assert response.status_code == 200
-    assert response.context["arrete_initial_content"] == modele.content
-    if document_type == ARRETE:
-        assert response.context["page_title"] == "Création de l'arrêté attributif"
-    else:
-        assert response.context["page_title"] == "Création de la lettre de notification"
-    assert response.context["modele"] == modele
-    assert (
-        response.templates[0].name
-        == "gsl_notification/generated_document/change_document.html"
-    )
-
-
-########### With wrong modele_perimetre
-
-
-@pytest.mark.parametrize(
-    "document_type, modele_factory",
-    ((ARRETE, ModeleArreteFactory), (LETTRE, ModeleLettreNotificationFactory)),
-)
-def test_modify_arrete_url_without_document_and_with_wrong_modele_id(
-    programmation_projet,
-    correct_perimetre_client_with_user_logged,
-    document_type,
-    modele_factory,
-):
-    modele = modele_factory(
-        dotation=programmation_projet.dotation_projet.dotation,
-    )
-
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
-    url = reverse(
-        "notification:modifier-document",
-        kwargs={
-            "projet_id": projet.id,
-            "dotation": dotation,
-            "document_type": document_type,
-        },
-    )
-    data = {"modele_id": modele.id}
-    assert (
-        url == f"/notification/{projet.id}/modifier-document/{dotation}/{document_type}"
-    )
-    response = correct_perimetre_client_with_user_logged.get(url, data)
-    assert response.status_code == 404
 
 
 ######### With an existing document
@@ -586,7 +501,7 @@ def test_modify_arrete_url_with_document_and_with_correct_modele_id(
     assert response.status_code == 200
     assert response.context["arrete_initial_content"] == "<p>Contenu du modèle</p>"
     if document_type == ARRETE:
-        expected_title = "Modification de l'arrêté attributif"
+        expected_title = "Modification de l'arrêté"
     else:
         expected_title = "Modification de la lettre de notification"
     assert response.context["page_title"] == expected_title
@@ -672,67 +587,6 @@ def test_change_document_view_valid_but_with_wrong_perimetre(
     response = different_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 404
     assert not hasattr(programmation_projet, document_type)
-
-
-@freeze_time("2025-08-11")
-@pytest.mark.parametrize(
-    "document_type, document_model, modele_factory",
-    (
-        (ARRETE, Arrete, ModeleArreteFactory),
-        (LETTRE, LettreNotification, ModeleLettreNotificationFactory),
-    ),
-)
-def test_change_document_view_valid_without_existing_document(
-    programmation_projet,
-    correct_perimetre_client_with_user_logged,
-    document_type,
-    document_model,
-    modele_factory,
-):
-    modele = modele_factory(
-        dotation=programmation_projet.dotation,
-        perimetre=programmation_projet.projet.perimetre,
-    )
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
-    url = reverse(
-        "notification:modifier-document",
-        kwargs={
-            "projet_id": projet.id,
-            "dotation": dotation,
-            "document_type": document_type,
-        },
-    )
-    url += f"?modele_id={modele.id}"
-    data = {
-        "created_by": correct_perimetre_client_with_user_logged.user.id,
-        "programmation_projet": programmation_projet.id,
-        "content": "<p>Le contenu</p>",
-        "modele": modele.id,
-    }
-    response = correct_perimetre_client_with_user_logged.post(url, data)
-    assert response.status_code == 302
-    assert response["Location"] == f"/notification/{projet.id}/documents/"
-    assert document_model.objects.count() == 1
-    document = document_model.objects.first()
-    assert document.content == "<p>Le contenu</p>"
-    assert document.created_by == correct_perimetre_client_with_user_logged.user
-    assert document.programmation_projet == programmation_projet
-    assert document.modele == modele
-    messages = get_messages(response.wsgi_request)
-    assert len(messages) == 1
-    message = list(messages)[0]
-    assert message.level == 20
-    if document_type == ARRETE:
-        assert (
-            message.message
-            == f"L'arrêté “Arrêté {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créé."
-        )
-    else:
-        assert (
-            message.message
-            == f"La lettre de notification “Lettre {programmation_projet.enveloppe.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été créée."
-        )
 
 
 @freeze_time("2025-08-11")
@@ -878,7 +732,8 @@ def test_document_download_url_with_correct_perimetre(
         (LETTRE, LettreNotificationFactory),
     ),
 )
-def test_document_download_includes_qr_by_default_and_opts_out(
+def test_document_download_includes_qr_by_default_and_respects_stored_choice(
+    perimetre,
     programmation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
@@ -889,22 +744,31 @@ def test_document_download_includes_qr_by_default_and_opts_out(
     pytest.importorskip("zxingcpp")
     from gsl_notification.qr import decode_per_page
 
-    doc = factory(
+    with_qr = factory(
         programmation_projet=programmation_projet,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )
-    url = reverse(
-        "notification:document-download",
-        kwargs={"document_type": document_type, "document_id": doc.id},
+    without_qr = factory(
+        programmation_projet=ProgrammationProjetFactory(
+            dotation_projet__dotation=programmation_projet.dotation,
+            dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        ),
+        content="<p>" + ("Contenu de test. " * 200) + "</p>",
+        with_qr_code=False,
     )
 
-    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        # No param at all: QR included by default (opt-out).
-        default = correct_perimetre_client_with_user_logged.get(url)
-        # Explicit opt-out via query string: no QR.
-        opted_out = correct_perimetre_client_with_user_logged.get(
-            url, {"with_qr_code": "0"}
+    def download(doc):
+        url = reverse(
+            "notification:document-download",
+            kwargs={"document_type": document_type, "document_id": doc.id},
         )
+        return correct_perimetre_client_with_user_logged.get(url)
+
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        # Generated with with_qr_code=True (default): QR present on download.
+        default = download(with_qr)
+        # Generated with with_qr_code=False: no QR on download either.
+        opted_out = download(without_qr)
 
     assert default.status_code == 200
     assert opted_out.status_code == 200

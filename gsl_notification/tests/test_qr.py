@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
+from gsl_notification.models import GENERATED_DOCUMENTS
 from gsl_notification.qr import (
     QrPayload,
     build_payload,
@@ -20,7 +21,7 @@ def test_build_payload_format():
 
 
 @pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
-@pytest.mark.parametrize("document_type", [ARRETE, LETTRE])
+@pytest.mark.parametrize("document_type", GENERATED_DOCUMENTS)
 def test_build_and_parse_roundtrip(dotation, document_type):
     payload = build_payload(987654, dotation, document_type, 3)
     assert parse_payload(payload) == QrPayload(

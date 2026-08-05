@@ -29,6 +29,7 @@ from gsl_notification.models import (
     Arrete,
     LettreEtArreteSignes,
     LettreNotification,
+    LettreRefus,
 )
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -41,6 +42,7 @@ from gsl_projet.constants import (
     NOTIFICATION_STATUS_TO_NOTIFY,
     NOTIFICATION_STATUS_TO_SIGN,
     POSSIBLE_DOTATIONS,
+    PROJET_FINAL_STATUSES,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_CHOICES,
     PROJET_STATUS_DISMISSED,
@@ -237,14 +239,14 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
-    def with_at_least_one_accepted_dotation(self):
+    def with_at_least_one_treated_dotation(self):
         from gsl_programmation.models import ProgrammationProjet
 
         return self.filter(
             Exists(
                 ProgrammationProjet.objects.filter(
                     dotation_projet__projet=OuterRef("pk"),
-                    status=PROJET_STATUS_ACCEPTED,
+                    status__in=PROJET_FINAL_STATUSES,
                 )
             )
         )
@@ -443,14 +445,14 @@ class Projet(BaseModel):
         )
 
     @property
-    def has_accepted_dotation(self) -> bool:
+    def has_treated_dotation(self) -> bool:
         return any(
-            d.status == PROJET_STATUS_ACCEPTED for d in self.dotationprojet_set.all()
+            d.status in PROJET_FINAL_STATUSES for d in self.dotationprojet_set.all()
         )
 
     @property
     def can_display_notification_tab(self) -> bool:
-        return self.has_accepted_dotation
+        return self.has_treated_dotation
 
     @property
     def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
@@ -486,6 +488,9 @@ class Projet(BaseModel):
         documents = [
             *Arrete.objects.filter(programmation_projet__dotation_projet__projet=self),
             *LettreNotification.objects.filter(
+                programmation_projet__dotation_projet__projet=self
+            ),
+            *LettreRefus.objects.filter(
                 programmation_projet__dotation_projet__projet=self
             ),
         ]
@@ -565,8 +570,8 @@ class DotationProjetQuerySet(models.QuerySet):
                 ),
                 When(
                     status=PROJET_STATUS_ACCEPTED,
-                    programmation_projet__lettre__isnull=False,
                     programmation_projet__arrete__isnull=False,
+                    programmation_projet__lettrenotification__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
                 # When(
