@@ -31,13 +31,10 @@ from gsl_notification.models import (
     LettreNotification,
 )
 from gsl_projet.constants import (
-    ARRETE,
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
     DOTATIONS,
-    LETTRE,
-    LETTRE_REFUS,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NOTIFICATION_STATUS_NOTIFIED,
     NOTIFICATION_STATUS_TO_GENERATE,
@@ -775,28 +772,11 @@ class DotationProjet(BaseModel):
         if hasattr(self, "_notification_status"):
             return self._notification_status
 
-        if not hasattr(self, "programmation_projet"):
-            return None
-
-        if self.projet.notified_at is not None:
-            return NOTIFICATION_STATUS_NOTIFIED
-
-        if self.programmation_projet.has_lettre_and_arrete_signes:
-            return NOTIFICATION_STATUS_TO_NOTIFY
-
-        if (
-            self.status == PROJET_STATUS_ACCEPTED
-            and hasattr(self.programmation_projet, LETTRE)
-            and hasattr(self.programmation_projet, ARRETE)
-        ):
-            return NOTIFICATION_STATUS_TO_SIGN
-
-        if self.status in [PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED] and hasattr(
-            self.programmation_projet, LETTRE_REFUS
-        ):
-            return NOTIFICATION_STATUS_TO_SIGN
-
-        return NOTIFICATION_STATUS_TO_GENERATE
+        return (
+            DotationProjet.objects.annotate_notification_status()
+            .values_list("_notification_status", flat=True)
+            .get(pk=self.pk)
+        )
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept_without_ds_update(
