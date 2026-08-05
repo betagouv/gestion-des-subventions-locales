@@ -31,13 +31,10 @@ from gsl_notification.models import (
     LettreNotification,
 )
 from gsl_projet.constants import (
-    ARRETE,
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
     DOTATIONS,
-    LETTRE,
-    LETTRE_REFUS,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NOTIFICATION_STATUS_NOTIFIED,
     NOTIFICATION_STATUS_TO_GENERATE,
@@ -547,6 +544,41 @@ class DotationProjetQuerySet(models.QuerySet):
     def active(self):
         return self.filter(projet__dossier_ds__is_active=True)
 
+    def annotate_notification_status(self):
+        # Mirrors DotationProjet.notification_status. The REFUSED/DISMISSED +
+        # LETTRE_REFUS branch from the property is intentionally not
+        # reproduced here: LETTRE_REFUS ("refus") isn't a real related_name
+        # on ProgrammationProjet, so that branch is already unreachable in
+        # the property today, and referencing it here would raise a
+        # FieldError instead of silently doing nothing.
+        # TODO update with refused and dismissed statuses.
+        return self.annotate(
+            _notification_status=Case(
+                When(programmation_projet__isnull=True, then=Value(None)),
+                When(
+                    projet__notified_at__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_NOTIFIED),
+                ),
+                When(
+                    programmation_projet__lettre_et_arrete_signes__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_TO_NOTIFY),
+                ),
+                When(
+                    status=PROJET_STATUS_ACCEPTED,
+                    programmation_projet__lettre__isnull=False,
+                    programmation_projet__arrete__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                ),
+                # When(
+                #     status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED],
+                #     programmation_projet__lettrerefus__isnull=False,
+                #     then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                # ), # TODO use it when LettreRefus is done
+                default=Value(NOTIFICATION_STATUS_TO_GENERATE),
+                output_field=models.CharField(null=True),
+            )
+        )
+
 
 class DotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
     pass
@@ -737,28 +769,14 @@ class DotationProjet(BaseModel):
 
     @property
     def notification_status(self) -> str | None:
-        if not hasattr(self, "programmation_projet"):
-            return None
+        if hasattr(self, "_notification_status"):
+            return self._notification_status
 
-        if self.projet.notified_at is not None:
-            return NOTIFICATION_STATUS_NOTIFIED
-
-        if self.programmation_projet.has_lettre_and_arrete_signes:
-            return NOTIFICATION_STATUS_TO_NOTIFY
-
-        if (
-            self.status == PROJET_STATUS_ACCEPTED
-            and hasattr(self.programmation_projet, LETTRE)
-            and hasattr(self.programmation_projet, ARRETE)
-        ):
-            return NOTIFICATION_STATUS_TO_SIGN
-
-        if self.status in [PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED] and hasattr(
-            self.programmation_projet, LETTRE_REFUS
-        ):
-            return NOTIFICATION_STATUS_TO_SIGN
-
-        return NOTIFICATION_STATUS_TO_GENERATE
+        return (
+            DotationProjet.objects.annotate_notification_status()
+            .values_list("_notification_status", flat=True)
+            .get(pk=self.pk)
+        )
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept_without_ds_update(

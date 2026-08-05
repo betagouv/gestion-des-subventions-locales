@@ -27,6 +27,7 @@ from gsl_demarches_simplifiees.models import (
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
+    NOTIFICATION_STATUS_CHOICES,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_CHOICES,
     PROJET_STATUS_DISMISSED,
@@ -283,11 +284,49 @@ class FixedFilterFieldsMixin:
         ]
 
 
-class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
-    order = ProjetOrderingFilter(
-        fields=ORDERING_MAP,
-        empty_label="Tri",
-        widget=CustomSelectWidget,
+class CommonFiltersFields(FixedFilterFieldsMixin, FilterSet):
+    """Shared fields for ProjetFilters, SimulationProjetFilters (both
+    Meta.model = Projet) and ProgrammationProjetFilters (Meta.model =
+    ProgrammationProjet). `field_name`s below are declared relative to
+    Projet; ProgrammationProjetFilters sets `dossier_field_prefix` to reach
+    Projet through its own relation, prepended in `__init__`."""
+
+    dossier_field_prefix = ""
+
+    # Filters whose `field_name` is relative to Projet and needs
+    # `dossier_field_prefix` prepended for FilterSets not based on it.
+    prefixable_filters = (
+        "categorie_detr",
+        "categorie_dsil",
+        "porteur",
+        "cout",
+        "montant_demande",
+        "date_depot",
+        "date_debut",
+        "date_achevement",
+        "budget_vert_demandeur",
+        "budget_vert_instructeur",
+        "dotation_sollicitee",
+        "dossier_complet",
+        "cofinancement",
+        "zonage",
+        "contractualisation",
+        "epci",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.dossier_field_prefix:
+            for name in self.prefixable_filters:
+                filter_ = self.filters.get(name)
+                if filter_ is not None:
+                    filter_.field_name = self.dossier_field_prefix + filter_.field_name
+
+    notification_status = MultipleChoiceFilter(
+        label="Statut de notification",
+        field_name="_notification_status",
+        choices=NOTIFICATION_STATUS_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
     search = CharFilter(
@@ -295,11 +334,30 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
         method="filter_search",
     )
 
-    dotation = MultipleChoiceFilter(
-        label="Dotation",
-        choices=DOTATION_CHOICES,
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes les dotations"),
-        method="filter_dotation",
+    territoire = LabelFromInstanceFilter(
+        label="Territoire",
+        method="filter_territoire",
+        queryset=Perimetre.objects.none(),
+        widget=CustomCheckboxSelectMultiple(
+            display_template="includes/_filter_territoire.html",
+            label_attr="entity_name",
+        ),
+        label_attr="entity_name",
+    )
+
+    categorie_detr = LabelFromInstanceFilter(
+        label="Catégorie DETR",
+        field_name="dossier_ds__demande_categorie_detr",
+        queryset=CategorieDetr.objects.none(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
+        label_attr="complete_label",
+    )
+
+    categorie_dsil = ModelMultipleChoiceFilter(
+        label="Catégorie DSIL",
+        field_name="dossier_ds__demande_categorie_dsil",
+        queryset=CategorieDsil.objects.none(),
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
     porteur = MultipleChoiceFilter(
@@ -324,12 +382,6 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
         ),
     )
 
-    montant_retenu = RangeFilter(
-        label="Montant retenu",
-        method="filter_montant_retenu",
-        widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
-    )
-
     date_depot = DateFromToRangeFilter(
         label="Date de dépôt",
         field_name="dossier_ds__ds_date_depot__date",
@@ -348,51 +400,10 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
         widget=DsfrDateRangeWidget(icon="fr-icon-calendar-line"),
     )
 
-    ordered_status: tuple[str, ...] = (
-        PROJET_STATUS_PROCESSING,
-        PROJET_STATUS_REFUSED,
-        PROJET_STATUS_ACCEPTED,
-        PROJET_STATUS_DISMISSED,
-    )
-
-    status = MultipleChoiceFilter(
-        label="Statut",
-        method="filter_status",
-        choices=order_couples_tuple_by_first_value(
-            PROJET_STATUS_CHOICES, ordered_status
-        ),
-        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
-    )
-
-    categorie_detr = LabelFromInstanceFilter(
-        label="Catégorie DETR",
-        field_name="dossier_ds__demande_categorie_detr",
-        queryset=CategorieDetr.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-        label_attr="complete_label",
-    )
-
-    categorie_dsil = ModelMultipleChoiceFilter(
-        label="Catégorie DSIL",
-        field_name="dossier_ds__demande_categorie_dsil",
-        queryset=CategorieDsil.objects.none(),
-        widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
-    )
-
-    territoire = LabelFromInstanceFilter(
-        label="Territoire",
-        method="filter_territoire",
-        queryset=Perimetre.objects.none(),
-        widget=CustomCheckboxSelectMultiple(
-            display_template="includes/_filter_territoire.html",
-            label_attr="entity_name",
-        ),
-        label_attr="entity_name",
-    )
-
     epci = MultipleChoiceFilter(
         label="EPCI",
         field_name="dossier_ds__porteur_de_projet_epci",
+        choices=[],
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
@@ -449,11 +460,60 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes"),
     )
 
-    filter_dotation = staticmethod(filter_dotation)
-    filter_territoire = staticmethod(filter_territoire)
     filter_boolean = staticmethod(filter_boolean)
     filter_dotation_sollicitee = staticmethod(filter_dotation_sollicitee)
     filter_dossier_complet = staticmethod(filter_dossier_complet)
+    filter_territoire = staticmethod(filter_territoire)
+
+
+class ProjetFilters(CommonFiltersFields):
+    # Overrides the common field to use the `Exists`-based method: a plain
+    # Projet has no single `_notification_status` annotation to look up
+    # (unlike SimulationProjetFilters/ProgrammationProjetFilters, whose
+    # queryset is already scoped to one dotation).
+    notification_status = MultipleChoiceFilter(
+        label="Statut de notification",
+        method="filter_notification_status",
+        choices=NOTIFICATION_STATUS_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    order = ProjetOrderingFilter(
+        fields=ORDERING_MAP,
+        empty_label="Tri",
+        widget=CustomSelectWidget,
+    )
+
+    dotation = MultipleChoiceFilter(
+        label="Dotation",
+        choices=DOTATION_CHOICES,
+        widget=CustomCheckboxSelectMultiple(placeholder="Toutes les dotations"),
+        method="filter_dotation",
+    )
+
+    montant_retenu = RangeFilter(
+        label="Montant retenu",
+        method="filter_montant_retenu",
+        widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
+    )
+
+    ordered_status: tuple[str, ...] = (
+        PROJET_STATUS_PROCESSING,
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_ACCEPTED,
+        PROJET_STATUS_DISMISSED,
+    )
+
+    status = MultipleChoiceFilter(
+        label="Statut",
+        method="filter_status",
+        choices=order_couples_tuple_by_first_value(
+            PROJET_STATUS_CHOICES, ordered_status
+        ),
+        widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
+    )
+
+    filter_dotation = staticmethod(filter_dotation)
     filter_search = staticmethod(
         make_filter_search(
             intitule_field="dossier_ds__projet_intitule",
@@ -477,6 +537,15 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
     def filter_status(self, queryset, _name, values: list[str]):
         return queryset.annotate_status().filter(_status__in=values)
 
+    def filter_notification_status(self, queryset, _name, values: list[str]):
+        # Unlike `status`, this matches a projet as soon as ONE of its
+        # dotations has the selected notification status, rather than
+        # reducing to a single aggregated value first.
+        dotation_qs = DotationProjet.objects.annotate_notification_status().filter(
+            projet=OuterRef("pk"), _notification_status__in=values
+        )
+        return queryset.filter(Exists(dotation_qs))
+
     class Meta:
         model = Projet
         fields = (
@@ -488,6 +557,7 @@ class ProjetFilters(FixedFilterFieldsMixin, FilterSet):
             "categorie_detr",
             "categorie_dsil",
             "status",
+            "notification_status",
             "budget_vert_demandeur",
             "budget_vert_instructeur",
             "dotation_sollicitee",

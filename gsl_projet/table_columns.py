@@ -115,6 +115,8 @@ COLUMN_STATUT = Column(
     getter=_get_projet_statut,
     per_dotation=True,
     sticky=StickyPosition.RIGHT_1,
+    width=ColumnWidth.MIN_140,
+    text_align=TextAlign.CENTER,
 )
 
 PROJET_TABLE_COLUMNS = (

@@ -217,7 +217,9 @@ COLUMN_NOTIFICATION = Column(
     key="notification",
     label="Notification",
     template_name="gsl_core/table_cells/notification.html",
+    per_dotation=True,
     sticky=StickyPosition.RIGHT_2,
+    text_align=TextAlign.CENTER,
 )
 
 

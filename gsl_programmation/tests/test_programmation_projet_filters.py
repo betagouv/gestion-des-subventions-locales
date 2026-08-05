@@ -370,49 +370,6 @@ class TestProgrammationProjetFilters:
         assert prog_arr1 in result
         assert prog_arr2 in result
 
-    def test_to_notify_filter(self, mock_request, enveloppe, arrondissement):
-        """Test le filtre pour les projets à notifier"""
-        from django.utils import timezone
-
-        # Créer des projets avec différents états de notification
-        projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
-        projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
-
-        dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
-        dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
-
-        # Programmation acceptée non notifiée (à notifier)
-        prog_to_notify = ProgrammationProjetFactory(
-            dotation_projet=dotation1,
-            enveloppe=enveloppe,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at=None,
-        )
-
-        # Programmation acceptée déjà notifiée
-        prog_notified = ProgrammationProjetFactory(
-            dotation_projet=dotation2,
-            enveloppe=enveloppe,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at=timezone.now(),
-        )
-
-        # Test filtre "Notifié"
-        filterset = ProgrammationProjetFilters(
-            data={"notified": "yes"}, request=mock_request
-        )
-        result = list(filterset.qs)
-        assert prog_to_notify not in result
-        assert prog_notified in result
-
-        # Test filtre "pas notifié"
-        filterset = ProgrammationProjetFilters(
-            data={"notified": "no"}, request=mock_request
-        )
-        result = list(filterset.qs)
-        assert prog_to_notify in result
-        assert prog_notified not in result
-
     def test_order_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre de tri"""
         # Créer des programmations avec différents montants
