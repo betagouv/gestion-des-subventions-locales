@@ -28,7 +28,7 @@ dependencies = [
     "django-otp",
     "django-referrer-policy",
     "django-storages[s3]",
-    "django>=6.0",
+    "django>=6.0.7",
     "django-formtools",
     "gunicorn",
     "img2pdf",
