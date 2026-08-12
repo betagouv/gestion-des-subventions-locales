@@ -20,9 +20,9 @@ urlpatterns = [
         name="patch-projet",
     ),
     path(
-        "dotation/<int:pk>/modifier/",
-        views.DotationProjetUpdateView.as_view(),
-        name="patch-dotation-projet",
+        "dotation/<int:pk>/detr-avis/",
+        views.DotationProjetDetrAvisUpdateView.as_view(),
+        name="patch-dotation-projet-detr-avis",
     ),
     path(
         "dotation/<int:pk>/assiette/",
