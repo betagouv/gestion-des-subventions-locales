@@ -177,22 +177,32 @@ def test_patch_assiette_out_of_perimeter_returns_404(client_with_user_logged):
 @pytest.mark.parametrize(
     "value, expected_value", (("True", True), ("False", False), ("", None))
 )
-def test_patch_detr_avis_commission(
+def test_patch_detr_avis_commission_saves_value_and_returns_updated_fragment(
     client_with_user_logged, accepted_simulation_projet, value, expected_value
 ):
-    url = reverse(
-        "projet:patch-dotation-projet",
-        kwargs={"pk": accepted_simulation_projet.dotation_projet.pk},
-    )
+    dp = accepted_simulation_projet.dotation_projet
+    url = reverse("gsl_projet:patch-dotation-projet-detr-avis", kwargs={"pk": dp.pk})
     response = client_with_user_logged.post(
         url,
         {"detr_avis_commission": value},
-        follow=True,
+        headers={"HX-Request": "true"},
     )
 
     assert response.status_code == 200
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-    assert (
-        accepted_simulation_projet.dotation_projet.detr_avis_commission
-        is expected_value
+    dp.refresh_from_db()
+    assert dp.detr_avis_commission is expected_value
+
+    content = response.content.decode()
+    assert url in content
+    assert "Modifications enregistrées" in content
+
+
+def test_patch_detr_avis_commission_non_htmx_returns_400(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "gsl_projet:patch-dotation-projet-detr-avis",
+        kwargs={"pk": accepted_simulation_projet.dotation_projet.pk},
     )
+    response = client_with_user_logged.post(url, {"detr_avis_commission": "True"})
+    assert response.status_code == 400
