@@ -22,6 +22,7 @@ from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import (
     FilterSkiplinksMixin,
+    HtmxFragmentFormMixin,
     OpenHtmxModalMixin,
     SafeRedirectMixin,
 )
@@ -36,6 +37,7 @@ from gsl_demarches_simplifiees.models import (
 from gsl_projet.forms import (
     DotationProjetAssietteForm,
     DotationProjetForm,
+    ProjetBudgetVertForm,
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
@@ -188,6 +190,22 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
             self.request.POST.urlencode()
         )
         return _redirect_to_referer_or_projet(self.request, self.object)
+
+
+class ProjetBudgetVertUpdateView(HtmxFragmentFormMixin, UpdateView):
+    model = Projet
+    form_class = ProjetBudgetVertForm
+    template_name = "includes/forms/_is_budget_vert_form.html"
+    context_object_name = "projet"
+    pk_url_kwarg = "projet_id"
+
+    def get_queryset(self):
+        return Projet.objects.active().for_user(self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
 
 @method_decorator(htmx_only, name="dispatch")

@@ -7,7 +7,9 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
+from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
+from gsl_historique.models import ProjetAction
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     POSSIBLE_DOTATIONS,
@@ -20,12 +22,6 @@ logger = getLogger(__name__)
 
 
 class ProjetForm(ModelForm, DsfrBaseForm):
-    is_budget_vert = forms.BooleanField(
-        label="Projet concourant à la transition écologique au sens budget vert",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
-    )
-
     is_in_qpv = forms.BooleanField(
         label="Projet situé en QPV",
         required=False,
@@ -116,7 +112,6 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     class Meta:
         model = Projet
         fields = [
-            "is_budget_vert",
             "is_in_qpv",
             "is_attached_to_a_crte",
             "is_frr",
@@ -188,7 +183,6 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             annotations_to_update={
                 "annotations_is_qpv": self.cleaned_data.get("is_in_qpv"),
                 "annotations_is_crte": self.cleaned_data.get("is_attached_to_a_crte"),
-                "annotations_is_budget_vert": self.cleaned_data.get("is_budget_vert"),
                 "annotations_is_frr": self.cleaned_data.get("is_frr"),
                 "annotations_is_acv": self.cleaned_data.get("is_acv"),
                 "annotations_is_pvd": self.cleaned_data.get("is_pvd"),
@@ -211,7 +205,6 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         instance.save()
 
         _BOOLEAN_FIELDS = [
-            ("is_budget_vert", "Budget vert"),
             ("is_in_qpv", "QPV"),
             ("is_attached_to_a_crte", "CRTE"),
             ("is_frr", "FRR"),
@@ -318,6 +311,60 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         if dotations_updated_in_app:
             projet.dotations_updated_in_app = True
             projet.save()
+
+
+class ProjetBooleanAnnotationsForm(ModelForm, DsfrBaseForm):
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def _annotation_key(self, field):
+        return f"annotations_{field}"
+
+    def save(self, commit=True):
+        instance: Projet = super().save(commit=False)
+        if not commit:
+            return instance
+        if not any(field in self.changed_data for field in self.fields):
+            return instance
+
+        with transaction.atomic():
+            instance.save()
+            for name in self.fields:
+                if name in self.changed_data:
+                    ProjetAction.objects.create(
+                        projet=instance,
+                        action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED,
+                        actor=self.user,
+                        source=ProjetAction.SOURCE_TURGOT,
+                        boolean_field=self.fields[name].label,
+                        boolean_value=self.cleaned_data.get(name),
+                        form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+                    )
+            try:
+                DsService().update_checkboxes_annotations(
+                    dossier=instance.dossier_ds,
+                    user=self.user,
+                    annotations_to_update={
+                        self._annotation_key(name): self.cleaned_data.get(name)
+                        for name in self.fields
+                    },
+                )
+            except DsServiceException as err:
+                self.add_error(None, str(err))
+                transaction.set_rollback(True)
+        return instance
+
+
+class ProjetBudgetVertForm(ProjetBooleanAnnotationsForm):
+    is_budget_vert = forms.BooleanField(
+        label="Projet concourant à la transition écologique au sens budget vert",
+        required=False,
+    )
+
+    class Meta:
+        model = Projet
+        fields = ["is_budget_vert"]
 
 
 class DotationProjetForm(ModelForm):
