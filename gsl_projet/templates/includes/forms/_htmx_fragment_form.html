@@ -1,0 +1,17 @@
+<form hx-post="{% block post_url %}{% endblock post_url %}"
+      hx-target="this"
+      hx-swap="outerHTML"
+      class="fr-mb-2w">
+    {% csrf_token %}
+    <div class="fr-callout fr-background-alt--blue-france fr-m-0">
+        {% block fields %}{{ form }}{% endblock fields %}
+    </div>
+    <button class="fr-btn fr-btn--secondary fr-mt-2w" type="submit">
+        Enregistrer
+    </button>
+    {% if saved %}
+        <span class="fr-badge fr-badge--success"
+              role="status"
+              data-controller="auto-dismiss">Modifications enregistrées</span>
+    {% endif %}
+</form>
