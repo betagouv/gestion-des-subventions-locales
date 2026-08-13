@@ -208,11 +208,9 @@ class ProjetBudgetVertUpdateView(HtmxFragmentFormMixin, UpdateView):
         return kwargs
 
 
-@method_decorator(htmx_only, name="dispatch")
-class DotationProjetDetrAvisUpdateView(UpdateView):
+class DotationProjetDetrAvisUpdateView(HtmxFragmentFormMixin, UpdateView):
     model = DotationProjet
     form_class = DotationProjetForm
-    http_method_names = ["post"]
     template_name = "includes/forms/_detr_avis_commission_form.html"
     context_object_name = "dotation_projet"
 
@@ -221,32 +219,18 @@ class DotationProjetDetrAvisUpdateView(UpdateView):
             projet__in=Projet.objects.active().for_user(self.request.user)
         )
 
-    def form_valid(self, form):
-        form.save()
-        return self.render_to_response(self.get_context_data(form=form, saved=True))
 
-
-@method_decorator(htmx_only, name="dispatch")
-class DotationProjetAssietteUpdateView(UpdateView):
+class DotationProjetAssietteUpdateView(HtmxFragmentFormMixin, UpdateView):
     model = DotationProjet
     form_class = DotationProjetAssietteForm
-    http_method_names = ["post"]
     template_name = "includes/forms/_assiette_dotation_projet_form.html"
+    context_object_name = "dotation_projet"
 
     def get_queryset(self):
         return DotationProjet.objects.filter(
             projet__in=Projet.objects.active().for_user(self.request.user),
             projet__notified_at__isnull=True,
         )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["dotation_projet"] = self.object
-        return context
-
-    def form_valid(self, form):
-        form.save()
-        return self.render_to_response(self.get_context_data(form=form, saved=True))
 
 
 @method_decorator(htmx_only, name="dispatch")
