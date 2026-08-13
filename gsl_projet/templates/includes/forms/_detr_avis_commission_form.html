@@ -1,17 +1,5 @@
-<form hx-post="{% url 'gsl_projet:patch-dotation-projet-detr-avis' dotation_projet.pk %}"
-      hx-target="this"
-      hx-swap="outerHTML">
-    {% csrf_token %}
-    <div class="fr-callout fr-background-alt--blue-france fr-container fr-p-3w fr-m-0">
-        {{ form.detr_avis_commission.label_tag }}
-        {{ form.detr_avis_commission }}
-    </div>
-    <button class="fr-btn fr-btn--secondary fr-mt-2w" type="submit">
-        Enregistrer
-    </button>
-    {% if saved %}
-        <span class="fr-badge fr-badge--success"
-              role="status"
-              data-controller="auto-dismiss">Modifications enregistrées</span>
-    {% endif %}
-</form>
+{% extends "includes/forms/_htmx_fragment_form.html" %}
+
+{% block post_url %}
+    {% url 'gsl_projet:patch-dotation-projet-detr-avis' dotation_projet.pk %}
+{% endblock post_url %}

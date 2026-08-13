@@ -367,7 +367,7 @@ class ProjetBudgetVertForm(ProjetBooleanAnnotationsForm):
         fields = ["is_budget_vert"]
 
 
-class DotationProjetForm(ModelForm):
+class DotationProjetForm(ModelForm, DsfrBaseForm):
     DETR_AVIS_CHOICES = [
         (None, "En cours"),
         (True, "Oui"),
@@ -378,11 +378,6 @@ class DotationProjetForm(ModelForm):
         label="L'avis de la commission est-il positif ?",
         choices=DETR_AVIS_CHOICES,
         required=False,
-        widget=forms.Select(
-            attrs={
-                "class": "fr-select",
-            }
-        ),
     )
 
     def clean_detr_avis_commission(self):
