@@ -57,7 +57,7 @@ def test_projet_form_validation(projet):
     assert "dotations" in form.errors
 
 
-@patch.object(DsService, "update_checkboxes_annotations")
+@patch.object(DsService, "update_annotations")
 @pytest.mark.django_db
 def test_projet_budget_vert_form_save(mock_update_annotations, projet, user):
     assert projet.is_budget_vert is False
@@ -73,7 +73,7 @@ def test_projet_budget_vert_form_save(mock_update_annotations, projet, user):
 
     # Only the budget vert annotation is pushed to DN
     mock_update_annotations.assert_called_once()
-    assert mock_update_annotations.call_args.kwargs["annotations_to_update"] == {
+    assert mock_update_annotations.call_args.kwargs["annotations"] == {
         "annotations_is_budget_vert": True
     }
 
@@ -88,7 +88,7 @@ def test_projet_budget_vert_form_save(mock_update_annotations, projet, user):
     assert action.boolean_value is True
 
 
-@patch.object(DsService, "update_checkboxes_annotations")
+@patch.object(DsService, "update_annotations")
 @pytest.mark.django_db
 def test_projet_budget_vert_form_save_unchanged_is_a_noop(
     mock_update_annotations, projet, user

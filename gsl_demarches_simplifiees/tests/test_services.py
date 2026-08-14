@@ -771,8 +771,8 @@ class TestUpdateUpdatedAtFromMultipleAnnotations:
         assert dossier.ds_date_derniere_modification != old_date
 
 
-class TestUpdateCheckboxesAnnotations:
-    def test_update_checkboxes_annotations_success_single_checkbox(self, user, dossier):
+class TestUpdateAnnotations:
+    def test_update_annotations_success_single_checkbox(self, user, dossier):
         """Test updating a single checkbox annotation"""
         ds_service = DsService()
 
@@ -807,8 +807,8 @@ class TestUpdateCheckboxesAnnotations:
             }
 
             annotations_to_update = {"annotations_is_qpv": True}
-            result = ds_service.update_checkboxes_annotations(
-                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            result = ds_service.update_annotations(
+                dossier=dossier, user=user, annotations=annotations_to_update
             )
 
             # Verify _get_ds_field_id was called for each annotation
@@ -849,9 +849,7 @@ class TestUpdateCheckboxesAnnotations:
             # Verify return value
             assert result == mock_mutator.dossier_modifier_annotations.return_value
 
-    def test_update_checkboxes_annotations_success_multiple_checkboxes(
-        self, user, dossier
-    ):
+    def test_update_annotations_success_multiple_checkboxes(self, user, dossier):
         """Test updating multiple checkbox annotations"""
         ds_service = DsService()
 
@@ -942,8 +940,8 @@ class TestUpdateCheckboxesAnnotations:
                 "annotations_is_autre_zonage_local": False,
                 "annotations_is_contrat_local": True,
             }
-            ds_service.update_checkboxes_annotations(
-                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            ds_service.update_annotations(
+                dossier=dossier, user=user, annotations=annotations_to_update
             )
 
             # Verify _get_ds_field_id was called for each annotation
@@ -1005,9 +1003,7 @@ class TestUpdateCheckboxesAnnotations:
             assert annotation_dict["field_contrat_local_106"] is True
             assert annotation_dict["field_autre_zonage_local_105"] is False
 
-    def test_update_checkboxes_annotations_annotations_dict_structure(
-        self, user, dossier
-    ):
+    def test_update_annotations_annotations_dict_structure(self, user, dossier):
         """Test that annotations dict is built correctly with proper structure"""
         ds_service = DsService()
 
@@ -1035,8 +1031,8 @@ class TestUpdateCheckboxesAnnotations:
                 "annotations_is_qpv": True,
                 "annotations_is_crte": False,
             }
-            ds_service.update_checkboxes_annotations(
-                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            ds_service.update_annotations(
+                dossier=dossier, user=user, annotations=annotations_to_update
             )
 
             # Verify annotations structure
@@ -1056,7 +1052,7 @@ class TestUpdateCheckboxesAnnotations:
             assert annotations[1]["id"] == "field_crte_456"
             assert annotations[1]["value"]["checkbox"] is False
 
-    def test_update_checkboxes_annotations_calls_helper_methods(self, user, dossier):
+    def test_update_annotations_calls_helper_methods(self, user, dossier):
         """Test that all helper methods are called correctly"""
         ds_service = DsService()
 
@@ -1093,8 +1089,8 @@ class TestUpdateCheckboxesAnnotations:
             mock_mutator.dossier_modifier_annotations.return_value = mock_response
 
             annotations_to_update = {"annotations_is_qpv": True}
-            ds_service.update_checkboxes_annotations(
-                dossier=dossier, user=user, annotations_to_update=annotations_to_update
+            ds_service.update_annotations(
+                dossier=dossier, user=user, annotations=annotations_to_update
             )
 
             # Verify _get_ds_field_id was called
@@ -1117,8 +1113,11 @@ class TestUpdateCheckboxesAnnotations:
             # Verify _update_updated_at_from_multiple_annotations was called
             mock_update_updated_at.assert_called_once_with(dossier, mock_response)
 
-    def test_update_checkboxes_annotations_with_text_annotations(self, user, dossier):
-        """Test updating checkboxes annotations with text annotations"""
+    def test_update_annotations_infers_checkbox_and_text_from_field_type(
+        self, user, dossier
+    ):
+        """A single annotations dict is split into checkbox/text values based on
+        the matching Dossier model field type."""
         ds_service = DsService()
 
         field_ids = {
@@ -1164,19 +1163,14 @@ class TestUpdateCheckboxesAnnotations:
                 }
             }
 
-            annotations_to_update = {
+            annotations = {
                 "annotations_is_autre_zonage_local": True,
-                "annotations_is_contrat_local": True,
-            }
-            text_annotations_to_update = {
                 "annotations_autre_zonage_local": "Zonage Test ABC",
+                "annotations_is_contrat_local": True,
                 "annotations_contrat_local": "Contrat Test XYZ",
             }
-            ds_service.update_checkboxes_annotations(
-                dossier=dossier,
-                user=user,
-                annotations_to_update=annotations_to_update,
-                text_annotations_to_update=text_annotations_to_update,
+            ds_service.update_annotations(
+                dossier=dossier, user=user, annotations=annotations
             )
 
             # Verify _get_ds_field_id was called for all annotations (checkboxes + text)
@@ -1204,45 +1198,6 @@ class TestUpdateCheckboxesAnnotations:
             text_dict = {ann["id"]: ann["value"]["text"] for ann in text_annotations}
             assert text_dict["field_autre_zonage_local_text_456"] == "Zonage Test ABC"
             assert text_dict["field_contrat_local_text_101"] == "Contrat Test XYZ"
-
-    def test_update_checkboxes_annotations_with_empty_text_annotations(
-        self, user, dossier
-    ):
-        """Test updating checkboxes annotations with empty text annotations dict"""
-        ds_service = DsService()
-
-        field_ids = {
-            "annotations_is_qpv": "field_qpv_123",
-        }
-
-        mock_get_ds_field_id = MagicMock(
-            side_effect=lambda dossier, field: field_ids[field]
-        )
-
-        with (
-            patch.object(ds_service, "_get_ds_field_id", mock_get_ds_field_id),
-            patch.object(ds_service, "mutator") as mock_mutator,
-            patch.object(ds_service, "_check_results"),
-            patch.object(ds_service, "_update_updated_at_from_multiple_annotations"),
-        ):
-            mock_mutator.dossier_modifier_annotations.return_value = {
-                "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
-            }
-
-            annotations_to_update = {"annotations_is_qpv": True}
-            text_annotations_to_update = {}
-            ds_service.update_checkboxes_annotations(
-                dossier=dossier,
-                user=user,
-                annotations_to_update=annotations_to_update,
-                text_annotations_to_update=text_annotations_to_update,
-            )
-
-            # Verify only checkbox annotation was sent
-            call_args = mock_mutator.dossier_modifier_annotations.call_args
-            annotations = call_args[0][2]
-            assert len(annotations) == 1
-            assert annotations[0]["value"]["checkbox"] is True
 
 
 class TestTransformMessage:

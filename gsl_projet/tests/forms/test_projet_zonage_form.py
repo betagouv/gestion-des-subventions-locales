@@ -68,7 +68,7 @@ def test_contrat_local_cleared_when_checkbox_unchecked(projet):
     assert form.save(commit=False).contrat_local == ""
 
 
-@patch.object(DsService, "update_checkboxes_annotations")
+@patch.object(DsService, "update_annotations")
 def test_zonage_form_save_pushes_annotations_and_logs_history(
     mock_update_annotations, projet, user
 ):
@@ -84,9 +84,9 @@ def test_zonage_form_save_pushes_annotations_and_logs_history(
     assert projet.is_in_qpv is True
     assert projet.is_attached_to_a_crte is True
 
-    # Checkbox annotations, with the DN-specific keys for qpv/crte
+    # Single dict, with the DN-specific keys for qpv/crte
     mock_update_annotations.assert_called_once()
-    annotations = mock_update_annotations.call_args.kwargs["annotations_to_update"]
+    annotations = mock_update_annotations.call_args.kwargs["annotations"]
     assert annotations["annotations_is_qpv"] is True
     assert annotations["annotations_is_crte"] is True
 
@@ -103,7 +103,7 @@ def test_zonage_form_save_pushes_annotations_and_logs_history(
     }
 
 
-@patch.object(DsService, "update_checkboxes_annotations")
+@patch.object(DsService, "update_annotations")
 def test_zonage_form_save_pushes_text_annotations(
     mock_update_annotations, projet, user
 ):
@@ -124,16 +124,10 @@ def test_zonage_form_save_pushes_text_annotations(
     assert projet.autre_zonage_local == "Zonage ABC"
     assert projet.contrat_local == "Contrat XYZ"
 
-    kwargs = mock_update_annotations.call_args.kwargs
-    assert kwargs["annotations_to_update"]["annotations_is_autre_zonage_local"] is True
-    assert (
-        kwargs["text_annotations_to_update"]["annotations_autre_zonage_local"]
-        == "Zonage ABC"
-    )
-    assert (
-        kwargs["text_annotations_to_update"]["annotations_contrat_local"]
-        == "Contrat XYZ"
-    )
+    annotations = mock_update_annotations.call_args.kwargs["annotations"]
+    assert annotations["annotations_is_autre_zonage_local"] is True
+    assert annotations["annotations_autre_zonage_local"] == "Zonage ABC"
+    assert annotations["annotations_contrat_local"] == "Contrat XYZ"
 
 
 def test_zonage_form_save_rolls_back_on_dn_error(projet, user):
@@ -145,7 +139,7 @@ def test_zonage_form_save_rolls_back_on_dn_error(projet, user):
     assert form.is_valid()
     with patch.object(
         DsService,
-        "update_checkboxes_annotations",
+        "update_annotations",
         side_effect=DsServiceException("Erreur DN"),
     ):
         form.save(commit=True)
