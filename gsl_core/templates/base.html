@@ -60,7 +60,8 @@
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
                     "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
                     "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
-                    "projetForm": "{% static 'js/controllers/projetForm.js' %}",
+                    "conditionalField": "{% static 'js/controllers/conditionalField.js' %}",
+                    "enableOnChange": "{% static 'js/controllers/enableOnChange.js' %}",
                     "projetNotes": "{% static 'js/controllers/projetNotes.js' %}",
                     "projetNoteCard": "{% static 'js/controllers/projetNoteCard.js' %}",
                     "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}",
@@ -132,6 +133,7 @@
             import { BindAmountFields } from "bindAmountFields"
             import { CheckboxSelection } from "checkboxSelection"
             import { CommentArbitrage } from "commentArbitrage"
+            import { ConditionalField } from "conditionalField"
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
             import { DocumentImport } from "documentImport"
             import { DotationDropdown } from "dotationDropdown"
@@ -140,8 +142,8 @@
             import { FormUtils } from "formUtils"
             import { HtmxError } from "htmxError"
             import { Modal } from "modal"
+            import { EnableOnChange } from "enableOnChange"
             import { ModeleArreteForm } from "modeleArreteForm"
-            import { ProjetForm } from "projetForm"
             import { ProjetNoteCard } from "projetNoteCard"
             import { ProjetNotes } from "projetNotes"
             import { RadioNavigate } from "radioNavigate"
@@ -162,7 +164,8 @@
             Stimulus.register("form-utils", FormUtils)
             Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)
-            Stimulus.register("projet-form", ProjetForm)
+            Stimulus.register("conditional-field", ConditionalField)
+            Stimulus.register("enable-on-change", EnableOnChange)
             Stimulus.register("projet-notes", ProjetNotes)
             Stimulus.register("projet-note-card", ProjetNoteCard)
             Stimulus.register("radio-navigate", RadioNavigate)
