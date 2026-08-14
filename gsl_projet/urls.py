@@ -25,6 +25,11 @@ urlpatterns = [
         name="patch-projet-budget-vert",
     ),
     path(
+        "voir/<int:projet_id>/zonage/",
+        views.ProjetZonageUpdateView.as_view(),
+        name="patch-projet-zonage",
+    ),
+    path(
         "dotation/<int:pk>/detr-avis/",
         views.DotationProjetDetrAvisUpdateView.as_view(),
         name="patch-dotation-projet-detr-avis",
