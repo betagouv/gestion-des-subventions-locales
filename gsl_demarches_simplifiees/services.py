@@ -4,6 +4,7 @@ from typing import List, Literal
 
 from django.core.exceptions import FieldDoesNotExist
 from django.core.files.uploadedfile import UploadedFile
+from django.db import models
 
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
@@ -172,32 +173,30 @@ class DsService:
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 
-    def update_checkboxes_annotations(
+    def update_annotations(
         self,
         dossier: Dossier,
         user: Collegue,
-        annotations_to_update: dict[str, bool],
-        text_annotations_to_update: dict[str, str] = None,
+        annotations: dict[str, bool | str],
     ):
-        annotations = [
-            {
-                "id": self._get_ds_field_id(dossier, annotation_key),
-                "value": {"checkbox": bool(annotation_value)},
-            }
-            for annotation_key, annotation_value in annotations_to_update.items()
-        ]
-        if text_annotations_to_update:
-            for annotation_key, annotation_value in text_annotations_to_update.items():
-                annotations.append(
-                    {
-                        "id": self._get_ds_field_id(dossier, annotation_key),
-                        "value": {"text": annotation_value},
-                    }
-                )
+        ds_annotations = []
+        for annotation_key, value in annotations.items():
+            field = Dossier._meta.get_field(annotation_key)
+            ds_value = (
+                {"checkbox": bool(value)}
+                if isinstance(field, models.BooleanField)
+                else {"text": value}
+            )
+            ds_annotations.append(
+                {
+                    "id": self._get_ds_field_id(dossier, annotation_key),
+                    "value": ds_value,
+                }
+            )
         results = self.mutator.dossier_modifier_annotations(
-            dossier.ds_id, user.ds_id, annotations
+            dossier.ds_id, user.ds_id, ds_annotations
         )
-        self._check_results(results, dossier, user, "annotations", value=annotations)
+        self._check_results(results, dossier, user, "annotations", value=ds_annotations)
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 

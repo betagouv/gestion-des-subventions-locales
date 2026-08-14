@@ -160,15 +160,6 @@ class ProjetAnnotationsForm(ModelForm, DsfrBaseForm):
         if not any(field in self.changed_data for field in self.fields):
             return instance
 
-        checkbox_annotations = {}
-        text_annotations = {}
-        for name, field in self.fields.items():
-            value = self.cleaned_data.get(name)
-            if isinstance(field, forms.BooleanField):
-                checkbox_annotations[self._annotation_key(name)] = value
-            else:
-                text_annotations[self._annotation_key(name)] = value
-
         with transaction.atomic():
             instance.save()
             for name in self.changed_data:
@@ -183,11 +174,13 @@ class ProjetAnnotationsForm(ModelForm, DsfrBaseForm):
                         form_id=f"{type(self).__module__}.{type(self).__qualname__}",
                     )
             try:
-                DsService().update_checkboxes_annotations(
+                DsService().update_annotations(
                     dossier=instance.dossier_ds,
                     user=self.user,
-                    annotations_to_update=checkbox_annotations,
-                    text_annotations_to_update=text_annotations or None,
+                    annotations={
+                        self._annotation_key(name): self.cleaned_data.get(name)
+                        for name in self.fields
+                    },
                 )
             except DsServiceException as err:
                 self.add_error(None, str(err))
