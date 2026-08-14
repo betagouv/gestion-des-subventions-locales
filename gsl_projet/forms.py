@@ -64,20 +64,16 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         widget=forms.CheckboxInput(
             attrs={
                 "form": "projet-form",
-                "data-action": "change->projet-form#toggleAutreZonageLocal",
-                "data-projet-form-target": "autreZonageLocalCheckbox",
+                "data-controller": "conditional-field",
+                "data-action": "change->conditional-field#toggle",
+                "data-conditional-field-for": "id_autre_zonage_local",
             }
         ),
     )
     autre_zonage_local = forms.CharField(
         label="Nom du zonage local",
         required=False,
-        widget=forms.TextInput(
-            attrs={
-                "form": "projet-form",
-                "data-projet-form-target": "autreZonageLocalInput",
-            }
-        ),
+        widget=forms.TextInput(attrs={"form": "projet-form"}),
     )
 
     is_contrat_local = forms.BooleanField(
@@ -86,8 +82,9 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         widget=forms.CheckboxInput(
             attrs={
                 "form": "projet-form",
-                "data-action": "change->projet-form#toggleContratLocal",
-                "data-projet-form-target": "contratLocalCheckbox",
+                "data-controller": "conditional-field",
+                "data-action": "change->conditional-field#toggle",
+                "data-conditional-field-for": "id_contrat_local",
             }
         ),
     )
@@ -95,12 +92,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     contrat_local = forms.CharField(
         label="Nom du contrat local",
         required=False,
-        widget=forms.TextInput(
-            attrs={
-                "form": "projet-form",
-                "data-projet-form-target": "contratLocalInput",
-            }
-        ),
+        widget=forms.TextInput(attrs={"form": "projet-form"}),
     )
 
     dotations = forms.MultipleChoiceField(
