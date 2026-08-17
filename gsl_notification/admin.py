@@ -10,8 +10,10 @@ from .models import (
     DocumentImportJob,
     LettreEtArreteSignes,
     LettreNotification,
+    LettreRefus,
     ModeleArrete,
     ModeleLettreNotification,
+    ModeleLettreRefus,
 )
 from .tasks import scan_uploaded_document
 
@@ -52,6 +54,11 @@ class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(LettreNotification)
 class LettreNotificationAdmin(ArreteAdmin):
+    pass
+
+
+@admin.register(LettreRefus)
+class LettreRefusAdmin(ArreteAdmin):
     pass
 
 
@@ -133,6 +140,11 @@ class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(ModeleLettreNotification)
 class ModeleLettreNotificationAdmin(ModeleArreteAdmin):
+    pass
+
+
+@admin.register(ModeleLettreRefus)
+class ModeleLettreRefusAdmin(ModeleArreteAdmin):
     pass
 
 

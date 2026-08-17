@@ -288,6 +288,7 @@ class SelectModeleView(FormView):
             programmation_projet=self.programmation_projet,
             dotation=self.programmation_projet.dotation,
             document_type=self.document_type,
+            modele_label=self.modele_class.verbose_name(),
             page_title=f"Modification de {self.modele_class.article_name}",
             page_step_title=f"1 - Choix du modèle de {self.modele_class.article_name}",
             cancel_link=reverse(
@@ -343,7 +344,7 @@ class ChangeDocumentView(UpdateView):
         log_generated_document_action(
             self.request.user,
             self.programmation_projet,
-            self.get_object().__class__,
+            self.object.__class__,
             is_creating=False,
         )
         return response

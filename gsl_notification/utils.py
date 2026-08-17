@@ -29,10 +29,8 @@ from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
     Annexe,
-    Arrete,
     GeneratedDocument,
     LettreEtArreteSignes,
-    LettreNotification,
 )
 from gsl_notification.qr import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
@@ -499,7 +497,7 @@ def generate_pdf_for_generated_document(
     document: GeneratedDocument, *, with_qr_code: bool = True
 ) -> bytes:
     """
-    Generate PDF bytes for a GeneratedDocument (Arrete or LettreNotification).
+    Generate PDF bytes for a GeneratedDocument.
 
     When ``with_qr_code`` is True (default), a per-page QR code is rendered at
     the bottom-left of every page so a scanned, signed copy can be reattached
@@ -517,26 +515,24 @@ def generate_pdf_for_generated_document(
     return generate_pdf_pass2(document, count_pdf_pages(first_pass_pdf))
 
 
-def generate_pdf_pass1(document: Arrete | LettreNotification) -> bytes:
+def generate_pdf_pass1(document: GeneratedDocument) -> bytes:
     """Render without QR code — used for page counting or no-QR exports."""
     return _render_document_as_pdf(document, qr_css_rules="")
 
 
-def generate_pdf_pass2(document: Arrete | LettreNotification, page_count: int) -> bytes:
+def generate_pdf_pass2(document: GeneratedDocument, page_count: int) -> bytes:
     """Render with per-page QR codes (requires page_count from pass 1)."""
     qr_css_rules = _build_qr_css_rules(document, page_count)
     return _render_document_as_pdf(document, qr_css_rules=qr_css_rules)
 
 
-def _render_document_as_pdf(
-    document: Arrete | LettreNotification, qr_css_rules
-) -> bytes:
+def _render_document_as_pdf(document: GeneratedDocument, qr_css_rules) -> bytes:
     content = fix_empty_paragraphs_for_weasyprint(document.content)
     content = fix_table_widths_for_weasyprint(content)
     html = render_to_string(
         "gsl_notification/pdf/document.html",
         {
-            "doc_title": document.verbose_name,
+            "doc_title": document.verbose_name(),
             "logo": get_logo_base64(document.modele.logo.url),
             "alt_logo": document.modele.logo_alt_text,
             "top_right_text": document.modele.top_right_text.strip(),
@@ -556,7 +552,7 @@ def count_pdf_pages(pdf_bytes: bytes) -> int:
         return len(pdf.pages)
 
 
-def _build_qr_css_rules(document: Arrete | LettreNotification, page_count: int) -> str:
+def _build_qr_css_rules(document: GeneratedDocument, page_count: int) -> str:
     """Return CSS with one ``@page :nth(K)`` rule per page, each carrying its QR."""
     ds_number = document.programmation_projet.dossier.ds_number
     dotation = document.programmation_projet.dotation
@@ -580,7 +576,7 @@ def log_generated_document_action(
         if is_creating
         else ProjetAction.TYPE_DOC_MODIFIED
     )
-    doc_label = document_class.verbose_name().lower()
+    doc_label = document_class.verbose_name()
     ProjetAction.objects.create(
         projet=programmation_projet.dotation_projet.projet,
         action_type=action_type,

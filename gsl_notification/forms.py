@@ -268,7 +268,7 @@ class AcceptedDotationDocumentFields(DotationDocumentFields):
 
 
 class RefusedOrDismissedDotationDocumentFields(DotationDocumentFields):
-    modeles = [MODELES[modele] for modele in [LETTRE_REFUS]]
+    modeles = [MODELES[LETTRE_REFUS]]
 
 
 DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS = {
@@ -384,12 +384,6 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
             "with_qr_code",
         )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields[
-            "content"
-        ].help_text = f"Contenu HTML de {self._meta.model.article_name}, utilisé pour les exports."
-
 
 class LettreNotificationForm(ArreteForm):
     class Meta:
@@ -433,6 +427,10 @@ class ChoixModeleForm(DsfrBaseForm):
     def __init__(self, *args, queryset, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["modele"].queryset = queryset
+
+    @property
+    def has_modele_choices(self):
+        return self.fields["modele"].queryset.exists()
 
 
 GENERATED_DOCUMENT_TO_FORM = {

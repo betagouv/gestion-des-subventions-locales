@@ -11,9 +11,9 @@
         {{ page_step_title }}
     </h4>
     <p>
-        Sélectionner un modèle d’arrêté qui va être utilisé pour générer le publipostage
+        Sélectionner un {{ modele_label }} qui va être utilisé pour générer le publipostage
     </p>
-    {% if form.fields.modele.queryset %}
+    {% if form.has_modele_choices %}
         <form method="post">
             {% csrf_token %}
             {{ form.modele }}
@@ -26,7 +26,7 @@
             </p>
             <a class="fr-btn fr-btn--primary"
                href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
-                Créer un modèle d'arrêté
+                Créer un {{ modele_label }}
             </a>
         </div>
     {% endif %}
