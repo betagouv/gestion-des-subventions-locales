@@ -26,6 +26,7 @@ from gsl_notification.views.uploaded_document_views import (
     view_uploaded_document,
 )
 from gsl_notification.views.views import (
+    ChangeDocumentView,
     DeleteDocumentView,
     DownloadDocumentView,
     GenerateDocumentsFormView,
@@ -33,8 +34,7 @@ from gsl_notification.views.views import (
     NotificationMessageFormView,
     PrintDocumentView,
     RefusedDismissedNotificationModalView,
-    change_document_view,
-    select_modele,
+    SelectModeleView,
 )
 
 urlpatterns = [
@@ -61,12 +61,12 @@ urlpatterns = [
     # Generated files
     path(
         "<int:projet_id>/selection-d-un-modele/<str:dotation>/<str:document_type>",
-        select_modele,
+        SelectModeleView.as_view(),
         name="select-modele",
     ),
     path(
         "<int:projet_id>/modifier-document/<str:dotation>/<str:document_type>",
-        change_document_view,
+        ChangeDocumentView.as_view(),
         name="modifier-document",
     ),
     path(

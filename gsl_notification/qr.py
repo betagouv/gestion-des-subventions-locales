@@ -28,7 +28,14 @@ from typing import BinaryIO, Iterator
 
 import segno
 
-from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
+from gsl_notification.models import GENERATED_DOCUMENTS
+from gsl_projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    LETTRE_REFUS,
+)
 
 PAYLOAD_PREFIX = "GSL1"
 
@@ -38,16 +45,22 @@ PAYLOAD_PREFIX = "GSL1"
 RENDER_SCALE = 200 / 72
 
 _ALLOWED_DOTATIONS = (DOTATION_DETR, DOTATION_DSIL)
-_ALLOWED_DOCUMENT_TYPES = (ARRETE, LETTRE)
+_ALLOWED_DOCUMENT_TYPES = GENERATED_DOCUMENTS
 
 _DOTATION_TO_CODE = {DOTATION_DETR: "D", DOTATION_DSIL: "S"}
 _CODE_TO_DOTATION = {v: k for k, v in _DOTATION_TO_CODE.items()}
 
-_DOCUMENT_TYPE_TO_CODE = {ARRETE: "A", LETTRE: "L"}
+_DOCUMENT_TYPE_TO_CODE = {ARRETE: "A", LETTRE: "L", LETTRE_REFUS: "R"}
 _CODE_TO_DOCUMENT_TYPE = {v: k for k, v in _DOCUMENT_TYPE_TO_CODE.items()}
 
+_DOTATION_CODES = "".join(_DOTATION_TO_CODE.values())
+_DOCUMENT_TYPE_CODES = "".join(_DOCUMENT_TYPE_TO_CODE.values())
+
 _PAYLOAD_RE = re.compile(
-    r"^GSL1:(?P<ds_number>\d+):(?P<dotation>[DS]):(?P<document_type>[AL]):(?P<page>\d+)$"
+    r"^GSL1:(?P<ds_number>\d+)"
+    rf":(?P<dotation>[{_DOTATION_CODES}])"
+    rf":(?P<document_type>[{_DOCUMENT_TYPE_CODES}])"
+    r":(?P<page>\d+)$"
 )
 
 

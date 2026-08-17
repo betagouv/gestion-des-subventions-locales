@@ -336,30 +336,12 @@ class ProgrammationProjet(models.Model):
         self.projet.notified_at = value
 
     @property
-    def documents(self):
-        from gsl_notification.models import (
-            Arrete,
-            LettreEtArreteSignes,
-            LettreNotification,
-        )
+    def lettre(self):
+        return self.lettrenotification
 
-        return sorted(
-            (
-                document
-                for document in (
-                    Arrete.objects.filter(programmation_projet=self).first(),
-                    LettreNotification.objects.filter(
-                        programmation_projet=self
-                    ).first(),
-                    LettreEtArreteSignes.objects.filter(
-                        programmation_projet=self
-                    ).first(),
-                    *list(self.annexes.prefetch_related("created_by").all()),
-                )
-                if document
-            ),
-            key=lambda d: d.created_at,
-        )
+    @property
+    def refus(self):
+        return self.lettrerefus
 
     def clean(self):
         errors = {}
@@ -417,6 +399,8 @@ class ProgrammationProjet(models.Model):
                 summary.append("1 arrêté")
             if hasattr(self, "lettre"):
                 summary.append("1 lettre")
+            if hasattr(self, "refus"):
+                summary.append("1 lettre de refus")
 
         annexes_count = len(self.annexes.all())
         if annexes_count != 0:

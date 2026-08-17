@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
@@ -21,6 +22,8 @@ from gsl_notification.models import (
     ExportJob,
     LettreEtArreteSignes,
     LettreNotification,
+    LettreRefus,
+    ModeleArrete,
     ModeleDocument,
 )
 from gsl_notification.tasks import run_document_import_job
@@ -39,8 +42,11 @@ from gsl_projet.constants import (
     ARRETE,
     DOTATIONS,
     LETTRE,
+    LETTRE_REFUS,
+    PROJET_FINAL_STATUSES,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import Projet
 
@@ -182,7 +188,7 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
         }
 
 
-class _DotationDocumentFields:
+class DotationDocumentFields:
     """
     The "widget" for one dotation on the generate-documents card: a modele
     selector + skip checkbox for the arrêté, and the same pair for the
@@ -190,9 +196,9 @@ class _DotationDocumentFields:
     template consumption.
     """
 
-    modeles = [MODELES[modele] for modele in [ARRETE, LETTRE]]
+    modeles = []
 
-    def __init__(self, form: "GenerateAcceptedDotationsDocumentsForm", dotation_projet):
+    def __init__(self, form: "GenerateDotationsDocumentsForm", dotation_projet):
         self.form = form
         self.dotation = dotation_projet.dotation
         self.dotation_projet = dotation_projet
@@ -257,7 +263,22 @@ class _DotationDocumentFields:
         return self.form[name]
 
 
-class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
+class AcceptedDotationDocumentFields(DotationDocumentFields):
+    modeles = [MODELES[modele] for modele in [ARRETE, LETTRE]]
+
+
+class RefusedOrDismissedDotationDocumentFields(DotationDocumentFields):
+    modeles = [MODELES[LETTRE_REFUS]]
+
+
+DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS = {
+    PROJET_STATUS_ACCEPTED: AcceptedDotationDocumentFields,
+    PROJET_STATUS_REFUSED: RefusedOrDismissedDotationDocumentFields,
+    PROJET_STATUS_DISMISSED: RefusedOrDismissedDotationDocumentFields,
+}
+
+
+class GenerateDotationsDocumentsForm(DsfrBaseForm):
     """
     Inline "1 - Générer" card on the notifications tab: one box per accepted
     dotation, each with a modele selector + skip checkbox for the arrêté and
@@ -277,8 +298,8 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
     def __init__(self, *args, projet, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        self.accepted_dotation_projets = list(
-            projet.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED).order_by(
+        self.treated_dotation_projets = list(
+            projet.dotationprojet_set.filter(status__in=PROJET_FINAL_STATUSES).order_by(
                 "dotation"
             )
         )
@@ -286,14 +307,16 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
         self.dotation_fields = {
             dp.dotation: {
                 "dotation_projet": dp,
-                "fields": _DotationDocumentFields(self, dp).build(),
+                "fields": DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS[dp.status](
+                    self, dp
+                ).build(),
             }
-            for dp in self.accepted_dotation_projets
+            for dp in self.treated_dotation_projets
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        for dp in self.accepted_dotation_projets:
+        for dp in self.treated_dotation_projets:
             for fields in self.dotation_fields[dp.dotation]["fields"].values():
                 modele_name = fields["modele"].name
                 skip_name = fields["skip"].name
@@ -310,7 +333,7 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
     def save(self):
         with_qr_code = not self.cleaned_data["hide_qr_code"]
         documents = []
-        for dp in self.accepted_dotation_projets:
+        for dp in self.treated_dotation_projets:
             for fields in self.dotation_fields[dp.dotation]["fields"].values():
                 if not self.cleaned_data[fields["skip"].name]:
                     documents.append(
@@ -336,10 +359,11 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
             modele=modele,
             created_by=self.user,
             content=replace_mentions_in_html(modele.content, programmation_projet),
+            with_qr_code=with_qr_code,
         )
-        document.save(with_qr_code=with_qr_code)
+        document.save()
         log_generated_document_action(
-            self.user, programmation_projet, modele_class.type, is_creating
+            self.user, programmation_projet, document_class, is_creating
         )
         return document
 
@@ -347,19 +371,73 @@ class GenerateAcceptedDotationsDocumentsForm(DsfrBaseForm):
 class ArreteForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(
         required=True,
-        help_text="Contenu HTML de l'arrêté, utilisé pour les exports.",
         widget=forms.HiddenInput(),
     )
 
     class Meta:
         model = Arrete
-        fields = ("content", "created_by", "programmation_projet", "modele")
+        fields = (
+            "content",
+            "created_by",
+            "programmation_projet",
+            "modele",
+            "with_qr_code",
+        )
 
 
 class LettreNotificationForm(ArreteForm):
     class Meta:
         model = LettreNotification
-        fields = ("content", "created_by", "programmation_projet", "modele")
+        fields = (
+            "content",
+            "created_by",
+            "programmation_projet",
+            "modele",
+            "with_qr_code",
+        )
+
+
+class LettreRefusForm(ArreteForm):
+    class Meta:
+        model = LettreRefus
+        fields = (
+            "content",
+            "created_by",
+            "programmation_projet",
+            "modele",
+            "with_qr_code",
+        )
+
+
+class ModeleChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return format_html(
+            "{}<span class='fr-hint-text'>{}</span>", obj.name, obj.description
+        )
+
+
+class ChoixModeleForm(DsfrBaseForm):
+    modele = ModeleChoiceField(
+        queryset=ModeleArrete.objects.none(),
+        widget=forms.RadioSelect,
+        empty_label=None,
+        label="Modèle",
+    )
+
+    def __init__(self, *args, queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["modele"].queryset = queryset
+
+    @property
+    def has_modele_choices(self):
+        return self.fields["modele"].queryset.exists()
+
+
+GENERATED_DOCUMENT_TO_FORM = {
+    LETTRE: LettreNotificationForm,
+    ARRETE: ArreteForm,
+    LETTRE_REFUS: LettreRefusForm,
+}
 
 
 class ArreteEtLettreSigneForm(forms.ModelForm, DsfrBaseForm):
@@ -855,8 +933,8 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             .select_related(
                 "arrete",
                 "arrete__modele",
-                "lettre",
-                "lettre__modele",
+                "lettrenotification",
+                "lettrenotification__modele",
                 "lettre_et_arrete_signes",
                 "dotation_projet__projet",
                 "dotation_projet__projet__dossier_ds",

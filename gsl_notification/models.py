@@ -177,6 +177,13 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         null=True,
         blank=True,
     )
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        verbose_name="Programmation projet",
+        related_name="%(class)s",
+    )
+    with_qr_code = models.BooleanField(default=True)
 
     class Meta:
         abstract = True
@@ -186,12 +193,12 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         GENERATED_DOCUMENTS[cls.document_type] = cls
         MODELES[cls.document_type].generated_document_class = cls
 
-    def save(self, *args, with_qr_code=True, **kwargs):
+    def save(self, *args, **kwargs):
         from gsl_notification.utils import generate_pdf_for_generated_document
 
         if getattr(settings, "GENERATE_DOCUMENT_SIZE", True):
             pdf_bytes = generate_pdf_for_generated_document(
-                self, with_qr_code=with_qr_code
+                self, with_qr_code=self.with_qr_code
             )
             self.size = len(pdf_bytes)
         super().save(*args, **kwargs)
@@ -232,6 +239,10 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         raise NotImplementedError
 
     @property
+    def article_name(self):
+        return self.modele.article_name
+
+    @property
     def file_type(self):
         return "pdf"
 
@@ -240,12 +251,6 @@ class Arrete(GeneratedDocument):
     document_type = ARRETE
     delete_label = "Suppression de l’arrêté"
     delete_question = "Êtes-vous sûr de vouloir supprimer cet arrêté ?"
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        verbose_name="Programmation projet",
-        related_name="arrete",
-    )
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
 
     class Meta:
@@ -266,12 +271,6 @@ class LettreNotification(GeneratedDocument):
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre de notification ?"
     )
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        verbose_name="Programmation projet",
-        related_name="lettre",
-    )
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
 
     class Meta:
@@ -284,6 +283,24 @@ class LettreNotification(GeneratedDocument):
     @property
     def name(self):
         return f"Lettre {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
+
+
+class LettreRefus(GeneratedDocument):
+    document_type = LETTRE_REFUS
+    delete_label = "Suppression de la lettre de refus ou classement sans suite"
+    delete_question = "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou classement sans suite ?"
+    modele = models.ForeignKey(ModeleLettreRefus, on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = "Lettre de refus ou classement sans suite"
+        verbose_name_plural = "Lettres de refus ou classement sans suite"
+
+    def __str__(self):
+        return f"Lettre de refus ou classement sans suite #{self.id}"
+
+    @property
+    def name(self):
+        return f"Lettre de refus ou classement sans suite {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.ds_number} - {slugify(self.programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf"
 
 
 UPLOADED_DOCUMENTS = {}

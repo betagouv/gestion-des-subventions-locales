@@ -26,8 +26,6 @@ MATOMO_ACTION_CHANGEMENT_STATUT_SANS_NOTIFICATION_DEMANDE_CONFIRMATION = (
 MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME = "changement_statut_confirme"
 
 # Matomo event actions — Document
-MATOMO_ACTION_CREATION_ARRETE = "creation_arrete"
-MATOMO_ACTION_CREATION_LETTRE = "creation_lettre"
 MATOMO_ACTION_IMPORT_DOCUMENT = "import_document"
 
 # Matomo event actions — Notification

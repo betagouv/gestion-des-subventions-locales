@@ -62,13 +62,11 @@
                                         {% else %}
                                             <div class="fr-btns-group fr-btns-group--inline-sm fr-btns-group--centers fr-btns-group--icon-left fr-btns-group--sm">
                                                 <a href="{{ document.get_view_url }}"
-                                                   class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-eye-line"
-                                                   data-qr-code-toggle-target="link">
+                                                   class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-eye-line">
                                                     Visualiser
                                                 </a>
                                                 <a href="{{ document.get_download_url }}"
-                                                   class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line"
-                                                   data-qr-code-toggle-target="link">
+                                                   class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line">
                                                     Télécharger ({{ document.size|filesizeformat }})
                                                 </a>
                                                 <a href="{% url "notification:modifier-document" document.programmation_projet.projet.id document.programmation_projet.dotation document.document_type %}"

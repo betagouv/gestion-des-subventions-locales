@@ -11,23 +11,23 @@
         {{ page_step_title }}
     </h4>
     <p>
-        Sélectionner un modèle d’arrêté qui va être utilisé pour générer le publipostage
+        Sélectionner un {{ modele_label }} qui va être utilisé pour générer le publipostage
     </p>
-    <ul class="no-list-style arrete-modele-list">
-        {% for modele in modeles_list %}
-            <li>
-                {% include "includes/_modele_card.html" %}
-            </li>
-        {% empty %}
-            <div class="fr-callout">
-                <p class="fr-callout__text">
-                    Vous n'avez créé aucun modèle pour le moment. Créez un nouveau modèle et revenez ici.
-                </p>
-                <a class="fr-btn fr-btn--primary"
-                   href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
-                    Créer un modèle d'arrêté
-                </a>
-            </div>
-        {% endfor %}
-    </ul>
+    {% if form.has_modele_choices %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form.modele }}
+            <button type="submit" class="fr-btn fr-mt-3w">Sélectionner</button>
+        </form>
+    {% else %}
+        <div class="fr-callout">
+            <p class="fr-callout__text">
+                Vous n'avez créé aucun modèle pour le moment. Créez un nouveau modèle et revenez ici.
+            </p>
+            <a class="fr-btn fr-btn--primary"
+               href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
+                Créer un {{ modele_label }}
+            </a>
+        </div>
+    {% endif %}
 </div>
