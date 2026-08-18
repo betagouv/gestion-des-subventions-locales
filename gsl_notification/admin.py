@@ -11,6 +11,7 @@ from .models import (
     LettreEtArreteSignes,
     LettreNotification,
     LettreRefus,
+    LettreRefusSignee,
     ModeleArrete,
     ModeleLettreNotification,
     ModeleLettreRefus,
@@ -116,6 +117,11 @@ class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
 @admin.register(Annexe)
 class AnnexeAdmin(LettreEtArreteSignesAdmin):
+    pass
+
+
+@admin.register(LettreRefusSignee)
+class LettreRefusSigneeAdmin(LettreEtArreteSignesAdmin):
     pass
 
 

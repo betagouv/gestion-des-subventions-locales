@@ -9,6 +9,7 @@ from ..models import (
     Arrete,
     LettreEtArreteSignes,
     LettreNotification,
+    LettreRefusSignee,
     ModeleArrete,
     ModeleLettreNotification,
     ModeleLettreRefus,
@@ -91,3 +92,13 @@ class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
 class AnnexeFactory(LettreEtArreteSignesFactory):
     class Meta:
         model = Annexe
+
+
+class LettreRefusSigneeFactory(LettreEtArreteSignesFactory):
+    class Meta:
+        model = LettreRefusSignee
+
+    programmation_projet = factory.SubFactory(
+        "gsl_programmation.tests.factories.ProgrammationProjetFactory",
+        status="refused",
+    )
