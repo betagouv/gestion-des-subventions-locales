@@ -6,6 +6,7 @@ from gsl_notification.tests.factories import (
     ArreteFactory,
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
+    LettreRefusSigneeFactory,
 )
 from gsl_programmation.models import ProgrammationProjet as pp
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
@@ -691,4 +692,29 @@ def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
         annexe_detr,
         lettre_et_arrete_signes_dsil,
         annexe_dsil,
+    ]
+
+
+@pytest.mark.django_db
+def test_imported_documents_includes_signed_refusal_letter():
+    projet = ProjetFactory()
+    accepted_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    refused_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
+    )
+    accepted_pp = ProgrammationProjetFactory(dotation_projet=accepted_dp)
+    refused_pp = ProgrammationProjetFactory(
+        dotation_projet=refused_dp, status=pp.STATUS_REFUSED
+    )
+
+    lettre_et_arrete_signes = LettreEtArreteSignesFactory(
+        programmation_projet=accepted_pp
+    )
+    lettre_refus_signee = LettreRefusSigneeFactory(programmation_projet=refused_pp)
+
+    assert projet.imported_documents == [
+        lettre_et_arrete_signes,
+        lettre_refus_signee,
     ]

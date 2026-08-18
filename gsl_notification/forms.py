@@ -16,11 +16,10 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     MODELES,
-    Annexe,
+    UPLOADED_DOCUMENTS,
     Arrete,
     DocumentImportJob,
     ExportJob,
-    LettreEtArreteSignes,
     LettreNotification,
     LettreRefus,
     ModeleArrete,
@@ -148,35 +147,21 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
         super().__init__(*args, **kwargs)
         self.instance = instance
         choices = []
-        for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED):
-            # Check if ProgrammationProjet exists for this dotation
+        for dp in instance.dotationprojet_set.filter(status__in=PROJET_FINAL_STATUSES):
             try:
-                prog_projet = ProgrammationProjet.objects.get(
-                    dotation_projet=dp, dotation_projet__projet=self.instance
-                )
-                # LettreEtArreteSignes (disable if already exists)
-                existing_arrete = hasattr(prog_projet, "lettre_et_arrete_signes")
-
-                choices.append(
-                    (
-                        (
-                            ""
-                            if existing_arrete
-                            else f"lettre_et_arrete_signes-{dp.dotation}"
-                        ),
-                        f"Lettre et arrêté signés {dp.dotation.upper()}",
-                    )
-                )
-
-                # Annexe (always enabled, multiple allowed)
-                choices.append(
-                    (
-                        f"annexe-{dp.dotation}",
-                        f"Annexe {dp.dotation.upper()}",
-                    )
-                )
+                prog_projet = dp.programmation_projet
             except ProgrammationProjet.DoesNotExist:
                 continue
+            for model in UPLOADED_DOCUMENTS.values():
+                if dp.status not in model.upload_statuses:
+                    continue
+                can_upload = model.can_upload(prog_projet)
+                choices.append(
+                    (
+                        (f"{model.document_type}-{dp.dotation}" if can_upload else ""),
+                        f"{model.upload_label} {dp.dotation.upper()}",
+                    )
+                )
 
         self.fields["document"].choices = choices
 
@@ -426,16 +411,17 @@ GENERATED_DOCUMENT_TO_FORM = {
 }
 
 
-class ArreteEtLettreSigneForm(forms.ModelForm, DsfrBaseForm):
+class UploadedDocumentForm(forms.ModelForm, DsfrBaseForm):
     class Meta:
-        model = LettreEtArreteSignes
         fields = ("file", "created_by", "programmation_projet")
 
 
-class AnnexeForm(forms.ModelForm, DsfrBaseForm):
-    class Meta:
-        model = Annexe
-        fields = ("file", "created_by", "programmation_projet")
+UPLOADED_DOCUMENT_FORMS = {
+    document_type: forms.modelform_factory(
+        model, form=UploadedDocumentForm, fields=UploadedDocumentForm.Meta.fields
+    )
+    for document_type, model in UPLOADED_DOCUMENTS.items()
+}
 
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):
