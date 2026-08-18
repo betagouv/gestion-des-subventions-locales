@@ -16,10 +16,19 @@
         </h3>
         {% generate_documents_form projet %}
 
-        <div data-controller="delete-notification-document-modal"
+        <div data-controller="delete-notification-document-modal form-utils"
              data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
              data-delete-notification-document-modal-form-id-value="delete-document-form">
             {% include "includes/_documents_table.html" with documents=generated_documents caption="Documents générés" date_label="Date de génération" is_imported=False empty_message="Il n’y a pas de document généré pour le moment." %}
+
+            {% if generated_documents %}
+                <a href="{% url 'notification:generated-documents-download' projet.id %}"
+                   data-filename="{{ projet.dossier_ds.ds_number }}_documents_generes.pdf"
+                   data-action="form-utils#downloadAndSpin"
+                   class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-download-line fr-mt-2w">
+                    Télécharger tous les documents générés en un seul PDF
+                </a>
+            {% endif %}
 
             <h3 class="fr-mt-6w">
                 2 - Importer

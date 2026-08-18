@@ -408,7 +408,7 @@ class DeleteModeleView(DeleteView):
 
         messages.info(
             self.request,
-            f"Le {self.object.verbose_name()} “{name}” a été supprimé.",
+            f"Le {self.object.verbose_name().lower()} “{name}” a été supprimé.",
             extra_tags="delete_modele_arrete",
         )
         return response
@@ -428,7 +428,7 @@ def _add_error_message(request, protected_objects):
     instance = list(protected_objects)[0]
     message = (
         "Le modèle n'a pas été supprimé car il est utilisé "
-        f"par {count} {instance.verbose_name(count)}."
+        f"par {count} {instance.verbose_name(count).lower()}."
     )
 
     messages.error(
