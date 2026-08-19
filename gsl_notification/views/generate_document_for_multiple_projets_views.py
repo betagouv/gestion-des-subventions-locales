@@ -10,6 +10,7 @@ from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_notification.forms import (
+    DOCUMENT_TYPE_DISPLAY_ORDER,
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
@@ -23,7 +24,7 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import ExportJob
 from gsl_notification.tasks import generate_export_task
-from gsl_projet.constants import ARRETE, DOTATIONS, LETTRE, LETTRE_REFUS
+from gsl_projet.constants import DOTATIONS, LETTRE_REFUS
 
 logger = logging.getLogger(__name__)
 
@@ -260,7 +261,7 @@ class BaseGenerateDocumentsWizard(SessionWizardView):
         # attr_names is stored as JSON: selected_types is a frozenset, so pin a
         # deterministic order (lettre before arrete before refus, matching the
         # wizards' display order elsewhere) rather than storing the set itself.
-        attrs = [t for t in (LETTRE, ARRETE, LETTRE_REFUS) if t in form.selected_types]
+        attrs = [t for t in DOCUMENT_TYPE_DISPLAY_ORDER if t in form.selected_types]
         pp_ids = [pp.pk for pp in refreshed]
 
         job = ExportJob.objects.create(

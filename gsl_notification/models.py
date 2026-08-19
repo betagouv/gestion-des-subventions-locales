@@ -162,6 +162,7 @@ GENERATED_DOCUMENTS = {}
 
 class GeneratedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
+    is_feminine: bool = False
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
@@ -263,6 +264,7 @@ class Arrete(GeneratedDocument):
 
 class LettreNotification(GeneratedDocument):
     document_type = LETTRE
+    is_feminine = True
     delete_label = "Suppression de la lettre de notification"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre de notification ?"
@@ -277,6 +279,7 @@ class LettreNotification(GeneratedDocument):
 
 class LettreRefus(GeneratedDocument):
     document_type = LETTRE_REFUS
+    is_feminine = True
     delete_label = "Suppression de la lettre de refus ou classement sans suite"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou classement sans suite ?"
     short_name = "Lettre de refus"
