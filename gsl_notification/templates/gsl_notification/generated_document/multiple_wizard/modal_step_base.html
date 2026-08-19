@@ -1,13 +1,15 @@
 {% block oob_swaps %}
 {% endblock oob_swaps %}
-<div id="{{ modal_id }}-step">
+<div id="{{ modal_id }}-step"
+     {% block step_div_attrs %}
+     {% endblock step_div_attrs %}>
     {% block before_content %}
     {% endblock before_content %}
     {% block form_open %}
     {% endblock form_open %}
     <div class="fr-modal__content">
         <h1 class="fr-modal__title" id="{{ modal_id }}-title">
-            Générer les documents
+            {{ modal_title }}
         </h1>
         {% block stepper_or_error %}
             {% block stepper %}

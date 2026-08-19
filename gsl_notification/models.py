@@ -496,13 +496,12 @@ class ExportJob(BaseModel):
         (STATUS_DONE, "Terminé"),
     )
 
-    DOCUMENT_TYPE_ARRETE = ARRETE
-    DOCUMENT_TYPE_LETTRE = LETTRE
     DOCUMENT_TYPE_ARRETE_ET_LETTRE = "arrete_et_lettre"
     DOCUMENT_TYPE_CHOICES = (
         (ARRETE, "Arrêté"),
         (LETTRE, "Lettre de notification"),
-        ("arrete_et_lettre", "Arrêté et lettre"),
+        (DOCUMENT_TYPE_ARRETE_ET_LETTRE, "Arrêté et lettre"),
+        (LETTRE_REFUS, "Lettre de refus ou de classement sans suite"),
     )
 
     EXPORT_FORMAT_ONE_PDF_PER_DOC = "un_pdf_par_document"
