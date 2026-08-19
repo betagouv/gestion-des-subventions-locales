@@ -14,14 +14,30 @@ export class CheckboxSelection extends Controller {
     'counterWrapper',
     'idsInput',
     'selectAllButton',
-    'actionButton'
+    'actionButton',
+    'acceptedCounter',
+    'acceptedActionButton',
+    'refusCounter',
+    'refusActionButton'
   ]
 
   initialize () {
     this.selectedIds = new Set()
-    const jsonEl = document.getElementById('checkbox-selection-selectable-ids')
-    this.selectableIds = jsonEl ? JSON.parse(jsonEl.textContent) : []
+    this.selectableIds = this._readIdsScript(
+      'checkbox-selection-selectable-ids'
+    )
+    this.acceptedEligibleIds = new Set(
+      this._readIdsScript('checkbox-selection-accepted-ids')
+    )
+    this.refusEligibleIds = new Set(
+      this._readIdsScript('checkbox-selection-refus-ids')
+    )
     this._loadFromStorage()
+  }
+
+  _readIdsScript (id) {
+    const jsonEl = document.getElementById(id)
+    return jsonEl ? JSON.parse(jsonEl.textContent) : []
   }
 
   connect () {
@@ -97,9 +113,14 @@ export class CheckboxSelection extends Controller {
       this.counterTarget.textContent = count
     }
     if (this.hasCounterWrapperTarget) {
-      this.counterWrapperTarget.classList.toggle('fr-text-mention--grey', count === 0)
+      this.counterWrapperTarget.classList.toggle(
+        'fr-text-mention--grey',
+        count === 0
+      )
     }
-    this.actionButtonTargets.forEach((btn) => { btn.disabled = count === 0 })
+    this.actionButtonTargets.forEach((btn) => {
+      btn.disabled = count === 0
+    })
     if (this.hasSelectAllButtonTarget) {
       this.selectAllButtonTarget.textContent = allSelected
         ? 'Désélectionner tous les projets'
@@ -110,8 +131,23 @@ export class CheckboxSelection extends Controller {
       const allChecked = visible.length > 0 && visible.every((c) => c.checked)
       this._setCheckbox(this.pageCheckboxTarget, allChecked)
     }
+    this._refreshEligibleCounter('accepted', this.acceptedEligibleIds)
+    this._refreshEligibleCounter('refus', this.refusEligibleIds)
     this._syncIdsInputs()
     this._saveToStorage()
+  }
+
+  _refreshEligibleCounter (prefix, eligibleIds) {
+    const capitalized = prefix.charAt(0).toUpperCase() + prefix.slice(1)
+    if (!this[`has${capitalized}CounterTarget`]) return
+    let n = 0
+    this.selectedIds.forEach((id) => {
+      if (eligibleIds.has(id)) n++
+    })
+    this[`${prefix}CounterTarget`].textContent = n
+    this[`${prefix}ActionButtonTargets`].forEach((btn) => {
+      btn.disabled = n === 0
+    })
   }
 
   _setCheckbox (element, value) {
@@ -120,11 +156,16 @@ export class CheckboxSelection extends Controller {
   }
 
   _syncIdsInputs () {
-    const allSelected = this.selectedIds.size >= this.selectableIds.length && this.selectableIds.length > 0
-    const value = (this.emptyMeansAllValue && allSelected)
-      ? ''
-      : Array.from(this.selectedIds).join(',')
-    this.idsInputTargets.forEach((input) => { input.value = value })
+    const allSelected =
+      this.selectedIds.size >= this.selectableIds.length &&
+      this.selectableIds.length > 0
+    const value =
+      this.emptyMeansAllValue && allSelected
+        ? ''
+        : Array.from(this.selectedIds).join(',')
+    this.idsInputTargets.forEach((input) => {
+      input.value = value
+    })
   }
 
   _storageKey () {
@@ -135,7 +176,10 @@ export class CheckboxSelection extends Controller {
     if (this.selectedIds.size === 0) {
       sessionStorage.removeItem(this._storageKey())
     } else {
-      sessionStorage.setItem(this._storageKey(), Array.from(this.selectedIds).join(','))
+      sessionStorage.setItem(
+        this._storageKey(),
+        Array.from(this.selectedIds).join(',')
+      )
     }
   }
 

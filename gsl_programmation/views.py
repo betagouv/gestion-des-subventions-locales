@@ -114,9 +114,16 @@ class ProgrammationProjetListView(FilterSkiplinksMixin, FilterView, ListView):
                 "enveloppe": enveloppe,
                 "dotation": self.dotation,
                 "title": title,
-                "to_notify_projets_count": self.object_list.to_notify().count(),
                 "selectable_ids_list": list(
-                    self.object_list.can_generate_documents().values_list(
+                    self.object_list.values_list("id", flat=True)
+                ),
+                "can_generate_accepted_documents_ids": list(
+                    self.object_list.can_generate_accepted_documents().values_list(
+                        "id", flat=True
+                    )
+                ),
+                "can_generate_refus_documents_ids": list(
+                    self.object_list.can_generate_refus_documents().values_list(
                         "id", flat=True
                     )
                 ),

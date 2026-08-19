@@ -1,0 +1,44 @@
+{% extends "gsl_notification/generated_document/multiple_wizard/modal_step_base.html" %}
+{% load dsfr_tags %}
+{% block step_div_attrs %}
+    hx-get="{% url status_url_name dotation job_id %}"
+    hx-trigger="every 2s"
+    hx-swap="outerHTML"
+    hx-target="this"
+    data-action="documents-generated->checkbox-selection#clearSelection"
+{% endblock step_div_attrs %}
+{% block stepper %}
+    {% dsfr_stepper current_step_id=total_steps total_steps=total_steps current_step_title="Téléchargement" %}
+{% endblock stepper %}
+{% block content %}
+    <div class="fr-alert fr-alert--info fr-mt-3w"
+         role="status"
+         aria-live="polite">
+        <p>
+            Étape {{ job.step }}/{{ job.total_steps }} — {{ job.step_label }}
+            {% if job.total > 0 and job.step != job.total_steps %}
+                ({{ job.processed }}/{{ job.total }} document{{ job.total|pluralize }})
+            {% endif %}
+        </p>
+    </div>
+    <div class="fr-mt-3w fr-grid-row fr-grid-row--gutters fr-grid-row--center"
+         aria-hidden="true">
+        <span class="fr-icon-refresh-line generate-docs-spinner"></span>
+    </div>
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <button class="fr-btn fr-btn--secondary fr-icon-download-line fr-icon--sm"
+                type="button"
+                disabled>
+            Télécharger
+        </button>
+    </li>
+    <li>
+        <button class="fr-btn fr-btn--tertiary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Fermer
+        </button>
+    </li>
+{% endblock footer_buttons %}

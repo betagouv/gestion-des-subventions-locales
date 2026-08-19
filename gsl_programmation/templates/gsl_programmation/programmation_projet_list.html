@@ -30,6 +30,8 @@
          data-checkbox-selection-empty-means-all-value="true"
          data-checkbox-selection-user-id-value="{{ request.user.pk }}">
         {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
+        {{ can_generate_accepted_documents_ids|json_script:"checkbox-selection-accepted-ids" }}
+        {{ can_generate_refus_documents_ids|json_script:"checkbox-selection-refus-ids" }}
         <button id="generate-multiple-modal-button"
                 aria-controls="generate-multiple-modal"
                 type="button"
@@ -38,7 +40,9 @@
         </button>
         <dialog class="fr-modal"
                 id="generate-multiple-modal"
-                aria-labelledby="generate-multiple-modal-title">
+                aria-labelledby="generate-multiple-modal-title"
+                data-controller="cancel-poll-on-modal-close"
+                data-action="dsfr.conceal->cancel-poll-on-modal-close#cancel">
             <div class="fr-container fr-container--fluid fr-container-md">
                 <div class="fr-grid-row fr-grid-row--center">
                     <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
@@ -52,6 +56,36 @@
                                 </button>
                             </div>
                             <div id="generate-multiple-modal-step">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </dialog>
+        <button id="generate-refus-modal-button"
+                aria-controls="generate-refus-modal"
+                type="button"
+                hidden
+                data-fr-opened="false">
+        </button>
+        <dialog class="fr-modal"
+                id="generate-refus-modal"
+                aria-labelledby="generate-refus-modal-title"
+                data-controller="cancel-poll-on-modal-close"
+                data-action="dsfr.conceal->cancel-poll-on-modal-close#cancel">
+            <div class="fr-container fr-container--fluid fr-container-md">
+                <div class="fr-grid-row fr-grid-row--center">
+                    <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                        <div class="fr-modal__body">
+                            <div class="fr-modal__header">
+                                <button aria-controls="generate-refus-modal"
+                                        title="Fermer"
+                                        type="button"
+                                        class="fr-btn--close fr-btn">
+                                    Fermer
+                                </button>
+                            </div>
+                            <div id="generate-refus-modal-step">
                             </div>
                         </div>
                     </div>
@@ -72,29 +106,67 @@
                             class="fr-btn fr-btn--tertiary"
                             data-action="click->checkbox-selection#toggleSelectAll"
                             data-checkbox-selection-target="selectAllButton"
-                            {% if not to_notify_projets_count %} disabled {% endif %}>
-                        Sélectionner tous les {{ to_notify_projets_count }} projets
+                            {% if not page_obj.paginator.count %} disabled {% endif %}>
+                        Sélectionner tous les {{ page_obj.paginator.count }} projets
                     </button>
                 </li>
                 <li class="fr-mb-2v">
-                    <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
-                          hx-target="#generate-multiple-modal-step"
-                          hx-swap="outerHTML">
-                        {% csrf_token %}
-                        <input type="hidden"
-                               name="generate_documents_wizard_{{ dotation }}-current_step"
-                               value="launch">
-                        <input type="hidden"
-                               name="launch-ids"
-                               value=""
-                               data-checkbox-selection-target="idsInput">
-                        <button type="submit"
-                                class="fr-btn fr-btn--secondary"
-                                disabled
-                                data-checkbox-selection-target="actionButton">
-                            Générer les documents
-                        </button>
-                    </form>
+                    <div class="fr-nav fr-translate">
+                        <div class="fr-nav__item">
+                            <button type="button"
+                                    class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-arrow-down-s-line"
+                                    aria-controls="programmation-bulk-actions-menu"
+                                    aria-expanded="false"
+                                    data-checkbox-selection-target="actionButton"
+                                    disabled>
+                                Actions groupées
+                            </button>
+                            <div class="fr-menu fr-collapse" id="programmation-bulk-actions-menu">
+                                <ul class="fr-menu__list">
+                                    <li>
+                                        <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
+                                              hx-target="#generate-multiple-modal-step"
+                                              hx-swap="outerHTML">
+                                            {% csrf_token %}
+                                            <input type="hidden"
+                                                   name="generate_documents_wizard_{{ dotation }}-current_step"
+                                                   value="launch">
+                                            <input type="hidden"
+                                                   name="launch-ids"
+                                                   value=""
+                                                   data-checkbox-selection-target="idsInput">
+                                            <button type="submit"
+                                                    class="fr-nav__link fr-btn--icon-left fr-icon-mail-add-line"
+                                                    disabled
+                                                    data-checkbox-selection-target="acceptedActionButton">
+                                                Générer <span data-checkbox-selection-target="acceptedCounter">0</span> arrêtés et lettres d'acceptation
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form hx-post="{% url "gsl_notification:generate-refus-documents-modal" dotation %}"
+                                              hx-target="#generate-refus-modal-step"
+                                              hx-swap="outerHTML">
+                                            {% csrf_token %}
+                                            <input type="hidden"
+                                                   name="generate_refus_wizard_{{ dotation }}-current_step"
+                                                   value="launch">
+                                            <input type="hidden"
+                                                   name="launch-ids"
+                                                   value=""
+                                                   data-checkbox-selection-target="idsInput">
+                                            <button type="submit"
+                                                    class="fr-nav__link fr-btn--icon-left fr-icon-mail-add-line"
+                                                    disabled
+                                                    data-checkbox-selection-target="refusActionButton">
+                                                Générer <span data-checkbox-selection-target="refusCounter">0</span> lettres de refus ou de classement sans suite
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </li>
                 <li class="fr-mb-2v">
                     <button type="button"
@@ -149,19 +221,17 @@
                                     {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
                                         <tr {% if dotation_projet.other_dotations|length > 0 %} class="gsl-projet-table__row--double-dotation"{% endif %}>
                                             <td class="gsl-projet-table__sticky-left-1">
-                                                {% if programmation_projet.can_generate_documents %}
-                                                    <div class="fr-checkbox-group fr-checkbox-group--sm">
-                                                        <input id="checkbox-{{ programmation_projet.id }}"
-                                                               type="checkbox"
-                                                               value="{{ programmation_projet.id }}"
-                                                               data-checkbox-selection-target="rowCheckbox"
-                                                               data-action="change->checkbox-selection#toggleRow">
-                                                        <label class="fr-label gsl-projet-table__checkbox-label"
-                                                               for="checkbox-{{ programmation_projet.id }}">
-                                                            <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
-                                                        </label>
-                                                    </div>
-                                                {% endif %}
+                                                <div class="fr-checkbox-group fr-checkbox-group--sm">
+                                                    <input id="checkbox-{{ programmation_projet.id }}"
+                                                           type="checkbox"
+                                                           value="{{ programmation_projet.id }}"
+                                                           data-checkbox-selection-target="rowCheckbox"
+                                                           data-action="change->checkbox-selection#toggleRow">
+                                                    <label class="fr-label gsl-projet-table__checkbox-label"
+                                                           for="checkbox-{{ programmation_projet.id }}">
+                                                        <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                    </label>
+                                                </div>
                                             </td>
                                             {% for column in columns %}
                                                 <td class="{{ column.td_classes }}"

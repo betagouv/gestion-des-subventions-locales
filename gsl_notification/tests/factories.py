@@ -9,6 +9,7 @@ from ..models import (
     Arrete,
     LettreEtArreteSignes,
     LettreNotification,
+    LettreRefus,
     ModeleArrete,
     ModeleLettreNotification,
     ModeleLettreRefus,
@@ -67,6 +68,17 @@ class LettreNotificationFactory(ArreteFactory):
 
     modele = factory.LazyAttribute(
         lambda obj: ModeleLettreNotificationFactory(
+            dotation=obj.programmation_projet.dotation,
+        )
+    )
+
+
+class LettreRefusFactory(ArreteFactory):
+    class Meta:
+        model = LettreRefus
+
+    modele = factory.LazyAttribute(
+        lambda obj: ModeleLettreRefusFactory(
             dotation=obj.programmation_projet.dotation,
         )
     )
