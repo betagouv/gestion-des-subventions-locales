@@ -19,7 +19,7 @@ from django_filters.views import FilterView
 from django_htmx.http import HttpResponseClientRedirect
 
 from gsl_chorus.models import SuiviFinancier
-from gsl_chorus.utils import build_suivi_par_dotation
+from gsl_chorus.utils import par_dotation
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import (
@@ -131,7 +131,7 @@ class ProjetSuiviFinancierView(BaseProjetDetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["par_dotation"] = build_suivi_par_dotation(self.object)
+        context["par_dotation"] = par_dotation(self.object)
         context["suivi_date"] = SuiviFinancier.objects.aggregate(
             date=Max("date_transaction")
         )["date"]

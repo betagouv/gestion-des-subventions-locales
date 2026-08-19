@@ -66,7 +66,7 @@ def test_displays_chorus_lines_grouped_by_dotation():
 
     (groupe,) = response.context["par_dotation"]
     assert groupe["dotation"] == "DETR"
-    assert groupe["engage"] == Decimal("13000")
-    assert groupe["paye"] == Decimal("3000")
-    assert groupe["accorde"] == Decimal("13000")
-    assert groupe["ecart"] is False
+    assert groupe["montant_engage"] == Decimal("13000")
+    assert groupe["montant_paye"] == Decimal("3000")
+    assert groupe["montant_accorde"] == Decimal("13000")
+    assert groupe["has_ecart"] is False

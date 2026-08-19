@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from gsl_chorus.models import SuiviFinancier
-from gsl_chorus.utils import build_suivi_par_dotation
+from gsl_chorus.utils import par_dotation
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
@@ -44,13 +44,13 @@ def test_engage_paye_reste_computed():
     make_ligne("DETR", "3000", type_montant="0250")
     make_ligne("DETR", "-1000", type_montant="0200")
 
-    (groupe,) = build_suivi_par_dotation(projet)
+    (groupe,) = par_dotation(projet)
     assert groupe["dotation"] == "DETR"
-    assert groupe["engage"] == Decimal("12000")
-    assert groupe["paye"] == Decimal("3000")
-    assert groupe["reste"] == Decimal("9000")
-    assert groupe["accorde"] == Decimal("12000")
-    assert groupe["ecart"] is False
+    assert groupe["montant_engage"] == Decimal("12000")
+    assert groupe["montant_paye"] == Decimal("3000")
+    assert groupe["montant_reste"] == Decimal("9000")
+    assert groupe["montant_accorde"] == Decimal("12000")
+    assert groupe["has_ecart"] is False
 
 
 @pytest.mark.django_db
@@ -58,10 +58,10 @@ def test_ecart_flagged_when_engage_differs_from_accorde():
     projet = make_projet_with_accorde(DetrProjetFactory, "5000")
     make_ligne("DETR", "6000")
 
-    (groupe,) = build_suivi_par_dotation(projet)
-    assert groupe["accorde"] == Decimal("5000")
-    assert groupe["engage"] == Decimal("6000")
-    assert groupe["ecart"] is True
+    (groupe,) = par_dotation(projet)
+    assert groupe["montant_accorde"] == Decimal("5000")
+    assert groupe["montant_engage"] == Decimal("6000")
+    assert groupe["has_ecart"] is True
 
 
 @pytest.mark.django_db
@@ -71,8 +71,8 @@ def test_paye_counts_0250_and_0260():
     make_ligne("DETR", "1000", type_montant="0260")
     make_ligne("DETR", "500", type_montant="0100")
 
-    (groupe,) = build_suivi_par_dotation(projet)
-    assert groupe["paye"] == Decimal("3000")
+    (groupe,) = par_dotation(projet)
+    assert groupe["montant_paye"] == Decimal("3000")
 
 
 @pytest.mark.django_db
@@ -80,7 +80,7 @@ def test_only_dotations_with_lignes_are_returned():
     projet = make_projet_with_accorde(DetrProjetFactory, "5000")
     make_ligne("DETR", "5000")
 
-    result = build_suivi_par_dotation(projet)
+    result = par_dotation(projet)
     assert [g["dotation"] for g in result] == ["DETR"]
 
 
@@ -90,8 +90,8 @@ def test_lignes_of_other_projet_are_excluded():
     make_ligne("DETR", "5000")
     make_ligne("DETR", "9999", dn=11111111)
 
-    (groupe,) = build_suivi_par_dotation(projet)
-    assert groupe["engage"] == Decimal("5000")
+    (groupe,) = par_dotation(projet)
+    assert groupe["montant_engage"] == Decimal("5000")
 
 
 @pytest.mark.django_db
@@ -101,6 +101,6 @@ def test_accorde_none_when_no_programmation_for_that_dotation():
     make_ligne("DETR", "5000")
     make_ligne("DSIL", "3000")
 
-    result = {g["dotation"]: g for g in build_suivi_par_dotation(projet)}
-    assert result["DSIL"]["accorde"] is None
-    assert result["DSIL"]["ecart"] is False
+    result = {g["dotation"]: g for g in par_dotation(projet)}
+    assert result["DSIL"]["montant_accorde"] is None
+    assert result["DSIL"]["has_ecart"] is False

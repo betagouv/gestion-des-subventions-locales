@@ -13,18 +13,18 @@
         </h2>
         <ul class="fr-mb-2w">
             <li>
-                Montant engagé (net) : <strong>{{ groupe.engage|euro }}</strong>
+                Montant engagé (net) : <strong>{{ groupe.montant_engage|euro }}</strong>
             </li>
             <li>
-                Montant payé : <strong>{{ groupe.paye|euro }}</strong>
+                Montant payé : <strong>{{ groupe.montant_paye|euro }}</strong>
             </li>
             <li>
-                Reste à payer : <strong>{{ groupe.reste|euro }}</strong>
+                Reste à payer : <strong>{{ groupe.montant_reste|euro }}</strong>
             </li>
-            {% if groupe.accorde is not None %}
-                {% if groupe.ecart %}
+            {% if groupe.montant_accorde is not None %}
+                {% if groupe.has_ecart %}
                     <li>
-                        Montant accordé (Turgot) : <strong>{{ groupe.accorde|euro }}</strong>
+                        Montant accordé (Turgot) : <strong>{{ groupe.montant_accorde|euro }}</strong>
                         <span class="fr-badge fr-badge--sm fr-badge--warning">
                             écart avec l'engagé Chorus
                         </span>
@@ -64,22 +64,22 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for ligne in groupe.lignes %}
+                                {% for ecriture in groupe.ecritures %}
                                     <tr>
                                         <td>
-                                            {{ ligne.ej }}
+                                            {{ ecriture.ej }}
                                         </td>
                                         <td>
-                                            {{ ligne.date_engagement|date:"d/m/Y"|default:"—" }}
+                                            {{ ecriture.date_engagement|date:"d/m/Y"|default:"—" }}
                                         </td>
                                         <td>
-                                            {{ ligne.get_tv_display|default:"—" }}
+                                            {{ ecriture.get_tv_display|default:"—" }}
                                         </td>
                                         <td>
-                                            {{ ligne.get_type_montant_display|default:"—" }}
+                                            {{ ecriture.get_type_montant_display|default:"—" }}
                                         </td>
                                         <td class="fr-text--right">
-                                            {{ ligne.montant|euro }}
+                                            {{ ecriture.montant|euro }}
                                         </td>
                                     </tr>
                                 {% endfor %}
