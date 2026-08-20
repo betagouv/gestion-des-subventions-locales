@@ -1,14 +1,5 @@
-<div class="form-disabled-before-value-change fr-mb-2w"
-     data-action="change->projet-form#enableSubmit">
-    {% csrf_token %}
-    <div class="fr-callout fr-background-alt--blue-france fr-pt-3w fr-px-2w fr-pb-1w">
-        {{ projet_form.is_budget_vert.as_field_group }}
-    </div>
-    <button class="fr-btn fr-btn--secondary"
-            id="submit-is-in-qpv-and-is-attached-to-a-crte"
-            type="submit"
-            disabled
-            form="projet-form">
-        Enregistrer
-    </button>
-</div>
+{% extends "includes/forms/_htmx_fragment_form.html" %}
+
+{% block post_url %}
+    {% url 'gsl_projet:patch-projet-budget-vert' projet.id %}
+{% endblock post_url %}
