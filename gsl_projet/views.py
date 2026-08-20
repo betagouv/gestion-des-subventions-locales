@@ -45,6 +45,7 @@ from gsl_projet.forms import (
     ProjetZonageForm,
 )
 from gsl_projet.models import DotationProjet, ProjetNote
+from gsl_projet.templatetags.fragment_tags import register_fragment_tag
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
     ORDERING_MAP,
@@ -207,16 +208,19 @@ class UserProjetMixin:
         return kwargs
 
 
+@register_fragment_tag("budget_vert_form")
 class ProjetBudgetVertUpdateView(UserProjetMixin, HtmxFragmentFormMixin, UpdateView):
     form_class = ProjetBudgetVertForm
     template_name = "includes/forms/_is_budget_vert_form.html"
 
 
+@register_fragment_tag("zonage_form")
 class ProjetZonageUpdateView(UserProjetMixin, HtmxFragmentFormMixin, UpdateView):
     form_class = ProjetZonageForm
     template_name = "includes/forms/_boolean_fields_projet_form.html"
 
 
+@register_fragment_tag("detr_avis_commission_form")
 class DotationProjetDetrAvisUpdateView(HtmxFragmentFormMixin, UpdateView):
     model = DotationProjet
     form_class = DotationProjetForm
@@ -229,6 +233,7 @@ class DotationProjetDetrAvisUpdateView(HtmxFragmentFormMixin, UpdateView):
         )
 
 
+@register_fragment_tag("assiette_dotation_form")
 class DotationProjetAssietteUpdateView(HtmxFragmentFormMixin, UpdateView):
     model = DotationProjet
     form_class = DotationProjetAssietteForm
