@@ -32,6 +32,7 @@ from gsl_core.table_columns import (
     TextAlign,
 )
 from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
+from gsl_projet.table_columns import _wrap_emoji
 from gsl_simulation.table_columns import COLUMN_NOTIFICATION
 
 
@@ -124,14 +125,9 @@ def _get_other_dotation_statut(context):
     if not simu:
         return ""
     return format_html(
-        '<div class="gsl-projet-table__status-notified">{}</div>',
+        '<div class="gsl-projet-table__status">{}</div>',
         _wrap_emoji(simu.get_status_display()),
     )
-
-
-def _wrap_emoji(display_str):
-    emoji, text = display_str.split(" ", 1)
-    return format_html('<span aria-hidden="true">{}</span> {}', emoji, text)
 
 
 COLUMN_ASSIETTE = Column(
