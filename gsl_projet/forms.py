@@ -22,87 +22,6 @@ logger = getLogger(__name__)
 
 
 class ProjetForm(ModelForm, DsfrBaseForm):
-    is_in_qpv = forms.BooleanField(
-        label="Projet situé en QPV",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
-    )
-
-    is_attached_to_a_crte = forms.BooleanField(
-        label="Projet rattaché à un CRTE",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
-    )
-
-    is_frr = forms.BooleanField(
-        label="Projet situé en FRR",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
-    )
-
-    is_acv = forms.BooleanField(
-        label="Projet rattaché à un programme Action coeurs de Ville (ACV)",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
-    )
-
-    is_pvd = forms.BooleanField(
-        label="Projet rattaché à un programme Petites villes de demain (PVD)",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
-    )
-
-    is_va = forms.BooleanField(
-        label="Projet rattaché à un programme Villages d'avenir",
-        required=False,
-        widget=forms.CheckboxInput(attrs={"form": "projet-form"}),
-    )
-
-    is_autre_zonage_local = forms.BooleanField(
-        label="Projet rattaché à un autre zonage local",
-        required=False,
-        widget=forms.CheckboxInput(
-            attrs={
-                "form": "projet-form",
-                "data-action": "change->projet-form#toggleAutreZonageLocal",
-                "data-projet-form-target": "autreZonageLocalCheckbox",
-            }
-        ),
-    )
-    autre_zonage_local = forms.CharField(
-        label="Nom du zonage local",
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "form": "projet-form",
-                "data-projet-form-target": "autreZonageLocalInput",
-            }
-        ),
-    )
-
-    is_contrat_local = forms.BooleanField(
-        label="Projet rattaché à un contrat local",
-        required=False,
-        widget=forms.CheckboxInput(
-            attrs={
-                "form": "projet-form",
-                "data-action": "change->projet-form#toggleContratLocal",
-                "data-projet-form-target": "contratLocalCheckbox",
-            }
-        ),
-    )
-
-    contrat_local = forms.CharField(
-        label="Nom du contrat local",
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "form": "projet-form",
-                "data-projet-form-target": "contratLocalInput",
-            }
-        ),
-    )
-
     dotations = forms.MultipleChoiceField(
         choices=DOTATION_CHOICES,
         required=False,
@@ -111,18 +30,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     class Meta:
         model = Projet
-        fields = [
-            "is_in_qpv",
-            "is_attached_to_a_crte",
-            "is_frr",
-            "is_acv",
-            "is_pvd",
-            "is_va",
-            "is_autre_zonage_local",
-            "autre_zonage_local",
-            "is_contrat_local",
-            "contrat_local",
-        ]
+        fields = []
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -144,87 +52,11 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             )
         return dotations
 
-    def clean_autre_zonage_local(self):
-        is_autre_zonage_local = self.cleaned_data.get("is_autre_zonage_local")
-        autre_zonage_local = self.cleaned_data.get("autre_zonage_local")
-        if is_autre_zonage_local and not autre_zonage_local:
-            self.add_error(
-                "autre_zonage_local",
-                "Ce champ est obligatoire si le projet est rattaché à un autre zonage local.",
-            )
-        if not is_autre_zonage_local:
-            autre_zonage_local = ""
-        return autre_zonage_local
-
-    def clean_contrat_local(self):
-        is_contrat_local = self.cleaned_data.get("is_contrat_local")
-        contrat_local = self.cleaned_data.get("contrat_local")
-        if is_contrat_local and not contrat_local:
-            self.add_error(
-                "contrat_local",
-                "Ce champ est obligatoire si le projet est rattaché à un contrat local.",
-            )
-        if not is_contrat_local:
-            contrat_local = ""
-        return contrat_local
-
     @transaction.atomic
     def save(self, commit=True):
-        from gsl_historique.models import ProjetAction
-
         instance: Projet = super().save(commit=False)
         if not commit:
             return instance
-
-        ds_service = DsService()
-        ds_service.update_checkboxes_annotations(
-            dossier=instance.dossier_ds,
-            user=self.user,
-            annotations_to_update={
-                "annotations_is_qpv": self.cleaned_data.get("is_in_qpv"),
-                "annotations_is_crte": self.cleaned_data.get("is_attached_to_a_crte"),
-                "annotations_is_frr": self.cleaned_data.get("is_frr"),
-                "annotations_is_acv": self.cleaned_data.get("is_acv"),
-                "annotations_is_pvd": self.cleaned_data.get("is_pvd"),
-                "annotations_is_va": self.cleaned_data.get("is_va"),
-                "annotations_is_autre_zonage_local": self.cleaned_data.get(
-                    "is_autre_zonage_local"
-                ),
-                "annotations_is_contrat_local": self.cleaned_data.get(
-                    "is_contrat_local"
-                ),
-            },
-            text_annotations_to_update={
-                "annotations_autre_zonage_local": self.cleaned_data.get(
-                    "autre_zonage_local"
-                ),
-                "annotations_contrat_local": self.cleaned_data.get("contrat_local"),
-            },
-        )
-
-        instance.save()
-
-        _BOOLEAN_FIELDS = [
-            ("is_in_qpv", "QPV"),
-            ("is_attached_to_a_crte", "CRTE"),
-            ("is_frr", "FRR"),
-            ("is_acv", "ACV"),
-            ("is_pvd", "PVD"),
-            ("is_va", "Villages d'avenir"),
-            ("is_autre_zonage_local", "Autre zonage local"),
-            ("is_contrat_local", "Contrat local"),
-        ]
-        for field_name, field_label in _BOOLEAN_FIELDS:
-            if field_name in self.changed_data:
-                ProjetAction.objects.create(
-                    projet=instance,
-                    action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED,
-                    actor=self.user,
-                    source=ProjetAction.SOURCE_TURGOT,
-                    boolean_field=field_label,
-                    boolean_value=self.cleaned_data.get(field_name),
-                    form_id=f"{type(self).__module__}.{type(self).__qualname__}",
-                )
 
         dotations = self.cleaned_data.get("dotations")
         if dotations:
@@ -313,7 +145,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             projet.save()
 
 
-class ProjetBooleanAnnotationsForm(ModelForm, DsfrBaseForm):
+class ProjetAnnotationsForm(ModelForm, DsfrBaseForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
@@ -330,8 +162,8 @@ class ProjetBooleanAnnotationsForm(ModelForm, DsfrBaseForm):
 
         with transaction.atomic():
             instance.save()
-            for name in self.fields:
-                if name in self.changed_data:
+            for name in self.changed_data:
+                if isinstance(self.fields[name], forms.BooleanField):
                     ProjetAction.objects.create(
                         projet=instance,
                         action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED,
@@ -342,10 +174,10 @@ class ProjetBooleanAnnotationsForm(ModelForm, DsfrBaseForm):
                         form_id=f"{type(self).__module__}.{type(self).__qualname__}",
                     )
             try:
-                DsService().update_checkboxes_annotations(
+                DsService().update_annotations(
                     dossier=instance.dossier_ds,
                     user=self.user,
-                    annotations_to_update={
+                    annotations={
                         self._annotation_key(name): self.cleaned_data.get(name)
                         for name in self.fields
                     },
@@ -356,7 +188,7 @@ class ProjetBooleanAnnotationsForm(ModelForm, DsfrBaseForm):
         return instance
 
 
-class ProjetBudgetVertForm(ProjetBooleanAnnotationsForm):
+class ProjetBudgetVertForm(ProjetAnnotationsForm):
     is_budget_vert = forms.BooleanField(
         label="Projet concourant à la transition écologique au sens budget vert",
         required=False,
@@ -365,6 +197,101 @@ class ProjetBudgetVertForm(ProjetBooleanAnnotationsForm):
     class Meta:
         model = Projet
         fields = ["is_budget_vert"]
+
+
+class ProjetZonageForm(ProjetAnnotationsForm):
+    is_in_qpv = forms.BooleanField(label="Projet situé en QPV", required=False)
+    is_attached_to_a_crte = forms.BooleanField(
+        label="Projet rattaché à un CRTE", required=False
+    )
+    is_frr = forms.BooleanField(label="Projet situé en FRR", required=False)
+    is_acv = forms.BooleanField(
+        label="Projet rattaché à un programme Action coeurs de Ville (ACV)",
+        required=False,
+    )
+    is_pvd = forms.BooleanField(
+        label="Projet rattaché à un programme Petites villes de demain (PVD)",
+        required=False,
+    )
+    is_va = forms.BooleanField(
+        label="Projet rattaché à un programme Villages d'avenir", required=False
+    )
+    is_autre_zonage_local = forms.BooleanField(
+        label="Projet rattaché à un autre zonage local",
+        required=False,
+        widget=forms.CheckboxInput(
+            attrs={
+                "data-controller": "conditional-field",
+                "data-action": "change->conditional-field#toggle",
+                "data-conditional-field-for": "id_autre_zonage_local",
+            }
+        ),
+    )
+    autre_zonage_local = forms.CharField(
+        label="Nom du zonage local",
+        required=False,
+    )
+    is_contrat_local = forms.BooleanField(
+        label="Projet rattaché à un contrat local",
+        required=False,
+        widget=forms.CheckboxInput(
+            attrs={
+                "data-controller": "conditional-field",
+                "data-action": "change->conditional-field#toggle",
+                "data-conditional-field-for": "id_contrat_local",
+            }
+        ),
+    )
+    contrat_local = forms.CharField(
+        label="Nom du contrat local",
+        required=False,
+    )
+
+    class Meta:
+        model = Projet
+        fields = [
+            "is_in_qpv",
+            "is_attached_to_a_crte",
+            "is_frr",
+            "is_acv",
+            "is_pvd",
+            "is_va",
+            "is_autre_zonage_local",
+            "autre_zonage_local",
+            "is_contrat_local",
+            "contrat_local",
+        ]
+
+    def _annotation_key(self, field):
+        overrides = {
+            "is_in_qpv": "annotations_is_qpv",
+            "is_attached_to_a_crte": "annotations_is_crte",
+        }
+        return overrides.get(field, super()._annotation_key(field))
+
+    def clean_autre_zonage_local(self):
+        is_autre_zonage_local = self.cleaned_data.get("is_autre_zonage_local")
+        autre_zonage_local = self.cleaned_data.get("autre_zonage_local")
+        if is_autre_zonage_local and not autre_zonage_local:
+            self.add_error(
+                "autre_zonage_local",
+                "Ce champ est obligatoire si le projet est rattaché à un autre zonage local.",
+            )
+        if not is_autre_zonage_local:
+            autre_zonage_local = ""
+        return autre_zonage_local
+
+    def clean_contrat_local(self):
+        is_contrat_local = self.cleaned_data.get("is_contrat_local")
+        contrat_local = self.cleaned_data.get("contrat_local")
+        if is_contrat_local and not contrat_local:
+            self.add_error(
+                "contrat_local",
+                "Ce champ est obligatoire si le projet est rattaché à un contrat local.",
+            )
+        if not is_contrat_local:
+            contrat_local = ""
+        return contrat_local
 
 
 class DotationProjetForm(ModelForm, DsfrBaseForm):

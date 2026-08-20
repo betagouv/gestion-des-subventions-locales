@@ -1,18 +1,5 @@
+{% extends "includes/forms/_htmx_fragment_form.html" %}
 
-<div class="form-disabled-before-value-change"
-     data-action="change->projet-form#enableSubmit">
-    {% csrf_token %}
-    <div class="fr-callout fr-background-alt--blue-france fr-py-2w fr-px-2w">
-        {% for field in projet_form %}
-            {% if field.name != "dotations" %}
-                {{ field.as_field_group }}
-            {% endif %}
-        {% endfor %}
-    </div>
-    <button class="fr-btn fr-btn--secondary"
-            type="submit"
-            form="projet-form"
-            disabled>
-        Enregistrer
-    </button>
-</div>
+{% block post_url %}
+    {% url 'gsl_projet:patch-projet-zonage' projet.id %}
+{% endblock post_url %}

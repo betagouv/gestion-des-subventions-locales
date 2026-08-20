@@ -17,7 +17,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
 )
 from gsl_projet.forms import ProjetBudgetVertForm, ProjetForm
-from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.models import DotationProjet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_simulation.models import SimulationProjet
@@ -41,41 +41,7 @@ def user():
 @pytest.mark.django_db
 def test_projet_form_fields(projet):
     form = ProjetForm(instance=projet)
-
-    expected_fields = [
-        "is_in_qpv",
-        "is_attached_to_a_crte",
-        "is_frr",
-        "is_acv",
-        "is_pvd",
-        "is_va",
-        "is_autre_zonage_local",
-        "autre_zonage_local",
-        "is_contrat_local",
-        "contrat_local",
-        "dotations",
-    ]
-    assert list(form.fields.keys()) == expected_fields
-
-    qpv_field = form.fields["is_in_qpv"]
-    assert isinstance(qpv_field, forms.BooleanField)
-    assert qpv_field.required is False
-    assert qpv_field.label == "Projet situé en QPV"
-
-    is_attached_to_a_crte = form.fields["is_attached_to_a_crte"]
-    assert isinstance(is_attached_to_a_crte, forms.BooleanField)
-    assert is_attached_to_a_crte.required is False
-
-    autre_zonage_local = form.fields["autre_zonage_local"]
-    assert isinstance(autre_zonage_local, forms.CharField)
-    assert autre_zonage_local.required is False
-    assert autre_zonage_local.label == "Nom du zonage local"
-
-    contrat_local = form.fields["contrat_local"]
-    assert isinstance(contrat_local, forms.CharField)
-    assert contrat_local.required is False
-    assert contrat_local.label == "Nom du contrat local"
-
+    assert list(form.fields.keys()) == ["dotations"]
     dotations = form.fields["dotations"]
     assert isinstance(dotations, forms.MultipleChoiceField)
     assert dotations.required is False
@@ -83,172 +49,17 @@ def test_projet_form_fields(projet):
 
 @pytest.mark.django_db
 def test_projet_form_validation(projet):
-    valid_data = {
-        "is_in_qpv": True,
-        "is_attached_to_a_crte": False,
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=valid_data)
+    form = ProjetForm(instance=projet, data={"dotations": [DOTATION_DSIL]})
     assert form.is_valid()
 
-    invalid_data = {
-        "is_in_qpv": "invalid",
-        "is_attached_to_a_crte": "invalid",
-        "dotations": [],
-    }
-    form = ProjetForm(instance=projet, data=invalid_data)
+    form = ProjetForm(instance=projet, data={"dotations": []})
     assert not form.is_valid()
     assert "dotations" in form.errors
 
-    # BooleanField cast string value to boolean
-    assert "is_in_qpv" not in form.errors
-    assert "is_attached_to_a_crte" not in form.errors
 
-
+@patch.object(DsService, "update_annotations")
 @pytest.mark.django_db
-def test_is_in_qpv_or_is_attached_to_a_crte_projet_form_validation(projet):
-    invalid_data = {
-        "is_in_qpv": "invalid value which will be transform to True",
-        "is_attached_to_a_crte": "invalid value which will be transform to True",
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=invalid_data)
-    assert form.is_valid()
-    projet = form.save(commit=False)
-    assert isinstance(projet, Projet)
-    assert projet.is_in_qpv is True
-    assert projet.is_attached_to_a_crte is True
-
-
-@pytest.mark.django_db
-def test_autre_zonage_local_required_when_checkbox_checked(projet):
-    """Test that autre_zonage_local is required when is_autre_zonage_local is True"""
-    data = {
-        "is_autre_zonage_local": True,
-        "autre_zonage_local": "",  # Empty value
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data)
-    assert not form.is_valid()
-    assert "autre_zonage_local" in form.errors
-    assert (
-        "Ce champ est obligatoire si le projet est rattaché à un autre zonage local."
-        in form.errors["autre_zonage_local"]
-    )
-
-
-@pytest.mark.django_db
-def test_autre_zonage_local_not_required_when_checkbox_unchecked(projet):
-    """Test that autre_zonage_local is not required when is_autre_zonage_local is False"""
-    data = {
-        "is_autre_zonage_local": False,
-        "autre_zonage_local": "",  # Empty value is OK
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data)
-    assert form.is_valid()
-    projet = form.save(commit=False)
-    assert projet.autre_zonage_local == ""
-
-
-@pytest.mark.django_db
-def test_autre_zonage_local_cleared_when_checkbox_unchecked(projet):
-    """Test that autre_zonage_local is cleared when is_autre_zonage_local is unchecked"""
-    projet.autre_zonage_local = "Zonage ABC"
-    projet.save()
-
-    data = {
-        "is_autre_zonage_local": False,
-        "autre_zonage_local": "Zonage ABC",  # Value provided but checkbox unchecked
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data)
-    assert form.is_valid()
-    projet = form.save(commit=False)
-    assert projet.autre_zonage_local == ""
-
-
-@pytest.mark.django_db
-def test_contrat_local_required_when_checkbox_checked(projet):
-    """Test that contrat_local is required when is_contrat_local is True"""
-    data = {
-        "is_contrat_local": True,
-        "contrat_local": "",  # Empty value
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data)
-    assert not form.is_valid()
-    assert "contrat_local" in form.errors
-    assert (
-        "Ce champ est obligatoire si le projet est rattaché à un contrat local."
-        in form.errors["contrat_local"]
-    )
-
-
-@pytest.mark.django_db
-def test_contrat_local_not_required_when_checkbox_unchecked(projet):
-    """Test that contrat_local is not required when is_contrat_local is False"""
-    data = {
-        "is_contrat_local": False,
-        "contrat_local": "",  # Empty value is OK
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data)
-    assert form.is_valid()
-    projet = form.save(commit=False)
-    assert projet.contrat_local == ""
-
-
-@pytest.mark.django_db
-def test_contrat_local_cleared_when_checkbox_unchecked(projet):
-    """Test that contrat_local is cleared when is_contrat_local is unchecked"""
-    projet.contrat_local = "Contrat XYZ"
-    projet.save()
-
-    data = {
-        "is_contrat_local": False,
-        "contrat_local": "Contrat XYZ",  # Value provided but checkbox unchecked
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data)
-    assert form.is_valid()
-    projet = form.save(commit=False)
-    assert projet.contrat_local == ""
-
-
-@patch.object(DsService, "update_checkboxes_annotations")
-@patch.object(DsService, "update_ds_annotations_for_one_dotation")
-@pytest.mark.django_db
-def test_projet_form_save(
-    _mock_update_ds_annotations, mock_update_checkboxes_annotations, projet, user
-):
-    data = {
-        "is_in_qpv": True,
-        "is_attached_to_a_crte": True,
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data, user=user)
-    assert form.is_valid()
-
-    projet = form.save(commit=True)
-
-    assert isinstance(projet, Projet)
-    assert projet.is_in_qpv is True
-    assert projet.is_attached_to_a_crte is True
-    assert projet.dotations == [DOTATION_DSIL]
-
-    # Verify DN synchronization was called
-    mock_update_checkboxes_annotations.assert_called_once()
-    call_kwargs = mock_update_checkboxes_annotations.call_args.kwargs
-    assert call_kwargs["dossier"] == projet.dossier_ds
-    assert call_kwargs["user"] == user
-    assert "annotations_to_update" in call_kwargs
-    assert "text_annotations_to_update" in call_kwargs
-
-
-@patch.object(DsService, "update_checkboxes_annotations")
-@pytest.mark.django_db
-def test_projet_budget_vert_form_save(mock_update_checkboxes_annotations, projet, user):
+def test_projet_budget_vert_form_save(mock_update_annotations, projet, user):
     assert projet.is_budget_vert is False
 
     form = ProjetBudgetVertForm(
@@ -261,9 +72,10 @@ def test_projet_budget_vert_form_save(mock_update_checkboxes_annotations, projet
     assert projet.is_budget_vert is True
 
     # Only the budget vert annotation is pushed to DN
-    mock_update_checkboxes_annotations.assert_called_once()
-    call_kwargs = mock_update_checkboxes_annotations.call_args.kwargs
-    assert call_kwargs["annotations_to_update"] == {"annotations_is_budget_vert": True}
+    mock_update_annotations.assert_called_once()
+    assert mock_update_annotations.call_args.kwargs["annotations"] == {
+        "annotations_is_budget_vert": True
+    }
 
     # The change is recorded in the projet history
     action = ProjetAction.objects.get(
@@ -276,10 +88,10 @@ def test_projet_budget_vert_form_save(mock_update_checkboxes_annotations, projet
     assert action.boolean_value is True
 
 
-@patch.object(DsService, "update_checkboxes_annotations")
+@patch.object(DsService, "update_annotations")
 @pytest.mark.django_db
 def test_projet_budget_vert_form_save_unchanged_is_a_noop(
-    mock_update_checkboxes_annotations, projet, user
+    mock_update_annotations, projet, user
 ):
     form = ProjetBudgetVertForm(instance=projet, data={"is_budget_vert": ""}, user=user)
     assert form.is_valid()
@@ -288,152 +100,21 @@ def test_projet_budget_vert_form_save_unchanged_is_a_noop(
     projet.refresh_from_db()
     assert projet.is_budget_vert is False
     # Nothing changed: no DN push, no history entry
-    mock_update_checkboxes_annotations.assert_not_called()
+    mock_update_annotations.assert_not_called()
     assert not ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED
     ).exists()
 
 
-@patch.object(DsService, "update_checkboxes_annotations")
-@patch.object(DsService, "update_ds_annotations_for_one_dotation")
-@pytest.mark.django_db
-def test_projet_form_save_with_autre_zonage_local(
-    _mock_update_ds_annotations, mock_update_checkboxes_annotations, projet, user
-):
-    """Test saving projet with autre_zonage_local and synchronization to DN"""
-    data = {
-        "is_autre_zonage_local": True,
-        "autre_zonage_local": "Zonage Test ABC",
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data, user=user)
-    assert form.is_valid()
-
-    projet = form.save(commit=True)
-
-    assert isinstance(projet, Projet)
-    assert projet.is_autre_zonage_local is True
-    assert projet.autre_zonage_local == "Zonage Test ABC"
-
-    # Verify DN synchronization was called with correct values
-    mock_update_checkboxes_annotations.assert_called_once()
-    call_kwargs = mock_update_checkboxes_annotations.call_args.kwargs
-    assert (
-        call_kwargs["annotations_to_update"]["annotations_is_autre_zonage_local"]
-        is True
-    )
-    assert (
-        call_kwargs["text_annotations_to_update"]["annotations_autre_zonage_local"]
-        == "Zonage Test ABC"
-    )
-
-
-@patch.object(DsService, "update_checkboxes_annotations")
-@patch.object(DsService, "update_ds_annotations_for_one_dotation")
-@pytest.mark.django_db
-def test_projet_form_save_with_contrat_local(
-    _mock_update_ds_annotations, mock_update_checkboxes_annotations, projet, user
-):
-    """Test saving projet with contrat_local and synchronization to DN"""
-    data = {
-        "is_contrat_local": True,
-        "contrat_local": "Contrat Test XYZ",
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data, user=user)
-    assert form.is_valid()
-
-    projet = form.save(commit=True)
-
-    assert isinstance(projet, Projet)
-    assert projet.is_contrat_local is True
-    assert projet.contrat_local == "Contrat Test XYZ"
-
-    # Verify DN synchronization was called with correct values
-    mock_update_checkboxes_annotations.assert_called_once()
-    call_kwargs = mock_update_checkboxes_annotations.call_args.kwargs
-    assert call_kwargs["annotations_to_update"]["annotations_is_contrat_local"] is True
-    assert (
-        call_kwargs["text_annotations_to_update"]["annotations_contrat_local"]
-        == "Contrat Test XYZ"
-    )
-
-
-@patch.object(DsService, "update_checkboxes_annotations")
-@patch.object(DsService, "update_ds_annotations_for_one_dotation")
-@pytest.mark.django_db
-def test_projet_form_save_with_both_text_fields(
-    _mock_update_ds_annotations, mock_update_checkboxes_annotations, projet, user
-):
-    """Test saving projet with both autre_zonage_local and contrat_local"""
-    data = {
-        "is_autre_zonage_local": True,
-        "autre_zonage_local": "Zonage ABC",
-        "is_contrat_local": True,
-        "contrat_local": "Contrat XYZ",
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data, user=user)
-    assert form.is_valid()
-
-    projet = form.save(commit=True)
-
-    assert isinstance(projet, Projet)
-    assert projet.is_autre_zonage_local is True
-    assert projet.autre_zonage_local == "Zonage ABC"
-    assert projet.is_contrat_local is True
-    assert projet.contrat_local == "Contrat XYZ"
-
-    # Verify DN synchronization was called with both text fields
-    mock_update_checkboxes_annotations.assert_called_once()
-    call_kwargs = mock_update_checkboxes_annotations.call_args.kwargs
-    text_annotations = call_kwargs["text_annotations_to_update"]
-    assert text_annotations["annotations_autre_zonage_local"] == "Zonage ABC"
-    assert text_annotations["annotations_contrat_local"] == "Contrat XYZ"
-
-
 @pytest.mark.django_db
 def test_projet_form_save_with_multiple_dotations(projet):
-    data = {
-        "is_in_qpv": True,
-        "is_attached_to_a_crte": True,
-        "dotations": [DOTATION_DSIL, DOTATION_DETR],
-    }
+    data = {"dotations": [DOTATION_DSIL, DOTATION_DETR]}
     form = ProjetForm(instance=projet, data=data)
     assert form.is_valid()
-    with patch(
-        "gsl_demarches_simplifiees.services.DsService.update_checkboxes_annotations"
-    ):
-        projet = form.save(commit=True)
+    projet = form.save(commit=True)
 
     assert DOTATION_DSIL in projet.dotations
     assert DOTATION_DETR in projet.dotations
-
-
-@pytest.mark.django_db
-def test_projet_form_save_with_field_exceptions(projet, user):
-    data = {
-        "is_in_qpv": True,
-        "is_attached_to_a_crte": True,
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data, user=user)
-    assert form.is_valid()
-
-    with patch(
-        "gsl_demarches_simplifiees.services.DsService.update_checkboxes_annotations"
-    ) as mock_update_annotations:
-        mock_update_annotations.side_effect = DsServiceException("Some error")
-        try:
-            projet = form.save(commit=True)
-        except DsServiceException as e:
-            assert str(e) == "Some error"
-
-    projet.refresh_from_db()
-    assert isinstance(projet, Projet)
-    assert projet.is_in_qpv is False  # not updated
-    assert projet.is_attached_to_a_crte is False  # not updated
-    assert projet.dotations == [DOTATION_DETR]  # Default value
 
 
 @pytest.mark.django_db
@@ -754,14 +435,12 @@ def test_update_dotation_does_not_set_dotations_has_been_updated_when_unchanged(
     assert projet_0.dotations_updated_in_app is False
 
 
-@patch.object(DsService, "update_checkboxes_annotations")
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @patch.object(DotationProjetService, "create_simulation_projets_from_dotation_projet")
 @pytest.mark.django_db
 def test_projet_form_save_sets_dotations_has_been_updated_when_dotations_change(
     mock_create_simulation_projets,
     _mock_update_ds_annotations,
-    _mock_update_checkboxes_annotations,
     projet,
     user,
 ):
@@ -770,12 +449,7 @@ def test_projet_form_save_sets_dotations_has_been_updated_when_dotations_change(
     assert projet.dotations == [DOTATION_DETR]
     assert projet.dotations_updated_in_app is False
 
-    data = {
-        "is_in_qpv": False,
-        "is_attached_to_a_crte": False,
-        "dotations": [DOTATION_DSIL],
-    }
-    form = ProjetForm(instance=projet, data=data, user=user)
+    form = ProjetForm(instance=projet, data={"dotations": [DOTATION_DSIL]}, user=user)
     assert form.is_valid()
 
     form.save(commit=True)

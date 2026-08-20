@@ -4,6 +4,7 @@ from gsl_projet.forms import (
     DotationProjetAssietteForm,
     DotationProjetForm,
     ProjetBudgetVertForm,
+    ProjetZonageForm,
 )
 
 register = template.Library()
@@ -30,4 +31,12 @@ def budget_vert_form(projet):
     return {
         "projet": projet,
         "form": ProjetBudgetVertForm(instance=projet),
+    }
+
+
+@register.inclusion_tag("includes/forms/_boolean_fields_projet_form.html")
+def zonage_form(projet):
+    return {
+        "projet": projet,
+        "form": ProjetZonageForm(instance=projet),
     }

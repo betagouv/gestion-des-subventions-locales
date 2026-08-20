@@ -42,6 +42,7 @@ from gsl_projet.forms import (
     ProjetForm,
     ProjetNoteForm,
     ProjetRevertToProcessingForm,
+    ProjetZonageForm,
 )
 from gsl_projet.models import DotationProjet, ProjetNote
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
@@ -192,10 +193,8 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
         return _redirect_to_referer_or_projet(self.request, self.object)
 
 
-class ProjetBudgetVertUpdateView(HtmxFragmentFormMixin, UpdateView):
+class UserProjetMixin:
     model = Projet
-    form_class = ProjetBudgetVertForm
-    template_name = "includes/forms/_is_budget_vert_form.html"
     context_object_name = "projet"
     pk_url_kwarg = "projet_id"
 
@@ -206,6 +205,16 @@ class ProjetBudgetVertUpdateView(HtmxFragmentFormMixin, UpdateView):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
+
+
+class ProjetBudgetVertUpdateView(UserProjetMixin, HtmxFragmentFormMixin, UpdateView):
+    form_class = ProjetBudgetVertForm
+    template_name = "includes/forms/_is_budget_vert_form.html"
+
+
+class ProjetZonageUpdateView(UserProjetMixin, HtmxFragmentFormMixin, UpdateView):
+    form_class = ProjetZonageForm
+    template_name = "includes/forms/_boolean_fields_projet_form.html"
 
 
 class DotationProjetDetrAvisUpdateView(HtmxFragmentFormMixin, UpdateView):

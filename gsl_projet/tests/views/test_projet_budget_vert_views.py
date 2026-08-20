@@ -68,8 +68,8 @@ def test_patch_budget_vert_non_htmx_returns_400(_mock_ds_service, client, projet
 def test_patch_budget_vert_ds_error_shown_inline_and_rolled_back(
     mock_ds_service, client, projet
 ):
-    mock_ds_service.return_value.update_checkboxes_annotations.side_effect = (
-        DsServiceException("Erreur DN")
+    mock_ds_service.return_value.update_annotations.side_effect = DsServiceException(
+        "Erreur DN"
     )
 
     response = client.post(
