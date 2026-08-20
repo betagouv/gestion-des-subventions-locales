@@ -11,12 +11,13 @@ from django.utils import timezone
 from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_notification.validators import document_file_validator, logo_file_validator
 from gsl_projet.constants import (
-    ANNEXE,
     ARRETE,
     DOTATION_CHOICES,
     LETTRE,
-    LETTRE_ET_ARRETE_SIGNES,
     LETTRE_REFUS,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
 )
 
 
@@ -290,8 +291,24 @@ class LettreRefus(GeneratedDocument):
 UPLOADED_DOCUMENTS = {}
 
 
+def uploaded_document_upload_to(instance, filename):
+    # Named (module-level) so it stays migration-serializable, unlike a lambda.
+    return f"{instance.document_type}/{filename}"
+
+
 class UploadedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
+    # DotationProjet statuses for which this document can be uploaded.
+    upload_statuses: tuple[str, ...] = ()
+    # False => OneToOne to ProgrammationProjet: a single document, the choice is
+    # disabled once one exists. True => several allowed (e.g. annexes).
+    allow_multiple = False
+    # Label shown in the "choose document type" radio.
+    upload_label = ""
+
+    file = models.FileField(
+        upload_to=uploaded_document_upload_to, validators=[document_file_validator]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
@@ -311,6 +328,14 @@ class UploadedDocument(VerboseNameMixin, models.Model):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         UPLOADED_DOCUMENTS[cls.document_type] = cls
+
+    @classmethod
+    def can_upload(cls, programmation_projet) -> bool:
+        if cls.allow_multiple:
+            return True
+        return not cls.objects.filter(
+            programmation_projet=programmation_projet
+        ).exists()
 
     @property
     def is_downloadable(self):
@@ -344,13 +369,12 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
 
 class LettreEtArreteSignes(UploadedDocument):
-    document_type = LETTRE_ET_ARRETE_SIGNES
+    document_type = "lettre_et_arrete_signes"
+    upload_statuses = (PROJET_STATUS_ACCEPTED,)
+    upload_label = "Lettre et arrêté signés"
     delete_label = "Suppression de la lettre et de l’arrêté signés"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?"
-    )
-    file = models.FileField(
-        upload_to="arrete_et_lettre_signes/", validators=[document_file_validator]
     )
 
     programmation_projet = models.OneToOneField(
@@ -368,10 +392,12 @@ class LettreEtArreteSignes(UploadedDocument):
 
 
 class Annexe(UploadedDocument):
-    document_type = ANNEXE
+    document_type = "annexe"
+    upload_statuses = (PROJET_STATUS_ACCEPTED,)
+    allow_multiple = True
+    upload_label = "Annexe"
     delete_label = "Suppression de l’annexe"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
-    file = models.FileField(upload_to="annexe/", validators=[document_file_validator])
 
     programmation_projet = models.ForeignKey(
         "gsl_programmation.ProgrammationProjet",
@@ -385,6 +411,29 @@ class Annexe(UploadedDocument):
 
     def __str__(self):
         return f"Annexe #{self.id}"
+
+
+class LettreRefusSignee(UploadedDocument):
+    document_type = "lettre_refus_signee"
+    upload_statuses = (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+    upload_label = "Lettre de refus signée"
+    delete_label = "Suppression de la lettre de refus signée"
+    delete_question = (
+        "Êtes-vous sûr de vouloir supprimer cette lettre de refus signée ?"
+    )
+
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="lettre_refus_signee",
+    )
+
+    class Meta:
+        verbose_name = "Lettre de refus signée"
+        verbose_name_plural = "Lettres de refus signées"
+
+    def __str__(self):
+        return f"Lettre de refus signée #{self.id}"
 
 
 class DocumentImportJob(BaseModel):

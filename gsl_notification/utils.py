@@ -35,9 +35,7 @@ from gsl_notification.models import (
 from gsl_notification.qr import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
-    ANNEXE,
     DOTATION_DETR,
-    LETTRE_ET_ARRETE_SIGNES,
     POSSIBLE_DOTATIONS,
 )
 
@@ -341,24 +339,6 @@ def get_s3_object(file_name):
         return s3.get_object(Bucket=bucket, Key=file_name)
     except s3.exceptions.NoSuchKey:
         raise Http404(user_message="Fichier non trouvé")
-
-
-def get_uploaded_document_class(document_type: str):
-    if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
-        raise ValueError(f"Document type {document_type} inconnu")
-    if document_type == ANNEXE:
-        return Annexe
-    return LettreEtArreteSignes
-
-
-def get_uploaded_form_class(document_type: str):
-    from gsl_notification.forms import AnnexeForm, ArreteEtLettreSigneForm
-
-    if document_type not in [LETTRE_ET_ARRETE_SIGNES, ANNEXE]:
-        raise ValueError(f"Document type {document_type} inconnu")
-    if document_type == ANNEXE:
-        return AnnexeForm
-    return ArreteEtLettreSigneForm
 
 
 @lru_cache(maxsize=32)

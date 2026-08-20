@@ -25,9 +25,7 @@ from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
-    Annexe,
     Arrete,
-    LettreEtArreteSignes,
     LettreNotification,
     LettreRefus,
 )
@@ -505,10 +503,11 @@ class Projet(BaseModel):
     @property
     def imported_documents(self):
         documents = [
-            *LettreEtArreteSignes.objects.filter(
+            document
+            for model in UPLOADED_DOCUMENTS.values()
+            for document in model.objects.filter(
                 programmation_projet__dotation_projet__projet=self
-            ),
-            *Annexe.objects.filter(programmation_projet__dotation_projet__projet=self),
+            )
         ]
         return sorted(
             documents,
