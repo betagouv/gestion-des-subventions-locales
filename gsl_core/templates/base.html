@@ -58,6 +58,7 @@
                     "checkboxSelection": "{% static 'js/checkboxSelection.js' %}",
                     "bindAmountFields": "{% static 'js/controllers/bindAmountFields.js' %}",
                     "cancelPollOnModalClose": "{% static 'js/controllers/cancelPollOnModalClose.js' %}",
+                    "openModalOnSubmit": "{% static 'js/controllers/openModalOnSubmit.js' %}",
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
                     "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
                     "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
@@ -146,6 +147,7 @@
             import { Modal } from "modal"
             import { EnableOnChange } from "enableOnChange"
             import { ModeleArreteForm } from "modeleArreteForm"
+            import { OpenModalOnSubmit } from "openModalOnSubmit"
             import { ProjetNoteCard } from "projetNoteCard"
             import { ProjetNotes } from "projetNotes"
             import { RadioNavigate } from "radioNavigate"
@@ -164,6 +166,7 @@
             Stimulus.register("checkbox-selection", CheckboxSelection)
             Stimulus.register("bind-amount-fields", BindAmountFields)
             Stimulus.register("cancel-poll-on-modal-close", CancelPollOnModalClose)
+            Stimulus.register("open-modal-on-submit", OpenModalOnSubmit)
             Stimulus.register("form-utils", FormUtils)
             Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)

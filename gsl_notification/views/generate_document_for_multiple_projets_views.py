@@ -1,7 +1,9 @@
-import logging
+from dataclasses import dataclass, replace
+from functools import cached_property
 
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from django.utils.functional import classproperty
 from django.views.generic import DetailView
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
@@ -15,132 +17,259 @@ from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
     SELECTED_TYPES_BY_CHOICE,
+    GenerateAcceptedDocumentsLaunchForm,
     GenerateDocumentsCreateForm,
     GenerateDocumentsFormatForm,
-    GenerateDocumentsLaunchForm,
     GenerateDocumentsModeleSelectionForm,
     GenerateDocumentsTypeSelectionForm,
-    GenerateRefusLettersCreateForm,
+    GenerateRefusLettersLaunchForm,
 )
 from gsl_notification.models import ExportJob
 from gsl_notification.tasks import generate_export_task
+from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import DOTATIONS, LETTRE_REFUS
 
-logger = logging.getLogger(__name__)
 
-
-@method_decorator(htmx_only, name="dispatch")
-class BaseGenerateDocumentsWizard(SessionWizardView):
+@dataclass(frozen=True)
+class Step:
     """
-    Shared plumbing for the "generate accepted documents" and "generate
-    lettre de refus" multi-projet wizards: both are launch -> ... -> create
-    SessionWizardView flows, sharing the same step names and forms — the
-    only structural difference is the optional TYPE_SELECTION_STEP.
-
-    Subclasses must set:
-    - PREFIX: the literal storage/HTML prefix. Deliberately NOT derived from
-      the class name (formtools' default), so renaming a subclass never
-      changes the session storage key or the HTML field names.
-    - HAS_TYPE_SELECTION_STEP: whether this wizard includes the "type de
-      document" step. Only GenerateAcceptedDocumentsWizard does — a refus
-      letters run has a single, fixed document type. TOTAL_STEPS, form_list
-      and TEMPLATES are all derived from this flag in __init_subclass__.
-    - CREATE_FORM_CLASS: the form invoked at CREATE_STEP.
-    - DOCUMENT_TYPE: the fixed document_type. Only needed when
-      HAS_TYPE_SELECTION_STEP is False — otherwise it's resolved from the
-      TYPE_SELECTION_STEP form.
-    - MODAL_TITLE: fed to the shared modal templates.
-    - MODAL_POST_URL_NAME, STATUS_URL_NAME: this wizard's own URL names,
-      used by the shared templates (form actions, polling endpoint).
-    - STEPPER_META, modal_id: presentation details that genuinely differ per
-      wizard (step numbering/wording, DOM ids).
-    - get_save_kwargs(merged_data).
+    `form_kwargs` and `extra_context` name wizard hooks: each entry `foo` is
+    resolved by calling the wizard's `get_foo()`, and passed either to the
+    step's form or to its template context.
     """
 
-    LAUNCH_STEP = "launch"
-    TYPE_SELECTION_STEP = "type_selection"
-    MODELE_SELECTION_STEP = "modele_selection"
-    FORMAT_STEP = "format"
-    CREATE_STEP = "create"
+    name: str
+    form_class: type
+    template: str
+    title: str = ""
+    form_kwargs: tuple[str, ...] = ()
+    extra_context: tuple[str, ...] = ()
+    # done() reads this step's cleaned_data, so it has to be validated again
+    # when the wizard is replayed from storage at the end of the flow.
+    validated_on_done: bool = False
 
-    # Identical for both wizards now that step names are shared.
-    DOC_COUNT_STEPS = (FORMAT_STEP, CREATE_STEP)
-    DONE_STEPS = (MODELE_SELECTION_STEP, FORMAT_STEP)
 
-    HAS_TYPE_SELECTION_STEP: bool = False
-    CREATE_FORM_CLASS: type = None
-    DOCUMENT_TYPE: str = ""
+class HtmxModalWizardMixin:
+    """
+    Plumbing for a formtools wizard rendered inside a DSFR modal and driven by
+    htmx: the page holds the modal, opens it and posts the first step; each
+    response swaps the modal content in place.
 
-    PREFIX: str = ""
+    Mix into a WizardView. A wizard is entirely described by its `STEPS` and
+    its modal identifiers; nothing here knows what it generates.
+    """
+
+    STEPS: tuple[Step, ...] = ()
+
     MODAL_TITLE: str = ""
-    TOTAL_STEPS: int = 0
     MODAL_POST_URL_NAME: str = ""
-    STATUS_URL_NAME: str = ""
-
-    # Templates shared by both wizards — only the content-specific step
-    # (chosen per subclass in its TEMPLATES dict) needs its own template.
-    TEMPLATE_BASE = "gsl_notification/generated_document/multiple_wizard/"
-    LAUNCH_TEMPLATE = TEMPLATE_BASE + "modal_launch.html"
-    FORMAT_STEP_TEMPLATE = TEMPLATE_BASE + "modal_format_step.html"
-    MODELE_SELECTION_STEP_TEMPLATE = TEMPLATE_BASE + "modal_modele_selection.html"
-    LOADING_TEMPLATE = TEMPLATE_BASE + "modal_loading.html"
-    POLLING_TEMPLATE = TEMPLATE_BASE + "modal_export_progress.html"
-    SUCCESS_TEMPLATE = TEMPLATE_BASE + "modal_success.html"
-    ERROR_TEMPLATE = TEMPLATE_BASE + "modal_export_error.html"
+    modal_id: str = ""
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        if cls.CREATE_FORM_CLASS is None:
-            return  # abstract subclass, if any
+        # formtools builds the flow from form_list, read once at as_view() time.
+        cls.form_list = [(step.name, step.form_class) for step in cls.STEPS]
 
-        steps = [(cls.LAUNCH_STEP, GenerateDocumentsLaunchForm)]
-        if cls.HAS_TYPE_SELECTION_STEP:
-            steps.append((cls.TYPE_SELECTION_STEP, GenerateDocumentsTypeSelectionForm))
-        steps += [
-            (cls.MODELE_SELECTION_STEP, GenerateDocumentsModeleSelectionForm),
-            (cls.FORMAT_STEP, GenerateDocumentsFormatForm),
-            (cls.CREATE_STEP, cls.CREATE_FORM_CLASS),
-        ]
-        cls.form_list = steps
-        cls.TOTAL_STEPS = len(steps) - 1  # LAUNCH_STEP isn't shown in the stepper
+    @classproperty
+    def total_steps(cls) -> int:
+        """Every step but the first, which is submitted from outside the
+        modal and never appears in the stepper."""
+        return len(cls.STEPS) - 1
 
-        cls.TEMPLATES = {
-            cls.LAUNCH_STEP: cls.LAUNCH_TEMPLATE,
-            cls.MODELE_SELECTION_STEP: cls.MODELE_SELECTION_STEP_TEMPLATE,
-            cls.FORMAT_STEP: cls.FORMAT_STEP_TEMPLATE,
-            cls.CREATE_STEP: cls.LOADING_TEMPLATE,
+    def get_step(self, name: str) -> Step:
+        return next(step for step in self.STEPS if step.name == name)
+
+    @property
+    def current_step(self) -> Step:
+        return self.get_step(self.steps.current)
+
+    def get_hook_values(self, hook_names: tuple[str, ...]) -> dict:
+        return {name: getattr(self, f"get_{name}")() for name in hook_names}
+
+    def get_prefix(self, request, *args, **kwargs):
+        prefix = super().get_prefix(request, *args, **kwargs)
+        namespace = self.get_storage_namespace()
+        return f"{prefix}_{namespace}" if namespace else prefix
+
+    def get_storage_namespace(self) -> str:
+        """
+        Isolates concurrent runs of the same wizard from each other in the
+        session storage. Subclasses override.
+        """
+        return ""
+
+    @cached_property
+    def _cleaned_data_cache(self) -> dict:
+        return {}
+
+    def get_cleaned_data_for_step(self, step):
+        # formtools rebuilds and revalidates the step's form on every call, and
+        # a single request asks for the same steps repeatedly: every form built
+        # for a later step pulls its kwargs from them. Only earlier steps are
+        # ever read, and their storage data is settled by then, so the result
+        # holds for the whole request.
+        if step not in self._cleaned_data_cache:
+            self._cleaned_data_cache[step] = super().get_cleaned_data_for_step(step)
+        return self._cleaned_data_cache[step]
+
+    def get_form_kwargs(self, step=None):
+        kwargs = super().get_form_kwargs(step)
+        kwargs.update(self.get_hook_values(self.get_step(step).form_kwargs))
+        return kwargs
+
+    def get_template_names(self):
+        return [self.current_step.template]
+
+    def get_context_data(self, form, **kwargs):
+        context = super().get_context_data(form=form, **kwargs)
+        context.update(
+            {
+                "modal_id": self.modal_id,
+                "modal_title": self.MODAL_TITLE,
+                "modal_post_url_name": self.MODAL_POST_URL_NAME,
+                "total_steps": self.total_steps,
+            }
+        )
+        context.update(self.get_stepper_context())
+        context.update(self.get_hook_values(self.current_step.extra_context))
+        return context
+
+    def get_stepper_context(self) -> dict:
+        stepper_steps = self.STEPS[1:]
+        if self.current_step not in stepper_steps:
+            return {}
+        position = stepper_steps.index(self.current_step)
+        next_steps = stepper_steps[position + 1 :]
+        return {
+            "current_step_id": position + 1,
+            "current_step_title": self.current_step.title,
+            "next_step_title": next_steps[0].title if next_steps else "",
         }
-        if cls.HAS_TYPE_SELECTION_STEP:
-            cls.TEMPLATES[cls.TYPE_SELECTION_STEP] = cls.FORMAT_STEP_TEMPLATE
+
+    def post(self, request, *args, **kwargs):
+        if request.POST.get(f"{self.prefix}-current_step") == self.steps.first:
+            # A new run starts: drop whatever a previous, abandoned one left in
+            # the session. formtools only resets its storage once a run reaches
+            # done(), and a modal can be closed at any step.
+            self.storage.reset()
+        return super().post(request, *args, **kwargs)
+
+    def render_done(self, form, **kwargs):
+        # One bound form per step, rebuilt from what the session storage kept of
+        # each submission.
+        form_dict = {
+            step_name: self.get_form(
+                step=step_name,
+                data=self.storage.get_step_data(step_name),
+                files=self.storage.get_step_files(step_name),
+            )
+            for step_name in self.get_form_list()
+        }
+        # is_valid() is what populates cleaned_data, and only the steps done()
+        # reads need it: the other data-bearing ones were already validated (and
+        # cached) when they fed the following steps.
+        for step in self.STEPS:
+            if step.validated_on_done:
+                form_dict[step.name].is_valid()
+        response = self.done(form_dict.values(), form_dict=form_dict, **kwargs)
+        self.storage.reset()
+        return response
+
+    def get_merged_cleaned_data(self, form_dict) -> dict:
+        """cleaned_data of every step done() reads, merged in flow order."""
+        merged_data = {}
+        for step in self.STEPS:
+            if step.validated_on_done:
+                merged_data.update(form_dict[step.name].cleaned_data)
+        return merged_data
+
+
+TEMPLATES = "gsl_notification/generated_document/multiple_wizard/"
+PROGRESS_TEMPLATE = TEMPLATES + "modal_export_progress.html"
+# The launch step is the trigger button submission, from the projet list page:
+# its form resolves the projets the run applies to, hence one per wizard. It is
+# only ever rendered when that resolution fails.
+ACCEPTED_LAUNCH = Step(
+    name="launch",
+    form_class=GenerateAcceptedDocumentsLaunchForm,
+    template=TEMPLATES + "modal_launch.html",
+)
+REFUS_LAUNCH = Step(
+    name="launch",
+    form_class=GenerateRefusLettersLaunchForm,
+    template=TEMPLATES + "modal_launch.html",
+)
+TYPE_SELECTION = Step(
+    name="type_selection",
+    form_class=GenerateDocumentsTypeSelectionForm,
+    template=TEMPLATES + "modal_form_step.html",
+    title="Types de document",
+)
+MODELE_SELECTION = Step(
+    name="modele_selection",
+    form_class=GenerateDocumentsModeleSelectionForm,
+    template=TEMPLATES + "modal_modele_selection.html",
+    title="Choix des modèles",
+    form_kwargs=("document_type", "programmation_projets"),
+    validated_on_done=True,
+)
+FORMAT = Step(
+    name="format",
+    form_class=GenerateDocumentsFormatForm,
+    template=TEMPLATES + "modal_form_step.html",
+    title="Format d'export",
+    form_kwargs=("document_type",),
+    validated_on_done=True,
+)
+CREATE = Step(
+    name="create",
+    form_class=GenerateDocumentsCreateForm,
+    template=TEMPLATES + "modal_loading.html",
+    title="Téléchargement",
+    form_kwargs=("programmation_projets",),
+    extra_context=("doc_count",),
+)
+
+
+@method_decorator(htmx_only, name="dispatch")
+class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
+    """
+    Generates documents for several projets of a single dotation at once: pick
+    the modeles, pick an export format, then hand an ExportJob over to celery
+    and poll it until the archive can be downloaded.
+
+    Subclasses declare their flow through STEPS, plus:
+    - MODAL_TITLE, modal_id: modal identifiers,
+    - MODAL_POST_URL_NAME, STATUS_URL_NAME: their own URL names, used by the
+      shared templates (form actions, polling endpoint),
+    - get_document_type(): the kind of documents the run generates.
+    """
+
+    STATUS_URL_NAME: str = ""
 
     def dispatch(self, request, *args, **kwargs):
         if kwargs.get("dotation") not in DOTATIONS:
             raise Http404(user_message="Dotation inconnue")
         return super().dispatch(request, *args, **kwargs)
 
-    def get_prefix(self, request, *args, **kwargs):
-        # Namespace storage by dotation so DETR and DSIL don't collide. Uses
-        # PREFIX rather than super().get_prefix() (which derives from
-        # self.__class__.__name__) so the prefix stays stable across renames.
-        return f"{self.PREFIX}_{kwargs['dotation']}"
+    def get_storage_namespace(self):
+        # One run per dotation, so DETR and DSIL don't collide.
+        return self.kwargs["dotation"]
 
-    def post(self, request, *args, **kwargs):
-        # Read the submitted step from the management form, not from storage:
-        # storage may still hold a non-launch step from a previously abandoned
-        # wizard run, which would mask "this is a launch submission" and prevent
-        # _is_initial_modal_render() from triggering the modal-open event.
-        self._submitted_step = request.POST.get(f"{self.prefix}-current_step")
-        return super().post(request, *args, **kwargs)
+    def get_document_type(self) -> str:
+        """The type of document this run generates. Subclasses implement."""
+        raise NotImplementedError
 
-    def get_cleaned_data_for_step(self, step):
-        # formtools re-instantiates and re-validates the step's form on every
-        # call. Within one request, the underlying storage data for a non-current
-        # step doesn't change, so we cache the result per instance.
-        if not hasattr(self, "_cleaned_data_cache"):
-            self._cleaned_data_cache = {}
-        if step not in self._cleaned_data_cache:
-            self._cleaned_data_cache[step] = super().get_cleaned_data_for_step(step)
-        return self._cleaned_data_cache[step]
+    def get_selected_types(self) -> frozenset[str]:
+        """The document types the run generates, one document each per projet."""
+        return SELECTED_TYPES_BY_CHOICE[self.get_document_type()]
+
+    def get_programmation_projets(self):
+        launch_data = self.get_cleaned_data_for_step(self.steps.first) or {}
+        return launch_data.get("ids") or []
+
+    def get_doc_count(self) -> int:
+        return len(self.get_programmation_projets()) * len(self.get_selected_types())
 
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
@@ -151,126 +280,36 @@ class BaseGenerateDocumentsWizard(SessionWizardView):
                 "request": self.request,
             }
         )
-        kwargs.update(self.get_extra_form_kwargs(step))
-        return kwargs
-
-    def get_document_type(self):
-        if self.HAS_TYPE_SELECTION_STEP:
-            type_selection_data = (
-                self.get_cleaned_data_for_step(self.TYPE_SELECTION_STEP) or {}
-            )
-            return type_selection_data.get("document_type")
-        return self.DOCUMENT_TYPE
-
-    def get_extra_form_kwargs(self, step):
-        kwargs = {}
-        if step in (self.MODELE_SELECTION_STEP, self.FORMAT_STEP, self.CREATE_STEP) or (
-            step == self.LAUNCH_STEP and not self.HAS_TYPE_SELECTION_STEP
-        ):
-            kwargs["document_type"] = self.get_document_type()
-        if step in (self.MODELE_SELECTION_STEP, self.CREATE_STEP):
-            launch_data = self.get_cleaned_data_for_step(self.LAUNCH_STEP) or {}
-            kwargs["programmation_projets"] = launch_data.get("ids") or []
         return kwargs
 
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
         context["dotation"] = self.kwargs["dotation"]
-        context["modal_id"] = self.modal_id
-        context["modal_button_id"] = f"{self.modal_id}-button"
-        context["modal_title"] = self.MODAL_TITLE
-        context["total_steps"] = self.TOTAL_STEPS
-        context["modal_post_url_name"] = self.MODAL_POST_URL_NAME
-        if stepper := self.STEPPER_META.get(self.steps.current):
-            (
-                context["current_step_id"],
-                context["current_step_title"],
-                context["next_step_title"],
-            ) = stepper
-        if self.steps.current in self.DOC_COUNT_STEPS:
-            launch_data = self.get_cleaned_data_for_step(self.LAUNCH_STEP) or {}
-            ids = launch_data.get("ids") or []
-            document_type = self.get_extra_form_kwargs(self.CREATE_STEP).get(
-                "document_type"
-            )
-            if document_type:
-                context["doc_count"] = len(ids) * len(
-                    SELECTED_TYPES_BY_CHOICE[document_type]
-                )
         return context
 
-    def _is_initial_modal_render(self):
-        # Response to a launch POST (validation failure stays on launch; success
-        # advances to the next step). Either way the modal isn't open yet, so we
-        # render the full <dialog> wrapper plus the hidden trigger button.
-        return getattr(self, "_submitted_step", None) == self.LAUNCH_STEP
-
-    def get_template_names(self):
-        return [self.TEMPLATES[self.steps.current]]
-
-    def render_to_response(self, context, **response_kwargs):
-        response = super().render_to_response(context, **response_kwargs)
-        if self._is_initial_modal_render():
-            return trigger_client_event(
-                response,
-                "click",
-                {"target": f"#{self.modal_id}-button"},
-                after="settle",
-            )
-        return response
-
-    def render_next_step(self, form, **kwargs):
-        if self.steps.current == self.LAUNCH_STEP:
-            # Wipe leftover progress from a previous wizard run while preserving
-            # the just-validated launch data.
-            launch_data = self.storage.get_step_data(self.LAUNCH_STEP)
-            self.storage.reset()
-            self.storage.set_step_data(self.LAUNCH_STEP, launch_data)
-            self.storage.current_step = self.LAUNCH_STEP
-        return super().render_next_step(form, **kwargs)
-
-    def render_done(self, form, **kwargs):
-        form_dict = {
-            step: self.get_form(
-                step=step,
-                data=self.storage.get_step_data(step),
-                files=self.storage.get_step_files(step),
-            )
-            for step in self.get_form_list()
-        }
-        # Only validate the steps whose cleaned_data is read by done(). Other
-        # data-bearing steps feed into later steps via get_form_kwargs, where
-        # they were already validated (and cached). CREATE_STEP is the
-        # save-action form, not a data-bearing step.
-        for step in self.DONE_STEPS:
-            form_dict[step].is_valid()
-        response = self.done(form_dict.values(), form_dict=form_dict, **kwargs)
-        self.storage.reset()
-        return response
-
     def done(self, form_list, form_dict, **kwargs):
-        form = form_dict[self.CREATE_STEP]
-        merged_data = {}
-        for step in self.DONE_STEPS:
-            merged_data.update(form_dict[step].cleaned_data)
-        export_format = merged_data.get("export_format")
-        with_qr_code = merged_data.get("with_qr_code")
+        merged_data = self.get_merged_cleaned_data(form_dict)
 
-        refreshed = form.save(**self.get_save_kwargs(merged_data))
+        programmation_projets = form_dict[CREATE.name].save(
+            modeles=form_dict[MODELE_SELECTION.name].selected_modeles,
+            overwrite_strategy=merged_data.get("overwrite_strategy"),
+        )
 
-        # attr_names is stored as JSON: selected_types is a frozenset, so pin a
-        # deterministic order (lettre before arrete before refus, matching the
-        # wizards' display order elsewhere) rather than storing the set itself.
-        attrs = [t for t in DOCUMENT_TYPE_DISPLAY_ORDER if t in form.selected_types]
-        pp_ids = [pp.pk for pp in refreshed]
-
+        selected_types = self.get_selected_types()
         job = ExportJob.objects.create(
             created_by=self.request.user,
-            pp_ids=pp_ids,
-            attr_names=attrs,
-            export_format=export_format,
-            document_type=form.document_type,
-            with_qr_code=with_qr_code,
+            pp_ids=[pp.pk for pp in programmation_projets],
+            # attr_names is stored as JSON: selected_types is a frozenset, so
+            # pin a deterministic order (lettre before arrêté before refus,
+            # matching the display order elsewhere) rather than the set itself.
+            attr_names=[
+                document_type
+                for document_type in DOCUMENT_TYPE_DISPLAY_ORDER
+                if document_type in selected_types
+            ],
+            export_format=merged_data.get("export_format"),
+            document_type=self.get_document_type(),
+            with_qr_code=merged_data.get("with_qr_code"),
         )
         generate_export_task.apply_async(
             args=[str(job.pk)],
@@ -279,94 +318,66 @@ class BaseGenerateDocumentsWizard(SessionWizardView):
 
         return render(
             self.request,
-            self.POLLING_TEMPLATE,
-            {
-                "job_id": str(job.pk),
-                "job": job,
-                "modal_id": self.modal_id,
-                "dotation": self.kwargs["dotation"],
-                "modal_title": self.MODAL_TITLE,
-                "total_steps": self.TOTAL_STEPS,
-                "status_url_name": self.STATUS_URL_NAME,
-            },
+            PROGRESS_TEMPLATE,
+            self.get_job_context(job, self.kwargs["dotation"]),
         )
 
-    def get_save_kwargs(self, merged_data):
-        """Kwargs passed to the create-step form's save(). Overridden by
-        subclasses."""
-        raise NotImplementedError
+    @classmethod
+    def get_job_context(cls, job, dotation) -> dict:
+        """Context of the templates rendered once the export job is queued —
+        by done() first, then by this wizard's status view on every poll."""
+        return {
+            "job_id": str(job.pk),
+            "job": job,
+            "dotation": dotation,
+            "modal_id": cls.modal_id,
+            "modal_title": cls.MODAL_TITLE,
+            "total_steps": cls.total_steps,
+            "status_url_name": cls.STATUS_URL_NAME,
+        }
 
 
 class GenerateAcceptedDocumentsWizard(BaseGenerateDocumentsWizard):
-    HAS_TYPE_SELECTION_STEP = True
-    CREATE_FORM_CLASS = GenerateDocumentsCreateForm
+    """Arrêtés and lettres de notification of accepted projets."""
 
-    PREFIX = "generate_documents_wizard"
+    STEPS = (
+        ACCEPTED_LAUNCH,
+        TYPE_SELECTION,
+        MODELE_SELECTION,
+        FORMAT,
+        CREATE,
+    )
+
     MODAL_TITLE = "Générer les documents"
+    modal_id = "generate-multiple-modal"
     MODAL_POST_URL_NAME = "gsl_notification:generate-documents-modal"
     STATUS_URL_NAME = "gsl_notification:generate-documents-status"
 
-    STEPPER_META = {
-        BaseGenerateDocumentsWizard.TYPE_SELECTION_STEP: (
-            1,
-            "Types de document",
-            "Choix des modèles",
-        ),
-        BaseGenerateDocumentsWizard.MODELE_SELECTION_STEP: (
-            2,
-            "Choix des modèles",
-            "Format d'export",
-        ),
-        BaseGenerateDocumentsWizard.FORMAT_STEP: (
-            3,
-            "Format d'export",
-            "Téléchargement",
-        ),
-    }
-    modal_id = "generate-multiple-modal"
-
-    def get_save_kwargs(self, merged_data):
-        return {
-            "modele_arrete": merged_data.get("modele_arrete_id"),
-            "modele_lettre": merged_data.get("modele_lettre_id"),
-            "overwrite_strategy": merged_data.get("overwrite_strategy"),
-        }
+    def get_document_type(self):
+        type_selection_data = self.get_cleaned_data_for_step(TYPE_SELECTION.name) or {}
+        return type_selection_data.get("document_type")
 
 
 class GenerateLettreRefusWizard(BaseGenerateDocumentsWizard):
     """
-    Same flow as GenerateAcceptedDocumentsWizard, without the "type de
-    document" step: there's only one document type (LETTRE_REFUS).
+    Lettres de refus of refused or dismissed projets. No type selection step:
+    there is only one type of document to generate.
     """
 
-    HAS_TYPE_SELECTION_STEP = False
-    CREATE_FORM_CLASS = GenerateRefusLettersCreateForm
-    DOCUMENT_TYPE = LETTRE_REFUS
+    STEPS = (
+        REFUS_LAUNCH,
+        replace(MODELE_SELECTION, title="Choix du modèle"),
+        FORMAT,
+        CREATE,
+    )
 
-    PREFIX = "generate_refus_wizard"
     MODAL_TITLE = "Générer les lettres de refus ou de classement sans suite"
+    modal_id = "generate-refus-modal"
     MODAL_POST_URL_NAME = "gsl_notification:generate-refus-documents-modal"
     STATUS_URL_NAME = "gsl_notification:generate-refus-documents-status"
 
-    STEPPER_META = {
-        BaseGenerateDocumentsWizard.MODELE_SELECTION_STEP: (
-            1,
-            "Choix du modèle",
-            "Format d'export",
-        ),
-        BaseGenerateDocumentsWizard.FORMAT_STEP: (
-            2,
-            "Format d'export",
-            "Téléchargement",
-        ),
-    }
-    modal_id = "generate-refus-modal"
-
-    def get_save_kwargs(self, merged_data):
-        return {
-            "modele_refus": merged_data.get("modele_refus_id"),
-            "overwrite_strategy": merged_data.get("overwrite_strategy"),
-        }
+    def get_document_type(self):
+        return LETTRE_REFUS
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -375,74 +386,71 @@ class BaseGenerateDocumentsStatusView(DetailView):
     Polled every 2 s while an export job started by a BaseGenerateDocumentsWizard
     is running.
 
-    Subclasses must set:
-    - WIZARD_CLASS: the paired wizard, which supplies modal_id and templates.
-    - SELECT_RELATED / PREFETCH_RELATED: relations to fetch on the refreshed
-      ProgrammationProjet queryset once the job is done.
+    Subclasses set WIZARD_CLASS, the paired wizard supplying the modal
+    identifiers, and fetch the relations their documents are rendered from.
     """
 
     model = ExportJob
     pk_url_kwarg = "job_id"
 
     WIZARD_CLASS: type = None
-    SELECT_RELATED: tuple[str, ...] = ()
-    PREFETCH_RELATED: tuple[str, ...] = ()
 
     def get_queryset(self):
         return ExportJob.objects.filter(created_by=self.request.user)
 
     def get(self, request, dotation, **_):
-        from gsl_programmation.models import ProgrammationProjet
-
         job = self.get_object()
-        context = {
-            "modal_id": self.WIZARD_CLASS.modal_id,
-            "dotation": dotation,
-            "job_id": str(job.pk),
-            "job": job,
-            "modal_title": self.WIZARD_CLASS.MODAL_TITLE,
-            "total_steps": self.WIZARD_CLASS.TOTAL_STEPS,
-            "status_url_name": self.WIZARD_CLASS.STATUS_URL_NAME,
-        }
+        context = self.WIZARD_CLASS.get_job_context(job, dotation)
 
         if job.is_running:
-            return render(request, self.WIZARD_CLASS.POLLING_TEMPLATE, context)
+            return render(request, PROGRESS_TEMPLATE, context)
 
-        if job.status == ExportJob.STATUS_DONE:
-            pp_ids = job.pp_ids
-            qs = ProgrammationProjet.objects.filter(pk__in=pp_ids)
-            if self.SELECT_RELATED:
-                qs = qs.select_related(*self.SELECT_RELATED)
-            if self.PREFETCH_RELATED:
-                qs = qs.prefetch_related(*self.PREFETCH_RELATED)
-            refreshed = list(qs)
-            pk_to_pp = {pp.pk: pp for pp in refreshed}
-            refreshed_ordered = [pk_to_pp[pk] for pk in pp_ids if pk in pk_to_pp]
-            export_format = job.export_format
-            context.update(
-                {
-                    "download_url": job.download_url,
-                    "doc_count": len(pp_ids) * len(job.attr_names),
-                    "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
-                    "is_export_one_pdf_all_grouped": export_format
-                    == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
-                    "is_export_one_pdf_per_project": export_format
-                    == EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
-                    "refreshed_programmation_projets": refreshed_ordered,
-                }
-            )
-            response = render(request, self.WIZARD_CLASS.SUCCESS_TEMPLATE, context)
-            return trigger_client_event(response, "documents-generated")
+        if job.status != ExportJob.STATUS_DONE:
+            return render(request, TEMPLATES + "modal_export_error.html", context)
 
-        return render(request, self.WIZARD_CLASS.ERROR_TEMPLATE, context)
+        export_format = job.export_format
+        context.update(
+            {
+                "download_url": job.download_url,
+                "doc_count": len(job.pp_ids) * len(job.attr_names),
+                "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
+                "is_export_one_pdf_all_grouped": export_format
+                == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
+                "is_export_one_pdf_per_project": export_format
+                == EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
+                "refreshed_programmation_projets": self.get_refreshed_programmation_projets(
+                    job.pp_ids
+                ),
+            }
+        )
+        response = render(request, TEMPLATES + "modal_success.html", context)
+        return trigger_client_event(response, "documents-generated")
+
+    def get_refreshed_programmation_projets(self, pp_ids):
+        """The generated documents are rendered back into the projet list rows,
+        in the order the job stored them."""
+        by_pk = {pp.pk: pp for pp in self.get_programmation_projets(pp_ids)}
+        return [by_pk[pk] for pk in pp_ids if pk in by_pk]
+
+    def get_programmation_projets(self, pp_ids):
+        """Subclasses fetch the relations their success template renders."""
+        return ProgrammationProjet.objects.filter(pk__in=pp_ids)
 
 
 class GenerateAcceptedDocumentsStatusView(BaseGenerateDocumentsStatusView):
     WIZARD_CLASS = GenerateAcceptedDocumentsWizard
-    SELECT_RELATED = ("arrete", "lettrenotification", "lettre_et_arrete_signes")
-    PREFETCH_RELATED = ("annexes",)
+
+    def get_programmation_projets(self, pp_ids):
+        return (
+            super()
+            .get_programmation_projets(pp_ids)
+            .select_related("arrete", "lettrenotification", "lettre_et_arrete_signes")
+            .prefetch_related("annexes")
+        )
 
 
 class GenerateLettreRefusStatusView(BaseGenerateDocumentsStatusView):
     WIZARD_CLASS = GenerateLettreRefusWizard
-    SELECT_RELATED = ("lettrerefus",)
+
+    def get_programmation_projets(self, pp_ids):
+        return super().get_programmation_projets(pp_ids).select_related("lettrerefus")
