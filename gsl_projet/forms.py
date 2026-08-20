@@ -7,7 +7,6 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl_core.models import Collegue
-from gsl_demarches_simplifiees.models import CategorieDetr
 from gsl_demarches_simplifiees.services import DsService
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -334,34 +333,10 @@ class DotationProjetForm(ModelForm):
         required=False,
         widget=forms.Select(
             attrs={
-                "form": "dotation-projet-form",
                 "class": "fr-select",
-                "data-action": "change->projet-form#enableSubmit",
             }
         ),
     )
-
-    # TODO : useless now. Remove it if we don't allow to set DETR category
-    detr_categories = forms.ModelMultipleChoiceField(
-        queryset=CategorieDetr.objects.none(),
-        required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"form": "dotation-projet-form"}),
-        label="Catégories d'opération DETR",
-    )
-
-    def __init__(self, *args, departement=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        # TODO : useless now. Remove it if we don't allow to set DETR category. The code is commented to enhance performance.
-        # departement = (
-        #     self.instance.projet.perimetre.departement if self.instance.projet else None
-        # )
-        # # if departement is not None:
-        # #     self.fields[
-        # #         "detr_categories"
-        # #     ].queryset = CategorieDetr.objects.current_for_departement(departement)
-        # # else:
-        # #     self.fields["detr_categories"].queryset = CategorieDetr.objects.none()
-        # self.fields["detr_categories"].label_from_instance = lambda obj: obj.label
 
     def clean_detr_avis_commission(self):
         value = self.cleaned_data.get("detr_avis_commission")
@@ -377,7 +352,6 @@ class DotationProjetForm(ModelForm):
         model = DotationProjet
         fields = [
             "detr_avis_commission",
-            "detr_categories",
         ]
 
 

@@ -190,41 +190,22 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
         return _redirect_to_referer_or_projet(self.request, self.object)
 
 
-class DotationProjetUpdateView(UpdateView):
+@method_decorator(htmx_only, name="dispatch")
+class DotationProjetDetrAvisUpdateView(UpdateView):
     model = DotationProjet
     form_class = DotationProjetForm
     http_method_names = ["post"]
-    template_name = "gsl_projet/projet.html"
+    template_name = "includes/forms/_detr_avis_commission_form.html"
+    context_object_name = "dotation_projet"
 
     def get_queryset(self):
         return DotationProjet.objects.filter(
             projet__in=Projet.objects.active().for_user(self.request.user)
         )
 
-    def get_context_data(self, **kwargs):
-        dotation_projet = self.object
-        context = _build_projet_page_context(dotation_projet.projet, self.request)
-        if "form" in kwargs:
-            context["dotation_projet_form"] = kwargs["form"]
-            context["dotation_projet"] = dotation_projet
-        return context
-
     def form_valid(self, form):
         form.save()
-        messages.success(
-            self.request,
-            "Les modifications ont été enregistrées avec succès.",
-        )
-        return _redirect_to_referer_or_projet(self.request, self.object.projet)
-
-    def form_invalid(self, form):
-        messages.error(
-            self.request,
-            "Une erreur s'est produite lors de la soumission du formulaire.",
-        )
-        for error in form.non_field_errors():
-            messages.error(self.request, error)
-        return _redirect_to_referer_or_projet(self.request, self.object.projet)
+        return self.render_to_response(self.get_context_data(form=form, saved=True))
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -297,10 +278,6 @@ def _build_projet_page_context(projet, request):
         ),
         **get_projet_go_back_context(request),
     }
-    detr_dotation = projet.dotation_detr
-    if detr_dotation:
-        context["dotation_projet_form"] = DotationProjetForm(instance=detr_dotation)
-        context["dotation_projet"] = detr_dotation
     context["projet_note_form"] = ProjetNoteForm()
     return context
 
