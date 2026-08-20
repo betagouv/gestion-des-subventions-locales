@@ -78,7 +78,7 @@ def _mock_logo_base64():
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
-WIZARD_PREFIX_DETR = f"generate_refus_wizard_{DOTATION_DETR}"
+WIZARD_PREFIX_DETR = f"generate_lettre_refus_wizard_{DOTATION_DETR}"
 
 
 def _wizard_url(dotation=DOTATION_DETR):
@@ -111,7 +111,9 @@ def _post_launch(client, ids=None, dotation=DOTATION_DETR):
         fields["ids"] = ids
     return client.post(
         _wizard_url(dotation),
-        _wizard_step_data("launch", fields, prefix=f"generate_refus_wizard_{dotation}"),
+        _wizard_step_data(
+            "launch", fields, prefix=f"generate_lettre_refus_wizard_{dotation}"
+        ),
         **HTMX_HEADERS,
     )
 
@@ -164,16 +166,15 @@ def test_launch_with_valid_ids_renders_step_modele_dialog(
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "modal_modele_selection.html"
-    assert "HX-Trigger-After-Settle" in response.headers
     assert "HX-Location" not in response.headers
 
 
 def test_launch_skips_type_selection_and_sets_document_type_lettre_refus(
     client, programmation_projets
 ):
-    """GenerateLettreRefusWizard has no type_selection step (HAS_TYPE_SELECTION_STEP
-    = False): the launch step jumps straight to modele_selection, with
-    document_type already fixed to LETTRE_REFUS."""
+    """GenerateLettreRefusWizard declares no type_selection step: the launch
+    step jumps straight to modele_selection, with document_type already fixed
+    to LETTRE_REFUS."""
     ids = ",".join([str(pp.id) for pp in programmation_projets])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
@@ -187,7 +188,6 @@ def test_launch_no_projects_renders_error_body(client):
     assert response.templates[0].name == TEMPLATE_BASE + "modal_launch.html"
     form = response.context["form"]
     assert "Aucun projet à notifier." in " ".join(form.errors.get("ids", []))
-    assert "HX-Trigger-After-Settle" in response.headers
 
 
 def test_launch_wrong_perimetre_renders_error_body(client):
@@ -258,8 +258,7 @@ def test_wizard_step_modele_to_step_format(
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_format_step.html"
-    assert response.context["doc_count"] == 3
+    assert response.templates[0].name == TEMPLATE_BASE + "modal_form_step.html"
 
 
 def test_wizard_step_format_invalid_export_format_re_renders_step(
@@ -279,7 +278,7 @@ def test_wizard_step_format_invalid_export_format_re_renders_step(
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_format_step.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "modal_form_step.html"
     form = response.context["form"]
     assert "Veuillez sélectionner un format d'export." in " ".join(
         form["export_format"].errors
@@ -311,7 +310,7 @@ def _drive_through_step_format(
         _wizard_step_data(
             "modele_selection",
             step_modele_fields,
-            prefix=f"generate_refus_wizard_{dotation}",
+            prefix=f"generate_lettre_refus_wizard_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -320,7 +319,7 @@ def _drive_through_step_format(
         _wizard_step_data(
             "format",
             {"export_format": export_format},
-            prefix=f"generate_refus_wizard_{dotation}",
+            prefix=f"generate_lettre_refus_wizard_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -330,7 +329,9 @@ def _post_step_create_raw(client, dotation=DOTATION_DETR):
     """POST step_create and return the intermediate polling response."""
     return client.post(
         _wizard_url(dotation),
-        _wizard_step_data("create", {}, prefix=f"generate_refus_wizard_{dotation}"),
+        _wizard_step_data(
+            "create", {}, prefix=f"generate_lettre_refus_wizard_{dotation}"
+        ),
         **HTMX_HEADERS,
     )
 
@@ -352,7 +353,7 @@ def test_wizard_step_format_renders_loading_body(
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "modal_loading.html"
     assert response.context["doc_count"] == 3
-    assert b"generate_refus_wizard_DETR-current_step" in response.content
+    assert b"generate_lettre_refus_wizard_DETR-current_step" in response.content
     assert b'value="create"' in response.content
 
 
@@ -426,7 +427,7 @@ def test_wizard_step_modele_conserver_when_all_covered_advances_to_step_format(
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_format_step.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "modal_form_step.html"
     form = response.context["form"]
     assert "overwrite_strategy" not in form.errors
     # No new lettre created yet: only the original 3 fixtures remain.

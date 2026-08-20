@@ -55,3 +55,18 @@
   font-weight: normal;
   display: block;
 }
+
+/* Bulk generation modals: the launch button opens the modal right away, the
+   first step only arrives with the htmx response. Show a spinner meanwhile,
+   and hide whatever a previous run left in the step container. */
+.modal-wizard-loading {
+  display: none;
+}
+
+.fr-modal__body.htmx-request .modal-wizard-loading {
+  display: block;
+}
+
+.fr-modal__body.htmx-request > .modal-wizard-step {
+  display: none;
+}

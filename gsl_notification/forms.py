@@ -646,7 +646,7 @@ DOCUMENT_TYPE_DISPLAY_ORDER = (LETTRE, ARRETE, LETTRE_REFUS)
 
 
 class BaseGenerateDocumentsForm(DsfrBaseForm, forms.Form):
-    """Resolves the programmation_projets the wizard operates on."""
+    """Carries the context shared by every step of a generation wizard."""
 
     def __init__(self, *args, user, dotation, request, **kwargs):
         self.user = user
@@ -654,19 +654,29 @@ class BaseGenerateDocumentsForm(DsfrBaseForm, forms.Form):
         self.request = request
         super().__init__(*args, **kwargs)
 
+
+class DocumentTypeFormMixin:
+    """
+    For the steps parameterized by what the run generates: one document type,
+    or the arrêté + lettre pair.
+    """
+
+    def __init__(self, *args, document_type, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.document_type = document_type
+
     @cached_property
     def selected_types(self) -> frozenset[str]:
         return SELECTED_TYPES_BY_CHOICE[self.document_type]
 
 
-class GenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
+class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     """
-    Validates the trigger button POST: resolves ids and detects mismatches.
+    Validates the trigger button POST: the run applies either to the projets
+    explicitly checked in the list, or to every projet matching the filters
+    currently applied to it.
 
-    Shared by both wizards. `document_type` isn't known yet when this step is
-    submitted for the accepted-documents wizard (it's chosen at the step
-    after), so it stays optional and only tells apart the refus/classement
-    workflow (always LETTRE_REFUS) from the accepted-documents one.
+    Subclasses restrict them to the projets they can generate documents for.
     """
 
     ids = ProgrammationProjetMultipleChoiceField(
@@ -674,9 +684,8 @@ class GenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
         required=False,
     )
 
-    def __init__(self, *args, document_type=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.document_type = document_type
         self.fields["ids"].queryset = (
             ProgrammationProjet.objects.active()
             .visible_to_user(self.user)
@@ -685,26 +694,34 @@ class GenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
         )
 
     def clean_ids(self):
-        can_generate = self._can_generate_queryset_method
-        ids = self.cleaned_data.get("ids") or []
-        if ids:
-            ids = can_generate(
-                ProgrammationProjet.objects.filter(pk__in=[pp.pk for pp in ids])
+        checked = self.cleaned_data.get("ids") or []
+        if checked:
+            queryset = ProgrammationProjet.objects.filter(
+                pk__in=[pp.pk for pp in checked]
             )
         else:
-            filterset = ProgrammationProjetFilters(
+            queryset = ProgrammationProjetFilters(
                 data=self.request.GET, request=self.request
-            )
-            ids = can_generate(filterset.qs)
+            ).qs
+        ids = self.eligible_programmation_projets(queryset)
         if not ids:
             raise forms.ValidationError("Aucun projet à notifier.", code="no_projects")
         return ids
 
-    @property
-    def _can_generate_queryset_method(self):
-        if self.document_type == LETTRE_REFUS:
-            return ProgrammationProjetQuerySet.can_generate_refus_documents
-        return ProgrammationProjetQuerySet.can_generate_accepted_documents
+    def eligible_programmation_projets(
+        self, queryset: ProgrammationProjetQuerySet
+    ) -> ProgrammationProjetQuerySet:
+        raise NotImplementedError
+
+
+class GenerateAcceptedDocumentsLaunchForm(BaseGenerateDocumentsLaunchForm):
+    def eligible_programmation_projets(self, queryset):
+        return queryset.can_generate_accepted_documents()
+
+
+class GenerateRefusLettersLaunchForm(BaseGenerateDocumentsLaunchForm):
+    def eligible_programmation_projets(self, queryset):
+        return queryset.can_generate_refus_documents()
 
 
 class GenerateDocumentsTypeSelectionForm(BaseGenerateDocumentsForm):
@@ -726,13 +743,14 @@ class GenerateDocumentsTypeSelectionForm(BaseGenerateDocumentsForm):
     )
 
 
-class GenerateDocumentsModeleSelectionForm(BaseGenerateDocumentsForm):
+class GenerateDocumentsModeleSelectionForm(
+    DocumentTypeFormMixin, BaseGenerateDocumentsForm
+):
     STRATEGY_CONSERVER = "conserver"
     STRATEGY_REMPLACER = "remplacer"
 
-    def __init__(self, *args, document_type, programmation_projets, **kwargs):
+    def __init__(self, *args, programmation_projets, **kwargs):
         super().__init__(*args, **kwargs)
-        self.document_type = document_type
         self.programmation_projets = programmation_projets
 
         self.modele_entries = [
@@ -790,6 +808,12 @@ class GenerateDocumentsModeleSelectionForm(BaseGenerateDocumentsForm):
             f"{pluralize(fem, 'celles,ceux')} "
             f"sélectionné{pluralize(fem, 'es,s')} ci-dessous"
         )
+
+    @property
+    def selected_modeles(self) -> list[ModeleDocument]:
+        """The modeles chosen for the run, one per document type. Each one
+        knows which document it generates, so the type isn't carried along."""
+        return [self.cleaned_data[entry.field_name] for entry in self.modele_entries]
 
     @cached_property
     def entries_with_existing_docs(self) -> list["ModeleSelectionEntry"]:
@@ -854,7 +878,7 @@ class ModeleSelectionEntry:
         return MODELES[self.document_type].verbose_name()
 
 
-class GenerateDocumentsFormatForm(BaseGenerateDocumentsForm):
+class GenerateDocumentsFormatForm(DocumentTypeFormMixin, BaseGenerateDocumentsForm):
     EXPORT_FORMAT_CHOICES_SINGLE = [
         (EXPORT_FORMAT_ONE_PDF_ALL, "Un seul PDF pour l'ensemble"),
         (EXPORT_FORMAT_ONE_PDF_PER_DOC, "Un PDF par document"),
@@ -890,9 +914,8 @@ class GenerateDocumentsFormatForm(BaseGenerateDocumentsForm):
         ),
     )
 
-    def __init__(self, *args, document_type, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.document_type = document_type
         self.fields["export_format"].choices = (
             self.EXPORT_FORMAT_CHOICES_BOTH
             if len(self.selected_types) > 1
@@ -903,19 +926,13 @@ class GenerateDocumentsFormatForm(BaseGenerateDocumentsForm):
 class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
     """
     Save-action form for the wizard's final step. Receives data already cleaned
-    and validated by the launch/step1/step2/step3 forms via __init__ kwargs and
-    performs the document creation.
+    and validated by the previous steps, through __init__ kwargs for the
+    projets and through save() for the chosen modeles, and performs the
+    document creation.
     """
 
-    def __init__(
-        self,
-        *args,
-        document_type,
-        programmation_projets,
-        **kwargs,
-    ):
+    def __init__(self, *args, programmation_projets, **kwargs):
         super().__init__(*args, **kwargs)
-        self.document_type = document_type
         self.programmation_projets = programmation_projets
 
     def _log_doc_action(self, pp, document_class):
@@ -932,37 +949,17 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         )
 
     @transaction.atomic
-    def save(self, *, modele_arrete, modele_lettre, overwrite_strategy):
-        pps = self.programmation_projets
-
-        modele_by_type = {ARRETE: modele_arrete, LETTRE: modele_lettre}
-        for doc_type in self.selected_types:
-            self._create_documents_of_type(
-                pps, modele_by_type[doc_type], overwrite_strategy
-            )
+    def save(self, *, modeles, overwrite_strategy):
+        for modele in modeles:
+            self._create_documents_of_type(modele, overwrite_strategy)
 
         return list(
-            ProgrammationProjet.objects.active()
-            .select_related(
-                "arrete",
-                "arrete__modele",
-                "lettrenotification",
-                "lettrenotification__modele",
-                "lettre_et_arrete_signes",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "enveloppe",
-                "dotation_projet__projet__dossier_ds__ds_demandeur",
+            ProgrammationProjet.objects.active().filter(
+                pk__in=self.programmation_projets
             )
-            .prefetch_related(
-                "annexes",
-            )
-            .filter(pk__in=pps)
         )
 
-    def _create_documents_of_type(
-        self, programmation_projets, modele, overwrite_strategy
-    ):
+    def _create_documents_of_type(self, modele, overwrite_strategy):
         document_class = modele.generated_document_class
 
         if (
@@ -970,13 +967,13 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             == GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER
         ):
             document_class.objects.filter(
-                programmation_projet__in=programmation_projets
+                programmation_projet__in=self.programmation_projets
             ).delete()
-            pps_to_create = programmation_projets
+            pps_to_create = self.programmation_projets
         else:
             pps_to_create = (
                 ProgrammationProjet.objects.active()
-                .filter(pk__in=programmation_projets)
+                .filter(pk__in=self.programmation_projets)
                 .exclude(
                     pk__in=document_class.objects.values("programmation_projet_id")
                 )
@@ -990,26 +987,3 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
                 content=replace_mentions_in_html(modele.content, pp),
             ).save()
             self._log_doc_action(pp, document_class)
-
-
-# -- Multi-projet refus letter generation modal forms --
-
-
-class GenerateRefusLettersCreateForm(GenerateDocumentsCreateForm):
-    @transaction.atomic
-    def save(self, *, modele_refus, overwrite_strategy):
-        self._create_documents_of_type(
-            self.programmation_projets, modele_refus, overwrite_strategy
-        )
-        return list(
-            ProgrammationProjet.objects.active()
-            .select_related(
-                "lettrerefus",
-                "lettrerefus__modele",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "enveloppe",
-                "dotation_projet__projet__dossier_ds__ds_demandeur",
-            )
-            .filter(pk__in=self.programmation_projets)
-        )
