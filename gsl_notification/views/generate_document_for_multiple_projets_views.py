@@ -44,9 +44,9 @@ class Step:
     title: str = ""
     form_kwargs: tuple[str, ...] = ()
     extra_context: tuple[str, ...] = ()
-    # done() reads this step's cleaned_data, so it has to be validated again
-    # when the wizard is replayed from storage at the end of the flow.
-    validated_on_done: bool = False
+    # render_done() re-validates every step by default.
+    # Set to True to avoid a re-validation and to enhance performance
+    skip_new_validation_on_done: bool = False
 
 
 class HtmxModalWizardMixin:
@@ -169,7 +169,7 @@ class HtmxModalWizardMixin:
         # reads need it: the other data-bearing ones were already validated (and
         # cached) when they fed the following steps.
         for step in self.STEPS:
-            if step.validated_on_done:
+            if not step.skip_new_validation_on_done:
                 form_dict[step.name].is_valid()
         response = self.done(form_dict.values(), form_dict=form_dict, **kwargs)
         self.storage.reset()
@@ -179,7 +179,7 @@ class HtmxModalWizardMixin:
         """cleaned_data of every step done() reads, merged in flow order."""
         merged_data = {}
         for step in self.STEPS:
-            if step.validated_on_done:
+            if not step.skip_new_validation_on_done:
                 merged_data.update(form_dict[step.name].cleaned_data)
         return merged_data
 
@@ -193,17 +193,22 @@ ACCEPTED_LAUNCH = Step(
     name="launch",
     form_class=GenerateAcceptedDocumentsLaunchForm,
     template=TEMPLATES + "modal_launch.html",
+    # get_programmation_projets() is heavy => we enhance performance
+    skip_new_validation_on_done=True,
 )
 REFUS_LAUNCH = Step(
     name="launch",
     form_class=GenerateRefusLettersLaunchForm,
     template=TEMPLATES + "modal_launch.html",
+    skip_new_validation_on_done=True,
 )
 TYPE_SELECTION = Step(
     name="type_selection",
     form_class=GenerateDocumentsTypeSelectionForm,
     template=TEMPLATES + "modal_form_step.html",
     title="Types de document",
+    # we don't need to re-validate here
+    skip_new_validation_on_done=True,
 )
 MODELE_SELECTION = Step(
     name="modele_selection",
@@ -211,7 +216,6 @@ MODELE_SELECTION = Step(
     template=TEMPLATES + "modal_modele_selection.html",
     title="Choix des modèles",
     form_kwargs=("document_type", "programmation_projets"),
-    validated_on_done=True,
 )
 FORMAT = Step(
     name="format",
@@ -219,7 +223,6 @@ FORMAT = Step(
     template=TEMPLATES + "modal_form_step.html",
     title="Format d'export",
     form_kwargs=("document_type",),
-    validated_on_done=True,
 )
 CREATE = Step(
     name="create",

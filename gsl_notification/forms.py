@@ -934,30 +934,45 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
     def __init__(self, *args, programmation_projets, **kwargs):
         super().__init__(*args, **kwargs)
         self.programmation_projets = programmation_projets
+        self._pending_doc_actions = []
 
     def _log_doc_action(self, pp, document_class):
         from gsl_historique.models import ProjetAction
 
-        ProjetAction.objects.create(
-            projet=pp.dotation_projet.projet,
-            action_type=ProjetAction.TYPE_DOC_GENERATED,
-            actor=self.user,
-            source=ProjetAction.SOURCE_TURGOT,
-            dotation=pp.dotation_projet.dotation,
-            document_name=document_class._meta.verbose_name.lower(),
-            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+        self._pending_doc_actions.append(
+            ProjetAction(
+                projet=pp.dotation_projet.projet,
+                action_type=ProjetAction.TYPE_DOC_GENERATED,
+                actor=self.user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=pp.dotation_projet.dotation,
+                document_name=document_class._meta.verbose_name.lower(),
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+            )
         )
 
     @transaction.atomic
     def save(self, *, modeles, overwrite_strategy):
+        from gsl_historique.models import ProjetAction
+
         for modele in modeles:
             self._create_documents_of_type(modele, overwrite_strategy)
+
+        ProjetAction.objects.bulk_create(self._pending_doc_actions)
 
         return list(
             ProgrammationProjet.objects.active().filter(
                 pk__in=self.programmation_projets
             )
         )
+
+    # replace_mentions_in_html() (every Mention in gsl_notification.utils.MENTIONS)
+    # and _log_doc_action() walk these chains for every projet; without them
+    # each hop is an extra N+1 query per document.
+    PPS_TO_CREATE_SELECT_RELATED = (
+        "dotation_projet__projet__dossier_ds__ds_demandeur__address__commune",
+        "dotation_projet__projet__dossier_ds__perimetre__departement",
+    )
 
     def _create_documents_of_type(self, modele, overwrite_strategy):
         document_class = modele.generated_document_class
@@ -969,7 +984,9 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             document_class.objects.filter(
                 programmation_projet__in=self.programmation_projets
             ).delete()
-            pps_to_create = self.programmation_projets
+            pps_to_create = self.programmation_projets.select_related(
+                *self.PPS_TO_CREATE_SELECT_RELATED
+            )
         else:
             pps_to_create = (
                 ProgrammationProjet.objects.active()
@@ -977,6 +994,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
                 .exclude(
                     pk__in=document_class.objects.values("programmation_projet_id")
                 )
+                .select_related(*self.PPS_TO_CREATE_SELECT_RELATED)
             )
 
         for pp in pps_to_create:
