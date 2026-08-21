@@ -46,3 +46,12 @@
   background-color: var(--background-alt-grey);
   color: var(--text-default-grey);
 }
+
+#programmation-bulk-actions-menu .fr-menu__list {
+  min-width: 22rem;
+}
+
+#programmation-bulk-actions-menu .fr-nav__link {
+  font-weight: normal;
+  display: block;
+}

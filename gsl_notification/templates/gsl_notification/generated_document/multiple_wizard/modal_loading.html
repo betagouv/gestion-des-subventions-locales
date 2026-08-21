@@ -1,8 +1,8 @@
-{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% extends "gsl_notification/generated_document/multiple_wizard/modal_step_base.html" %}
 {% load dsfr_tags %}
 {% block before_content %}
     <form style="display:none"
-          hx-post="{% url 'gsl_notification:generate-documents-modal' dotation %}"
+          hx-post="{% url modal_post_url_name dotation %}"
           hx-trigger="load"
           hx-target="#{{ modal_id }}-step"
           hx-swap="outerHTML">
@@ -11,7 +11,7 @@
     </form>
 {% endblock before_content %}
 {% block stepper %}
-    {% dsfr_stepper current_step_id=4 total_steps=4 current_step_title="Téléchargement" %}
+    {% dsfr_stepper current_step_id=total_steps total_steps=total_steps current_step_title="Téléchargement" %}
 {% endblock stepper %}
 {% block content %}
     <div class="fr-alert fr-alert--info fr-mt-3w"

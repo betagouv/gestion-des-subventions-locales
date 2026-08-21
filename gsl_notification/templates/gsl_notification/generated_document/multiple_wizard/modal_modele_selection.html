@@ -1,0 +1,33 @@
+{% extends "gsl_notification/generated_document/multiple_wizard/modal_form_step_base.html" %}
+{% block content %}
+    {% with entries=form.entries_with_existing_docs %}
+        {% if entries %}
+            <div class="fr-alert fr-alert--warning fr-mb-2w fr-alert--sm" role="alert">
+                <p>
+                    <strong>
+                        {% for entry in entries %}
+                            {{ entry.existing_count }} projet{{ entry.existing_count|pluralize }}
+                            {{ entry.existing_count|pluralize:"a,ont" }}
+                            déjà {{ entry.already_has_noun }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    </strong>
+                </p>
+            </div>
+        {% endif %}
+    {% endwith %}
+    {% for entry in form.modele_entries %}
+        {% if not entry.modeles %}
+            <div class="fr-alert fr-alert--warning fr-mb-2w fr-alert--sm">
+                <p>
+                    Vous n'avez créé aucun {{ entry.modele_verbose_name|lower }} pour le moment.
+                    <a href="{% url 'gsl_notification:modele-creer' entry.document_type dotation %}">Créer un modèle</a>
+                    et revenez ici.
+                </p>
+            </div>
+        {% endif %}
+    {% endfor %}
+    {{ form }}
+{% endblock content %}
+{% block continue_button_extra_attrs %}
+    {% if form.has_missing_modele %}disabled{% endif %}
+{% endblock continue_button_extra_attrs %}

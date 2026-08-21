@@ -18,12 +18,12 @@ from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
 )
+from gsl_notification.models import GENERATED_DOCUMENTS
 from gsl_notification.utils import (
     count_pdf_pages,
     generate_pdf_pass1,
     generate_pdf_pass2,
 )
-from gsl_projet.constants import ARRETE
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ def build_export(job) -> tuple[str, str, bytes]:
         for pp in ProgrammationProjet.objects.filter(pk__in=job.pp_ids).select_related(
             "arrete__modele",
             "lettrenotification__modele",
+            "lettrerefus__modele",
             "dotation_projet__projet__dossier_ds__ds_demandeur",
         )
     }
@@ -161,12 +162,10 @@ def _build_single_merged_pdf(
             paths.append(pdf_paths[f"{type(doc).__name__}_{doc.pk}"])
     merged = _merge_pdfs_from_paths(paths)
     date_str = timezone.now().strftime("%d-%m-%Y")
-    if document_type == ARRETE:
-        doc_type_fr = "arrêté"
-    elif document_type == ARRETE_ET_LETTRE:
+    if document_type == ARRETE_ET_LETTRE:
         doc_type_fr = "lettres et arrêtés"
     else:
-        doc_type_fr = "lettre"
+        doc_type_fr = GENERATED_DOCUMENTS[document_type].short_name.lower()
     filename = f"export {doc_type_fr} turgot {date_str}.pdf"
     return filename, "application/pdf", merged
 

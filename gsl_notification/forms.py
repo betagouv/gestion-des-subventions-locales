@@ -15,6 +15,7 @@ from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
+    GENERATED_DOCUMENTS,
     MODELES,
     Annexe,
     Arrete,
@@ -34,7 +35,7 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_notification.validators import document_file_validator
-from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.models import ProgrammationProjet, ProgrammationProjetQuerySet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
@@ -636,7 +637,12 @@ SELECTED_TYPES_BY_CHOICE: dict[str, frozenset[str]] = {
     ARRETE: frozenset({ARRETE}),
     LETTRE: frozenset({LETTRE}),
     ARRETE_ET_LETTRE: frozenset({ARRETE, LETTRE}),
+    LETTRE_REFUS: frozenset({LETTRE_REFUS}),
 }
+
+# Canonical display order, used everywhere several document types are listed
+# together: lettres before arrêtés before refus.
+DOCUMENT_TYPE_DISPLAY_ORDER = (LETTRE, ARRETE, LETTRE_REFUS)
 
 
 class BaseGenerateDocumentsForm(DsfrBaseForm, forms.Form):
@@ -654,36 +660,54 @@ class BaseGenerateDocumentsForm(DsfrBaseForm, forms.Form):
 
 
 class GenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
-    """Validates the trigger button POST: resolves ids and detects mismatches."""
+    """
+    Validates the trigger button POST: resolves ids and detects mismatches.
+
+    Shared by both wizards. `document_type` isn't known yet when this step is
+    submitted for the accepted-documents wizard (it's chosen at the step
+    after), so it stays optional and only tells apart the refus/classement
+    workflow (always LETTRE_REFUS) from the accepted-documents one.
+    """
 
     ids = ProgrammationProjetMultipleChoiceField(
         queryset=ProgrammationProjet.objects.none(),
         required=False,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, document_type=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.document_type = document_type
         self.fields["ids"].queryset = (
             ProgrammationProjet.objects.active()
             .visible_to_user(self.user)
-            .can_generate_documents()
             .filter(dotation_projet__dotation=self.dotation)
             .select_related("dotation_projet__projet")
         )
 
     def clean_ids(self):
+        can_generate = self._can_generate_queryset_method
         ids = self.cleaned_data.get("ids") or []
-        if not ids:
+        if ids:
+            ids = can_generate(
+                ProgrammationProjet.objects.filter(pk__in=[pp.pk for pp in ids])
+            )
+        else:
             filterset = ProgrammationProjetFilters(
                 data=self.request.GET, request=self.request
             )
-            ids = filterset.qs.can_generate_documents()
+            ids = can_generate(filterset.qs)
         if not ids:
             raise forms.ValidationError("Aucun projet à notifier.", code="no_projects")
         return ids
 
+    @property
+    def _can_generate_queryset_method(self):
+        if self.document_type == LETTRE_REFUS:
+            return ProgrammationProjetQuerySet.can_generate_refus_documents
+        return ProgrammationProjetQuerySet.can_generate_accepted_documents
 
-class GenerateDocumentsStep1Form(BaseGenerateDocumentsForm):
+
+class GenerateDocumentsTypeSelectionForm(BaseGenerateDocumentsForm):
     DOCUMENT_TYPE_CHOICES = [
         (ARRETE, "Les arrêtés"),
         (LETTRE, "Les lettres de notification"),
@@ -702,35 +726,24 @@ class GenerateDocumentsStep1Form(BaseGenerateDocumentsForm):
     )
 
 
-class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
+class GenerateDocumentsModeleSelectionForm(BaseGenerateDocumentsForm):
     STRATEGY_CONSERVER = "conserver"
     STRATEGY_REMPLACER = "remplacer"
-
-    # Plural noun per document type; (LETTRE, ARRETE) iteration order keeps
-    # "lettres" before "arrêtés" everywhere (selected_types is an unordered set).
-    _DOC_TYPE_NOUNS = {LETTRE: "lettres", ARRETE: "arrêtés"}
-
-    @staticmethod
-    def _modele_field(queryset, label):
-        return forms.ModelChoiceField(
-            queryset=queryset,
-            required=True,
-            empty_label="Sélectionner un modèle",
-            error_messages={
-                "required": "Veuillez sélectionner un modèle.",
-                "invalid_choice": "Modèle introuvable.",
-            },
-            label=label,
-        )
 
     def __init__(self, *args, document_type, programmation_projets, **kwargs):
         super().__init__(*args, **kwargs)
         self.document_type = document_type
         self.programmation_projets = programmation_projets
 
+        self.modele_entries = [
+            ModeleSelectionEntry(self, t)
+            for t in DOCUMENT_TYPE_DISPLAY_ORDER
+            if t in self.selected_types
+        ]
+
         # Conserver/Remplacer first: its "…ci-dessous" wording refers to the
         # model dropdowns rendered just below it.
-        if self.has_existing_docs():
+        if self.entries_with_existing_docs:
             self.fields["overwrite_strategy"] = forms.ChoiceField(
                 choices=[
                     (self.STRATEGY_CONSERVER, self._conserver_label),
@@ -743,21 +756,14 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
                 help_text="« Conserver » permet de ne pas régénérer les documents existants.",
             )
 
-        if self.has_lettre:
-            self.fields["modele_lettre_id"] = self._modele_field(
-                self.modeles_lettre,
-                "Modèle pour les lettres de notification",
-            )
-        if self.has_arrete:
-            self.fields["modele_arrete_id"] = self._modele_field(
-                self.modeles_arrete, "Modèle pour les arrêtés"
-            )
+        for entry in self.modele_entries:
+            self.fields[entry.field_name] = entry.field
 
     @cached_property
     def _selected_nouns(self) -> list[str]:
         return [
-            self._DOC_TYPE_NOUNS[t]
-            for t in (LETTRE, ARRETE)
+            GENERATED_DOCUMENTS[t]._meta.verbose_name_plural.lower()
+            for t in DOCUMENT_TYPE_DISPLAY_ORDER
             if t in self.selected_types
         ]
 
@@ -770,15 +776,15 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
     def _conserver_label(self) -> str:
         nouns = " et ".join(f"les {n}" for n in self._selected_nouns)
         # Feminine agreement only when "lettres" is the sole type.
-        fem = self.has_lettre and not self.has_arrete
+        fem = ARRETE not in self.selected_types
         return f"Conserver {nouns} existant{pluralize(fem, 'es,s')}"
 
     @property
     def _remplacer_label(self) -> str:
         nouns = " et ".join(f"les {n}" for n in self._selected_nouns)
-        fem = self.has_lettre and not self.has_arrete
+        fem = ARRETE not in self.selected_types
         # "toutes/tous" agrees with the first noun ("lettres" when present).
-        quantifier = f"tou{pluralize(self.has_lettre, 'tes,s')}"
+        quantifier = f"tou{pluralize(LETTRE in self.selected_types, 'tes,s')}"
         return (
             f"Remplacer {quantifier} {nouns} par "
             f"{pluralize(fem, 'celles,ceux')} "
@@ -786,48 +792,69 @@ class GenerateDocumentsStep2Form(BaseGenerateDocumentsForm):
         )
 
     @cached_property
-    def has_arrete(self) -> bool:
-        return ARRETE in self.selected_types
+    def entries_with_existing_docs(self) -> list["ModeleSelectionEntry"]:
+        return [entry for entry in self.modele_entries if entry.existing_count]
 
     @cached_property
-    def has_lettre(self) -> bool:
-        return LETTRE in self.selected_types
+    def has_missing_modele(self) -> bool:
+        return any(not entry.modeles for entry in self.modele_entries)
+
+
+class ModeleSelectionEntry:
+    """
+    One row of GenerateDocumentsModeleSelectionForm's modele-selection step:
+    the modele field for a single document type, its available modeles, and
+    how many of the selected projets already have that document. The form
+    (and the modal_modele_selection.html template) loop over one entry per
+    document type in `selected_types` instead of repeating a has_X/modeles_X/
+    existing_X_count trio per type.
+    """
+
+    def __init__(self, form: GenerateDocumentsModeleSelectionForm, document_type: str):
+        self.form = form
+        self.document_type = document_type
+        self.field_name = f"modele_{document_type}_id"
 
     @cached_property
-    def modeles_arrete(self):
-        return self._modeles_queryset(ARRETE) if self.has_arrete else None
-
-    @cached_property
-    def modeles_lettre(self):
-        return self._modeles_queryset(LETTRE) if self.has_lettre else None
-
-    @cached_property
-    def existing_arrete_count(self) -> int:
-        if not self.has_arrete:
-            return 0
-        return Arrete.objects.filter(
-            programmation_projet__in=self.programmation_projets
-        ).count()
-
-    @cached_property
-    def existing_lettre_count(self) -> int:
-        if not self.has_lettre:
-            return 0
-        return LettreNotification.objects.filter(
-            programmation_projet__in=self.programmation_projets
-        ).count()
-
-    def _modeles_queryset(self, document_type):
-        perimetres = get_modele_perimetres(self.dotation, self.user.perimetre)
-        return MODELES[document_type].objects.filter(
-            dotation=self.dotation, perimetre__in=perimetres
+    def modeles(self):
+        perimetres = get_modele_perimetres(self.form.dotation, self.form.user.perimetre)
+        return MODELES[self.document_type].objects.filter(
+            dotation=self.form.dotation, perimetre__in=perimetres
         )
 
-    def has_existing_docs(self):
-        return self.existing_arrete_count + self.existing_lettre_count > 0
+    @cached_property
+    def existing_count(self) -> int:
+        generated_document_class = MODELES[self.document_type].generated_document_class
+        return generated_document_class.objects.filter(
+            programmation_projet__in=self.form.programmation_projets
+        ).count()
+
+    @cached_property
+    def field(self):
+        return forms.ModelChoiceField(
+            queryset=self.modeles,
+            required=True,
+            empty_label="Sélectionner un modèle",
+            error_messages={
+                "required": "Veuillez sélectionner un modèle.",
+                "invalid_choice": "Modèle introuvable.",
+            },
+            label=self.modele_verbose_name,
+        )
+
+    @property
+    def already_has_noun(self) -> str:
+        document_class = GENERATED_DOCUMENTS[self.document_type]
+        article = "une" if document_class.is_feminine else "un"
+        short_name = GENERATED_DOCUMENTS[self.document_type].short_name
+        return f"{article} {short_name.lower()}"
+
+    @property
+    def modele_verbose_name(self) -> str:
+        return MODELES[self.document_type].verbose_name()
 
 
-class GenerateDocumentsStep3Form(BaseGenerateDocumentsForm):
+class GenerateDocumentsFormatForm(BaseGenerateDocumentsForm):
     EXPORT_FORMAT_CHOICES_SINGLE = [
         (EXPORT_FORMAT_ONE_PDF_ALL, "Un seul PDF pour l'ensemble"),
         (EXPORT_FORMAT_ONE_PDF_PER_DOC, "Un PDF par document"),
@@ -938,7 +965,10 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
     ):
         document_class = modele.generated_document_class
 
-        if overwrite_strategy == GenerateDocumentsStep2Form.STRATEGY_REMPLACER:
+        if (
+            overwrite_strategy
+            == GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER
+        ):
             document_class.objects.filter(
                 programmation_projet__in=programmation_projets
             ).delete()
@@ -960,3 +990,26 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
                 content=replace_mentions_in_html(modele.content, pp),
             ).save()
             self._log_doc_action(pp, document_class)
+
+
+# -- Multi-projet refus letter generation modal forms --
+
+
+class GenerateRefusLettersCreateForm(GenerateDocumentsCreateForm):
+    @transaction.atomic
+    def save(self, *, modele_refus, overwrite_strategy):
+        self._create_documents_of_type(
+            self.programmation_projets, modele_refus, overwrite_strategy
+        )
+        return list(
+            ProgrammationProjet.objects.active()
+            .select_related(
+                "lettrerefus",
+                "lettrerefus__modele",
+                "dotation_projet__projet",
+                "dotation_projet__projet__dossier_ds",
+                "enveloppe",
+                "dotation_projet__projet__dossier_ds__ds_demandeur",
+            )
+            .filter(pk__in=self.programmation_projets)
+        )
