@@ -52,8 +52,12 @@
 }
 
 #programmation-bulk-actions-menu .fr-nav__link {
-  font-weight: normal;
+  font-weight: 500;
   display: block;
+}
+
+#programmation-bulk-actions-menu .fr-nav__link:not(:disabled) {
+  color: var(--blue-france-sun-113-625);
 }
 
 /* Bulk generation modals: the launch button opens the modal right away, the

@@ -2,14 +2,18 @@ from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     UPLOADED_DOCUMENT_FORMS,
     ArreteForm,
+    GenerateDocumentsCreateForm,
     GenerateDocumentsFormatForm,
+    GenerateDocumentsModeleSelectionForm,
     GenerateDotationsDocumentsForm,
     LettreNotificationForm,
     ModeleDocumentStepTwoForm,
@@ -24,6 +28,8 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
+from gsl_notification.utils import MENTIONS
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import (
     ARRETE,
@@ -464,3 +470,61 @@ def test_generate_accepted_dotations_documents_form_hide_qr_code_propagates(
     assert mock_generate_pdf.call_count == 2
     for call in mock_generate_pdf.call_args_list:
         assert call.kwargs["with_qr_code"] is False
+
+
+# GenerateDocumentsCreateForm — N+1 queries ------------------------------
+
+
+def _content_with_every_mention() -> str:
+    """A modele body referencing every Mention defined in gsl_notification.utils,
+    so replace_mentions_in_html() walks every attribute path it can walk."""
+    return "".join(
+        f'<span class="mention" data-id="{mention.key}"></span>' for mention in MENTIONS
+    )
+
+
+def _save_documents(programmation_projets, modele) -> int:
+    """Runs GenerateDocumentsCreateForm.save() for the given projets and
+    returns the number of queries it issued."""
+    form = GenerateDocumentsCreateForm(
+        user=CollegueFactory(),
+        dotation=DOTATION_DETR,
+        request=None,
+        programmation_projets=ProgrammationProjet.objects.filter(
+            pk__in=[pp.pk for pp in programmation_projets]
+        ),
+    )
+    with CaptureQueriesContext(connection) as ctx:
+        form.save(
+            modeles=[modele],
+            overwrite_strategy=GenerateDocumentsModeleSelectionForm.STRATEGY_CONSERVER,
+        )
+    return len(ctx.captured_queries)
+
+
+@pytest.mark.django_db
+def test_generate_documents_create_form_save_is_not_n_plus_1_on_all_mentions():
+    """Regression test: a modele using every possible mention must not add a
+    query per projet. replace_mentions_in_html() and _log_doc_action() both
+    walk the dotation_projet -> projet -> dossier_ds -> ds_demandeur/perimetre
+    chain for every mention, so pps_to_create must eager-load it once for the
+    whole batch instead of once per projet."""
+    modele = ModeleLettreNotificationFactory(
+        dotation=DOTATION_DETR, content=_content_with_every_mention()
+    )
+
+    one_pp = ProgrammationProjetFactory.create_batch(
+        1, dotation_projet__dotation=DOTATION_DETR
+    )
+    queries_for_one = _save_documents(one_pp, modele)
+
+    five_pps = ProgrammationProjetFactory.create_batch(
+        5, dotation_projet__dotation=DOTATION_DETR
+    )
+    queries_for_five = _save_documents(five_pps, modele)
+
+    # The only per-projet query left should be the document INSERT itself
+    # (one row per projet, GENERATE_DOCUMENT_SIZE=False in tests so no PDF
+    # rendering): +4 queries for +4 projets. If any hop in the mention chain
+    # weren't eager-loaded, this delta would grow with the batch size instead.
+    assert queries_for_five - queries_for_one == 4
