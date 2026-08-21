@@ -105,8 +105,13 @@ def _get_projet_statut(context):
     return format_html(
         '<span class="projet_status__{}">{}</span>',
         dp.status,
-        dp.get_status_display(),
+        _wrap_emoji(dp.get_status_display()),
     )
+
+
+def _wrap_emoji(display_str):
+    emoji, text = display_str.split(" ", 1)
+    return format_html('<span aria-hidden="true">{}</span> {}', emoji, text)
 
 
 COLUMN_STATUT = Column(

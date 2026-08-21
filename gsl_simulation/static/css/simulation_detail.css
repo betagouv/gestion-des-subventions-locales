@@ -88,15 +88,12 @@
   white-space: nowrap;
 }
 
-.gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status-notified,
-.gsl-projet-table__row--other-dotation .gsl-col--statut .gsl-projet-table__status-notified {
+.gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status,
+.gsl-projet-table__row--other-dotation .gsl-col--statut .gsl-projet-table__status {
   padding: 4px;
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
 }
 
-.gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status-notified > .gsl-projet-table__status-select {
+.gsl-projet-table td.gsl-projet-table__cell--status .gsl-projet-table__status > .gsl-projet-table__status-select {
   width: 100%;
 }
 

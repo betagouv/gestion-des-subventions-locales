@@ -32,6 +32,7 @@ from gsl_core.table_columns import (
     TextAlign,
 )
 from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
+from gsl_projet.table_columns import _wrap_emoji
 from gsl_simulation.table_columns import COLUMN_NOTIFICATION
 
 
@@ -124,8 +125,8 @@ def _get_other_dotation_statut(context):
     if not simu:
         return ""
     return format_html(
-        '<div class="gsl-projet-table__status-notified">{}</div>',
-        simu.get_status_display(),
+        '<div class="gsl-projet-table__status">{}</div>',
+        _wrap_emoji(simu.get_status_display()),
     )
 
 
@@ -168,7 +169,7 @@ COLUMN_DOCUMENTS = Column(
 COLUMN_STATUT = Column(
     key="statut",
     label="Statut",
-    getter=lambda ctx: ctx["programmation_projet"].get_status_display(),
+    getter=lambda ctx: _wrap_emoji(ctx["programmation_projet"].get_status_display()),
     other_dotation_getter=_get_other_dotation_statut,
     sticky=StickyPosition.RIGHT_1,
     text_align=TextAlign.CENTER,

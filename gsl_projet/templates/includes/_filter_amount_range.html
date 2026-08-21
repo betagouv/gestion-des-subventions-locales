@@ -5,7 +5,8 @@
         <button type="button"
                 class="fr-input {% if rc.has_data %}filter-dropdown-button-active{% endif %}">
             {{ rc.label }}
-            <span class="{{ rc.icon }} fr-icon--sm blue-color fr-ml-1w"></span>
+            <span class="{{ rc.icon }} fr-icon--sm blue-color fr-ml-1w"
+                  aria-hidden="true"></span>
         </button>
         <div class="gsl-dropdown-content">
             <div class="amount-filter-group">
