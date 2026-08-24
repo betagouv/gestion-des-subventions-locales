@@ -14,6 +14,7 @@ from dsfr.forms import DsfrBaseForm
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
+from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
     MODELES,
@@ -481,8 +482,6 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         return cleaned_data
 
     def save(self, user):
-        from gsl_historique.models import ProjetAction
-
         documents = self.instance.imported_documents
         filename = self._notification_filename(documents)
         justificatif_file = merge_documents_into_pdf(documents, filename=filename)
@@ -551,8 +550,6 @@ class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
 
     @transaction.atomic
     def save(self, user):
-        from gsl_historique.models import ProjetAction
-
         projet = self.instance
         dossier = projet.dossier_ds
         ds = DsService()
@@ -923,8 +920,6 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         self._pending_doc_actions = []
 
     def _log_doc_action(self, pp, document_class):
-        from gsl_historique.models import ProjetAction
-
         self._pending_doc_actions.append(
             ProjetAction(
                 projet=pp.dotation_projet.projet,
@@ -939,8 +934,6 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
 
     @transaction.atomic
     def save(self, *, modeles, overwrite_strategy):
-        from gsl_historique.models import ProjetAction
-
         for modele in modeles:
             self._create_documents_of_type(modele, overwrite_strategy)
 
