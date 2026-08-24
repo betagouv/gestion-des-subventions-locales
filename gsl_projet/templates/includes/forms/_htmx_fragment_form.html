@@ -1,12 +1,13 @@
 <form hx-post="{% block post_url %}{% endblock post_url %}"
       hx-target="this"
       hx-swap="outerHTML"
-      class="fr-mb-2w">
+      class="fr-mb-2w"
+      data-action="change->enable-on-change#enable">
     {% csrf_token %}
     <div class="fr-callout fr-background-alt--blue-france fr-m-0">
         {% block fields %}{{ form }}{% endblock fields %}
     </div>
-    <button class="fr-btn fr-btn--secondary fr-mt-2w" type="submit">
+    <button class="fr-btn fr-btn--secondary fr-mt-2w" type="submit" disabled>
         Enregistrer
     </button>
     {% if saved %}
