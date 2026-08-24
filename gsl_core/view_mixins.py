@@ -1,6 +1,9 @@
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django_htmx.http import trigger_client_event
+
+from gsl_core.decorators import htmx_only
 
 
 class SafeRedirectMixin:
@@ -37,6 +40,20 @@ class OpenHtmxModalMixin:
             {"target": f"#{self.get_modal_id()}-button"},
             after="settle",
         )
+
+
+class HtmxFragmentFormMixin:
+    http_method_names = ["post"]
+
+    @method_decorator(htmx_only)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.save()
+        if form.errors:
+            return self.form_invalid(form)
+        return self.render_to_response(self.get_context_data(form=form, saved=True))
 
 
 class FilterSkiplinksMixin:

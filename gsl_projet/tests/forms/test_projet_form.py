@@ -7,6 +7,7 @@ from django import forms
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
+from gsl_historique.models import ProjetAction
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import (
@@ -15,7 +16,7 @@ from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
-from gsl_projet.forms import ProjetForm
+from gsl_projet.forms import ProjetBudgetVertForm, ProjetForm
 from gsl_projet.models import DotationProjet, Projet
 from gsl_projet.services.dotation_projet_services import DotationProjetService
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
@@ -42,7 +43,6 @@ def test_projet_form_fields(projet):
     form = ProjetForm(instance=projet)
 
     expected_fields = [
-        "is_budget_vert",
         "is_in_qpv",
         "is_attached_to_a_crte",
         "is_frr",
@@ -57,18 +57,10 @@ def test_projet_form_fields(projet):
     ]
     assert list(form.fields.keys()) == expected_fields
 
-    budget_field = form.fields["is_budget_vert"]
-    assert isinstance(budget_field, forms.BooleanField)
-    assert budget_field.required is False
-    assert (
-        budget_field.label
-        == "Projet concourant à la transition écologique au sens budget vert"
-    )
-
-    budget_field = form.fields["is_in_qpv"]
-    assert isinstance(budget_field, forms.BooleanField)
-    assert budget_field.required is False
-    assert budget_field.label == "Projet situé en QPV"
+    qpv_field = form.fields["is_in_qpv"]
+    assert isinstance(qpv_field, forms.BooleanField)
+    assert qpv_field.required is False
+    assert qpv_field.label == "Projet situé en QPV"
 
     is_attached_to_a_crte = form.fields["is_attached_to_a_crte"]
     assert isinstance(is_attached_to_a_crte, forms.BooleanField)
@@ -94,7 +86,6 @@ def test_projet_form_validation(projet):
     valid_data = {
         "is_in_qpv": True,
         "is_attached_to_a_crte": False,
-        "is_budget_vert": False,
         "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=valid_data)
@@ -103,7 +94,6 @@ def test_projet_form_validation(projet):
     invalid_data = {
         "is_in_qpv": "invalid",
         "is_attached_to_a_crte": "invalid",
-        "is_budget_vert": "invalid",
         "dotations": [],
     }
     form = ProjetForm(instance=projet, data=invalid_data)
@@ -111,7 +101,6 @@ def test_projet_form_validation(projet):
     assert "dotations" in form.errors
 
     # BooleanField cast string value to boolean
-    assert "is_budget_vert" not in form.errors
     assert "is_in_qpv" not in form.errors
     assert "is_attached_to_a_crte" not in form.errors
 
@@ -236,7 +225,6 @@ def test_projet_form_save(
     data = {
         "is_in_qpv": True,
         "is_attached_to_a_crte": True,
-        "is_budget_vert": False,
         "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=data, user=user)
@@ -247,7 +235,6 @@ def test_projet_form_save(
     assert isinstance(projet, Projet)
     assert projet.is_in_qpv is True
     assert projet.is_attached_to_a_crte is True
-    assert projet.is_budget_vert is False
     assert projet.dotations == [DOTATION_DSIL]
 
     # Verify DN synchronization was called
@@ -257,6 +244,54 @@ def test_projet_form_save(
     assert call_kwargs["user"] == user
     assert "annotations_to_update" in call_kwargs
     assert "text_annotations_to_update" in call_kwargs
+
+
+@patch.object(DsService, "update_checkboxes_annotations")
+@pytest.mark.django_db
+def test_projet_budget_vert_form_save(mock_update_checkboxes_annotations, projet, user):
+    assert projet.is_budget_vert is False
+
+    form = ProjetBudgetVertForm(
+        instance=projet, data={"is_budget_vert": "on"}, user=user
+    )
+    assert form.is_valid()
+    form.save(commit=True)
+
+    projet.refresh_from_db()
+    assert projet.is_budget_vert is True
+
+    # Only the budget vert annotation is pushed to DN
+    mock_update_checkboxes_annotations.assert_called_once()
+    call_kwargs = mock_update_checkboxes_annotations.call_args.kwargs
+    assert call_kwargs["annotations_to_update"] == {"annotations_is_budget_vert": True}
+
+    # The change is recorded in the projet history
+    action = ProjetAction.objects.get(
+        projet=projet, action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED
+    )
+    assert (
+        action.boolean_field
+        == "Projet concourant à la transition écologique au sens budget vert"
+    )
+    assert action.boolean_value is True
+
+
+@patch.object(DsService, "update_checkboxes_annotations")
+@pytest.mark.django_db
+def test_projet_budget_vert_form_save_unchanged_is_a_noop(
+    mock_update_checkboxes_annotations, projet, user
+):
+    form = ProjetBudgetVertForm(instance=projet, data={"is_budget_vert": ""}, user=user)
+    assert form.is_valid()
+    form.save(commit=True)
+
+    projet.refresh_from_db()
+    assert projet.is_budget_vert is False
+    # Nothing changed: no DN push, no history entry
+    mock_update_checkboxes_annotations.assert_not_called()
+    assert not ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED
+    ).exists()
 
 
 @patch.object(DsService, "update_checkboxes_annotations")
@@ -362,7 +397,6 @@ def test_projet_form_save_with_multiple_dotations(projet):
     data = {
         "is_in_qpv": True,
         "is_attached_to_a_crte": True,
-        "is_budget_vert": False,
         "dotations": [DOTATION_DSIL, DOTATION_DETR],
     }
     form = ProjetForm(instance=projet, data=data)
@@ -381,7 +415,6 @@ def test_projet_form_save_with_field_exceptions(projet, user):
     data = {
         "is_in_qpv": True,
         "is_attached_to_a_crte": True,
-        "is_budget_vert": True,
         "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=data, user=user)
@@ -400,7 +433,6 @@ def test_projet_form_save_with_field_exceptions(projet, user):
     assert isinstance(projet, Projet)
     assert projet.is_in_qpv is False  # not updated
     assert projet.is_attached_to_a_crte is False  # not updated
-    assert projet.is_budget_vert is False  # Default value
     assert projet.dotations == [DOTATION_DETR]  # Default value
 
 
@@ -741,7 +773,6 @@ def test_projet_form_save_sets_dotations_has_been_updated_when_dotations_change(
     data = {
         "is_in_qpv": False,
         "is_attached_to_a_crte": False,
-        "is_budget_vert": False,
         "dotations": [DOTATION_DSIL],
     }
     form = ProjetForm(instance=projet, data=data, user=user)

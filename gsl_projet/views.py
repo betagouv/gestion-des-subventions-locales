@@ -22,6 +22,7 @@ from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import (
     FilterSkiplinksMixin,
+    HtmxFragmentFormMixin,
     OpenHtmxModalMixin,
     SafeRedirectMixin,
 )
@@ -36,6 +37,7 @@ from gsl_demarches_simplifiees.models import (
 from gsl_projet.forms import (
     DotationProjetAssietteForm,
     DotationProjetForm,
+    ProjetBudgetVertForm,
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
@@ -190,11 +192,25 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
         return _redirect_to_referer_or_projet(self.request, self.object)
 
 
-@method_decorator(htmx_only, name="dispatch")
-class DotationProjetDetrAvisUpdateView(UpdateView):
+class ProjetBudgetVertUpdateView(HtmxFragmentFormMixin, UpdateView):
+    model = Projet
+    form_class = ProjetBudgetVertForm
+    template_name = "includes/forms/_is_budget_vert_form.html"
+    context_object_name = "projet"
+    pk_url_kwarg = "projet_id"
+
+    def get_queryset(self):
+        return Projet.objects.active().for_user(self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+
+class DotationProjetDetrAvisUpdateView(HtmxFragmentFormMixin, UpdateView):
     model = DotationProjet
     form_class = DotationProjetForm
-    http_method_names = ["post"]
     template_name = "includes/forms/_detr_avis_commission_form.html"
     context_object_name = "dotation_projet"
 
@@ -203,32 +219,18 @@ class DotationProjetDetrAvisUpdateView(UpdateView):
             projet__in=Projet.objects.active().for_user(self.request.user)
         )
 
-    def form_valid(self, form):
-        form.save()
-        return self.render_to_response(self.get_context_data(form=form, saved=True))
 
-
-@method_decorator(htmx_only, name="dispatch")
-class DotationProjetAssietteUpdateView(UpdateView):
+class DotationProjetAssietteUpdateView(HtmxFragmentFormMixin, UpdateView):
     model = DotationProjet
     form_class = DotationProjetAssietteForm
-    http_method_names = ["post"]
     template_name = "includes/forms/_assiette_dotation_projet_form.html"
+    context_object_name = "dotation_projet"
 
     def get_queryset(self):
         return DotationProjet.objects.filter(
             projet__in=Projet.objects.active().for_user(self.request.user),
             projet__notified_at__isnull=True,
         )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["dotation_projet"] = self.object
-        return context
-
-    def form_valid(self, form):
-        form.save()
-        return self.render_to_response(self.get_context_data(form=form, saved=True))
 
 
 @method_decorator(htmx_only, name="dispatch")
