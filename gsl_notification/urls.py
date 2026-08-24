@@ -36,7 +36,6 @@ from gsl_notification.views.views import (
     NotificationDocumentsView,
     NotificationMessageFormView,
     PrintDocumentView,
-    RefusedDismissedNotificationModalView,
     SelectModeleView,
 )
 
@@ -60,11 +59,6 @@ urlpatterns = [
         "<int:projet_id>/documents-generes/telecharger/",
         DownloadMergedGeneratedDocumentsView.as_view(),
         name="generated-documents-download",
-    ),
-    path(
-        "<int:projet_id>/notifier/refus-ou-classement/",
-        RefusedDismissedNotificationModalView.as_view(),
-        name="notify-refused-dismissed",
     ),
     # Generated files
     path(

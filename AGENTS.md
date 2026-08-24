@@ -532,23 +532,31 @@ service.update_ds_annotations_for_one_dotation(
 Notification of Démarches Numériques is now **decoupled from the status
 change** and always manually triggered.
 
-**For refused/dismissed projects (two steps):**
-1. In programmation, `ProgrammationStatusUpdateView`
-   (`gsl_simulation/views/simulation_projet_views.py`) only changes the status
-   via `SimulationProjetStatusForm`, using the unified modal
-   `gsl_simulation/templates/htmx/programmation_status_change_modal.html`
-   (no justification, no DS call). The project is marked "À notifier".
-2. The user later clicks the "À notifier" action, handled by
-   `RefusedDismissedNotificationModalView` (`gsl_notification/views/views.py`)
-   with `RefusedDismissedNotificationForm` (`gsl_notification/forms.py`),
-   modal `gsl_notification/templates/gsl_notification/modal/notify_refused_dismissed.html`,
-   route `notify-refused-dismissed`
-   (`/notification/<projet_id>/notifier/refus-ou-classement/`). The user enters
-   the justification and explicitly sends the notification to DS.
+**Business rule for a projet's final notification outcome** (double dotation
+aware, fully implemented):
+- If any `DotationProjet` is **accepted** → final status = accepted (this is
+  `Projet.status`'s existing precedence, see `projet_status_from_dotation_statuses`
+  in `gsl_projet/models.py`) → a signed document
+  (`LettreEtArreteSignes`) is **required** for each accepted dotation before notifying.
+- Else if any `DotationProjet` is **dismissed** → final status = dismissed → a signed document (`LettreRefusSignee`) is **optional** but the motivation is **required**.
+- Else (all dotations refused) → final status = refused → a signed document
+  (`LettreRefusSignee`) is **optional** and the motivation is also **required**.
+- While any `DotationProjet` is still **processing**, notification is blocked
+  (see `Projet.dotation_not_treated`).
+- All imported documents (across every dotation) are concatenated into a
+  single PDF sent to DN (`merge_documents_into_pdf`,
+  `gsl_notification/utils.py`).
+- The notification message is **mandatory** for a refused/dismissed,
+  **optional** for an accepted.
 
-Table cells and the project-detail card route the "À notifier" action based on
-`Projet.has_accepted_dotation`: accepted → documents flow; otherwise → the
-`notify-refused-dismissed` endpoint.
+Single entry point for all three outcomes: the "3 - Notifier" step of the
+notification tab (`NotificationMessageForm`/`NotificationMessageFormView`,
+`gsl_notification/forms.py` / `gsl_notification/views/views.py`) branches on
+`projet.status` — `DsMutator().dossier_accepter(...)` for accepted,
+`DsService().refuser_in_ds`/`dismiss_in_ds` for refused/dismissed — and
+merges `projet.imported_documents` (which already spans `LettreEtArreteSignes`,
+`LettreRefusSignee`, and `Annexe` across every dotation) into the single PDF
+sent to DN.
 
 **For accepted projects:**
 - System generates template documents (arrêté, notification letter)
@@ -560,7 +568,8 @@ Table cells and the project-detail card route the "À notifier" action based on
 2. Add admin inline to configure templates
 3. Create template file in `gsl_notification/templates/`
 4. Add generation method in views to render template
-5. Implement file upload for signed documents via `ArreteEtLettreSignes` or `Annexe`
+5. Implement file upload for signed documents like `LettreEtArreteSignes` or
+   `LettreRefusSignee`
 
 ### Filtering by Perimeter
 
@@ -798,7 +807,7 @@ See `.env.example` for required variables:
    Projet state → ACCEPTED | REFUSED | DISMISSED
        ↓
    IF REFUSED/DISMISSED: marked "À notifier"; user later triggers
-       notification via notify-refused-dismissed (gsl_notification)
+       notification from the "3 - Notifier" step (gsl_notification)
    IF ACCEPTED: Generate templates (arrêté, letter)
        ↓
    User signs externally → uploads signed version
