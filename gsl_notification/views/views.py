@@ -18,6 +18,7 @@ from gsl_core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
     MATOMO_CATEGORY_NOTIFICATION,
 )
+from gsl_core.templatetags.fragment_tags import register_fragment_tag
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_historique.models import ProjetAction
@@ -78,6 +79,7 @@ class NotificationDocumentsView(BaseProjetDetailView):
         )
 
 
+@register_fragment_tag("generate_documents_form")
 @method_decorator(htmx_only, name="dispatch")
 class GenerateDocumentsFormView(UpdateView):
     """
@@ -121,6 +123,7 @@ class GenerateDocumentsFormView(UpdateView):
         return super().form_invalid(form)
 
 
+@register_fragment_tag("notification_message_form")
 @method_decorator(htmx_only, name="dispatch")
 class NotificationMessageFormView(UpdateView):
     """

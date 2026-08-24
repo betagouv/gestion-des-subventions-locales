@@ -20,6 +20,7 @@ from django_htmx.http import HttpResponseClientRedirect
 
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
+from gsl_core.templatetags.fragment_tags import register_fragment_tag
 from gsl_core.view_mixins import (
     FilterSkiplinksMixin,
     HtmxFragmentFormMixin,
@@ -45,7 +46,6 @@ from gsl_projet.forms import (
     ProjetZonageForm,
 )
 from gsl_projet.models import DotationProjet, ProjetNote
-from gsl_projet.templatetags.fragment_tags import register_fragment_tag
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
     ORDERING_MAP,
