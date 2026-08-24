@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from django.core.files.storage import default_storage
 from django.test import override_settings
+from django.utils import timezone
 from django.utils.text import slugify
 from freezegun import freeze_time
 
@@ -23,7 +24,7 @@ from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
     GenerateDocumentsModeleSelectionForm,
 )
-from gsl_notification.models import LettreNotification
+from gsl_notification.models import ExportJob, LettreNotification
 from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     ModeleArreteFactory,
@@ -32,6 +33,7 @@ from gsl_notification.tests.factories import (
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, LETTRE
+from gsl_projet.models import Projet
 
 pytestmark = pytest.mark.django_db
 
@@ -492,6 +494,30 @@ def test_wizard_create_step_returns_polling_template(
     )
     assert "job_id" in response.context
     assert "job" in response.context
+
+
+def test_wizard_create_step_aborts_when_projets_became_ineligible(
+    client, programmation_projets, detr_lettre_modele
+):
+    """A run spans several requests and only the raw POST data of each step is
+    kept in between, so eligibility is settled again at the very end: projets
+    notified meanwhile — from another tab, by a colleague — must stop it."""
+    _drive_through_format_step(
+        client,
+        programmation_projets,
+        modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
+    )
+    Projet.objects.all().update(notified_at=timezone.now())
+
+    response = _post_create_step_raw(client)
+
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple_wizard/modal_launch.html"
+    )
+    assert "Aucun projet à notifier." in response.content.decode()
+    assert ExportJob.objects.count() == 0
+    assert LettreNotification.objects.count() == 0
 
 
 def test_wizard_create_step_creates_documents_and_returns_success(

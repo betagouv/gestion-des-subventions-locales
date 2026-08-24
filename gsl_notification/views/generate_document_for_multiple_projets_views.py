@@ -44,9 +44,6 @@ class Step:
     title: str = ""
     form_kwargs: tuple[str, ...] = ()
     extra_context: tuple[str, ...] = ()
-    # render_done() re-validates every step by default.
-    # Set to True to avoid a re-validation and to enhance performance
-    skip_new_validation_on_done: bool = False
 
 
 class HtmxModalWizardMixin:
@@ -99,18 +96,27 @@ class HtmxModalWizardMixin:
         return ""
 
     @cached_property
-    def _cleaned_data_cache(self) -> dict:
+    def _form_cache(self) -> dict:
         return {}
 
+    def get_form_for_step(self, step):
+        # A single request asks for the same step repeatedly: later steps pull
+        # their kwargs from it, then render_done() needs it again. Caching is
+        # safe because post() stores the submitted step's data before anything
+        # reads a form back from storage.
+        if step not in self._form_cache:
+            self._form_cache[step] = self.get_form(
+                step=step,
+                data=self.storage.get_step_data(step),
+                files=self.storage.get_step_files(step),
+            )
+        return self._form_cache[step]
+
     def get_cleaned_data_for_step(self, step):
-        # formtools rebuilds and revalidates the step's form on every call, and
-        # a single request asks for the same steps repeatedly: every form built
-        # for a later step pulls its kwargs from them. Only earlier steps are
-        # ever read, and their storage data is settled by then, so the result
-        # holds for the whole request.
-        if step not in self._cleaned_data_cache:
-            self._cleaned_data_cache[step] = super().get_cleaned_data_for_step(step)
-        return self._cleaned_data_cache[step]
+        form = self.get_form_for_step(step)
+        # A form validates itself only once, so asking again is free. formtools
+        # expects None for a step that doesn't validate.
+        return form.cleaned_data if form.is_valid() else None
 
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
@@ -155,32 +161,25 @@ class HtmxModalWizardMixin:
         return super().post(request, *args, **kwargs)
 
     def render_done(self, form, **kwargs):
-        # One bound form per step, rebuilt from what the session storage kept of
-        # each submission.
+        # The steps were submitted one request at a time and only their raw POST
+        # data was kept: what it points to can have changed since, so it is
+        # validated once more before anything is generated.
         form_dict = {
-            step_name: self.get_form(
-                step=step_name,
-                data=self.storage.get_step_data(step_name),
-                files=self.storage.get_step_files(step_name),
-            )
+            step_name: self.get_form_for_step(step_name)
             for step_name in self.get_form_list()
         }
-        # is_valid() is what populates cleaned_data, and only the steps done()
-        # reads need it: the other data-bearing ones were already validated (and
-        # cached) when they fed the following steps.
-        for step in self.STEPS:
-            if not step.skip_new_validation_on_done:
-                form_dict[step.name].is_valid()
+        for step_name, step_form in form_dict.items():
+            if not step_form.is_valid():
+                return self.render_revalidation_failure(step_name, step_form, **kwargs)
         response = self.done(form_dict.values(), form_dict=form_dict, **kwargs)
         self.storage.reset()
         return response
 
     def get_merged_cleaned_data(self, form_dict) -> dict:
-        """cleaned_data of every step done() reads, merged in flow order."""
+        """Every step's cleaned_data, merged in flow order: later steps win."""
         merged_data = {}
-        for step in self.STEPS:
-            if not step.skip_new_validation_on_done:
-                merged_data.update(form_dict[step.name].cleaned_data)
+        for step_form in form_dict.values():
+            merged_data.update(step_form.cleaned_data)
         return merged_data
 
 
@@ -193,22 +192,17 @@ ACCEPTED_LAUNCH = Step(
     name="launch",
     form_class=GenerateAcceptedDocumentsLaunchForm,
     template=TEMPLATES + "modal_launch.html",
-    # get_programmation_projets() is heavy => we enhance performance
-    skip_new_validation_on_done=True,
 )
 REFUS_LAUNCH = Step(
     name="launch",
     form_class=GenerateRefusLettersLaunchForm,
     template=TEMPLATES + "modal_launch.html",
-    skip_new_validation_on_done=True,
 )
 TYPE_SELECTION = Step(
     name="type_selection",
     form_class=GenerateDocumentsTypeSelectionForm,
     template=TEMPLATES + "modal_form_step.html",
     title="Types de document",
-    # we don't need to re-validate here
-    skip_new_validation_on_done=True,
 )
 MODELE_SELECTION = Step(
     name="modele_selection",
