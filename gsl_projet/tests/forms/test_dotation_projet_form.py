@@ -18,7 +18,6 @@ def test_dotation_projet_form_fields(dotation_projet):
 
     expected_fields = [
         "detr_avis_commission",
-        "detr_categories",
     ]
     assert list(form.fields.keys()) == expected_fields
 
