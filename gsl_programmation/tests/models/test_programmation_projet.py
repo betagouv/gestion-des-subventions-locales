@@ -15,6 +15,8 @@ from gsl_notification.tests.factories import (
     ArreteFactory,
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
+    LettreRefusFactory,
+    LettreRefusSigneeFactory,
 )
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.tests.factories import (
@@ -302,6 +304,25 @@ def test_documents_summary_lettre_et_arrete_signes_hides_arrete_and_lettre_gener
 
     summary = programmation_projet.documents_summary
     assert summary == ["1 lettre et arrêté signés"]
+
+
+@pytest.mark.django_db
+def test_documents_summary_lettre_refus_generee():
+    programmation_projet = ProgrammationProjetFactory()
+    LettreRefusFactory(programmation_projet=programmation_projet)
+
+    summary = programmation_projet.documents_summary
+    assert summary == ["1 lettre de refus"]
+
+
+@pytest.mark.django_db
+def test_documents_summary_lettre_refus_signee_hides_lettre_refus_generee():
+    programmation_projet = ProgrammationProjetFactory()
+    LettreRefusSigneeFactory(programmation_projet=programmation_projet)
+    LettreRefusFactory(programmation_projet=programmation_projet)
+
+    summary = programmation_projet.documents_summary
+    assert summary == ["1 lettre de refus signée"]
 
 
 @pytest.mark.django_db

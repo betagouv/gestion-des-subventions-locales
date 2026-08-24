@@ -17,6 +17,7 @@ from gsl_projet.constants import (
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
     LETTRE_REFUS,
+    LETTRE_REFUS_SIGNEE,
 )
 
 
@@ -365,6 +366,31 @@ class LettreEtArreteSignes(UploadedDocument):
 
     def __str__(self):
         return f"Lettre et arrêté signés #{self.id}"
+
+
+class LettreRefusSignee(UploadedDocument):
+    document_type = LETTRE_REFUS_SIGNEE
+    delete_label = "Suppression de la lettre de refus ou classement sans suite signée"
+    delete_question = (
+        "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou "
+        "classement sans suite signée ?"
+    )
+    file = models.FileField(
+        upload_to="lettre_refus_signee/", validators=[document_file_validator]
+    )
+
+    programmation_projet = models.OneToOneField(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="lettre_refus_signee",
+    )
+
+    class Meta:
+        verbose_name = "Lettre de refus ou classement sans suite signée"
+        verbose_name_plural = "Lettres de refus ou classement sans suite signées"
+
+    def __str__(self):
+        return f"Lettre de refus ou classement sans suite signée #{self.id}"
 
 
 class Annexe(UploadedDocument):

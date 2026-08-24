@@ -23,6 +23,7 @@ from gsl_notification.models import (
     LettreEtArreteSignes,
     LettreNotification,
     LettreRefus,
+    LettreRefusSignee,
     ModeleArrete,
     ModeleDocument,
 )
@@ -39,10 +40,13 @@ from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
 from gsl_projet.constants import (
+    ANNEXE,
     ARRETE,
     DOTATIONS,
     LETTRE,
+    LETTRE_ET_ARRETE_SIGNES,
     LETTRE_REFUS,
+    LETTRE_REFUS_SIGNEE,
     PROJET_FINAL_STATUSES,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
@@ -148,25 +152,36 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
         super().__init__(*args, **kwargs)
         self.instance = instance
         choices = []
-        for dp in instance.dotationprojet_set.filter(status=PROJET_STATUS_ACCEPTED):
+        for dp in instance.dotationprojet_set.filter(status__in=PROJET_FINAL_STATUSES):
             # Check if ProgrammationProjet exists for this dotation
             try:
                 prog_projet = ProgrammationProjet.objects.get(
                     dotation_projet=dp, dotation_projet__projet=self.instance
                 )
-                # LettreEtArreteSignes (disable if already exists)
-                existing_arrete = hasattr(prog_projet, "lettre_et_arrete_signes")
-
-                choices.append(
-                    (
+                if dp.status == PROJET_STATUS_ACCEPTED:
+                    # LettreEtArreteSignes (disable if already exists)
+                    choices.append(
                         (
-                            ""
-                            if existing_arrete
-                            else f"lettre_et_arrete_signes-{dp.dotation}"
-                        ),
-                        f"Lettre et arrêté signés {dp.dotation.upper()}",
+                            (
+                                ""
+                                if prog_projet.has_lettre_and_arrete_signes
+                                else f"lettre_et_arrete_signes-{dp.dotation}"
+                            ),
+                            f"{LettreEtArreteSignes._meta.verbose_name} {dp.dotation.upper()}",
+                        )
                     )
-                )
+                else:
+                    # LettreRefusSignee (disable if already exists)
+                    choices.append(
+                        (
+                            (
+                                ""
+                                if prog_projet.has_lettre_refus_signee
+                                else f"lettre_refus_signee-{dp.dotation}"
+                            ),
+                            f"{LettreRefusSignee._meta.verbose_name} {dp.dotation.upper()}",
+                        )
+                    )
 
                 # Annexe (always enabled, multiple allowed)
                 choices.append(
@@ -432,10 +447,21 @@ class ArreteEtLettreSigneForm(forms.ModelForm, DsfrBaseForm):
         fields = ("file", "created_by", "programmation_projet")
 
 
+class LettreRefusSigneeForm(forms.ModelForm, DsfrBaseForm):
+    class Meta(ArreteEtLettreSigneForm.Meta):
+        model = LettreRefusSignee
+
+
 class AnnexeForm(forms.ModelForm, DsfrBaseForm):
-    class Meta:
+    class Meta(ArreteEtLettreSigneForm.Meta):
         model = Annexe
-        fields = ("file", "created_by", "programmation_projet")
+
+
+UPLOADED_DOCUMENT_TO_FORM = {
+    LETTRE_ET_ARRETE_SIGNES: ArreteEtLettreSigneForm,
+    LETTRE_REFUS_SIGNEE: LettreRefusSigneeForm,
+    ANNEXE: AnnexeForm,
+}
 
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):

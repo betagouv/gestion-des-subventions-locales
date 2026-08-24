@@ -6,6 +6,7 @@ from gsl_notification.tests.factories import (
     ArreteFactory,
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
+    LettreRefusSigneeFactory,
 )
 from gsl_programmation.models import ProgrammationProjet as pp
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
@@ -691,4 +692,26 @@ def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
         annexe_detr,
         lettre_et_arrete_signes_dsil,
         annexe_dsil,
+    ]
+
+
+def test_imported_documents_includes_lettre_refus_signee_for_refused_dotation():
+    projet = ProjetFactory()
+    detr_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_REFUSED
+    )
+    dsil_dp = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_DISMISSED
+    )
+    detr_pp = ProgrammationProjetFactory(dotation_projet=detr_dp)
+    dsil_pp = ProgrammationProjetFactory(dotation_projet=dsil_dp)
+
+    lettre_refus_signee_detr = LettreRefusSigneeFactory(programmation_projet=detr_pp)
+    annexe_detr = AnnexeFactory(programmation_projet=detr_pp)
+    lettre_refus_signee_dsil = LettreRefusSigneeFactory(programmation_projet=dsil_pp)
+
+    assert projet.imported_documents == [
+        lettre_refus_signee_detr,
+        annexe_detr,
+        lettre_refus_signee_dsil,
     ]

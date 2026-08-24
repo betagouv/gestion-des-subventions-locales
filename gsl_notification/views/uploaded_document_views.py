@@ -12,21 +12,23 @@ from gsl_core.matomo_constants import (
     MATOMO_ACTION_IMPORT_DOCUMENT,
     MATOMO_CATEGORY_DOCUMENT,
 )
-from gsl_notification.forms import ChooseDocumentTypeForUploadForm
+from gsl_notification.forms import (
+    UPLOADED_DOCUMENT_TO_FORM,
+    ChooseDocumentTypeForUploadForm,
+)
 from gsl_notification.models import (
+    UPLOADED_DOCUMENTS,
     Annexe,
 )
 from gsl_notification.utils import (
     get_s3_object,
-    get_uploaded_document_class,
-    get_uploaded_form_class,
     update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_notification.views.views import (
     _enrich_context_for_create_or_get_arrete_view,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import PROJET_STATUS_ACCEPTED
+from gsl_projet.constants import PROJET_FINAL_STATUSES
 from gsl_projet.models import Projet
 
 
@@ -39,12 +41,12 @@ class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):
     pk_url_kwarg = "projet_id"
 
     def get_queryset(self):
-        # Only projects visible to user with accepted dotations
+        # Only projects visible to user with at least one treated dotation
         return (
             Projet.objects.active()
             .for_user(self.request.user)
-            .to_notify()
-            .filter(dotationprojet__status=PROJET_STATUS_ACCEPTED)
+            .to_notify()  # TODO use .with_at_least_one_treated_dotationn + not_notified
+            .filter(dotationprojet__status__in=PROJET_FINAL_STATUSES)
             .distinct()
         )
 
@@ -65,18 +67,19 @@ class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):
 def create_uploaded_document_view(request, projet_id, dotation, document_type):
     from gsl_historique.models import ProjetAction
 
+    # A ProgrammationProjet only exists once its dotation has left processing
+    # (status is one of accepted/refused/dismissed), so no extra status filter
+    # is needed here to restrict uploads to treated dotations.
     programmation_projet = get_object_or_404(
         ProgrammationProjet.objects.active().visible_to_user(request.user),
         dotation_projet__projet__notified_at=None,
         dotation_projet__projet_id=projet_id,
         enveloppe__dotation=dotation,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
     )
-    try:
-        uploaded_doc_class = get_uploaded_document_class(document_type)
-    except ValueError:
+    uploaded_doc_class = UPLOADED_DOCUMENTS.get(document_type)
+    if uploaded_doc_class is None:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
-    uploaded_doc_form = get_uploaded_form_class(document_type)
+    uploaded_doc_form = UPLOADED_DOCUMENT_TO_FORM[document_type]
 
     if request.method == "POST":
         form = uploaded_doc_form(request.POST, request.FILES)
@@ -130,9 +133,8 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
 
 @require_GET
 def download_uploaded_document(request, document_type, document_id, download=True):
-    try:
-        doc_class = get_uploaded_document_class(document_type)
-    except ValueError:
+    doc_class = UPLOADED_DOCUMENTS.get(document_type)
+    if doc_class is None:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     doc = get_object_or_404(
         doc_class.objects.filter(

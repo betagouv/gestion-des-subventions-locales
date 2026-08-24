@@ -30,6 +30,7 @@ from gsl_notification.models import (
     LettreEtArreteSignes,
     LettreNotification,
     LettreRefus,
+    LettreRefusSignee,
 )
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -216,6 +217,7 @@ class ProjetQuerySet(models.QuerySet):
         )
         return projet_qs_not_processed_before_the_start_of_the_year
 
+    # TODO in PR : renamme this
     def to_notify(self):
         return self.annotate(
             dotations_count=Count("dotationprojet"),
@@ -506,6 +508,9 @@ class Projet(BaseModel):
     def imported_documents(self):
         documents = [
             *LettreEtArreteSignes.objects.filter(
+                programmation_projet__dotation_projet__projet=self
+            ),
+            *LettreRefusSignee.objects.filter(
                 programmation_projet__dotation_projet__projet=self
             ),
             *Annexe.objects.filter(programmation_projet__dotation_projet__projet=self),

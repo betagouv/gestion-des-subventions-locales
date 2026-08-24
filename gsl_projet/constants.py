@@ -40,6 +40,7 @@ LETTRE = "lettre"
 LETTRE_REFUS = "refus"
 
 LETTRE_ET_ARRETE_SIGNES = "lettre_et_arrete_signes"
+LETTRE_REFUS_SIGNEE = "lettre_refus_signee"
 ANNEXE = "annexe"
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
