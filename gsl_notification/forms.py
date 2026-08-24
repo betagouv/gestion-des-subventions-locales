@@ -3,7 +3,6 @@ import os
 from functools import cached_property
 
 from django import forms
-from django.conf import settings
 from django.db import transaction
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
@@ -34,7 +33,6 @@ from gsl_notification.utils import (
     merge_documents_into_pdf,
     replace_mentions_in_html,
 )
-from gsl_notification.validators import document_file_validator
 from gsl_programmation.models import ProgrammationProjet, ProgrammationProjetQuerySet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
@@ -472,6 +470,11 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         model = Projet
         fields = ()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.status != PROJET_STATUS_ACCEPTED:
+            self.fields["message"].required = True
+
     def clean(self):
         cleaned_data = super().clean()
         if self.instance.dotationprojet_set.without_signed_document().exists():
@@ -483,24 +486,46 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
     def save(self, user):
         documents = self.instance.imported_documents
-        filename = self._notification_filename(documents)
-        justificatif_file = merge_documents_into_pdf(documents, filename=filename)
+        justificatif_file = None
+        if documents:
+            filename = self._notification_filename(documents)
+            justificatif_file = merge_documents_into_pdf(documents, filename=filename)
 
         # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
         if self.instance.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             ds = DsService()
             ds.passer_en_instruction(dossier=self.instance.dossier_ds, user=user)
+
+        status = self.instance.status
+        motivation = self.cleaned_data.get("message", "")
+
         with transaction.atomic():
             self.instance.notified_at = timezone.now()
             self.instance.save()
-            # TODO use DSService
-            DsMutator().dossier_accepter(
-                self.instance.dossier_ds,
-                user.ds_id,
-                motivation=self.cleaned_data.get("message", ""),
-                document=justificatif_file,
-            )
+
+            if status == PROJET_STATUS_ACCEPTED:
+                # TODO use DSService
+                DsMutator().dossier_accepter(
+                    self.instance.dossier_ds,
+                    user.ds_id,
+                    motivation=motivation,
+                    document=justificatif_file,
+                )
+            else:
+                ds_service = DsService()
+                ds_method = (
+                    ds_service.dismiss_in_ds
+                    if status == PROJET_STATUS_DISMISSED
+                    else ds_service.refuser_in_ds
+                )
+                ds_method(
+                    self.instance.dossier_ds,
+                    user,
+                    motivation=motivation,
+                    document=justificatif_file,
+                )
+
             ProjetAction.objects.create(
                 projet=self.instance,
                 action_type=ProjetAction.TYPE_NOTIFIED,
@@ -512,78 +537,12 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             return self.instance
 
     def _notification_filename(self, documents):
-        accepted_dotations = set(
-            self.instance.dotationprojet_set.filter(
-                status=PROJET_STATUS_ACCEPTED
-            ).values_list("dotation", flat=True)
-        )
-        if len(accepted_dotations) <= 1:
+        if len(documents) <= 1:
             return os.path.splitext(documents[0].name)[0] + ".pdf"
-        ordered = [d for d in DOTATIONS if d in accepted_dotations]
+        dotations = {doc.programmation_projet.dotation for doc in documents}
+        ordered = [d for d in DOTATIONS if d in dotations]
         ds_number = self.instance.dossier_ds.ds_number
         return f"Notification {ds_number} {'-'.join(ordered)}.pdf"
-
-
-class RefusedDismissedNotificationForm(DsfrBaseForm, forms.ModelForm):
-    """
-    Sends the refusal/classement notification to Démarches Numériques.
-
-    The form is rendered for projets whose resolved status is REFUSED or
-    DISMISSED (no accepted dotation).
-    """
-
-    justification = forms.CharField(
-        label="Motivation envoyée au demandeur (obligatoire)",
-        required=True,
-        widget=forms.Textarea(attrs={"rows": 3}),
-    )
-    justification_file = forms.FileField(
-        label="Ajouter un justificatif (optionnel)",
-        validators=[document_file_validator],
-        help_text=f"Taille maximale {settings.MAX_POST_FILE_SIZE_IN_MO} Mo. Formats supportés : jpg, png, pdf.",
-        required=False,
-    )
-
-    class Meta:
-        model = Projet
-        fields = ()
-
-    @transaction.atomic
-    def save(self, user):
-        projet = self.instance
-        dossier = projet.dossier_ds
-        ds = DsService()
-
-        # Dossier was recently refreshed DN
-        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-        if dossier.ds_state == Dossier.STATE_EN_CONSTRUCTION:
-            ds.passer_en_instruction(dossier=dossier, user=user)
-
-        if projet.status == PROJET_STATUS_DISMISSED:
-            ds.dismiss_in_ds(
-                dossier,
-                user,
-                motivation=self.cleaned_data["justification"],
-                document=self.cleaned_data.get("justification_file"),
-            )
-        else:
-            ds.refuser_in_ds(
-                dossier,
-                user,
-                motivation=self.cleaned_data["justification"],
-                document=self.cleaned_data.get("justification_file"),
-            )
-
-        projet.notified_at = timezone.now()
-        projet.save()
-        ProjetAction.objects.create(
-            projet=projet,
-            action_type=ProjetAction.TYPE_NOTIFIED,
-            actor=user,
-            source=ProjetAction.SOURCE_TURGOT,
-            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
-        )
-        return projet
 
 
 # -- Multi-projet document generation modal forms --
