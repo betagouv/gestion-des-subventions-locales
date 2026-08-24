@@ -25,9 +25,6 @@ from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
-    Arrete,
-    LettreNotification,
-    LettreRefus,
 )
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -492,15 +489,11 @@ class Projet(BaseModel):
     @property
     def generated_documents(self):
         documents = [
-            *Arrete.objects.filter(
+            document
+            for model in GENERATED_DOCUMENTS.values()
+            for document in model.objects.filter(
                 programmation_projet__dotation_projet__projet=self
-            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED),
-            *LettreNotification.objects.filter(
-                programmation_projet__dotation_projet__projet=self
-            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED),
-            *LettreRefus.objects.filter(
-                programmation_projet__dotation_projet__projet=self
-            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED),
+            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
             documents,
