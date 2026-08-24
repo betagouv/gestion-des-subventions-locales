@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
@@ -121,12 +122,6 @@ class GenerateDocumentsFormView(UpdateView):
         return super().form_invalid(form)
 
 
-NOTIFICATION_RESULT_TO_SUCCESS_MESSAGE = {
-    PROJET_STATUS_ACCEPTED: "Le dossier a bien été accepté sur Démarche Numérique.",
-    PROJET_STATUS_REFUSED: "Le dossier a bien été refusé sur Démarche Numérique.",
-    PROJET_STATUS_DISMISSED: "Le dossier a bien été classé sans suite sur Démarche Numérique.",
-}
-
 NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
     PROJET_STATUS_ACCEPTED: "accepte",
     PROJET_STATUS_REFUSED: "refuse",
@@ -140,7 +135,9 @@ class NotificationMessageFormView(UpdateView):
     """
     HTMX endpoint backing the "3 - Notifier" block of the notifications tab.
     Always re-renders the whole #notification-message-block, which is also
-    its own hx-target, so the response can swap itself in place.
+    its own hx-target, so the response can swap itself in place. On success,
+    it also OOB-swaps the "4 - Notifié" block so both reflect the new
+    notified_at without a full page refresh.
     """
 
     form_class = NotificationMessageForm
@@ -172,9 +169,6 @@ class NotificationMessageFormView(UpdateView):
             )
             return self.form_invalid(form)
 
-        success_message = NOTIFICATION_RESULT_TO_SUCCESS_MESSAGE[self.object.status]
-        messages.success(self.request, success_message)
-
         matomo_action_value = NOTIFICATION_RESULT_TO_MATOMO_ACTION[self.object.status]
         queue_matomo_event(
             self.request,
@@ -182,7 +176,41 @@ class NotificationMessageFormView(UpdateView):
             MATOMO_ACTION_ENVOI_DN,
             matomo_action_value,
         )
-        return HttpResponseClientRefresh()
+
+        notification_message_block = render_to_string(
+            self.template_name, self.get_context_data(), request=self.request
+        )
+
+        oob_context = {"projet": self.object, "hx_swap_oob": "true"}
+        notified_block = render_to_string(
+            "includes/_notified_block.html", oob_context, request=self.request
+        )
+        projet_actions_block = render_to_string(
+            "includes/projet_detail/_projet_actions.html",
+            {
+                **oob_context,
+                "next_url": self.request.headers.get(
+                    "HX-Current-URL", self.request.path
+                ),
+            },
+            request=self.request,
+        )
+        dotation_status_cards_block = render_to_string(
+            "includes/projet_detail/_dotation_status_cards.html",
+            {
+                **oob_context,
+                "dotation_projets": self.object.dotationprojet_set.order_by(
+                    "dotation"
+                ),
+            },
+            request=self.request,
+        )
+        return HttpResponse(
+            notification_message_block
+            + notified_block
+            + projet_actions_block
+            + dotation_status_cards_block
+        )
 
 
 # Edition form for arrêté --------------------------------------------------------------

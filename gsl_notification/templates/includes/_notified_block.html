@@ -1,0 +1,11 @@
+<div id="notified-block" hx-swap-oob="{{ hx_swap_oob }}">
+    {% if projet.notified_at %}
+        <p>
+            Notifié le {{ projet.notified_at|date }}.
+        </p>
+    {% else %}
+        <p class="fr-mt-3w fr-mb-1w">
+            Aucune notification.
+        </p>
+    {% endif %}
+</div>
