@@ -455,6 +455,10 @@ class Projet(BaseModel):
         return self.has_treated_dotation
 
     @property
+    def can_display_suivi_financier_tab(self) -> bool:
+        return self.has_accepted_dotation
+
+    @property
     def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
         return next(
             (

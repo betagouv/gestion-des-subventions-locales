@@ -1,0 +1,97 @@
+{% extends "gsl_projet/projet.html" %}
+{% load gsl_filters %}
+
+{% block tab_projet %}
+    {% if suivi_date %}
+        <p class="fr-text--sm fr-mt-3w fr-mb-0">
+            Données Chorus au {{ suivi_date|date:"d/m/Y" }}.
+        </p>
+    {% endif %}
+    {% for groupe in par_dotation %}
+        <h2 class="fr-h4 fr-mt-4w">
+            Dotation {{ groupe.dotation }}
+        </h2>
+        <ul class="fr-mb-2w">
+            <li>
+                Montant engagé (net) : <strong>{{ groupe.montant_engage|euro }}</strong>
+            </li>
+            <li>
+                Montant payé : <strong>{{ groupe.montant_paye|euro }}</strong>
+            </li>
+            <li>
+                Reste à payer : <strong>{{ groupe.montant_reste|euro }}</strong>
+            </li>
+            {% if groupe.montant_accorde is not None %}
+                {% if groupe.has_ecart %}
+                    <li>
+                        Montant accordé (Turgot) : <strong>{{ groupe.montant_accorde|euro }}</strong>
+                        <span class="fr-badge fr-badge--sm fr-badge--warning">
+                            écart avec l'engagé Chorus
+                        </span>
+                    </li>
+                {% endif %}
+            {% else %}
+                <li>
+                    Aucune dotation {{ groupe.dotation }} dans Turgot
+                </li>
+            {% endif %}
+        </ul>
+        <div class="fr-table fr-table--bordered">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table>
+                            <caption class="fr-sr-only">
+                                Suivi financier {{ groupe.dotation }} (données Chorus)
+                            </caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">
+                                        EJ
+                                    </th>
+                                    <th scope="col">
+                                        Date d'engagement
+                                    </th>
+                                    <th scope="col">
+                                        Type de pièce
+                                    </th>
+                                    <th scope="col">
+                                        Type de mouvement
+                                    </th>
+                                    <th scope="col" class="fr-text--right">
+                                        Montant
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ecriture in groupe.ecritures %}
+                                    <tr>
+                                        <td>
+                                            {{ ecriture.ej }}
+                                        </td>
+                                        <td>
+                                            {{ ecriture.date_engagement|date:"d/m/Y"|default:"—" }}
+                                        </td>
+                                        <td>
+                                            {{ ecriture.get_tv_display|default:"—" }}
+                                        </td>
+                                        <td>
+                                            {{ ecriture.get_type_montant_display|default:"—" }}
+                                        </td>
+                                        <td class="fr-text--right">
+                                            {{ ecriture.montant|euro }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p class="fr-mt-3w">
+            Aucune ligne de suivi financier Chorus n'est rattachée à ce projet.
+        </p>
+    {% endfor %}
+{% endblock tab_projet %}

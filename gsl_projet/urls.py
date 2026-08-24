@@ -77,6 +77,11 @@ urlpatterns = [
         name="get-projet-historique",
     ),
     path(
+        "voir/<int:projet_id>/suivi-financier/",
+        views.ProjetSuiviFinancierView.as_view(),
+        name="get-projet-suivi-financier",
+    ),
+    path(
         "voir/<int:projet_id>/notes/commentaire/",
         views.ProjetCommentUpdateView.as_view(),
         name="update-projet-comment",
