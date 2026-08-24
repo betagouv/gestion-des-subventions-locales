@@ -1,0 +1,51 @@
+<ul id="projet-actions"
+    hx-swap-oob="{{ hx_swap_oob }}"
+    class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
+    {% if projet.notified_at %}
+        <li class="fr-mb-2w">
+            <button class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-arrow-go-back-fill"
+                    hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"
+                    hx-swap="outerHTML">
+                Repasser en traitement
+            </button>
+        </li>
+    {% endif %}
+    {% if projet.dossier_ds.ds_number %}
+        <li>
+            <a href="{{ projet.dossier_ds.url_on_ds }}"
+               target="_blank"
+               rel="noreferrer noopener"
+               title="Voir le dossier sur Démarche Numérique - nouvelle fenêtre"
+               class="fr-btn fr-btn--icon-right fr-icon-external-link-line fr-btn--secondary">
+                Voir le dossier sur Démarche Numérique
+                <span class="fr-sr-only">(nouvelle fenêtre)</span>
+            </a>
+        </li>
+        <li>
+            <form action="{% url "ds:refresh-one-dossier" projet.dossier_ds.ds_number %}"
+                  method="post">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}" />
+                {# la maquette disait fr-icon-arrow-left-right-line mais on ne l’a pas dans notre DSFR ? #}
+                <button type="submit"
+                        class="fr-btn fr-btn--icon-right fr-icon-refresh-line"
+                        aria-describedby="info-refresh-from-ds">
+                    Actualiser depuis DN
+                </button>
+                <span class="fr-tooltip fr-placement"
+                      id="info-refresh-from-ds"
+                      role="tooltip">
+                    Rafraîchir le dossier sur Turgot à partir des données
+                    provenant de Démarche Numérique
+                </span>
+            </form>
+        </li>
+    {% endif %}
+    {% comment %}
+    <li>
+        <a href="@todo" class="fr-btn fr-btn--icon-right fr-icon-article-line fr-btn--secondary">
+            Exporter une synthèse du projet PDF
+        </a>
+    </li>
+    {% endcomment %}
+</ul>
