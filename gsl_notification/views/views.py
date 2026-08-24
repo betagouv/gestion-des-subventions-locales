@@ -146,6 +146,9 @@ class NotificationMessageFormView(UpdateView):
         context["is_instructor"] = self.object.dossier_ds.is_instructeur(
             self.request.user
         )
+        context["dotation_projets_without_signed_document"] = list(
+            self.object.dotationprojet_set.without_signed_document()
+        )
         return context
 
     def form_valid(self, form):
