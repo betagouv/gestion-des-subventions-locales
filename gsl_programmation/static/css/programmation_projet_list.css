@@ -60,17 +60,16 @@
   color: var(--blue-france-sun-113-625);
 }
 
-/* Bulk generation modals: the launch button opens the modal right away, the
-   first step only arrives with the htmx response. Show a spinner meanwhile,
-   and hide whatever a previous run left in the step container. */
+/* Bulk generation modals open on click, their first step only arrives with the
+   htmx response. */
 .modal-wizard-loading {
   display: none;
 }
 
-.fr-modal__body.htmx-request .modal-wizard-loading {
+.modal-wizard-body.htmx-request .modal-wizard-loading {
   display: block;
 }
 
-.fr-modal__body.htmx-request > .modal-wizard-step {
+.modal-wizard-body.htmx-request > .modal-wizard-step {
   display: none;
 }
