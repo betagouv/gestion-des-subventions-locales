@@ -63,7 +63,7 @@
         {% endif %}
     </div>
 
-    {% include "includes/projet_detail/_projet_actions.html" with next_url=request.path %}
+    {% include "includes/projet_detail/_projet_actions.html" with next_url=request.htmx.current_url|default:request.path %}
 
     {% if dossier.has_missing_annotations %}
         <div role="alert" class="fr-alert fr-alert--error fr-mb-4w">
