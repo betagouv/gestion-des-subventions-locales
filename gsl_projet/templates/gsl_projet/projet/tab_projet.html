@@ -22,6 +22,9 @@
                     <li>
                         <span aria-hidden="true">📍</span> Demandeur
                         : {{ dossier.ds_demandeur|default:"-" }}
+                        {% if dossier.ds_demandeur.siren %}
+                            (<a href="{% url 'suivi_financier:beneficiaire-detail' dossier.ds_demandeur.siren %}">fiche bénéficiaire</a>)
+                        {% endif %}
                     </li>
                     <li>
                         <span aria-hidden="true">📆</span> Date de dépôt : {{ dossier.ds_date_depot|date }}

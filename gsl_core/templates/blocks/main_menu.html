@@ -99,7 +99,7 @@
                         <a class="fr-nav__link"
                            href="{{ beneficiaires_url }}"
                            target="_self"
-                           {% if "/beneficiaires/" in request.path %}aria-current="true"{% endif %}>Bénéficiaires</a>
+                           {% if "/beneficiaires/" in request.path %}aria-current="true"{% endif %}>Bénéficiaires <span class="fr-badge fr-badge--sm fr-badge--green-emeraude fr-ml-1w">BETA</span></a>
                     </li>
                 {% endif %}
                 {% if request.user.is_staff %}

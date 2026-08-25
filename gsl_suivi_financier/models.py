@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Case, Value, When
 
 from gsl_projet.utils.utils import compute_taux
 
@@ -11,7 +12,7 @@ class Beneficiaire(models.Model):
     class Meta:
         verbose_name = "Bénéficiaire"
         verbose_name_plural = "Bénéficiaires"
-        ordering = ["nom"]
+        ordering = [Case(When(nom="", then=Value(1)), default=Value(0)), "nom"]
 
     def __str__(self):
         return f"{self.nom} ({self.siren})"
