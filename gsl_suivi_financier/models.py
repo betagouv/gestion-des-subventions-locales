@@ -62,6 +62,33 @@ class SubventionDgcl(models.Model):
         return compute_taux(self.subvention, self.cout_ht)
 
 
+class FondsVertImportState(models.Model):
+    """État de la synchronisation Fonds Vert (ligne unique).
+
+    Retient la dernière page importée avec succès pour reprendre l'import à cet
+    endroit après une interruption (erreur réseau, expiration du token, tâche
+    relancée) plutôt que de tout refaire depuis la page 1. Remise à 0 une fois
+    une synchronisation complète terminée avec succès.
+    """
+
+    last_page = models.PositiveIntegerField(
+        default=0, verbose_name="Dernière page importée"
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Mis à jour le")
+
+    class Meta:
+        verbose_name = "État de l'import Fonds Vert"
+        verbose_name_plural = "État de l'import Fonds Vert"
+
+    def __str__(self):
+        return f"Fonds Vert — reprise à la page {self.last_page}"
+
+    @classmethod
+    def load(cls) -> "FondsVertImportState":
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class SubventionFondsVert(models.Model):
     dossier_number = models.IntegerField(
         unique=True, verbose_name="Numéro de dossier DS"
