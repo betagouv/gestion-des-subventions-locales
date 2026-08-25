@@ -9,6 +9,8 @@ from ..models import (
     Arrete,
     LettreEtArreteSignes,
     LettreNotification,
+    LettreRefus,
+    LettreRefusSignee,
     ModeleArrete,
     ModeleLettreNotification,
     ModeleLettreRefus,
@@ -72,6 +74,17 @@ class LettreNotificationFactory(ArreteFactory):
     )
 
 
+class LettreRefusFactory(ArreteFactory):
+    class Meta:
+        model = LettreRefus
+
+    modele = factory.LazyAttribute(
+        lambda obj: ModeleLettreRefusFactory(
+            dotation=obj.programmation_projet.dotation,
+        )
+    )
+
+
 class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = LettreEtArreteSignes
@@ -91,3 +104,13 @@ class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
 class AnnexeFactory(LettreEtArreteSignesFactory):
     class Meta:
         model = Annexe
+
+
+class LettreRefusSigneeFactory(LettreEtArreteSignesFactory):
+    class Meta:
+        model = LettreRefusSignee
+
+    programmation_projet = factory.SubFactory(
+        "gsl_programmation.tests.factories.ProgrammationProjetFactory",
+        status="refused",
+    )

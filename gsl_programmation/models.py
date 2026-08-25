@@ -327,6 +327,10 @@ class ProgrammationProjet(models.Model):
         return hasattr(self, "lettre_et_arrete_signes")
 
     @property
+    def has_lettre_refus_signee(self):
+        return hasattr(self, "lettre_refus_signee")
+
+    @property
     @deprecated("Use `Projet.notified_at` instead.")
     def notified_at(self):
         return self.projet.notified_at
@@ -393,15 +397,19 @@ class ProgrammationProjet(models.Model):
     @cached_property
     def documents_summary(self):
         summary = list()
-        if hasattr(self, "lettre_et_arrete_signes"):
+
+        if self.has_lettre_and_arrete_signes:
             summary.append("1 lettre et arrêté signés")
         else:
             if hasattr(self, "arrete"):
                 summary.append("1 arrêté")
             if hasattr(self, "lettre"):
                 summary.append("1 lettre")
-            if hasattr(self, "refus"):
-                summary.append("1 lettre de refus")
+
+        if self.has_lettre_refus_signee:
+            summary.append("1 lettre de refus signée")
+        elif hasattr(self, "refus"):
+            summary.append("1 lettre de refus")
 
         annexes_count = len(self.annexes.all())
         if annexes_count != 0:

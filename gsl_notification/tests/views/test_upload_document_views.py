@@ -10,13 +10,22 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreFactory,
 )
+from gsl_notification.models import LettreRefusSignee
 from gsl_notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,
 )
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, PROJET_STATUS_ACCEPTED
+from gsl_projet.constants import (
+    ANNEXE,
+    LETTRE_ET_ARRETE_SIGNES,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_projet.tests.factories import DetrProjetFactory, ProjetFactory
+
+LETTRE_REFUS_SIGNEE = LettreRefusSignee.document_type
 
 pytestmark = pytest.mark.django_db
 
@@ -33,6 +42,15 @@ def perimetre():
 def programmation_projet(perimetre):
     return ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre
+    )
+
+
+@pytest.fixture
+def refused_programmation_projet(perimetre):
+    return ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        dotation_projet__status=PROJET_STATUS_REFUSED,
+        status=ProgrammationProjet.STATUS_REFUSED,
     )
 
 
@@ -74,6 +92,28 @@ def test_choose_uploaded_document_type_displays_correctly(perimetre):
     assert "gsl_notification/uploaded_document/choose_upload_document_type.html" in [
         t.name for t in response.templates
     ]
+
+
+def test_choose_uploaded_document_type_offers_signed_letter_for_refused(perimetre):
+    """A refused dotation exposes the signed-letter import, not the accepted ones."""
+    user = CollegueFactory(perimetre=perimetre)
+    client = ClientWithLoggedUserFactory(user)
+
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    dp = DetrProjetFactory(projet=projet, status=PROJET_STATUS_REFUSED)
+    ProgrammationProjetFactory(
+        dotation_projet=dp, status=ProgrammationProjet.STATUS_REFUSED
+    )
+
+    url = reverse(
+        "gsl_notification:choose-uploaded-document-type",
+        kwargs={"projet_id": projet.id},
+    )
+    response = client.get(url)
+
+    assert response.status_code == 200
+    choices = dict(response.context["form"].fields["document"].choices)
+    assert choices == {f"{LETTRE_REFUS_SIGNEE}-DETR": "Lettre de refus signée DETR"}
 
 
 ### upload-a-document -----------------------------
@@ -186,6 +226,104 @@ def test_create_uploaded_document_view_valid(
 
     assert f"programmation_projet_{programmation_projet.id}/test" in doc.file.name
     assert doc.created_by == correct_perimetre_client_with_user_logged.user
+
+
+def test_create_lettre_refus_signee_valid(
+    refused_programmation_projet, correct_perimetre_client_with_user_logged
+):
+    programmation_projet = refused_programmation_projet
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
+    url = reverse(
+        "notification:upload-a-document",
+        kwargs={
+            "projet_id": projet.id,
+            "dotation": dotation,
+            "document_type": LETTRE_REFUS_SIGNEE,
+        },
+    )
+    file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
+    data = {
+        "file": file,
+        "created_by": correct_perimetre_client_with_user_logged.user.id,
+        "programmation_projet": programmation_projet.id,
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data)
+    assert response.status_code == 302
+    assert response["Location"] == f"/notification/{projet.id}/documents/"
+    doc = programmation_projet.lettre_refus_signee
+    assert doc is not None
+    assert f"programmation_projet_{programmation_projet.id}/test" in doc.file.name
+    assert doc.created_by == correct_perimetre_client_with_user_logged.user
+
+
+def test_create_uploaded_document_view_rejects_document_type_status_mismatch(
+    refused_programmation_projet, correct_perimetre_client_with_user_logged
+):
+    """A signed-letter type on an accepted dotation (or vice-versa) is a 400."""
+    programmation_projet = refused_programmation_projet
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
+    # lettre_et_arrete_signes only applies to accepted dotations.
+    url = reverse(
+        "notification:upload-a-document",
+        kwargs={
+            "projet_id": projet.id,
+            "dotation": dotation,
+            "document_type": LETTRE_ET_ARRETE_SIGNES,
+        },
+    )
+    file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
+    data = {
+        "file": file,
+        "created_by": correct_perimetre_client_with_user_logged.user.id,
+        "programmation_projet": programmation_projet.id,
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data)
+    assert response.status_code == 400
+    assert "ne peut pas être importé" in response.content.decode()
+
+
+def test_create_uploaded_document_view_rejects_refusal_letter_on_accepted(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    """Reverse direction: a refusal-letter type on an accepted dotation is a 400."""
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
+    url = reverse(
+        "notification:upload-a-document",
+        kwargs={
+            "projet_id": projet.id,
+            "dotation": dotation,
+            "document_type": LETTRE_REFUS_SIGNEE,
+        },
+    )
+    file = SimpleUploadedFile("test.pdf", b"dummy", content_type="application/pdf")
+    data = {
+        "file": file,
+        "created_by": correct_perimetre_client_with_user_logged.user.id,
+        "programmation_projet": programmation_projet.id,
+    }
+    response = correct_perimetre_client_with_user_logged.post(url, data)
+    assert response.status_code == 400
+
+
+def test_create_uploaded_document_view_unknown_document_type_is_404(
+    programmation_projet, correct_perimetre_client_with_user_logged
+):
+    """An unknown document_type on a valid programmation is a 404."""
+    projet = programmation_projet.dotation_projet.projet
+    dotation = programmation_projet.enveloppe.dotation
+    url = reverse(
+        "notification:upload-a-document",
+        kwargs={
+            "projet_id": projet.id,
+            "dotation": dotation,
+            "document_type": "does_not_exist",
+        },
+    )
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
 
 
 @pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))

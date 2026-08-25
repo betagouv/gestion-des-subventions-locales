@@ -1,20 +1,13 @@
 from django.conf import settings
 from django.db.models.signals import post_delete, post_save
-from django.dispatch import receiver
 
 from gsl_notification.models import (
-    Annexe,
-    LettreEtArreteSignes,
-    ModeleArrete,
-    ModeleLettreNotification,
+    MODELES,
+    UPLOADED_DOCUMENTS,
 )
 
 
-@receiver(post_delete, sender=Annexe)
-@receiver(post_delete, sender=LettreEtArreteSignes)
-def delete_file_after_instance_deletion(
-    sender, instance: LettreEtArreteSignes | Annexe, *args, **kwargs
-):
+def delete_file_after_instance_deletion(sender, instance, *args, **kwargs):
     if not instance.file:
         return
     try:
@@ -23,8 +16,6 @@ def delete_file_after_instance_deletion(
         pass
 
 
-@receiver(post_save, sender=LettreEtArreteSignes)
-@receiver(post_save, sender=Annexe)
 def trigger_antivirus_scan(sender, instance, created, **kwargs):
     if created and not settings.BYPASS_ANTIVIRUS:
         from gsl_notification.tasks import scan_uploaded_document
@@ -32,8 +23,11 @@ def trigger_antivirus_scan(sender, instance, created, **kwargs):
         scan_uploaded_document.delay(sender._meta.label, instance.pk)
 
 
-@receiver(post_save, sender=ModeleArrete)
-@receiver(post_save, sender=ModeleLettreNotification)
+for _model in UPLOADED_DOCUMENTS.values():
+    post_delete.connect(delete_file_after_instance_deletion, sender=_model)
+    post_save.connect(trigger_antivirus_scan, sender=_model)
+
+
 def trigger_logo_antivirus_scan(sender, instance, created, update_fields, **kwargs):
     if settings.BYPASS_ANTIVIRUS:
         return
@@ -45,14 +39,15 @@ def trigger_logo_antivirus_scan(sender, instance, created, update_fields, **kwar
         scan_uploaded_document.delay(sender._meta.label, instance.pk, "logo")
 
 
-@receiver(post_delete, sender=ModeleLettreNotification)
-@receiver(post_delete, sender=ModeleArrete)
-def delete_logo_file_after_instance_deletion(
-    sender, instance: ModeleArrete | ModeleLettreNotification, *args, **kwargs
-):
+def delete_logo_file_after_instance_deletion(sender, instance, *args, **kwargs):
     if not instance.logo:
         return
     try:
         instance.logo.delete(save=False)
     except FileNotFoundError:  # ou l'exception S3 adéquate
         pass
+
+
+for _modele in MODELES.values():
+    post_save.connect(trigger_logo_antivirus_scan, sender=_modele)
+    post_delete.connect(delete_logo_file_after_instance_deletion, sender=_modele)

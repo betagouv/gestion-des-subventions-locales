@@ -7,15 +7,18 @@ from django.test import override_settings
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
-    AnnexeForm,
-    ArreteEtLettreSigneForm,
+    UPLOADED_DOCUMENT_FORMS,
     ArreteForm,
     GenerateDocumentsStep3Form,
     GenerateDotationsDocumentsForm,
     LettreNotificationForm,
     ModeleDocumentStepTwoForm,
 )
-from gsl_notification.models import Arrete, LettreNotification, ModeleArrete
+from gsl_notification.models import (
+    Arrete,
+    LettreNotification,
+    ModeleArrete,
+)
 from gsl_notification.tests.factories import (
     ArreteFactory,
     ModeleArreteFactory,
@@ -83,7 +86,10 @@ def test_arrete_form_invalid_missing_fields(form_class):
 # UploadedDocumentForm
 
 
-@pytest.mark.parametrize("form_class", (ArreteEtLettreSigneForm, AnnexeForm))
+@pytest.mark.parametrize(
+    "form_class",
+    list(UPLOADED_DOCUMENT_FORMS.values()),
+)
 @pytest.mark.django_db
 def test_arrete_et_lettre_signe_form_valid(form_class):
     collegue = CollegueFactory()
@@ -103,7 +109,10 @@ def test_arrete_et_lettre_signe_form_valid(form_class):
     assert form.is_valid()
 
 
-@pytest.mark.parametrize("form_class", (ArreteEtLettreSigneForm, AnnexeForm))
+@pytest.mark.parametrize(
+    "form_class",
+    list(UPLOADED_DOCUMENT_FORMS.values()),
+)
 @pytest.mark.django_db
 def test_arrete_et_lettre_signe_form_invalid_missing_fields(form_class):
     form = form_class({})
@@ -113,7 +122,10 @@ def test_arrete_et_lettre_signe_form_invalid_missing_fields(form_class):
     assert "programmation_projet" in form.errors
 
 
-@pytest.mark.parametrize("form_class", (ArreteEtLettreSigneForm, AnnexeForm))
+@pytest.mark.parametrize(
+    "form_class",
+    list(UPLOADED_DOCUMENT_FORMS.values()),
+)
 @pytest.mark.parametrize(
     "file_name, content_type, is_valid",
     [
@@ -147,7 +159,10 @@ def test_arrete_et_lettre_signe_form_accepts_valid_pdf(
         )
 
 
-@pytest.mark.parametrize("form_class", (ArreteEtLettreSigneForm, AnnexeForm))
+@pytest.mark.parametrize(
+    "form_class",
+    list(UPLOADED_DOCUMENT_FORMS.values()),
+)
 @pytest.mark.parametrize(
     "file_size, is_valid", [(20 * 1024 * 1024, True), (21 * 1024 * 1024, False)]
 )
