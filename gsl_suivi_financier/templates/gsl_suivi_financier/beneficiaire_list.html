@@ -2,24 +2,18 @@
 {% load dsfr_tags %}
 
 {% block content %}
-    <h1>
-        {{ title }}
-    </h1>
+    <h1>{{ title }}</h1>
 
     <form method="get" role="search" class="fr-mb-4w">
         <div class="fr-search-bar" id="search-beneficiaire">
-            <label class="fr-label" for="q">
-                Rechercher par nom ou SIREN
-            </label>
+            <label class="fr-label" for="q">Rechercher par nom ou SIREN</label>
             <input type="search"
                    class="fr-input"
                    id="q"
                    name="q"
                    value="{{ search_query }}"
                    placeholder="Nom de commune, EPCI, SIREN…">
-            <button class="fr-btn" type="submit" aria-label="Lancer la recherche">
-                Rechercher
-            </button>
+            <button class="fr-btn" type="submit" aria-label="Lancer la recherche">Rechercher</button>
         </div>
     </form>
 
@@ -32,31 +26,19 @@
                             <caption>Liste des bénéficiaires</caption>
                             <thead>
                                 <tr>
-                                    <th scope="col">
-                                        Nom
-                                    </th>
-                                    <th scope="col">
-                                        SIREN
-                                    </th>
-                                    <th scope="col">
-                                        Type
-                                    </th>
+                                    <th scope="col">Nom</th>
+                                    <th scope="col">SIREN</th>
+                                    <th scope="col">Type</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for b in beneficiaires %}
                                     <tr>
                                         <td>
-                                            <a href="{% url 'suivi_financier:beneficiaire-detail' b.siren %}">
-                                                {{ b.nom }}
-                                            </a>
+                                            <a href="{% url 'suivi_financier:beneficiaire-detail' b.siren %}">{{ b.nom }}</a>
                                         </td>
-                                        <td>
-                                            {{ b.siren }}
-                                        </td>
-                                        <td>
-                                            {{ b.type }}
-                                        </td>
+                                        <td>{{ b.siren }}</td>
+                                        <td>{{ b.type }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

@@ -1,8 +1,8 @@
 from django.db.models import Q
 from django.views.generic import DetailView, ListView
 
+from gsl.projet.models import Projet
 from gsl_core.models import Perimetre
-from gsl_projet.models import Projet
 
 from .models import Beneficiaire
 
@@ -34,6 +34,10 @@ class BeneficiaireDetailView(DetailView):
     pk_url_kwarg = "siren"
     template_name = "gsl_suivi_financier/beneficiaire_detail.html"
 
+    def get_queryset(self):
+        qs = Beneficiaire.objects.all()
+        return _filter_by_perimetre(qs, self.request.user)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         beneficiaire = self.object
@@ -52,7 +56,7 @@ class BeneficiaireDetailView(DetailView):
             )
         projets = (
             projets.select_related("dossier_ds", "dossier_ds__ds_demandeur")
-            .prefetch_related("dotationprojet_set")
+            .prefetch_related("dotationprojet_set__programmation_projet")
             .order_by("-dossier_ds__ds_date_depot")
         )
 

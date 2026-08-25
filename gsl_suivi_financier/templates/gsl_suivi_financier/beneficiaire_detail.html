@@ -9,16 +9,10 @@
         </a>
     </div>
 
-    <h1>
-        {{ beneficiaire_nom }}
-    </h1>
-    <p class="fr-text--sm fr-text-mention--grey">
-        SIREN : {{ siren }}
-    </p>
+    <h1>{{ beneficiaire_nom }}</h1>
+    <p class="fr-text--sm fr-text-mention--grey">SIREN : {{ siren }}</p>
 
-    <h2 class="fr-mt-6w">
-        Historique des subventions DGCL
-    </h2>
+    <h2 class="fr-mt-6w">Historique des subventions DGCL</h2>
     <p class="fr-text--sm fr-text-mention--grey">
         Source : données nationales DGCL publiées sur data.gouv.fr (DETR, DSIL, DPV, DSID)
     </p>
@@ -32,47 +26,23 @@
                             <caption>Subventions DGCL pour {{ beneficiaire_nom }}</caption>
                             <thead>
                                 <tr>
-                                    <th scope="col">
-                                        Année
-                                    </th>
-                                    <th scope="col">
-                                        Dotation
-                                    </th>
-                                    <th scope="col">
-                                        Intitulé
-                                    </th>
-                                    <th scope="col">
-                                        Coût HT
-                                    </th>
-                                    <th scope="col">
-                                        Subvention
-                                    </th>
-                                    <th scope="col">
-                                        Taux
-                                    </th>
+                                    <th scope="col">Année</th>
+                                    <th scope="col">Dotation</th>
+                                    <th scope="col">Intitulé</th>
+                                    <th scope="col">Coût HT</th>
+                                    <th scope="col">Subvention</th>
+                                    <th scope="col">Taux</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for s in subventions %}
                                     <tr>
-                                        <td>
-                                            {{ s.exercice }}
-                                        </td>
-                                        <td>
-                                            {% dsfr_tag label=s.dispositif %}
-                                        </td>
-                                        <td>
-                                            {{ s.intitule }}
-                                        </td>
-                                        <td>
-                                            {{ s.cout_ht|euro }}
-                                        </td>
-                                        <td>
-                                            {{ s.subvention|euro }}
-                                        </td>
-                                        <td>
-                                            {{ s.taux|percent:1 }}
-                                        </td>
+                                        <td>{{ s.exercice }}</td>
+                                        <td>{% dsfr_tag label=s.dispositif %}</td>
+                                        <td>{{ s.intitule }}</td>
+                                        <td>{{ s.cout_ht|euro }}</td>
+                                        <td>{{ s.subvention|euro }}</td>
+                                        <td>{{ s.taux|percent:1 }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -82,14 +52,10 @@
             </div>
         </div>
     {% else %}
-        <p>
-            Aucune subvention DGCL trouvée pour ce bénéficiaire dans votre périmètre.
-        </p>
+        <p>Aucune subvention DGCL trouvée pour ce bénéficiaire dans votre périmètre.</p>
     {% endif %}
 
-    <h2 class="fr-mt-6w">
-        Projets en cours dans Turgot
-    </h2>
+    <h2 class="fr-mt-6w">Projets en cours dans Turgot</h2>
 
     {% if projets %}
         <div class="fr-table fr-table--no-caption">
@@ -100,38 +66,24 @@
                             <caption>Projets Turgot pour {{ beneficiaire_nom }}</caption>
                             <thead>
                                 <tr>
-                                    <th scope="col">
-                                        Date de dépôt
-                                    </th>
-                                    <th scope="col">
-                                        Dotation(s)
-                                    </th>
-                                    <th scope="col">
-                                        Intitulé
-                                    </th>
-                                    <th scope="col">
-                                        Statut
-                                    </th>
-                                    <th scope="col">
-                                        Montant accordé
-                                    </th>
+                                    <th scope="col">Date de dépôt</th>
+                                    <th scope="col">Dotation(s)</th>
+                                    <th scope="col">Intitulé</th>
+                                    <th scope="col">Statut</th>
+                                    <th scope="col">Montant accordé</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for projet in projets %}
                                     <tr>
-                                        <td>
-                                            {{ projet.dossier_ds.ds_date_depot|date:"Y" }}
-                                        </td>
+                                        <td>{{ projet.dossier_ds.ds_date_depot|date:"Y" }}</td>
                                         <td>
                                             {% for dp in projet.dotationprojet_set.all %}
                                                 {% dsfr_tag label=dp.dotation %}
                                             {% endfor %}
                                         </td>
                                         <td>
-                                            <a href="{% url 'projet:get-projet' projet.pk %}">
-                                                {{ projet.dossier_ds.projet_intitule|lower|capfirst }}
-                                            </a>
+                                            <a href="{% url 'projet:get-projet' projet.pk %}">{{ projet.dossier_ds.projet_intitule|lower|capfirst }}</a>
                                         </td>
                                         <td>
                                             {% for dp in projet.dotationprojet_set.all %}
@@ -159,8 +111,6 @@
             </div>
         </div>
     {% else %}
-        <p>
-            Aucun projet Turgot trouvé pour ce bénéficiaire dans votre périmètre.
-        </p>
+        <p>Aucun projet Turgot trouvé pour ce bénéficiaire dans votre périmètre.</p>
     {% endif %}
 {% endblock content %}
