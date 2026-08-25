@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from .models import Beneficiaire, SubventionDgcl, SubventionFondsVert
+from .models import (
+    Beneficiaire,
+    FondsVertImportState,
+    SubventionDgcl,
+    SubventionFondsVert,
+)
 
 
 @admin.register(Beneficiaire)
@@ -39,6 +44,15 @@ class SubventionDgclAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(FondsVertImportState)
+class FondsVertImportStateAdmin(admin.ModelAdmin):
+    """Réservé aux super-utilisateurs (voir AGENTS.md § Admin Permissions) : permet
+    de consulter, et au besoin de remettre à zéro, le curseur de reprise de l'import
+    Fonds Vert."""
+
+    list_display = ("last_page", "updated_at")
 
 
 @admin.register(SubventionFondsVert)

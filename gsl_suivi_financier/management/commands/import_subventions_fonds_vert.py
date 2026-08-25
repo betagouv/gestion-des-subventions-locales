@@ -3,11 +3,11 @@ import logging
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from gsl_suivi_financier.models import FondsVertImportState
 from gsl_suivi_financier.tasks import (
     FONDS_VERT_BASE_URL,
-    _fonds_vert_get,
     _fonds_vert_login,
-    _import_fonds_vert_dossier,
+    _iter_fonds_vert_pages,
 )
 
 logger = logging.getLogger(__name__)
@@ -15,13 +15,24 @@ logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     """
-    python manage.py import_subventions_fonds_vert
+    python manage.py import_subventions_fonds_vert [--restart]
     (credentials lus depuis FONDS_VERT_USERNAME / FONDS_VERT_PASSWORD via settings.py)
+
+    Reprend automatiquement après la dernière page importée avec succès (curseur
+    partagé avec la tâche Celery `fetch_subventions_fonds_vert`). Utiliser --restart
+    pour forcer une reprise depuis la page 1.
     """
 
     help = "Importe les subventions Fonds Vert depuis l'API datahub"
 
-    def handle(self, *args, **kwargs):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--restart",
+            action="store_true",
+            help="Ignore le curseur de reprise et repart de la page 1.",
+        )
+
+    def handle(self, *args, restart, **kwargs):
         username = settings.FONDS_VERT_USERNAME
         password = settings.FONDS_VERT_PASSWORD
         if not username or not password:
@@ -36,41 +47,32 @@ class Command(BaseCommand):
         token = _fonds_vert_login(username, password)
         self.stdout.write("Token obtenu.")
 
+        state = FondsVertImportState.load()
+        start_page = 1 if restart else state.last_page + 1
+        if start_page > 1:
+            self.stdout.write(f"Reprise à la page {start_page}.")
+
         nb_created = nb_updated = nb_errors = 0
-        page = 1
-        per_page = 500
 
-        while True:
-            data = _fonds_vert_get(
-                token, "/fonds_vert/v2/dossiers", page=page, per_page=per_page
-            )
-            items = data.get("data", [])
-            if not items:
-                break
-
-            total = data.get("count", "?")
-            self.stdout.write(f"Page {page} — {len(items)} dossiers (total : {total})…")
-
-            for item in items:
-                try:
-                    created = _import_fonds_vert_dossier(item)
-                except Exception as e:
-                    sc = item.get("socle_commun", {})
-                    self.stderr.write(
-                        self.style.ERROR(
-                            f"  Erreur dossier #{sc.get('dossier_number')}: {e}"
-                        )
+        for page, created, updated, errors in _iter_fonds_vert_pages(
+            token, start_page=start_page
+        ):
+            nb_created += created
+            nb_updated += updated
+            nb_errors += len(errors)
+            self.stdout.write(f"Page {page} — {created} créés, {updated} mis à jour…")
+            for err in errors:
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"  Erreur dossier #{err['dossier_number']}: {err['error']}"
                     )
-                    nb_errors += 1
-                    continue
-                if created:
-                    nb_created += 1
-                else:
-                    nb_updated += 1
+                )
+            state.last_page = page
+            state.save(update_fields=["last_page", "updated_at"])
 
-            if data.get("next_page") is None:
-                break
-            page += 1
+        # Synchronisation complète : on repartira de la page 1 au prochain lancement.
+        state.last_page = 0
+        state.save(update_fields=["last_page", "updated_at"])
 
         self.stdout.write(
             self.style.SUCCESS(
