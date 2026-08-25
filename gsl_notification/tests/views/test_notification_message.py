@@ -331,9 +331,14 @@ class TestView:
         assert response.status_code == 200
         content = response.content.decode()
         assert 'id="notification-message-block"' in content
-        assert 'id="notified-block" hx-swap-oob="true"' in content
-        assert 'id="projet-actions" hx-swap-oob="true"' in content
-        assert 'id="dotation-status-cards" hx-swap-oob="true"' in content
+        assert 'id="notified-block"' in content
+        assert 'id="projet-actions"' in content
+        assert 'id="generate-documents-block"' in content
+        # Regression: the tab's other form fragment tags (generate_documents_form,
+        # notification_message_form) share this same POST request. Without
+        # forcing it back to GET semantics before re-rendering the tab, they'd
+        # bind to this notify form's body and render as invalid.
+        assert "fr-error-text" not in content
         projet.refresh_from_db()
         assert projet.notified_at is not None
         assert ProjetAction.objects.filter(
@@ -367,7 +372,7 @@ class TestView:
         assert response.status_code == 200
         content = response.content.decode()
         assert 'id="notification-message-block"' in content
-        assert 'id="notified-block" hx-swap-oob="true"' in content
+        assert 'id="notified-block"' in content
         projet.refresh_from_db()
         assert projet.notified_at is not None
         assert ProjetAction.objects.filter(
@@ -386,7 +391,7 @@ class TestView:
         assert response.status_code == 200
         content = response.content.decode()
         assert 'id="notification-message-block"' in content
-        assert 'id="notified-block" hx-swap-oob="true"' in content
+        assert 'id="notified-block"' in content
         projet.refresh_from_db()
         assert projet.notified_at is not None
         assert ProjetAction.objects.filter(

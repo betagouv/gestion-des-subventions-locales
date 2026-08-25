@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect
-from django.template.loader import render_to_string
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
@@ -47,7 +46,6 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import Projet
-from gsl_projet.utils.projet_page import get_projet_go_back_context
 from gsl_projet.views import BaseProjetDetailView
 
 # Views for listing notification documents on a programmationProjet, -------------------
@@ -65,15 +63,10 @@ class NotificationDocumentsView(BaseProjetDetailView):
         )
 
     def get_context_data(self, **kwargs):
-        title = self.object.dossier_ds.projet_intitule
         return super().get_context_data(
             **{
-                "dossier": self.object.dossier_ds,
-                "dotation_projets": self.object.dotationprojet_set.all(),
                 "generated_documents": self.object.generated_documents,
                 "imported_documents": self.object.imported_documents,
-                "title": title,
-                **get_projet_go_back_context(self.request),
             }
         )
 
@@ -134,10 +127,12 @@ NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
 class NotificationMessageFormView(UpdateView):
     """
     HTMX endpoint backing the "3 - Notifier" block of the notifications tab.
-    Always re-renders the whole #notification-message-block, which is also
-    its own hx-target, so the response can swap itself in place. On success,
-    it also OOB-swaps the "4 - Notifié" block so both reflect the new
-    notified_at without a full page refresh.
+    On error, re-renders #notification-message-block on its own (invalid
+    form). On success, re-renders the whole notification tab: the form's
+    hx-select/hx-select-oob attributes pick out #notification-message-block
+    plus the other blocks that need to reflect the new notified_at
+    (#notified-block, #projet-actions, #generate-documents-block) without a
+    full page refresh.
     """
 
     form_class = NotificationMessageForm
@@ -177,40 +172,13 @@ class NotificationMessageFormView(UpdateView):
             matomo_action_value,
         )
 
-        notification_message_block = render_to_string(
-            self.template_name, self.get_context_data(), request=self.request
-        )
-
-        oob_context = {"projet": self.object, "hx_swap_oob": "true"}
-        notified_block = render_to_string(
-            "includes/_notified_block.html", oob_context, request=self.request
-        )
-        projet_actions_block = render_to_string(
-            "includes/projet_detail/_projet_actions.html",
-            {
-                **oob_context,
-                "next_url": self.request.headers.get(
-                    "HX-Current-URL", self.request.path
-                ),
-            },
-            request=self.request,
-        )
-        dotation_status_cards_block = render_to_string(
-            "includes/projet_detail/_dotation_status_cards.html",
-            {
-                **oob_context,
-                "dotation_projets": self.object.dotationprojet_set.order_by(
-                    "dotation"
-                ),
-            },
-            request=self.request,
-        )
-        return HttpResponse(
-            notification_message_block
-            + notified_block
-            + projet_actions_block
-            + dotation_status_cards_block
-        )
+        # Re-render the whole notification tab: the form's hx-select /
+        # hx-select-oob then carve out just the blocks that changed.
+        tab_view = NotificationDocumentsView()
+        tab_view.setup(self.request, projet_id=self.object.pk)
+        tab_view.object = self.object
+        self.request.method = "GET"  # useful because we are in a POST
+        return render(self.request, tab_view.template_name, tab_view.get_context_data())
 
 
 # Edition form for arrêté --------------------------------------------------------------
