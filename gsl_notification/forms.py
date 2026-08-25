@@ -512,14 +512,15 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                     motivation=motivation,
                     document=justificatif_file,
                 )
-            else:
-                ds_service = DsService()
-                ds_method = (
-                    ds_service.dismiss_in_ds
-                    if status == PROJET_STATUS_DISMISSED
-                    else ds_service.refuser_in_ds
+            elif status == PROJET_STATUS_DISMISSED:
+                DsService().dismiss_in_ds(
+                    self.instance.dossier_ds,
+                    user,
+                    motivation=motivation,
+                    document=justificatif_file,
                 )
-                ds_method(
+            else:
+                DsService().refuser_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,

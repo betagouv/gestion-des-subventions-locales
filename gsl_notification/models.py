@@ -442,31 +442,6 @@ class LettreEtArreteSignes(UploadedDocument):
         return f"Lettre et arrêté signés #{self.id}"
 
 
-class Annexe(UploadedDocument):
-    document_type = "annexe"
-    required_programmation_projet_statuses = (
-        PROJET_STATUS_ACCEPTED,
-        PROJET_STATUS_REFUSED,
-        PROJET_STATUS_DISMISSED,
-    )
-    allow_multiple = True
-    delete_label = "Suppression de l’annexe"
-    delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
-
-    programmation_projet = models.ForeignKey(
-        "gsl_programmation.ProgrammationProjet",
-        on_delete=models.CASCADE,
-        related_name="annexes",
-    )
-
-    class Meta:
-        verbose_name = "Annexe"
-        verbose_name_plural = "Annexes"
-
-    def __str__(self):
-        return f"Annexe #{self.id}"
-
-
 class LettreRefusSignee(UploadedDocument):
     document_type = "lettre_refus_signee"
     required_programmation_projet_statuses = (
@@ -495,6 +470,27 @@ class LettreRefusSignee(UploadedDocument):
 
     def __str__(self):
         return f"Lettre de refus signée #{self.id}"
+
+
+class Annexe(UploadedDocument):
+    document_type = "annexe"
+    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    allow_multiple = True
+    delete_label = "Suppression de l’annexe"
+    delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
+
+    programmation_projet = models.ForeignKey(
+        "gsl_programmation.ProgrammationProjet",
+        on_delete=models.CASCADE,
+        related_name="annexes",
+    )
+
+    class Meta:
+        verbose_name = "Annexe"
+        verbose_name_plural = "Annexes"
+
+    def __str__(self):
+        return f"Annexe #{self.id}"
 
 
 class DocumentImportJob(BaseModel):
