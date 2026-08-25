@@ -28,9 +28,8 @@ from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
-    Annexe,
     GeneratedDocument,
-    LettreEtArreteSignes,
+    UploadedDocument,
 )
 from gsl_notification.qr import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
@@ -348,7 +347,7 @@ def get_logo_base64(url):
     return "data:image/png;base64," + base64.b64encode(response.content).decode("utf-8")
 
 
-def _get_uploaded_document_pdf(document: Annexe | LettreEtArreteSignes) -> io.BytesIO:
+def _get_uploaded_document_pdf(document: UploadedDocument) -> io.BytesIO:
     s3_object = get_s3_object(document.file.name)
     content = s3_object["Body"].read()
 
@@ -568,7 +567,7 @@ def log_generated_document_action(
 
 
 def merge_documents_into_pdf(
-    documents: list[LettreEtArreteSignes | Annexe],
+    documents: list[UploadedDocument],
     filename: str = "documents.pdf",
 ) -> SimpleUploadedFile:
     documents_file_bytes = [_get_uploaded_document_pdf(doc) for doc in documents]
