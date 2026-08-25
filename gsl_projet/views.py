@@ -296,7 +296,11 @@ class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
 def _build_projet_page_context(projet, request):
     projet_form = _build_projet_form(projet, request)
     dotation_field = projet_form.fields.get("dotations")
-    dotation_projets = list(projet.dotationprojet_set.order_by("dotation").all())
+    # Python-side sort so we benefit from the dotationprojet_set prefetch
+    # instead of re-querying via order_by().
+    dotation_projets = sorted(
+        projet.dotationprojet_set.all(), key=lambda dp: dp.dotation
+    )
     context = {
         "projet": projet,
         "title": projet.dossier_ds.projet_intitule,

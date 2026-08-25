@@ -25,9 +25,6 @@ from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
-    Arrete,
-    LettreNotification,
-    LettreRefus,
 )
 from gsl_projet.constants import (
     DOTATION_CHOICES,
@@ -458,10 +455,14 @@ class Projet(BaseModel):
 
     @property
     def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
+        # Python-side sort so we benefit from the dotationprojet_set
+        # prefetch instead of re-querying via order_by().
         return next(
             (
                 dp.dotation
-                for dp in self.dotationprojet_set.order_by("dotation")
+                for dp in sorted(
+                    self.dotationprojet_set.all(), key=lambda dp: dp.dotation
+                )
                 if dp.status == PROJET_STATUS_PROCESSING
             ),
             None,
@@ -488,13 +489,11 @@ class Projet(BaseModel):
     @property
     def generated_documents(self):
         documents = [
-            *Arrete.objects.filter(programmation_projet__dotation_projet__projet=self),
-            *LettreNotification.objects.filter(
+            document
+            for model in GENERATED_DOCUMENTS.values()
+            for document in model.objects.filter(
                 programmation_projet__dotation_projet__projet=self
-            ),
-            *LettreRefus.objects.filter(
-                programmation_projet__dotation_projet__projet=self
-            ),
+            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
             documents,
@@ -511,7 +510,7 @@ class Projet(BaseModel):
             for model in UPLOADED_DOCUMENTS.values()
             for document in model.objects.filter(
                 programmation_projet__dotation_projet__projet=self
-            )
+            ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
             documents,
@@ -539,6 +538,16 @@ class Projet(BaseModel):
             for field in ZONAGE_AND_CONTRACTS_FIELDS
             if getattr(self, field)
         ]
+
+
+# Used to construct file name
+_GENERATED_DOCUMENT_SELECT_RELATED = (
+    "programmation_projet__enveloppe",
+    "programmation_projet__dotation_projet__projet__dossier_ds__ds_demandeur",
+)
+
+# Used for dotation column
+_UPLOADED_DOCUMENT_SELECT_RELATED = ("programmation_projet__dotation_projet",)
 
 
 class DotationProjetQuerySet(models.QuerySet):

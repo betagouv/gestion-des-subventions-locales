@@ -24,13 +24,13 @@
                                 La dotation {{ projet.dotation_not_treated }} est en attente de traitement.
                             </p>
                         </div>
-                    {% elif projet.dotationprojet_set.without_signed_document %}
+                    {% elif dotation_projets_without_signed_document %}
                         <div role="alert" class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">
                             <p>
                                 Documents manquants pour notifier&nbsp;:
                             </p>
                             <ul>
-                                {% for dotation_projet in projet.dotationprojet_set.without_signed_document %}
+                                {% for dotation_projet in dotation_projets_without_signed_document %}
                                     <li>
                                         Lettre de notification et arrêté signés {{ dotation_projet.dotation }}
                                     </li>
@@ -42,7 +42,7 @@
                     {% comment %} TODO simplify this with a new and more precise projet.to_notify ? {% endcomment %}
                     <button type="submit"
                             class="fr-btn fr-mt-3w fr-icon-mail-line fr-btn--icon-right"
-                            {% if projet.dotation_not_treated or projet.dotationprojet_set.without_signed_document %}disabled{% endif %}>
+                            {% if projet.dotation_not_treated or dotation_projets_without_signed_document %}disabled{% endif %}>
                         Notifier
                     </button>
                 </form>
