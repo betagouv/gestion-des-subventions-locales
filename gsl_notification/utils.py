@@ -18,7 +18,7 @@ from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django_weasyprint.utils import django_url_fetcher
+from django_weasyprint.utils import DjangoURLFetcher
 from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
@@ -522,7 +522,7 @@ def _render_document_as_pdf(document: GeneratedDocument, qr_css_rules) -> bytes:
     )
     return HTML(
         string=html,
-        url_fetcher=django_url_fetcher,
+        url_fetcher=DjangoURLFetcher(),
         base_url=settings.STATIC_ROOT,
     ).write_pdf()
 

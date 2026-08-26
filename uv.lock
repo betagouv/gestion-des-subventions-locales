@@ -703,15 +703,15 @@ wheels = [
 
 [[package]]
 name = "django-weasyprint"
-version = "2.4.0"
+version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "weasyprint" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9d/77/330df7003eea657436c801a05a4953e78d2a50abafb551baf2b2a6560471/django_weasyprint-2.4.0.tar.gz", hash = "sha256:9a1d7c687a6c4678f3ac97e48b0ede495b47e17218e8ee6bea454bc8cfa6b60f", size = 14203, upload-time = "2025-03-06T09:48:55.259Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/5a/e4109aac85db984a020f4a3cff9836af13ee8bf5bdcf6e61818ea9422a48/django_weasyprint-2.5.0.tar.gz", hash = "sha256:362956b650d2a053967471c0ce15857f08e30253a3eeb746aef7c459d3ee9cf9", size = 14436, upload-time = "2026-04-10T23:03:34.315Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c9/9f/5ef4f290faf0f6e0c4a763367cba372ec5c92aeed2287963107f591910a7/django_weasyprint-2.4.0-py3-none-any.whl", hash = "sha256:06bc90bcc84f33d6675815498616cc82153ea924227d336bf32e5bf54da117d1", size = 8082, upload-time = "2025-03-06T09:48:54.213Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/fd/9e6646b91858f2d77fb625837dff0ad18b18649852e476e44ccefaca3ea1/django_weasyprint-2.5.0-py3-none-any.whl", hash = "sha256:1607ef0c8223d7b15e7d4a501a3ec92fb6065179e667135aa50581b7d21aefa3", size = 8255, upload-time = "2026-04-10T23:03:33.456Z" },
 ]
 
 [[package]]
