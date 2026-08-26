@@ -262,6 +262,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
         )
 
         selected_types = self.selected_types
+        with_qr_code = merged_data.get("with_qr_code")
         job = ExportJob.objects.create(
             created_by=self.request.user,
             pp_ids=[pp.pk for pp in programmation_projets],
@@ -275,7 +276,8 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
             ],
             export_format=merged_data.get("export_format"),
             document_type=self.document_type,
-            with_qr_code=merged_data.get("with_qr_code"),
+            with_qr_code=with_qr_code,
+            total_steps=3 if with_qr_code else 2,
         )
         generate_export_task.apply_async(
             args=[str(job.pk)],
