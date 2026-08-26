@@ -15,15 +15,15 @@ admin.site.site_title = "Back-office Turgot - " + settings.ENV
 
 # Django's default handlers convert exception to string - we need these minimal
 # handlers to pass the exception object so templates can duck type user_message
-handler404 = "gsl_pages.views.custom_404_view"
-handler403 = "gsl_pages.views.custom_403_view"
-handler500 = "gsl_pages.views.custom_500_view"
+handler404 = "gsl.pages.views.custom_404_view"
+handler403 = "gsl.pages.views.custom_403_view"
+handler500 = "gsl.pages.views.custom_500_view"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("gsl_core.urls")),
     path("", include("gsl_oidc.urls")),
-    path("", include("gsl_pages.urls")),
+    path("", include("gsl.pages.urls")),
     path(
         "ds/",
         include(("gsl_demarches_simplifiees.urls", "gsl_demarches_simplifiees"), "ds"),

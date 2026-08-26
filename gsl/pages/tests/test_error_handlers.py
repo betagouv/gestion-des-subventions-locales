@@ -30,7 +30,7 @@ def test_404_with_custom_user_message():
     """Test that custom Http404 with user_message displays it to the user."""
     from django.test import RequestFactory
 
-    from gsl_pages.views import custom_404_view
+    from ..views import custom_404_view
 
     user = CollegueFactory()
     request = RequestFactory().get("/gone/")
@@ -72,7 +72,7 @@ def test_403_with_default_permission_denied_shows_generic_message():
     """Test that standard Django PermissionDenied shows generic message."""
     from django.test import RequestFactory
 
-    from gsl_pages.views import custom_403_view
+    from ..views import custom_403_view
 
     user = CollegueFactory()
     request = RequestFactory().get("/forbidden/")
@@ -94,7 +94,7 @@ def test_403_with_custom_user_message():
     """Test that custom PermissionDenied with user_message displays it to the user."""
     from django.test import RequestFactory
 
-    from gsl_pages.views import custom_403_view
+    from ..views import custom_403_view
 
     user = CollegueFactory()
     request = RequestFactory().get("/admin-only/")
@@ -120,7 +120,7 @@ def test_403_page_template_structure():
     """Test that 403 page uses the DSFR error page structure."""
     from django.test import RequestFactory
 
-    from gsl_pages.views import custom_403_view
+    from ..views import custom_403_view
 
     user = CollegueFactory()
     request = RequestFactory().get("/forbidden/")
@@ -154,7 +154,7 @@ def test_500_page_renders():
     """Test that 500 handler returns 500 status with proper content."""
     from django.test import RequestFactory
 
-    from gsl_pages.views import custom_500_view
+    from ..views import custom_500_view
 
     user = CollegueFactory()
     request = RequestFactory().get("/server-error/")
@@ -177,7 +177,7 @@ def test_500_page_does_not_leak_exception_details():
     """Test that 500 page does not display any exception information."""
     from django.test import RequestFactory
 
-    from gsl_pages.views import custom_500_view
+    from ..views import custom_500_view
 
     request = RequestFactory().get("/server-error/")
     request.user = CollegueFactory()
