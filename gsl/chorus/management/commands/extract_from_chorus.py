@@ -6,9 +6,10 @@ import openpyxl
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from gsl_chorus.models import LIGNE_IDENTITY_FIELDS, SuiviFinancier
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+
+from ...models import LIGNE_IDENTITY_FIELDS, SuiviFinancier
 
 COLUMN_HEADERS = {
     "ej": "Nº pce réf",
