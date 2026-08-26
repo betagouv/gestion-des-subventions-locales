@@ -6,14 +6,15 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from gsl_chorus.management.commands.extract_from_chorus import (
+from gsl_demarches_simplifiees.tests.factories import DossierFactory
+
+from ..management.commands.extract_from_chorus import (
     COLUMN_HEADERS,
     extract_dn_number,
     parse_date,
     parse_montant,
 )
-from gsl_chorus.models import SuiviFinancier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from ..models import SuiviFinancier
 
 DETR_LINE = {
     "ej": "2105003612",

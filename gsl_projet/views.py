@@ -18,8 +18,8 @@ from django.views.generic import (
 from django_filters.views import FilterView
 from django_htmx.http import HttpResponseClientRedirect
 
-from gsl_chorus.models import SuiviFinancier
-from gsl_chorus.utils import par_dotation
+from gsl.chorus.models import SuiviFinancier
+from gsl.chorus.utils import par_dotation
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.fragment_tags import register_fragment_tag

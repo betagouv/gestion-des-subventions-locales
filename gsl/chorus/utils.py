@@ -1,10 +1,11 @@
-from gsl_chorus.models import SuiviFinancier
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
+
+from .models import SuiviFinancier
 
 
 def resume_dotation(projet, dotation):

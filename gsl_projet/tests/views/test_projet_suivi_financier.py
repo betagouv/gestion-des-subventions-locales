@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 from django.shortcuts import reverse
 
-from gsl_chorus.models import SuiviFinancier
+from gsl.chorus.models import SuiviFinancier
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,

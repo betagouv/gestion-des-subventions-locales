@@ -2,8 +2,6 @@ from decimal import Decimal
 
 import pytest
 
-from gsl_chorus.models import SuiviFinancier
-from gsl_chorus.utils import par_dotation
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
@@ -12,6 +10,9 @@ from gsl_projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
+
+from ..models import SuiviFinancier
+from ..utils import par_dotation
 
 DS_NUMBER = 28281965
 
