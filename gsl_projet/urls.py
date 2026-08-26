@@ -11,7 +11,7 @@ from . import views
 urlpatterns = [
     path(
         "voir/<int:projet_id>/",
-        views.BaseProjetDetailView.as_view(template_name="gsl_projet/projet.html"),
+        views.ProjetDetailView.as_view(),
         name="get-projet",
     ),
     path(
@@ -41,9 +41,7 @@ urlpatterns = [
     ),
     path(
         "voir/<int:projet_id>/notes/",
-        views.BaseProjetDetailView.as_view(
-            template_name="gsl_projet/projet/tab_notes.html"
-        ),
+        views.ProjetNotesView.as_view(),
         name="get-projet-notes",
     ),
     path(

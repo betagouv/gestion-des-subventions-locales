@@ -76,9 +76,52 @@ class BaseProjetDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(_build_projet_page_context(self.object, self.request))
-        context["extra_skiplinks"] = [{"link": "#projet-panel", "label": "Détail"}]
+        context.update(self.get_base_projet_context(self.object, self.request))
         return context
+
+    @staticmethod
+    def get_base_projet_context(projet, request):
+        dotation_projets = sorted(
+            projet.dotationprojet_set.all(), key=lambda dp: dp.dotation
+        )
+        return {
+            "title": projet.dossier_ds.projet_intitule,
+            "dossier": projet.dossier_ds,
+            "dotation_projets": dotation_projets,
+            "extra_skiplinks": [{"link": "#projet-panel", "label": "Détail"}],
+            **get_projet_go_back_context(request),
+        }
+
+
+class ProjetDetailView(BaseProjetDetailView):
+    template_name = "gsl_projet/projet.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        projet_form = self._build_projet_form()
+        dotation_field = projet_form.fields.get("dotations")
+
+        context.update(
+            {
+                "menu_dict": PROJET_MENU,
+                "projet_form": projet_form,
+                "initial_dotations": (
+                    json.dumps(dotation_field.initial) if dotation_field else "[]"
+                ),
+            }
+        )
+        return context
+
+    def _build_projet_form(self):
+        session_key = f"projet_errors_{self.object.pk}"
+        if session_key in self.request.session:
+            form_data = QueryDict(self.request.session.pop(session_key))
+            form = ProjetForm(
+                data=form_data, instance=self.object, user=self.request.user
+            )
+            form.is_valid()
+            return form
+        return ProjetForm(instance=self.object)
 
 
 class ProjetSimulationsView(BaseProjetDetailView):
@@ -139,6 +182,29 @@ class ProjetSuiviFinancierView(BaseProjetDetailView):
         context["suivi_date"] = SuiviFinancier.objects.aggregate(
             date=Max("date_transaction")
         )["date"]
+        return context
+
+
+class ProjetNotesContextMixin:
+    """Contexte de l'onglet "Notes", partagé entre son affichage
+    (ProjetNotesView) et son formulaire d'ajout, qui doit pouvoir réafficher
+    ce même onglet en cas d'erreur de validation (ProjetNoteCreateView)."""
+
+    @staticmethod
+    def get_notes_context(projet):
+        return {
+            "projet_notes": projet.notes.all(),
+            "comment_cards": get_comment_cards(projet),
+            "projet_note_form": ProjetNoteForm(),
+        }
+
+
+class ProjetNotesView(ProjetNotesContextMixin, BaseProjetDetailView):
+    template_name = "gsl_projet/projet/tab_notes.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(self.get_notes_context(self.object))
         return context
 
 
@@ -293,43 +359,7 @@ class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
         )
 
 
-def _build_projet_page_context(projet, request):
-    projet_form = _build_projet_form(projet, request)
-    dotation_field = projet_form.fields.get("dotations")
-    # Python-side sort so we benefit from the dotationprojet_set prefetch
-    # instead of re-querying via order_by().
-    dotation_projets = sorted(
-        projet.dotationprojet_set.all(), key=lambda dp: dp.dotation
-    )
-    context = {
-        "projet": projet,
-        "title": projet.dossier_ds.projet_intitule,
-        "dossier": projet.dossier_ds,
-        "menu_dict": PROJET_MENU,
-        "projet_notes": projet.notes.all(),
-        "dotation_projets": dotation_projets,
-        "comment_cards": get_comment_cards(projet),
-        "projet_form": projet_form,
-        "initial_dotations": (
-            json.dumps(dotation_field.initial) if dotation_field else "[]"
-        ),
-        **get_projet_go_back_context(request),
-    }
-    context["projet_note_form"] = ProjetNoteForm()
-    return context
-
-
-def _build_projet_form(projet, request):
-    session_key = f"projet_errors_{projet.pk}"
-    if session_key in request.session:
-        form_data = QueryDict(request.session.pop(session_key))
-        form = ProjetForm(data=form_data, instance=projet, user=request.user)
-        form.is_valid()
-        return form
-    return ProjetForm(instance=projet)
-
-
-class ProjetNoteCreateView(CreateView):
+class ProjetNoteCreateView(ProjetNotesContextMixin, CreateView):
     model = ProjetNote
     form_class = ProjetNoteForm
     http_method_names = ["post"]
@@ -362,11 +392,15 @@ class ProjetNoteCreateView(CreateView):
             Projet.objects.active().for_user(self.request.user),
             pk=self.kwargs["projet_id"],
         )
-        context = _build_projet_page_context(projet, self.request)
-        context["projet_note_form"] = form
+        context = {
+            "projet": projet,
+            **BaseProjetDetailView.get_base_projet_context(projet, self.request),
+            **self.get_notes_context(projet),
+            "projet_note_form": form,
+        }
         return TemplateResponse(
             self.request,
-            "gsl_projet/projet/tab_notes.html",
+            ProjetNotesView.template_name,
             context,
             status=200,
         )
