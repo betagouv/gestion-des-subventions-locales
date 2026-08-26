@@ -504,23 +504,24 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             self.instance.notified_at = timezone.now()
             self.instance.save()
 
+            ds_service = DsService()
+
             if status == PROJET_STATUS_ACCEPTED:
-                # TODO use DSService
-                DsMutator().dossier_accepter(
+                ds_service.accept_in_ds(
                     self.instance.dossier_ds,
                     user.ds_id,
                     motivation=motivation,
                     document=justificatif_file,
                 )
             elif status == PROJET_STATUS_DISMISSED:
-                DsService().dismiss_in_ds(
+                ds_service.dismiss_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
                     document=justificatif_file,
                 )
             else:
-                DsService().refuser_in_ds(
+                ds_service.refuser_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
