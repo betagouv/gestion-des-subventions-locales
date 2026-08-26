@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from django.core.files.storage import default_storage
 from django.test import override_settings
+from django.utils import timezone
 from django.utils.text import slugify
 from freezegun import freeze_time
 
@@ -23,7 +24,7 @@ from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
     GenerateDocumentsModeleSelectionForm,
 )
-from gsl_notification.models import LettreNotification
+from gsl_notification.models import ExportJob, LettreNotification
 from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     ModeleArreteFactory,
@@ -32,6 +33,7 @@ from gsl_notification.tests.factories import (
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR, LETTRE
+from gsl_projet.models import Projet
 
 pytestmark = pytest.mark.django_db
 
@@ -87,7 +89,7 @@ def _mock_logo_base64():
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
-WIZARD_PREFIX_DETR = f"generate_documents_wizard_{DOTATION_DETR}"
+WIZARD_PREFIX_DETR = f"generate_accepted_documents_wizard_{DOTATION_DETR}"
 
 
 def _wizard_url(dotation=DOTATION_DETR):
@@ -121,7 +123,7 @@ def _post_launch(client, ids=None, dotation=DOTATION_DETR):
     return client.post(
         _wizard_url(dotation),
         _wizard_step_data(
-            "launch", fields, prefix=f"generate_documents_wizard_{dotation}"
+            "launch", fields, prefix=f"generate_accepted_documents_wizard_{dotation}"
         ),
         **HTMX_HEADERS,
     )
@@ -175,9 +177,8 @@ def test_launch_with_valid_ids_renders_type_selection_step_dialog(
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_format_step.html"
+        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
     )
-    assert "HX-Trigger-After-Settle" in response.headers
     assert "HX-Location" not in response.headers
 
 
@@ -189,7 +190,6 @@ def test_launch_no_projects_renders_error_body(client):
     )
     form = response.context["form"]
     assert "Aucun projet à notifier." in " ".join(form.errors.get("ids", []))
-    assert "HX-Trigger-After-Settle" in response.headers
     assert "HX-Location" not in response.headers
 
 
@@ -206,7 +206,6 @@ def test_launch_wrong_perimetre_renders_error_body(client):
     )
     form = response.context["form"]
     assert "choix valide" in " ".join(form.errors.get("ids", []))
-    assert "HX-Trigger-After-Settle" in response.headers
 
 
 ## Wizard step submissions
@@ -230,7 +229,7 @@ def test_wizard_type_selection_invalid_document_type_re_renders_type_selection(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_format_step.html"
+        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
     )
     form = response.context["form"]
     assert "Type de document inconnu" in " ".join(form["document_type"].errors)
@@ -360,9 +359,8 @@ def test_wizard_modele_selection_to_format_step(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_format_step.html"
+        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
     )
-    assert response.context["doc_count"] == 3
 
 
 def test_wizard_format_step_invalid_export_format_re_renders_format_step(
@@ -389,7 +387,7 @@ def test_wizard_format_step_invalid_export_format_re_renders_format_step(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_format_step.html"
+        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
     )
     form = response.context["form"]
     assert "Veuillez sélectionner un format d'export." in " ".join(
@@ -419,7 +417,7 @@ def _drive_through_format_step(
         _wizard_step_data(
             "type_selection",
             {"document_type": document_type},
-            prefix=f"generate_documents_wizard_{dotation}",
+            prefix=f"generate_accepted_documents_wizard_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -428,7 +426,7 @@ def _drive_through_format_step(
         _wizard_step_data(
             "modele_selection",
             modele_selection_fields,
-            prefix=f"generate_documents_wizard_{dotation}",
+            prefix=f"generate_accepted_documents_wizard_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -437,7 +435,7 @@ def _drive_through_format_step(
         _wizard_step_data(
             "format",
             {"export_format": export_format},
-            prefix=f"generate_documents_wizard_{dotation}",
+            prefix=f"generate_accepted_documents_wizard_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -447,7 +445,9 @@ def _post_create_step_raw(client, dotation=DOTATION_DETR):
     """POST the create step and return the intermediate polling response."""
     return client.post(
         _wizard_url(dotation),
-        _wizard_step_data("create", {}, prefix=f"generate_documents_wizard_{dotation}"),
+        _wizard_step_data(
+            "create", {}, prefix=f"generate_accepted_documents_wizard_{dotation}"
+        ),
         **HTMX_HEADERS,
     )
 
@@ -474,7 +474,7 @@ def test_wizard_format_step_renders_loading_body(
     assert response.context["doc_count"] == 3
     # Loading body must include the wizard management form so the auto-POST
     # is dispatched to the wizard's create step.
-    assert b"generate_documents_wizard_DETR-current_step" in response.content
+    assert b"generate_accepted_documents_wizard_DETR-current_step" in response.content
     assert b'value="create"' in response.content
 
 
@@ -494,6 +494,30 @@ def test_wizard_create_step_returns_polling_template(
     )
     assert "job_id" in response.context
     assert "job" in response.context
+
+
+def test_wizard_create_step_aborts_when_projets_became_ineligible(
+    client, programmation_projets, detr_lettre_modele
+):
+    """A run spans several requests and only the raw POST data of each step is
+    kept in between, so eligibility is settled again at the very end: projets
+    notified meanwhile — from another tab, by a colleague — must stop it."""
+    _drive_through_format_step(
+        client,
+        programmation_projets,
+        modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
+    )
+    Projet.objects.all().update(notified_at=timezone.now())
+
+    response = _post_create_step_raw(client)
+
+    assert response.status_code == 200
+    assert response.templates[0].name == (
+        "gsl_notification/generated_document/multiple_wizard/modal_launch.html"
+    )
+    assert "Aucun projet à notifier." in response.content.decode()
+    assert ExportJob.objects.count() == 0
+    assert LettreNotification.objects.count() == 0
 
 
 def test_wizard_create_step_creates_documents_and_returns_success(
@@ -569,7 +593,7 @@ def test_wizard_modele_selection_conserver_when_all_covered_advances_to_format_s
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_format_step.html"
+        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
     )
     form = response.context["form"]
     assert "overwrite_strategy" not in form.errors

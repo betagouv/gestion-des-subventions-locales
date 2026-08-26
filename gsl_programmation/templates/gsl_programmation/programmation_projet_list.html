@@ -32,12 +32,6 @@
         {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
         {{ can_generate_accepted_documents_ids|json_script:"checkbox-selection-accepted-ids" }}
         {{ can_generate_refus_documents_ids|json_script:"checkbox-selection-refus-ids" }}
-        <button id="generate-multiple-modal-button"
-                aria-controls="generate-multiple-modal"
-                type="button"
-                hidden
-                data-fr-opened="false">
-        </button>
         <dialog class="fr-modal"
                 id="generate-multiple-modal"
                 aria-labelledby="generate-multiple-modal-title"
@@ -46,7 +40,7 @@
             <div class="fr-container fr-container--fluid fr-container-md">
                 <div class="fr-grid-row fr-grid-row--center">
                     <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
-                        <div class="fr-modal__body">
+                        <div class="fr-modal__body modal-wizard-body">
                             <div class="fr-modal__header">
                                 <button aria-controls="generate-multiple-modal"
                                         title="Fermer"
@@ -55,19 +49,18 @@
                                     Fermer
                                 </button>
                             </div>
-                            <div id="generate-multiple-modal-step">
+                            <div class="modal-wizard-loading fr-modal__content">
+                                <div class="fr-my-6w fr-grid-row fr-grid-row--center">
+                                    <span class="fr-icon-refresh-line generate-docs-spinner" aria-hidden="true"></span>
+                                </div>
+                            </div>
+                            <div class="modal-wizard-step" id="generate-multiple-modal-step">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </dialog>
-        <button id="generate-refus-modal-button"
-                aria-controls="generate-refus-modal"
-                type="button"
-                hidden
-                data-fr-opened="false">
-        </button>
         <dialog class="fr-modal"
                 id="generate-refus-modal"
                 aria-labelledby="generate-refus-modal-title"
@@ -76,7 +69,7 @@
             <div class="fr-container fr-container--fluid fr-container-md">
                 <div class="fr-grid-row fr-grid-row--center">
                     <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
-                        <div class="fr-modal__body">
+                        <div class="fr-modal__body modal-wizard-body">
                             <div class="fr-modal__header">
                                 <button aria-controls="generate-refus-modal"
                                         title="Fermer"
@@ -85,7 +78,12 @@
                                     Fermer
                                 </button>
                             </div>
-                            <div id="generate-refus-modal-step">
+                            <div class="modal-wizard-loading fr-modal__content">
+                                <div class="fr-my-6w fr-grid-row fr-grid-row--center">
+                                    <span class="fr-icon-refresh-line generate-docs-spinner" aria-hidden="true"></span>
+                                </div>
+                            </div>
+                            <div class="modal-wizard-step" id="generate-refus-modal-step">
                             </div>
                         </div>
                     </div>
@@ -126,17 +124,25 @@
                                     <li>
                                         <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
                                               hx-target="#generate-multiple-modal-step"
-                                              hx-swap="outerHTML">
+                                              hx-swap="outerHTML"
+                                              hx-indicator=".modal-wizard-body">
                                             {% csrf_token %}
                                             <input type="hidden"
-                                                   name="generate_documents_wizard_{{ dotation }}-current_step"
+                                                   name="generate_accepted_documents_wizard_{{ dotation }}-current_step"
                                                    value="launch">
                                             <input type="hidden"
                                                    name="launch-ids"
                                                    value=""
                                                    data-checkbox-selection-target="idsInput">
+                                            {% comment %}
+                                            Without data-fr-opened, DSFR reads an aria-controls button as a
+                                            closer and the click conceals instead of opening. It doesn't
+                                            preventDefault, so the same button can still submit the form.
+                                            {% endcomment %}
                                             <button type="submit"
                                                     class="fr-nav__link fr-btn--icon-left fr-icon-mail-add-line"
+                                                    aria-controls="generate-multiple-modal"
+                                                    data-fr-opened="false"
                                                     disabled
                                                     data-checkbox-selection-target="acceptedActionButton">
                                                 Générer <span data-checkbox-selection-target="acceptedCounter">0</span> arrêtés et lettres d'acceptation
@@ -146,10 +152,11 @@
                                     <li>
                                         <form hx-post="{% url "gsl_notification:generate-refus-documents-modal" dotation %}"
                                               hx-target="#generate-refus-modal-step"
-                                              hx-swap="outerHTML">
+                                              hx-swap="outerHTML"
+                                              hx-indicator=".modal-wizard-body">
                                             {% csrf_token %}
                                             <input type="hidden"
-                                                   name="generate_refus_wizard_{{ dotation }}-current_step"
+                                                   name="generate_lettre_refus_wizard_{{ dotation }}-current_step"
                                                    value="launch">
                                             <input type="hidden"
                                                    name="launch-ids"
@@ -157,6 +164,8 @@
                                                    data-checkbox-selection-target="idsInput">
                                             <button type="submit"
                                                     class="fr-nav__link fr-btn--icon-left fr-icon-mail-add-line"
+                                                    aria-controls="generate-refus-modal"
+                                                    data-fr-opened="false"
                                                     disabled
                                                     data-checkbox-selection-target="refusActionButton">
                                                 Générer <span data-checkbox-selection-target="refusCounter">0</span> lettres de refus ou de classement sans suite

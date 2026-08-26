@@ -52,6 +52,24 @@
 }
 
 #programmation-bulk-actions-menu .fr-nav__link {
-  font-weight: normal;
+  font-weight: 500;
   display: block;
+}
+
+#programmation-bulk-actions-menu .fr-nav__link:not(:disabled) {
+  color: var(--blue-france-sun-113-625);
+}
+
+/* Bulk generation modals open on click, their first step only arrives with the
+   htmx response. */
+.modal-wizard-loading {
+  display: none;
+}
+
+.modal-wizard-body.htmx-request .modal-wizard-loading {
+  display: block;
+}
+
+.modal-wizard-body.htmx-request > .modal-wizard-step {
+  display: none;
 }
