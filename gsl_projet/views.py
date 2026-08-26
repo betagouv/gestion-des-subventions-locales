@@ -76,20 +76,21 @@ class BaseProjetDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        dotation_projets = sorted(
-            self.object.dotationprojet_set.all(), key=lambda dp: dp.dotation
-        )
-
-        context.update(
-            {
-                "title": self.object.dossier_ds.projet_intitule,
-                "dossier": self.object.dossier_ds,
-                "dotation_projets": dotation_projets,
-                "extra_skiplinks": [{"link": "#projet-panel", "label": "Détail"}],
-                **get_projet_go_back_context(self.request),
-            }
-        )
+        context.update(self.get_base_projet_context(self.object, self.request))
         return context
+
+    @staticmethod
+    def get_base_projet_context(projet, request):
+        dotation_projets = sorted(
+            projet.dotationprojet_set.all(), key=lambda dp: dp.dotation
+        )
+        return {
+            "title": projet.dossier_ds.projet_intitule,
+            "dossier": projet.dossier_ds,
+            "dotation_projets": dotation_projets,
+            "extra_skiplinks": [{"link": "#projet-panel", "label": "Détail"}],
+            **get_projet_go_back_context(request),
+        }
 
 
 class ProjetDetailView(BaseProjetDetailView):
@@ -184,14 +185,26 @@ class ProjetSuiviFinancierView(BaseProjetDetailView):
         return context
 
 
-class ProjetNotesView(BaseProjetDetailView):
+class ProjetNotesContextMixin:
+    """Contexte de l'onglet "Notes", partagé entre son affichage
+    (ProjetNotesView) et son formulaire d'ajout, qui doit pouvoir réafficher
+    ce même onglet en cas d'erreur de validation (ProjetNoteCreateView)."""
+
+    @staticmethod
+    def get_notes_context(projet):
+        return {
+            "projet_notes": projet.notes.all(),
+            "comment_cards": get_comment_cards(projet),
+            "projet_note_form": ProjetNoteForm(),
+        }
+
+
+class ProjetNotesView(ProjetNotesContextMixin, BaseProjetDetailView):
     template_name = "gsl_projet/projet/tab_notes.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["projet_notes"] = self.object.notes.all()
-        context["comment_cards"] = get_comment_cards(self.object)
-        context["projet_note_form"] = ProjetNoteForm()
+        context.update(self.get_notes_context(self.object))
         return context
 
 
@@ -346,8 +359,7 @@ class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
         )
 
 
-# TODO migrate this using templatetags
-class ProjetNoteCreateView(CreateView):
+class ProjetNoteCreateView(ProjetNotesContextMixin, CreateView):
     model = ProjetNote
     form_class = ProjetNoteForm
     http_method_names = ["post"]
@@ -380,14 +392,15 @@ class ProjetNoteCreateView(CreateView):
             Projet.objects.active().for_user(self.request.user),
             pk=self.kwargs["projet_id"],
         )
-        notes_view = ProjetNotesView()
-        notes_view.setup(self.request, projet_id=projet.pk)
-        notes_view.object = projet
-        context = notes_view.get_context_data()
-        context["projet_note_form"] = form
+        context = {
+            "projet": projet,
+            **BaseProjetDetailView.get_base_projet_context(projet, self.request),
+            **self.get_notes_context(projet),
+            "projet_note_form": form,
+        }
         return TemplateResponse(
             self.request,
-            notes_view.template_name,
+            ProjetNotesView.template_name,
             context,
             status=200,
         )
