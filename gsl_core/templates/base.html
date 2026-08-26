@@ -57,6 +57,7 @@
                     "skipDocumentToggle": "{% static 'js/skipDocumentToggle.js' %}",
                     "checkboxSelection": "{% static 'js/checkboxSelection.js' %}",
                     "bindAmountFields": "{% static 'js/controllers/bindAmountFields.js' %}",
+                    "cancelPollOnModalClose": "{% static 'js/controllers/cancelPollOnModalClose.js' %}",
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
                     "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
                     "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
@@ -131,6 +132,7 @@
             import { Application } from "stimulus"
             import { AutoDismiss } from "autoDismiss"
             import { BindAmountFields } from "bindAmountFields"
+            import { CancelPollOnModalClose } from "cancelPollOnModalClose"
             import { CheckboxSelection } from "checkboxSelection"
             import { CommentArbitrage } from "commentArbitrage"
             import { ConditionalField } from "conditionalField"
@@ -161,6 +163,7 @@
             Stimulus.register("skip-document-toggle", SkipDocumentToggle)
             Stimulus.register("checkbox-selection", CheckboxSelection)
             Stimulus.register("bind-amount-fields", BindAmountFields)
+            Stimulus.register("cancel-poll-on-modal-close", CancelPollOnModalClose)
             Stimulus.register("form-utils", FormUtils)
             Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)
