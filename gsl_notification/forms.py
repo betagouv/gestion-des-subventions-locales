@@ -11,7 +11,6 @@ from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
-from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
@@ -509,9 +508,9 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             if status == PROJET_STATUS_ACCEPTED:
                 ds_service.accept_in_ds(
                     self.instance.dossier_ds,
-                    user.ds_id,
-                    motivation=motivation,
+                    user,
                     document=justificatif_file,
+                    motivation=motivation,
                 )
             elif status == PROJET_STATUS_DISMISSED:
                 ds_service.dismiss_in_ds(

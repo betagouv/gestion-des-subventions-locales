@@ -91,7 +91,7 @@ class DsService:
     ):
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_accepter(
-            dossier, instructeur_id, motivation, document=document
+            dossier.ds_id, instructeur_id, motivation=motivation, document=document
         )
         self._check_results(results, dossier, user, "accept", value=motivation)
         return results
