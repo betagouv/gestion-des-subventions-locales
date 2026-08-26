@@ -33,9 +33,10 @@ from gsl_projet.constants import DOTATIONS, LETTRE_REFUS
 @dataclass(frozen=True)
 class Step:
     """
-    `form_kwargs` and `extra_context` name wizard hooks: each entry `foo` is
-    resolved by calling the wizard's `get_foo()`, and passed either to the
-    step's form or to its template context.
+    `form_kwargs` and `extra_context` name wizard attributes: each entry `foo`
+    is read from the wizard as `self.foo`, and passed either to the step's form
+    or to its template context. A wizard is free to make one a cached_property
+    when it is expensive to resolve.
     """
 
     name: str
@@ -81,7 +82,7 @@ class HtmxModalWizardMixin:
         return self.get_step(self.steps.current)
 
     def get_hook_values(self, hook_names: tuple[str, ...]) -> dict:
-        return {name: getattr(self, f"get_{name}")() for name in hook_names}
+        return {name: getattr(self, name) for name in hook_names}
 
     def get_prefix(self, request, *args, **kwargs):
         prefix = super().get_prefix(request, *args, **kwargs)
@@ -94,29 +95,6 @@ class HtmxModalWizardMixin:
         session storage. Subclasses override.
         """
         return ""
-
-    @cached_property
-    def _form_cache(self) -> dict:
-        return {}
-
-    def get_form_for_step(self, step):
-        # A single request asks for the same step repeatedly: later steps pull
-        # their kwargs from it, then render_done() needs it again. Caching is
-        # safe because post() stores the submitted step's data before anything
-        # reads a form back from storage.
-        if step not in self._form_cache:
-            self._form_cache[step] = self.get_form(
-                step=step,
-                data=self.storage.get_step_data(step),
-                files=self.storage.get_step_files(step),
-            )
-        return self._form_cache[step]
-
-    def get_cleaned_data_for_step(self, step):
-        form = self.get_form_for_step(step)
-        # A form validates itself only once, so asking again is free. formtools
-        # expects None for a step that doesn't validate.
-        return form.cleaned_data if form.is_valid() else None
 
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
@@ -159,21 +137,6 @@ class HtmxModalWizardMixin:
             # done(), and a modal can be closed at any step.
             self.storage.reset()
         return super().post(request, *args, **kwargs)
-
-    def render_done(self, form, **kwargs):
-        # The steps were submitted one request at a time and only their raw POST
-        # data was kept: what it points to can have changed since, so it is
-        # validated once more before anything is generated.
-        form_dict = {
-            step_name: self.get_form_for_step(step_name)
-            for step_name in self.get_form_list()
-        }
-        for step_name, step_form in form_dict.items():
-            if not step_form.is_valid():
-                return self.render_revalidation_failure(step_name, step_form, **kwargs)
-        response = self.done(form_dict.values(), form_dict=form_dict, **kwargs)
-        self.storage.reset()
-        return response
 
     def get_merged_cleaned_data(self, form_dict) -> dict:
         """Every step's cleaned_data, merged in flow order: later steps win."""
@@ -239,7 +202,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
     - MODAL_TITLE, modal_id: modal identifiers,
     - MODAL_POST_URL_NAME, STATUS_URL_NAME: their own URL names, used by the
       shared templates (form actions, polling endpoint),
-    - get_document_type(): the kind of documents the run generates.
+    - document_type: the kind of documents the run generates.
     """
 
     STATUS_URL_NAME: str = ""
@@ -253,20 +216,26 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
         # One run per dotation, so DETR and DSIL don't collide.
         return self.kwargs["dotation"]
 
-    def get_document_type(self) -> str:
+    @property
+    def document_type(self) -> str:
         """The type of document this run generates. Subclasses implement."""
         raise NotImplementedError
 
-    def get_selected_types(self) -> frozenset[str]:
+    @property
+    def selected_types(self) -> frozenset[str]:
         """The document types the run generates, one document each per projet."""
-        return SELECTED_TYPES_BY_CHOICE[self.get_document_type()]
+        return SELECTED_TYPES_BY_CHOICE[self.document_type]
 
-    def get_programmation_projets(self):
+    @cached_property
+    def programmation_projets(self):
+        # Resolving the launch step runs an eligibility query over the whole
+        # programmation, and every later step is built from its result.
         launch_data = self.get_cleaned_data_for_step(self.steps.first) or {}
         return launch_data.get("ids") or []
 
-    def get_doc_count(self) -> int:
-        return len(self.get_programmation_projets()) * len(self.get_selected_types())
+    @property
+    def doc_count(self) -> int:
+        return len(self.programmation_projets) * len(self.selected_types)
 
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
@@ -292,7 +261,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
             overwrite_strategy=merged_data.get("overwrite_strategy"),
         )
 
-        selected_types = self.get_selected_types()
+        selected_types = self.selected_types
         job = ExportJob.objects.create(
             created_by=self.request.user,
             pp_ids=[pp.pk for pp in programmation_projets],
@@ -305,7 +274,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
                 if document_type in selected_types
             ],
             export_format=merged_data.get("export_format"),
-            document_type=self.get_document_type(),
+            document_type=self.document_type,
             with_qr_code=merged_data.get("with_qr_code"),
         )
         generate_export_task.apply_async(
@@ -350,7 +319,8 @@ class GenerateAcceptedDocumentsWizard(BaseGenerateDocumentsWizard):
     MODAL_POST_URL_NAME = "gsl_notification:generate-documents-modal"
     STATUS_URL_NAME = "gsl_notification:generate-documents-status"
 
-    def get_document_type(self):
+    @cached_property
+    def document_type(self):
         type_selection_data = self.get_cleaned_data_for_step(TYPE_SELECTION.name) or {}
         return type_selection_data.get("document_type")
 
@@ -373,8 +343,7 @@ class GenerateLettreRefusWizard(BaseGenerateDocumentsWizard):
     MODAL_POST_URL_NAME = "gsl_notification:generate-refus-documents-modal"
     STATUS_URL_NAME = "gsl_notification:generate-refus-documents-status"
 
-    def get_document_type(self):
-        return LETTRE_REFUS
+    document_type = LETTRE_REFUS
 
 
 @method_decorator(htmx_only, name="dispatch")
