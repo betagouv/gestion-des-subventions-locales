@@ -1,4 +1,4 @@
-{% extends "gsl_notification/generated_document/multiple/modal_step_base.html" %}
+{% extends "gsl_notification/generated_document/multiple_wizard/modal_step_base.html" %}
 {% load dsfr_tags %}
 {% block oob_swaps %}
     {% for programmation_projet in refreshed_programmation_projets %}
@@ -9,7 +9,7 @@
     {% endfor %}
 {% endblock oob_swaps %}
 {% block stepper %}
-    {% dsfr_stepper current_step_id=4 total_steps=4 current_step_title="Téléchargement" %}
+    {% dsfr_stepper current_step_id=total_steps total_steps=total_steps current_step_title="Téléchargement" %}
 {% endblock stepper %}
 {% block content %}
     <div class="fr-alert fr-alert--success fr-mt-3w" role="status">

@@ -163,6 +163,7 @@ GENERATED_DOCUMENTS = {}
 
 class GeneratedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
+    is_feminine: bool = False
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
@@ -264,6 +265,7 @@ class Arrete(GeneratedDocument):
 
 class LettreNotification(GeneratedDocument):
     document_type = LETTRE
+    is_feminine = True
     delete_label = "Suppression de la lettre de notification"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre de notification ?"
@@ -278,6 +280,7 @@ class LettreNotification(GeneratedDocument):
 
 class LettreRefus(GeneratedDocument):
     document_type = LETTRE_REFUS
+    is_feminine = True
     delete_label = "Suppression de la lettre de refus ou classement sans suite"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou classement sans suite ?"
     short_name = "Lettre de refus"
@@ -496,13 +499,12 @@ class ExportJob(BaseModel):
         (STATUS_DONE, "Terminé"),
     )
 
-    DOCUMENT_TYPE_ARRETE = ARRETE
-    DOCUMENT_TYPE_LETTRE = LETTRE
     DOCUMENT_TYPE_ARRETE_ET_LETTRE = "arrete_et_lettre"
     DOCUMENT_TYPE_CHOICES = (
         (ARRETE, "Arrêté"),
         (LETTRE, "Lettre de notification"),
-        ("arrete_et_lettre", "Arrêté et lettre"),
+        (DOCUMENT_TYPE_ARRETE_ET_LETTRE, "Arrêté et lettre"),
+        (LETTRE_REFUS, "Lettre de refus ou de classement sans suite"),
     )
 
     EXPORT_FORMAT_ONE_PDF_PER_DOC = "un_pdf_par_document"

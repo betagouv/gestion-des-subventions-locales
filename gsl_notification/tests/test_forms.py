@@ -9,7 +9,7 @@ from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     UPLOADED_DOCUMENT_FORMS,
     ArreteForm,
-    GenerateDocumentsStep3Form,
+    GenerateDocumentsFormatForm,
     GenerateDotationsDocumentsForm,
     LettreNotificationForm,
     ModeleDocumentStepTwoForm,
@@ -260,7 +260,7 @@ def test_modele_arrete_step_2_rejects_too_large_files(file_size, is_valid):
 @pytest.mark.django_db
 def test_generate_documents_step3_form_exposes_with_qr_code():
     user = CollegueFactory()
-    field = GenerateDocumentsStep3Form(
+    field = GenerateDocumentsFormatForm(
         user=user,
         dotation=DOTATION_DETR,
         request=None,
@@ -274,7 +274,7 @@ def test_generate_documents_step3_form_exposes_with_qr_code():
 def test_generate_documents_step3_form_valid_without_qr_field_submitted():
     """An unchecked checkbox sends nothing: the form stays valid (opt-out)."""
     user = CollegueFactory()
-    form = GenerateDocumentsStep3Form(
+    form = GenerateDocumentsFormatForm(
         data={"export_format": EXPORT_FORMAT_ONE_PDF_ALL},
         user=user,
         dotation=DOTATION_DETR,

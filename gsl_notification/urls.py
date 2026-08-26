@@ -1,8 +1,10 @@
 from django.urls import path
 
 from gsl_notification.views.generate_document_for_multiple_projets_views import (
-    GenerateDocumentsStatusView,
-    GenerateDocumentsWizard,
+    GenerateAcceptedDocumentsStatusView,
+    GenerateAcceptedDocumentsWizard,
+    GenerateLettreRefusStatusView,
+    GenerateLettreRefusWizard,
 )
 from gsl_notification.views.import_views import (
     ImportDocumentsModalView,
@@ -93,13 +95,23 @@ urlpatterns = [
     # Modal HTMX - génération en masse
     path(
         "<str:dotation>/generer/",
-        GenerateDocumentsWizard.as_view(),
+        GenerateAcceptedDocumentsWizard.as_view(),
         name="generate-documents-modal",
     ),
     path(
         "<str:dotation>/generer/status/<uuid:job_id>/",
-        GenerateDocumentsStatusView.as_view(),
+        GenerateAcceptedDocumentsStatusView.as_view(),
         name="generate-documents-status",
+    ),
+    path(
+        "<str:dotation>/generer-refus/",
+        GenerateLettreRefusWizard.as_view(),
+        name="generate-refus-documents-modal",
+    ),
+    path(
+        "<str:dotation>/generer-refus/status/<uuid:job_id>/",
+        GenerateLettreRefusStatusView.as_view(),
+        name="generate-refus-documents-status",
     ),
     # Modal HTMX - import des documents signés
     path(

@@ -212,9 +212,18 @@ class ProgrammationProjetQuerySet(models.QuerySet):
     def to_notify(self):
         return self.filter(dotation_projet__projet__in=Projet.objects.to_notify())
 
-    def can_generate_documents(self):
+    def can_generate_accepted_documents(self):
         return self.filter(
             status=ProgrammationProjet.STATUS_ACCEPTED,
+            dotation_projet__projet__notified_at__isnull=True,
+        )
+
+    def can_generate_refus_documents(self):
+        return self.filter(
+            status__in=(
+                ProgrammationProjet.STATUS_REFUSED,
+                ProgrammationProjet.STATUS_DISMISSED,
+            ),
             dotation_projet__projet__notified_at__isnull=True,
         )
 
@@ -315,8 +324,15 @@ class ProgrammationProjet(models.Model):
         return self.projet.to_notify
 
     @property
-    def can_generate_documents(self):
+    def can_generate_accepted_documents(self):
         return self.status == self.STATUS_ACCEPTED and self.projet.notified_at is None
+
+    @property
+    def can_generate_refus_documents(self):
+        return (
+            self.status in (self.STATUS_REFUSED, self.STATUS_DISMISSED)
+            and self.projet.notified_at is None
+        )
 
     @property
     def dotation(self):
