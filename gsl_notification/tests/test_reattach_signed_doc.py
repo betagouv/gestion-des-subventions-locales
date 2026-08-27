@@ -9,14 +9,13 @@ from pikepdf import Page, Pdf
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.models import LettreEtArreteSignes
-from gsl_notification.qr import QrHit, QrPayload, parse_payload
+from gsl_notification.qr import QrPayload, parse_payload
 from gsl_notification.tests.factories import (
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ARRETE, LETTRE
 
 
 @pytest.fixture(autouse=True)
@@ -123,49 +122,6 @@ def _decode_pdf_bytes(raw: bytes) -> list[QrPayload | None]:
         return out
     finally:
         pdf.close()
-
-
-def test_group_pages_orders_lettre_before_arrete_then_by_page():
-    """Unit test: `_group_pages` + the command's sort key place lettre pages
-    before arrete pages, and order pages within each by the QR `page` field."""
-    from gsl_notification.reattach import (
-        _DOCUMENT_TYPE_ORDER,
-        _group_pages,
-    )
-
-    def hit(ds, dotation, document_type, page):
-        return QrHit(
-            payload=QrPayload(
-                ds_number=ds,
-                dotation=dotation,
-                document_type=document_type,
-                page=page,
-            ),
-            bbox=(0.0, 0.0, 10.0, 10.0),
-            image_width_px=1000,
-            image_height_px=1000,
-        )
-
-    from gsl_projet.constants import DOTATION_DETR
-
-    per_page = [
-        hit(42, DOTATION_DETR, ARRETE, 2),  # scan idx 0
-        hit(42, DOTATION_DETR, LETTRE, 1),  # scan idx 1
-        hit(42, DOTATION_DETR, ARRETE, 1),  # scan idx 2
-        hit(42, DOTATION_DETR, LETTRE, 2),  # scan idx 3
-    ]
-    groups, unreadable = _group_pages(per_page)
-    assert unreadable == []
-    entries = groups[(42, DOTATION_DETR)]
-    entries.sort(key=lambda e: (_DOCUMENT_TYPE_ORDER.get(e[1], 99), e[2]))
-
-    # Expected order: all LETTRE pages first (page 1 then 2), then ARRETE.
-    assert [(e[0], e[1], e[2]) for e in entries] == [
-        (1, LETTRE, 1),
-        (3, LETTRE, 2),
-        (2, ARRETE, 1),
-        (0, ARRETE, 2),
-    ]
 
 
 @pytest.mark.django_db

@@ -196,30 +196,6 @@ def _read_to_bytes(pdf_source: Path | bytes | BinaryIO) -> bytes:
     return pdf_source.read()
 
 
-def _group_pages(per_page):
-    groups: dict[
-        tuple[int, str],
-        list[
-            tuple[int, str, int, tuple[float, float, float, float] | None, int | None]
-        ],
-    ] = defaultdict(list)
-    unreadable: list[int] = []
-    for scan_idx, hit in enumerate(per_page):
-        if hit is None:
-            unreadable.append(scan_idx + 1)
-            continue
-        groups[(hit.payload.ds_number, hit.payload.dotation)].append(
-            (
-                scan_idx,
-                hit.payload.document_type,
-                hit.payload.page,
-                hit.bbox,
-                hit.image_height_px,
-            )
-        )
-    return groups, unreadable
-
-
 def _attach_group(
     srcs,
     pdf_bytes_list,
