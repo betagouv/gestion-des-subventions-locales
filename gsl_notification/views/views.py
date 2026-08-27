@@ -1,30 +1,19 @@
 from django.contrib import messages
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.csp import CSP
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, DetailView, FormView, UpdateView
-from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.historique.models import ProjetAction
 from gsl.utils.csp import csp_update
-from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
-    MATOMO_ACTION_ENVOI_DN,
-    MATOMO_CATEGORY_NOTIFICATION,
-)
-from gsl_core.templatetags.fragment_tags import register_fragment_tag
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
     GENERATED_DOCUMENT_TO_FORM,
     ChoixModeleForm,
-    GenerateDotationsDocumentsForm,
-    NotificationMessageForm,
 )
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
@@ -40,11 +29,6 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
-)
 from gsl_projet.models import Projet
 from gsl_projet.views import BaseProjetDetailView
 
@@ -69,116 +53,6 @@ class NotificationDocumentsView(BaseProjetDetailView):
                 "imported_documents": self.object.imported_documents,
             }
         )
-
-
-@register_fragment_tag("generate_documents_form")
-@method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsFormView(UpdateView):
-    """
-    HTMX endpoint backing the "1 - Générer" block of the notifications tab.
-    Always re-renders the whole #generate-documents-block, which is also
-    its own hx-target, so the response can swap itself in place.
-
-    GenerateAcceptedDotationsDocumentsForm is a plain Form (projet/user
-    passed as custom kwargs), not a ModelForm, so ModelFormMixin's
-    get_form_kwargs (which injects `instance`) must be stripped before
-    calling the form.
-    """
-
-    model = Projet
-    form_class = GenerateDotationsDocumentsForm
-    template_name = "includes/_generate_documents_form.html"
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-
-    def get_queryset(self):
-        return (
-            Projet.objects.active()
-            .for_user(self.request.user)
-            .with_at_least_one_treated_dotation()
-            .filter(notified_at__isnull=True)
-        )
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs.pop("instance", None)
-        kwargs["projet"] = self.object
-        kwargs["user"] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        form.save()
-        return HttpResponseClientRefresh()
-
-    def form_invalid(self, form):
-        form.set_autofocus_on_first_error()  # TODO systemize this on form_invalid ??
-        return super().form_invalid(form)
-
-
-NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
-    PROJET_STATUS_ACCEPTED: "accepte",
-    PROJET_STATUS_REFUSED: "refuse",
-    PROJET_STATUS_DISMISSED: "classe_sans_suite",
-}
-
-
-@register_fragment_tag("notification_message_form")
-@method_decorator(htmx_only, name="dispatch")
-class NotificationMessageFormView(UpdateView):
-    """
-    HTMX endpoint backing the "3 - Notifier" block of the notifications tab.
-    On error, re-renders #notification-message-block on its own (invalid
-    form). On success, re-renders the whole notification tab: the form's
-    hx-select/hx-select-oob attributes pick out #notification-message-block
-    plus the other blocks that need to reflect the new notified_at
-    (#notified-block, #projet-actions, #generate-documents-block) without a
-    full page refresh.
-    """
-
-    form_class = NotificationMessageForm
-    template_name = "includes/_notification_message_form.html"
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-    model = Projet
-
-    def get_queryset(self):
-        return Projet.objects.active().for_user(self.request.user).to_notify()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["is_instructor"] = self.object.dossier_ds.is_instructeur(
-            self.request.user
-        )
-        context["dotation_projets_without_signed_document"] = list(
-            self.object.dotationprojet_set.without_signed_document()
-        )
-        return context
-
-    def form_valid(self, form):
-        try:
-            form.save(user=self.request.user)
-        except DsServiceException as e:
-            form.add_error(
-                None,
-                f"Une erreur est survenue lors de l'envoi de la notification. {str(e)}",
-            )
-            return self.form_invalid(form)
-
-        matomo_action_value = NOTIFICATION_RESULT_TO_MATOMO_ACTION[self.object.status]
-        queue_matomo_event(
-            self.request,
-            MATOMO_CATEGORY_NOTIFICATION,
-            MATOMO_ACTION_ENVOI_DN,
-            matomo_action_value,
-        )
-
-        # Re-render the whole notification tab: the form's hx-select /
-        # hx-select-oob then carve out just the blocks that changed.
-        tab_view = NotificationDocumentsView()
-        tab_view.setup(self.request, projet_id=self.object.pk)
-        tab_view.object = self.object
-        self.request.method = "GET"  # useful because we are in a POST
-        return render(self.request, tab_view.template_name, tab_view.get_context_data())
 
 
 # Edition form for arrêté --------------------------------------------------------------

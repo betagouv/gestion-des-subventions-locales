@@ -9,6 +9,7 @@ from typing import cast
 from unittest import mock
 
 import pytest
+from django.urls import reverse
 from django.utils import timezone
 
 from gsl.historique.models import ProjetAction
@@ -320,7 +321,10 @@ class TestForm:
 class TestView:
     def test_post_send_notification_success(self, client_with_user_logged, perimetre):
         projet = _accepted_projet(perimetre)
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         with (
             mock.patch("gsl_notification.forms.DsMutator.dossier_accepter"),
             mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
@@ -349,7 +353,10 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _accepted_projet(perimetre, with_signed_document=False)
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         response = client_with_user_logged.post(
             url, {"message": ""}, headers={"HX-Request": "true"}
         )
@@ -364,7 +371,10 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _refused_projet(perimetre)
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         with mock.patch("gsl_notification.forms.DsService.refuser_in_ds"):
             response = client_with_user_logged.post(
                 url, {"message": "Motif"}, headers={"HX-Request": "true"}
@@ -383,7 +393,10 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _dismissed_projet(perimetre)
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         with mock.patch("gsl_notification.forms.DsService.dismiss_in_ds"):
             response = client_with_user_logged.post(
                 url, {"message": "Motif"}, headers={"HX-Request": "true"}
@@ -402,7 +415,10 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _refused_projet(perimetre)
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         response = client_with_user_logged.post(
             url, {"message": ""}, headers={"HX-Request": "true"}
         )
@@ -417,7 +433,10 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _dismissed_projet(perimetre)
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         response = client_with_user_logged.post(
             url, {"message": ""}, headers={"HX-Request": "true"}
         )
@@ -432,7 +451,10 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _accepted_projet(perimetre)
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         response = client_with_user_logged.post(url, {"message": "Bravo"})
         assert response.status_code == 400
 
@@ -445,7 +467,10 @@ class TestView:
             projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
         )
 
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
         assert response.status_code == 404
 
@@ -456,6 +481,9 @@ class TestView:
         projet.notified_at = timezone.now()
         projet.save()
 
-        url = f"/notification/{projet.id}/notifier/"
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
         assert response.status_code == 404

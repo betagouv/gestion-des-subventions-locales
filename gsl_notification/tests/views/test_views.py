@@ -164,7 +164,7 @@ def test_post_documents_creates_generated_documents_and_refreshes(
         dotation=DOTATION_DETR, perimetre=perimetre
     )
     url = reverse(
-        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+        "fragment:gsl_notification:generate_documents", kwargs={"pk": projet.id}
     )
 
     response = correct_perimetre_client_with_user_logged.post(
@@ -199,7 +199,7 @@ def test_post_documents_after_notification_returns_404(
         dotation=DOTATION_DETR, perimetre=perimetre
     )
     url = reverse(
-        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+        "fragment:gsl_notification:generate_documents", kwargs={"pk": projet.id}
     )
 
     response = correct_perimetre_client_with_user_logged.post(
@@ -228,7 +228,7 @@ def test_post_documents_invalid_rerenders_block_with_errors(
     ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
     ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=perimetre)
     url = reverse(
-        "notification:generate-documents-form", kwargs={"projet_id": projet.id}
+        "fragment:gsl_notification:generate_documents", kwargs={"pk": projet.id}
     )
 
     response = correct_perimetre_client_with_user_logged.post(

@@ -1,5 +1,6 @@
 {% load ui_tags %}
-<div id="notification-message-block">
+<div id="notification-message-block"
+     {% if oob %}hx-swap-oob="true"{% endif %}>
     {% if projet.notified_at %}
         <p class="fr-text-default--success">
             Message de notification envoyé le {{ projet.notified_at|date }} à {{ projet.notified_at|time }} sur Démarche Numérique.
@@ -10,10 +11,8 @@
                 <form method="post"
                       data-controller="form-utils"
                       data-action="form-utils#disableButtons"
-                      hx-post="{% url 'gsl_notification:notification-message-form' projet.pk %}"
+                      hx-post="{% url 'fragment:gsl_notification:notification_message' projet.pk %}"
                       hx-target="#notification-message-block"
-                      hx-select="#notification-message-block"
-                      hx-select-oob="#notified-block,#projet-actions,#generate-documents-block"
                       hx-swap="outerHTML">
                     {% csrf_token %}
                     {% ui_form_errors form=form %}

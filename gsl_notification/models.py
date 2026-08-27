@@ -474,7 +474,11 @@ class LettreRefusSignee(UploadedDocument):
 
 class Annexe(UploadedDocument):
     document_type = "annexe"
-    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_programmation_projet_statuses = (
+        PROJET_STATUS_ACCEPTED,
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED,
+    )
     allow_multiple = True
     delete_label = "Suppression de l’annexe"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
