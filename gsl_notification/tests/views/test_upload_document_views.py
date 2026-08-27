@@ -95,7 +95,8 @@ def test_choose_uploaded_document_type_displays_correctly(perimetre):
 
 
 def test_choose_uploaded_document_type_offers_signed_letter_for_refused(perimetre):
-    """A refused dotation exposes the signed-letter import, not the accepted ones."""
+    """A refused dotation exposes the signed-letter and annexe imports, not the
+    accepted-only ones (lettre et arrêté signés)."""
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
 
@@ -113,7 +114,10 @@ def test_choose_uploaded_document_type_offers_signed_letter_for_refused(perimetr
 
     assert response.status_code == 200
     choices = dict(response.context["form"].fields["document"].choices)
-    assert choices == {f"{LETTRE_REFUS_SIGNEE}-DETR": "Lettre de refus signée DETR"}
+    assert choices == {
+        f"{LETTRE_REFUS_SIGNEE}-DETR": "Lettre de refus signée DETR",
+        f"{ANNEXE}-DETR": "Annexe DETR",
+    }
 
 
 ### upload-a-document -----------------------------
