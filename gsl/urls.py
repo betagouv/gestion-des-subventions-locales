@@ -9,6 +9,8 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
+from gsl_core.fragments import fragment_urlpatterns
+
 admin.site.site_header = "Back-office Turgot - " + settings.ENV
 admin.site.index_title = "Back-office Turgot - " + settings.ENV
 admin.site.site_title = "Back-office Turgot - " + settings.ENV
@@ -45,6 +47,7 @@ urlpatterns = [
         "ds-proxy/",
         include(("gsl_ds_proxy.urls", "gsl_ds_proxy"), "ds-proxy"),
     ),
+    fragment_urlpatterns(),
 ]
 
 if settings.DEBUG:
