@@ -206,7 +206,7 @@ def test_start_view_e2e_attaches_signed_document(client, user, perimetre):
     assert job.status == DocumentImportJob.STATUS_DONE
     assert job.result["files_processed"] == 1
     assert job.result["pages_extracted"] == expected_pages
-    assert job.result["lettres_arretes_attached"] == 1
+    assert job.result["documents_attached"] == 1
     assert job.result["errors"] == []
 
     # Temp object cleaned up after processing.
@@ -247,7 +247,7 @@ def test_start_view_merges_pages_of_same_project_across_files(client, user, peri
     assert job.result["files_processed"] == 2
     assert job.result["pages_extracted"] == total_pages
     assert job.result["pages_attached"] == total_pages
-    assert job.result["lettres_arretes_attached"] == 1
+    assert job.result["documents_attached"] == 1
     assert job.result["errors"] == []
 
     # One combined document holding every page from both files.
@@ -277,7 +277,7 @@ def test_start_view_does_not_attach_out_of_perimetre(client, user):
 
     job = DocumentImportJob.objects.get()
     assert job.status == DocumentImportJob.STATUS_DONE
-    assert job.result["lettres_arretes_attached"] == 0
+    assert job.result["documents_attached"] == 0
     assert any(e["type"] == "group_failed" for e in job.result["errors"])
     assert not LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
 
@@ -306,7 +306,7 @@ def test_start_view_reports_unreadable_pages(client, user):
 
     job = DocumentImportJob.objects.get()
     assert job.status == DocumentImportJob.STATUS_DONE
-    assert job.result["lettres_arretes_attached"] == 0
+    assert job.result["documents_attached"] == 0
     assert any(e["type"] == "unreadable_page" for e in job.result["errors"])
 
 
@@ -341,7 +341,7 @@ def test_progress_view_returns_summary_when_done(client, user):
         result={
             "files_processed": 1,
             "pages_extracted": 2,
-            "lettres_arretes_attached": 1,
+            "documents_attached": 1,
             "errors": [],
         },
     )

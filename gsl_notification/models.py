@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gsl_core.models import BaseModel, Collegue, Perimetre
+from gsl_core.utils import kebab_case
 from gsl_notification.validators import document_file_validator, logo_file_validator
 from gsl_projet.constants import (
     ARRETE,
@@ -306,6 +307,7 @@ class UploadedDocument(VerboseNameMixin, models.Model):
     # False => OneToOne to ProgrammationProjet: a single document, the choice is
     # disabled once one exists. True => several allowed (e.g. annexes).
     allow_multiple = False
+    reattach_source_document_types: tuple[str, ...] = ()
 
     file = models.FileField(
         upload_to=uploaded_document_upload_to, validators=[document_file_validator]
@@ -329,6 +331,14 @@ class UploadedDocument(VerboseNameMixin, models.Model):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         UPLOADED_DOCUMENTS[cls.document_type] = cls
+
+    @classmethod
+    def reattach_filename_prefix(cls) -> str:
+        """Filename prefix used when this document is (re)created from a
+        scanned PDF's QR codes (see gsl_notification/reattach.py), derived
+        from the class name, e.g. LettreRefusSignee -> lettre-refus-signee.
+        """
+        return kebab_case(cls.__name__)
 
     @classmethod
     def can_upload(cls, programmation_projet) -> bool:
@@ -372,6 +382,7 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 class LettreEtArreteSignes(UploadedDocument):
     document_type = "lettre_et_arrete_signes"
     upload_statuses = (PROJET_STATUS_ACCEPTED,)
+    reattach_source_document_types = (ARRETE, LETTRE)
     delete_label = "Suppression de la lettre et de l’arrêté signés"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?"
@@ -415,6 +426,7 @@ class Annexe(UploadedDocument):
 class LettreRefusSignee(UploadedDocument):
     document_type = "lettre_refus_signee"
     upload_statuses = (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+    reattach_source_document_types = (LETTRE_REFUS,)
     delete_label = "Suppression de la lettre de refus signée"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre de refus signée ?"

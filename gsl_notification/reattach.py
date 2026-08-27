@@ -8,16 +8,19 @@ wrapper around `reattach_signed_doc()`; the web import flow
 (`gsl_notification/tasks.py`) calls `reattach_signed_docs()` with the bytes of
 every uploaded file.
 
-Pages sharing `(ds_number, dotation)` are grouped and reassembled (ordered
-by document type — lettre before arrêté — then by the QR `page` field)
-into a single PDF before being attached as a `LettreEtArreteSignes`,
-replacing any existing one.
+Pages sharing `(ds_number, dotation)` *and* targeting the same document model
+are grouped and reassembled (ordered by document type — lettre before
+arrêté — then by the QR `page` field) into a single PDF before being
+attached as the matching `UploadedDocument` subclass, replacing any existing
+document of that kind for the project: `arrete`/`lettre` QR pages produce a
+`LettreEtArreteSignes`, `refus` QR pages produce a `LettreRefusSignee`.
 
 Grouping spans the *whole* job: `reattach_signed_docs()` decodes every
-uploaded file first, then merges pages by `(ds_number, dotation)` across all
-of them, so an arrêté file and a lettre file uploaded together end up in a
-single `LettreEtArreteSignes` per project. `reattach_signed_doc()` is a
-single-file wrapper kept for the operator CLI.
+uploaded file first, then merges pages by `(ds_number, dotation, target_model)`
+across all of them, so an arrêté file and a lettre file uploaded together end
+up in a single `LettreEtArreteSignes` per project — while a lettre de refus
+scanned alongside them is routed independently to its own `LettreRefusSignee`.
+`reattach_signed_doc()` is a single-file wrapper kept for the operator CLI.
 """
 
 import io
@@ -34,7 +37,7 @@ from pikepdf import Page, Pdf
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
 
 from gsl_core.models import Collegue
-from gsl_notification.models import LettreEtArreteSignes
+from gsl_notification.models import UPLOADED_DOCUMENTS, UploadedDocument
 from gsl_notification.qr import RENDER_SCALE, iter_decoded_pages
 from gsl_notification.utils import (
     update_file_name_to_put_it_in_a_programmation_projet_folder,
@@ -44,12 +47,24 @@ from gsl_projet.constants import ARRETE, LETTRE
 
 _DOCUMENT_TYPE_ORDER = {LETTRE: 0, ARRETE: 1}
 
+# Which UploadedDocument subclass a QR document_type is reattached as, built
+# from each model's `reattach_source_document_types` (see models.py):
+# arrete/lettre pages are merged into a single LettreEtArreteSignes; refus
+# pages (lettre de refus / classement sans suite) go to their own
+# LettreRefusSignee, never mixed with the other two.
+_TARGET_MODEL_BY_DOCUMENT_TYPE: dict[str, type[UploadedDocument]] = {
+    document_type: model
+    for model in UPLOADED_DOCUMENTS.values()
+    for document_type in model.reattach_source_document_types
+}
+
 
 @dataclass(frozen=True)
 class GroupReport:
     ds_number: int
     dotation: str
     programmation_projet_id: int | None
+    target_document_type: str
     pages_by_doc_type: dict[str, list[int]]
     error: str | None
 
@@ -122,13 +137,17 @@ def reattach_signed_docs(
     remove_qr_code: bool = True,
 ) -> Iterator[ReattachEvent]:
     """Decode QRs across *all* uploaded files, merge pages sharing a
-    `(ds_number, dotation)` into a single PDF, attach each group to its
-    ProgrammationProjet as a LettreEtArreteSignes, and stream events.
+    `(ds_number, dotation, target_model)` into a single PDF, attach each
+    group to its ProgrammationProjet as the matching document type, and
+    stream events.
 
     `files` is a list of `(stem, pdf_bytes)`. Grouping spans the whole list,
     so an arrêté file and a lettre file uploaded together produce one combined
-    `LettreEtArreteSignes` per project (`_replace_lettre_et_arrete` runs once
-    per project, not once per file).
+    `LettreEtArreteSignes` per project (`_replace_uploaded_document` runs once
+    per project and per target model, not once per file). A lettre de refus
+    scanned in the same batch never merges with those pages — it targets a
+    different model (`LettreRefusSignee`) and is grouped, reported, and
+    attached independently, even for the same `(ds_number, dotation)`.
 
     Side effects (DB writes, file storage) happen lazily as the caller
     iterates. Callers must drain the generator.
@@ -143,7 +162,9 @@ def reattach_signed_docs(
     srcs: list[Pdf] = []
     pdf_bytes_list: list[bytes] = []
     try:
-        groups: dict[tuple[int, str], list[GroupEntry]] = defaultdict(list)
+        groups: dict[tuple[int, str, type[UploadedDocument]], list[GroupEntry]] = (
+            defaultdict(list)
+        )
         for file_idx, (stem, pdf_bytes) in enumerate(files):
             src = Pdf.open(io.BytesIO(pdf_bytes))
             srcs.append(src)
@@ -155,7 +176,10 @@ def reattach_signed_docs(
                 if hit is None:
                     yield UnreadablePage(scan_page=scan_page, file=stem)
                     continue
-                groups[(hit.payload.ds_number, hit.payload.dotation)].append(
+                target_model = _TARGET_MODEL_BY_DOCUMENT_TYPE[hit.payload.document_type]
+                groups[
+                    (hit.payload.ds_number, hit.payload.dotation, target_model)
+                ].append(
                     (
                         file_idx,
                         scan_idx,
@@ -167,13 +191,14 @@ def reattach_signed_docs(
                 )
                 yield PageDecoded(scan_page=scan_page, file=stem)
 
-        for (ds, dot), entries in groups.items():
+        for (ds, dot, target_model), entries in groups.items():
             entries.sort(key=lambda e: (_DOCUMENT_TYPE_ORDER.get(e[2], 99), e[3]))
             report = _attach_group(
                 srcs,
                 pdf_bytes_list,
                 ds,
                 dot,
+                target_model,
                 entries,
                 user,
                 restrict_to_user_perimetre,
@@ -201,6 +226,7 @@ def _attach_group(
     pdf_bytes_list,
     ds,
     dot,
+    target_model,
     entries,
     user,
     restrict_to_user_perimetre=False,
@@ -212,6 +238,7 @@ def _attach_group(
     for doc_type in by_type:
         by_type[doc_type].sort()
     pages_by_doc_type = dict(by_type)
+    target_document_type = target_model.document_type
 
     # Scope matching to the importer's perimetre for the web flow; the operator
     # CLI keeps the global queryset. Out-of-perimetre groups simply miss the
@@ -232,6 +259,7 @@ def _attach_group(
             ds_number=ds,
             dotation=dot,
             programmation_projet_id=None,
+            target_document_type=target_document_type,
             pages_by_doc_type=pages_by_doc_type,
             error="Aucun projet programmé correspondant.",
         )
@@ -240,30 +268,34 @@ def _attach_group(
             ds_number=ds,
             dotation=dot,
             programmation_projet_id=None,
+            target_document_type=target_document_type,
             pages_by_doc_type=pages_by_doc_type,
             error="Plusieurs projets programmés correspondent "
             "(incohérence, à corriger manuellement).",
         )
 
-    uploaded = _build_group_pdf(srcs, entries, ds, dot, pdf_bytes_list, remove_qr_code)
-    _replace_lettre_et_arrete(pp, uploaded, user)
+    uploaded = _build_group_pdf(
+        srcs, entries, ds, dot, target_model, pdf_bytes_list, remove_qr_code
+    )
+    _replace_uploaded_document(target_model, pp, uploaded, user)
 
     return GroupReport(
         ds_number=ds,
         dotation=dot,
         programmation_projet_id=pp.id,
+        target_document_type=target_document_type,
         pages_by_doc_type=pages_by_doc_type,
         error=None,
     )
 
 
-def _replace_lettre_et_arrete(pp, uploaded, user):
+def _replace_uploaded_document(target_model, pp, uploaded, user):
     with transaction.atomic():
-        existing = LettreEtArreteSignes.objects.filter(programmation_projet=pp).first()
+        existing = target_model.objects.filter(programmation_projet=pp).first()
         if existing is not None:
             existing.delete()  # post_delete signal removes its stored file
 
-        doc = LettreEtArreteSignes(
+        doc = target_model(
             programmation_projet=pp,
             created_by=user,
             file=uploaded,
@@ -274,7 +306,9 @@ def _replace_lettre_et_arrete(pp, uploaded, user):
         doc.save()
 
 
-def _build_group_pdf(srcs, entries, ds, dot, pdf_bytes_list, remove_qr_code=True):
+def _build_group_pdf(
+    srcs, entries, ds, dot, target_model, pdf_bytes_list, remove_qr_code=True
+):
     out = Pdf.new()
     for file_idx, scan_idx, _, _, bbox_px, image_height_px in entries:
         out.pages.append(srcs[file_idx].pages[scan_idx])
@@ -286,7 +320,7 @@ def _build_group_pdf(srcs, entries, ds, dot, pdf_bytes_list, remove_qr_code=True
     out.save(buf)
     buf.seek(0)
     return SimpleUploadedFile(
-        name=f"documents-signes-{ds}-{dot}.pdf",
+        name=f"{target_model.reattach_filename_prefix()}-{ds}-{dot}.pdf",
         content=buf.read(),
         content_type="application/pdf",
     )

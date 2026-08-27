@@ -10,16 +10,18 @@ from django.db.models import F
 from django.utils import timezone
 
 from gsl_notification.models import (
+    UPLOADED_DOCUMENTS,
     Annexe,
     DocumentImportJob,
     LettreEtArreteSignes,
+    LettreRefusSignee,
     ModeleArrete,
     ModeleLettreNotification,
 )
 
 logger = logging.getLogger(__name__)
 
-UPLOADED_DOCUMENT_MODELS = (LettreEtArreteSignes, Annexe)
+UPLOADED_DOCUMENT_MODELS = (LettreEtArreteSignes, Annexe, LettreRefusSignee)
 LOGO_SCANNED_MODELS = (ModeleArrete, ModeleLettreNotification)
 
 
@@ -134,7 +136,7 @@ def scan_all_uploaded_documents():
     infected = 0
 
     models_and_fields = [
-        (model_class, "file") for model_class in UPLOADED_DOCUMENT_MODELS
+        (model_class, "file") for model_class in UPLOADED_DOCUMENTS.values()
     ] + [(Model, "logo") for Model in LOGO_SCANNED_MODELS]
 
     for Model, field_name in models_and_fields:
@@ -170,7 +172,7 @@ def _empty_import_result() -> dict:
         "files_processed": 0,
         "pages_extracted": 0,
         "pages_attached": 0,
-        "lettres_arretes_attached": 0,
+        "documents_attached": 0,
         "errors": [],
     }
 
@@ -334,7 +336,7 @@ def _consume_reattach_events(events, job, result):
                 )
             yield event
         elif isinstance(event, GroupAttached):
-            result["lettres_arretes_attached"] += 1
+            result["documents_attached"] += 1
             result["pages_attached"] += sum(
                 len(pages) for pages in event.report.pages_by_doc_type.values()
             )
