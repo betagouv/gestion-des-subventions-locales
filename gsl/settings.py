@@ -80,7 +80,7 @@ INSTALLED_APPS = [
     "gsl_simulation",
     "gsl_notification",
     "gsl_historique",
-    "gsl_pages",
+    "gsl.pages",
     "gsl_oidc",
 ]
 
