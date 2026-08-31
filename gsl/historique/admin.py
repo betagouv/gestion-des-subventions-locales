@@ -35,6 +35,8 @@ class ProjetActionAdmin(admin.ModelAdmin):
         "boolean_field",
         "boolean_value",
         "form_id",
+        "notification_motivation",
+        "notification_document",
     )
     ordering = ("-created_at",)
 

@@ -9,6 +9,7 @@ from typing import cast
 from unittest import mock
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
@@ -115,6 +116,14 @@ def _dismissed_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=Fa
     return projet
 
 
+def _merged_pdf():
+    """A stand-in for the real ``merge_documents_into_pdf`` return value:
+    ``form.save()`` reads and re-saves it, so a plain Mock won't do."""
+    return SimpleUploadedFile(
+        "notification.pdf", b"%PDF-1.4 fake content", content_type="application/pdf"
+    )
+
+
 class TestForm:
     def test_message_is_optional(self, perimetre):
         projet = _accepted_projet(perimetre)
@@ -131,7 +140,10 @@ class TestForm:
         projet = _accepted_projet(perimetre)
         with (
             mock.patch("gsl_notification.forms.DsService.accept_in_ds") as ds,
-            mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ),
         ):
             form = NotificationMessageForm(data={"message": "Bravo"}, instance=projet)
             assert form.is_valid()
@@ -141,9 +153,11 @@ class TestForm:
         assert ds.call_args.kwargs["motivation"] == "Bravo"
         projet.refresh_from_db()
         assert projet.notified_at is not None
-        assert ProjetAction.objects.filter(
+        action = ProjetAction.objects.get(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
-        ).exists()
+        )
+        assert action.notification_motivation == "Bravo"
+        assert action.notification_document.name.endswith("/notification.pdf")
 
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -158,7 +172,10 @@ class TestForm:
 
         with (
             mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
-            mock.patch("gsl_notification.forms.merge_documents_into_pdf") as merge_mock,
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ) as merge_mock,
         ):
             form = NotificationMessageForm(data={"message": ""}, instance=projet)
             assert form.is_valid()
@@ -197,7 +214,10 @@ class TestForm:
             mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
             mock.patch("gsl_notification.forms.DsService.dismiss_in_ds") as dismiss,
             mock.patch("gsl_notification.forms.DsService.accept_in_ds") as accepter,
-            mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ),
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
@@ -214,7 +234,10 @@ class TestForm:
             mock.patch("gsl_notification.forms.DsService.dismiss_in_ds") as dismiss,
             mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
             mock.patch("gsl_notification.forms.DsService.accept_in_ds") as accepter,
-            mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ),
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
@@ -239,6 +262,10 @@ class TestForm:
 
         merge_mock.assert_not_called()
         assert refuser.call_args.kwargs["document"] is None
+        action = ProjetAction.objects.get(
+            projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+        )
+        assert not action.notification_document
 
     def test_save_merges_lettre_refus_signee_and_annexe_for_refused(
         self, perimetre, collegue
@@ -255,7 +282,10 @@ class TestForm:
 
         with (
             mock.patch("gsl_notification.forms.DsService.refuser_in_ds"),
-            mock.patch("gsl_notification.forms.merge_documents_into_pdf") as merge_mock,
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ) as merge_mock,
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
@@ -327,7 +357,10 @@ class TestView:
         )
         with (
             mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
-            mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ),
         ):
             response = client_with_user_logged.post(
                 url, {"message": "Bravo"}, headers={"HX-Request": "true"}
@@ -345,9 +378,49 @@ class TestView:
         assert "fr-error-text" not in content
         projet.refresh_from_db()
         assert projet.notified_at is not None
-        assert ProjetAction.objects.filter(
+        action = ProjetAction.objects.get(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
-        ).exists()
+        )
+        assert action.notification_motivation == "Bravo"
+        # The "4 - Notifications" block lists this notification's details.
+        assert "Bravo" in content
+
+    def test_notifications_are_listed_chronologically_across_renotifications(
+        self, client_with_user_logged, perimetre
+    ):
+        """A projet can be re-notified after a dotation change resets
+        `notified_at` (see gsl_projet/forms.py) — every past notification
+        should still show up, oldest first."""
+        projet = _accepted_projet(perimetre)
+        url = reverse(
+            "fragment:gsl_notification:notification_message",
+            kwargs={"pk": projet.id},
+        )
+        with (
+            mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ),
+        ):
+            client_with_user_logged.post(
+                url, {"message": "Premier message"}, headers={"HX-Request": "true"}
+            )
+            projet.notified_at = None
+            projet.save(update_fields=["notified_at"])
+            response = client_with_user_logged.post(
+                url, {"message": "Second message"}, headers={"HX-Request": "true"}
+            )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert content.index("Premier message") < content.index("Second message")
+        assert (
+            ProjetAction.objects.filter(
+                projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+            ).count()
+            == 2
+        )
 
     def test_post_send_notification_blocked_when_document_missing(
         self, client_with_user_logged, perimetre

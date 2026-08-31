@@ -5,6 +5,12 @@ from django.utils import timezone
 from gsl_projet.constants import DOTATION_CHOICES
 
 
+def projet_action_document_upload_to(instance, filename):
+    # Named (module-level) so it stays migration-serializable, unlike a lambda.
+    timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
+    return f"notifications/{instance.projet_id}/{timestamp}/{filename}"
+
+
 class ProjetAction(models.Model):
     SOURCE_TURGOT = "turgot"
     SOURCE_DN = "dn"
@@ -81,6 +87,10 @@ class ProjetAction(models.Model):
     boolean_value = models.BooleanField(null=True, blank=True)
     form_id = models.CharField(max_length=200, blank=True, default="")
     deactivation_reason = models.CharField(max_length=20, blank=True, default="")
+    notification_motivation = models.TextField(blank=True, default="")
+    notification_document = models.FileField(
+        upload_to=projet_action_document_upload_to, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -89,6 +99,12 @@ class ProjetAction(models.Model):
 
     def __str__(self):
         return f"{self.get_action_type_display()} — projet {self.projet_id}"
+
+    @property
+    def actor_name(self):
+        if self.actor_id is None:
+            return "Démarches Numériques"
+        return self.actor.get_full_name() or self.actor.email
 
     @property
     def status_label(self):

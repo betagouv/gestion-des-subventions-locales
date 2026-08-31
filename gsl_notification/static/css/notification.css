@@ -12,6 +12,10 @@
   list-style: none;
 }
 
+.notification-history-list > li:only-child {
+  list-style: none;
+}
+
 .document-name-cell {
   display: inline-block;
   max-width: 300px;
