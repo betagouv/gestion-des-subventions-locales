@@ -327,8 +327,8 @@ def uploaded_document_upload_to(instance, filename):
 
 class UploadedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
-    # DotationProjet statuses for which this document can be uploaded.
-    upload_statuses: tuple[str, ...] = ()
+    # ProgrammationProjet statuses for which this document can be uploaded.
+    required_programmation_projet_statuses: tuple[str, ...] = ()
     status_mismatch_message: str = ""
     # False => OneToOne to ProgrammationProjet: a single document, the choice is
     # disabled once one exists. True => several allowed (e.g. annexes).
@@ -376,9 +376,10 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
     def clean(self):
         if (
-            self.upload_statuses
+            self.required_programmation_projet_statuses
             and hasattr(self, "programmation_projet")
-            and self.programmation_projet.status not in self.upload_statuses
+            and self.programmation_projet.status
+            not in self.required_programmation_projet_statuses
         ):
             raise ValidationError(self.status_mismatch_message)
         return super().clean()
@@ -416,7 +417,7 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
 class LettreEtArreteSignes(UploadedDocument):
     document_type = "lettre_et_arrete_signes"
-    upload_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     reattach_source_document_types = (ARRETE, LETTRE)
     status_mismatch_message = (
         "La lettre et l'arrêté signés ne peuvent être importés que pour un "
@@ -443,7 +444,7 @@ class LettreEtArreteSignes(UploadedDocument):
 
 class Annexe(UploadedDocument):
     document_type = "annexe"
-    upload_statuses = (
+    required_programmation_projet_statuses = (
         PROJET_STATUS_ACCEPTED,
         PROJET_STATUS_REFUSED,
         PROJET_STATUS_DISMISSED,
@@ -468,7 +469,10 @@ class Annexe(UploadedDocument):
 
 class LettreRefusSignee(UploadedDocument):
     document_type = "lettre_refus_signee"
-    upload_statuses = (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+    required_programmation_projet_statuses = (
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED,
+    )
     reattach_source_document_types = (LETTRE_REFUS,)
     status_mismatch_message = (
         "La lettre de refus signée ne peut être importée que pour un projet "

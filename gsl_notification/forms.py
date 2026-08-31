@@ -155,7 +155,7 @@ class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
             except ProgrammationProjet.DoesNotExist:
                 continue
             for model in UPLOADED_DOCUMENTS.values():
-                if dp.status not in model.upload_statuses:
+                if dp.status not in model.required_programmation_projet_statuses:
                     continue
                 can_upload = model.can_upload(prog_projet)
                 choices.append(

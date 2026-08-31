@@ -100,7 +100,7 @@ def test_arrete_form_invalid_missing_fields(form_class):
 def test_arrete_et_lettre_signe_form_valid(form_class):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
-        status=form_class._meta.model.upload_statuses[0]
+        status=form_class._meta.model.required_programmation_projet_statuses[0]
     )
     data = {
         "created_by": collegue.id,
@@ -151,7 +151,7 @@ def test_arrete_et_lettre_signe_form_accepts_valid_pdf(
 ):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
-        status=form_class._meta.model.upload_statuses[0]
+        status=form_class._meta.model.required_programmation_projet_statuses[0]
     )
     file = SimpleUploadedFile(file_name, b"dummy content", content_type=content_type)
     form = form_class(
@@ -182,7 +182,7 @@ def test_arrete_et_lettre_signe_form_rejects_large_file(
 ):
     collegue = CollegueFactory()
     programmation_projet = ProgrammationProjetFactory(
-        status=form_class._meta.model.upload_statuses[0]
+        status=form_class._meta.model.required_programmation_projet_statuses[0]
     )
     file = SimpleUploadedFile(
         "test.pdf", b"x" * file_size, content_type="application/pdf"
