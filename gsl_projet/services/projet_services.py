@@ -1,5 +1,6 @@
 import logging
 
+from gsl.historique.models import ProjetAction
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_projet.models import Projet
 
@@ -47,8 +48,6 @@ class ProjetService:
 
         projet.save()
         if was_created and ds_dossier.ds_date_depot:
-            from gsl_historique.models import ProjetAction
-
             ProjetAction.objects.create(
                 projet=projet,
                 action_type=ProjetAction.TYPE_DEPOT_DOSSIER,

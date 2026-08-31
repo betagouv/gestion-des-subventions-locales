@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl.historique.models import ProjetAction
 from gsl_core.models import Collegue
 from gsl_core.templatetags.gsl_filters import euro
 from gsl_programmation.models import Enveloppe
@@ -297,8 +298,6 @@ class AssietteSingleFieldForm(forms.ModelForm):
 
     @transaction.atomic
     def save(self, commit=True):
-        from gsl_historique.models import ProjetAction
-
         super().save(commit=commit)
 
         if self.instance.status == PROJET_STATUS_ACCEPTED:

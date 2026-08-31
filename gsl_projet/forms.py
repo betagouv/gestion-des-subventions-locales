@@ -6,10 +6,10 @@ from django.db import transaction
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl.historique.models import ProjetAction
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
-from gsl_historique.models import ProjetAction
 from gsl_projet.constants import (
     DOTATION_CHOICES,
     POSSIBLE_DOTATIONS,
@@ -85,8 +85,6 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 "dotations", "Le projet ne peut avoir plus de deux dotations."
             )
             return
-
-        from gsl_historique.models import ProjetAction
 
         new_dotations = set(dotations) - set(projet.dotations)
         dotation_to_remove = set[POSSIBLE_DOTATIONS](projet.dotations) - set(dotations)

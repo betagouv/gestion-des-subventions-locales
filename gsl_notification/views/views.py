@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 from django_htmx.http import HttpResponseClientRefresh
 
+from gsl.historique.models import ProjetAction
 from gsl.utils.csp import csp_update
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
@@ -21,7 +22,6 @@ from gsl_core.matomo_constants import (
 from gsl_core.templatetags.fragment_tags import register_fragment_tag
 from gsl_core.view_mixins import OpenHtmxModalMixin
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_historique.models import ProjetAction
 from gsl_notification.forms import (
     GENERATED_DOCUMENT_TO_FORM,
     ChoixModeleForm,

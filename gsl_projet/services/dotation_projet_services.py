@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from django.db import transaction
 
+from gsl.historique.models import ProjetAction
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
@@ -243,8 +244,6 @@ class DotationProjetService:
         if not dotations_to_accept:
             return projet.dotationprojet_set.all()
 
-        from gsl_historique.models import ProjetAction
-
         existing_dotations = set(projet.dotations)
         dotations_to_remove = existing_dotations - set(dotations_to_accept)
 
@@ -483,8 +482,6 @@ class DotationProjetService:
 
     @classmethod
     def _update_assiette_from_dossier(cls, projet: Projet):
-        from gsl_historique.models import ProjetAction
-
         for dotation_projet in projet.dotationprojet_set.all():
             assiette = cls._get_assiette_from_annotations(
                 projet.dossier_ds, dotation_projet.dotation
@@ -663,8 +660,6 @@ class DotationProjetService:
 
     @classmethod
     def _remove_or_add_dotations_from_dossier_ds(cls, projet: Projet):
-        from gsl_historique.models import ProjetAction
-
         dotation_to_delete = set(projet.dotations) - set(
             projet.dossier_ds.dotations_demande
         )

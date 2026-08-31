@@ -11,10 +11,10 @@ from django.utils.html import format_html
 from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
+from gsl.historique.models import ProjetAction
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
-from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
     MODELES,

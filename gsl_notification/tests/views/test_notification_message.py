@@ -10,13 +10,13 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from gsl.historique.models import ProjetAction
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_historique.models import ProjetAction
 from gsl_notification.forms import NotificationMessageForm
 from gsl_notification.tests.factories import AnnexeFactory, LettreEtArreteSignesFactory
 from gsl_programmation.models import ProgrammationProjet

@@ -6,13 +6,13 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import UpdateView
 
+from gsl.historique.models import ProjetAction
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_IMPORT_DOCUMENT,
     MATOMO_CATEGORY_DOCUMENT,
 )
-from gsl_historique.models import ProjetAction
 from gsl_notification.forms import (
     UPLOADED_DOCUMENT_FORMS,
     ChooseDocumentTypeForUploadForm,
