@@ -224,17 +224,6 @@ class ProjetQuerySet(models.QuerySet):
             notified_at__isnull=True,
         )
 
-    def with_at_least_one_programmed_dotation(self):
-        from gsl_programmation.models import ProgrammationProjet
-
-        return self.filter(
-            Exists(
-                ProgrammationProjet.objects.filter(
-                    dotation_projet__projet=OuterRef("pk")
-                )
-            )
-        )
-
     def with_at_least_one_treated_dotation(self):
         from gsl_programmation.models import ProgrammationProjet
 
@@ -435,9 +424,7 @@ class Projet(BaseModel):
 
     @property
     def has_treated_dotation(self) -> bool:
-        return any(
-            d.status in PROJET_FINAL_STATUSES for d in self.dotationprojet_set.all()
-        )
+        return any(dp.is_treated for dp in self.dotationprojet_set.all())
 
     @property
     def can_display_notification_tab(self) -> bool:
@@ -466,17 +453,6 @@ class Projet(BaseModel):
     def all_dotations_have_processing_status(self) -> bool:
         return all(
             dp.status == PROJET_STATUS_PROCESSING
-            for dp in self.dotationprojet_set.all()
-        )
-
-    @property
-    def display_notification_message(self) -> bool:
-        return not self.all_dotations_have_processing_status
-
-    @property
-    def display_notification_button(self) -> bool:
-        return self.to_notify and any(
-            dp.status != PROJET_STATUS_PROCESSING
             for dp in self.dotationprojet_set.all()
         )
 
