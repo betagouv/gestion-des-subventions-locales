@@ -19,9 +19,7 @@
         {% dsfr_stepper current_step_id=3 total_steps=3 current_step_title="Synthèse de l'importation" %}
         {% if stale %}
             <div class="fr-alert fr-alert--warning fr-mt-3w" role="alert">
-                <h3 class="fr-alert__title">
-                    Traitement interrompu
-                </h3>
+                <h3 class="fr-alert__title">Traitement interrompu</h3>
                 <p class="fr-mb-0">
                     Le traitement semble avoir été interrompu et n'a pas pu se
                     terminer. Certains documents n'ont peut-être pas été rattachés.
@@ -51,14 +49,10 @@
                     {{ job.result.errors|length }} élément{{ job.result.errors|length|custom_pluralize }} non rattaché{{ job.result.errors|length|custom_pluralize }}
                 </h3>
                 {% for file_errors in error_groups.unreadable %}
-                    <p class="fr-mb-1v fr-text--bold">
-                        {{ file_errors.file }}&nbsp;:
-                    </p>
+                    <p class="fr-mb-1v fr-text--bold">{{ file_errors.file }}&nbsp;:</p>
                     <ul class="fr-mb-2w">
                         {% for page in file_errors.pages %}
-                            <li>
-                                Page {{ page }}&nbsp;: aucun QR code lisible.
-                            </li>
+                            <li>Page {{ page }}&nbsp;: aucun QR code lisible.</li>
                         {% endfor %}
                     </ul>
                 {% endfor %}

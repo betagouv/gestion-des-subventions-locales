@@ -5,8 +5,7 @@
         <button class="fr-btn fr-btn--tertiary-no-outline fr-icon-more-fill"
                 aria-controls="simulation-menu-{{ simulation.id }}"
                 aria-expanded="false"
-                aria-label="Modifier ou supprimer">
-        </button>
+                aria-label="Modifier ou supprimer"></button>
         <div class="fr-menu fr-collapse" id="simulation-menu-{{ simulation.id }}">
             <ul class="fr-menu__list">
                 <li>
@@ -42,7 +41,7 @@
                         </button>
                     </div>
                     <div class="fr-modal__content">
-                        <h1 class="fr-modal__title ">
+                        <h1 class="fr-modal__title">
                             <span class="fr-icon-delete-fill fr-icon--lg" aria-hidden="true"></span>
                             <span class="modal-title">Suppression de la simulation «&nbsp;{{ simulation.title }}&nbsp;»</span>
                         </h1>
@@ -52,9 +51,7 @@
                             simulation ne la verront plus non plus.</b> Cette action est
                             irréversible.
                         </p>
-                        <p>
-                            Êtes-vous sûr de supprimer cette simulation&nbsp;?
-                        </p>
+                        <p>Êtes-vous sûr de supprimer cette simulation&nbsp;?</p>
                         <form method="post"
                               id="simulation-delete-form-{{ simulation.id }}"
                               action="{% url 'gsl_simulation:simulation-delete' simulation.id %}">

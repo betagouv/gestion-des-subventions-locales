@@ -18,12 +18,8 @@
         Ces changements vont être pris en compte dans toutes les simulations dans lesquelles le projet a été ajouté.
         Il apparaîtra dans la programmation officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
-    <p>
-        Le demandeur ne va pas être notifié tout de suite.
-    </p>
-    <p>
-        Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?
-    </p>
+    <p>Le demandeur ne va pas être notifié tout de suite.</p>
+    <p>Voulez-vous {{ new_simulation_status|status_to_action_word }} cette demande de dotation&nbsp;?</p>
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"
           hx-encoding="multipart/form-data"

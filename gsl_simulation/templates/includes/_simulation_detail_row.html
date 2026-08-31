@@ -20,13 +20,9 @@
         </td>
         {% for column in columns %}
             {% if column.key == "statut" %}
-                <td class="gsl-projet-table__cell--status {{ column.td_classes }}">
-                    {% include column.resolved_template_name %}
-                </td>
+                <td class="gsl-projet-table__cell--status {{ column.td_classes }}">{% include column.resolved_template_name %}</td>
             {% else %}
-                <td class="{{ column.td_classes }}">
-                    {% include column.resolved_template_name %}
-                </td>
+                <td class="{{ column.td_classes }}">{% include column.resolved_template_name %}</td>
             {% endif %}
         {% endfor %}
     </tr>

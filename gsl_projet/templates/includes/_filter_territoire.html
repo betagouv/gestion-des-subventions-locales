@@ -23,17 +23,11 @@
                                id="id_territoire_{{ forloop.counter }}"
                                {% if perimetre.id|stringformat:"d" in field.data %}checked{% endif %}
                                data-fr-js-checkbox-input="true"
-                               {% if perimetre.type.0 == 'R' %}data-region="{{ perimetre.region.pk }}"{% endif %}
-                               {% if perimetre.type.0 == 'D' %} data-parent="{{ perimetre.region.pk }}" data-departement="{{ perimetre.departement.pk }}" {% endif %}
-                               {% if perimetre.type.0 == 'A' %} data-parent="{{ perimetre.departement.pk }}" {% endif %}>
-                        <label for="id_territoire_{{ forloop.counter }}" class="fr-label">
-                            {{ perimetre.entity_name }}
-                        </label>
+                               {% if perimetre.type.0 == 'R' %}data-region="{{ perimetre.region.pk }}" {% elif perimetre.type.0 == 'D' %} data-parent="{{ perimetre.region.pk }}" data-departement="{{ perimetre.departement.pk }}" {% elif perimetre.type.0 == 'A' %} data-parent="{{ perimetre.departement.pk }}" {% endif %}>
+                        <label for="id_territoire_{{ forloop.counter }}" class="fr-label">{{ perimetre.entity_name }}</label>
                     </div>
                 {% endfor %}
-                <button type="submit" class="fr-btn fr-btn--sm">
-                    Filtrer
-                </button>
+                <button type="submit" class="fr-btn fr-btn--sm">Filtrer</button>
             </div>
         </div>
     </div>

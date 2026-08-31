@@ -22,9 +22,7 @@
         </div>
     </div>
 
-    <h1>
-        {{ dossier.projet_intitule|lower|capfirst }}
-    </h1>
+    <h1>{{ dossier.projet_intitule|lower|capfirst }}</h1>
 
     <div class="projet-header__status">
         {% with dossier.projet.dotationprojet_set.all as dotation_projets %}
@@ -64,9 +62,7 @@
     </ul>
     <div class="fr-grid-row fr-mb-6w dossier-sans-piece-update-container fr-p-4w">
         <div class="fr-col-12 fr-col-lg-9">
-            <h2>
-                Mettre à jour les informations du précédent dossier
-            </h2>
+            <h2>Mettre à jour les informations du précédent dossier</h2>
             <p>
                 <b>
                     Ce dossier est un dossier redéposé depuis un précédent dossier.
@@ -79,9 +75,7 @@
                 {% csrf_token %}
 
                 {{ form }}
-                <button class="fr-btn fr-btn--primery" type="submit">
-                    Enregistrer
-                </button>
+                <button class="fr-btn fr-btn--primery" type="submit">Enregistrer</button>
             </form>
         </div>
     </div>

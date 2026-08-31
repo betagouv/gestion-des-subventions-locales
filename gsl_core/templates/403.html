@@ -7,20 +7,12 @@
 {% block content %}
     <div class="fr-my-7w fr-mt-md-12w fr-mb-md-10w fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-grid-row--center">
         <div class="fr-py-0 fr-col-12 fr-col-md-6">
-            <h1>
-                Accès non autorisé
-            </h1>
-            <p class="fr-text--sm fr-mb-3w">
-                Erreur 403
-            </p>
+            <h1>Accès non autorisé</h1>
+            <p class="fr-text--sm fr-mb-3w">Erreur 403</p>
             {% if exception.user_message %}
-                <p class="fr-text--lead fr-mb-3w">
-                    {{ exception.user_message }}
-                </p>
+                <p class="fr-text--lead fr-mb-3w">{{ exception.user_message }}</p>
             {% else %}
-                <p class="fr-text--lead fr-mb-3w">
-                    Vous n'avez pas les droits nécessaires pour accéder à cette page.
-                </p>
+                <p class="fr-text--lead fr-mb-3w">Vous n'avez pas les droits nécessaires pour accéder à cette page.</p>
                 <p class="fr-text--sm fr-mb-5w">
                     Vérifiez que vous êtes connecté avec le bon compte ou contactez-nous si vous pensez qu'il s'agit
                     d'une erreur.
@@ -28,9 +20,7 @@
             {% endif %}
             <ul class="fr-btns-group fr-btns-group--inline-md">
                 <li>
-                    <a class="fr-btn" href="{% url 'index' %}">
-                        Page d'accueil
-                    </a>
+                    <a class="fr-btn" href="{% url 'index' %}">Page d'accueil</a>
                 </li>
                 <li>
                     <a class="fr-btn fr-btn--secondary"

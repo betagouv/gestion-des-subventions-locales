@@ -15,9 +15,7 @@
             {% for dotation, dotation_data in form.dotation_fields.items %}
                 <div class="fr-col-12 fr-col-md-6">
                     <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
-                        <h4 class="fr-callout__title">
-                            {{ dotation }}
-                        </h4>
+                        <h4 class="fr-callout__title">{{ dotation }}</h4>
                         {% ui_status_badge type=dotation_data.dotation_projet.status dotation=dotation %}
                         {% ui_status_badge type=dotation_data.dotation_projet.notification_status %}
 
@@ -27,9 +25,7 @@
                                 {% if fields.has_modele %}
                                     {{ fields.modele.as_field_group }}
                                 {% else %}
-                                    <p class="fr-text-default--warning fr-mb-1w">
-                                        Aucun {{ fields.modele_class.verbose_name|lower }} disponible.
-                                    </p>
+                                    <p class="fr-text-default--warning fr-mb-1w">Aucun {{ fields.modele_class.verbose_name|lower }} disponible.</p>
                                     <p class="fr-mb-2w">
                                         <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
                                            class="fr-link fr-icon-add-line fr-link--icon-left">

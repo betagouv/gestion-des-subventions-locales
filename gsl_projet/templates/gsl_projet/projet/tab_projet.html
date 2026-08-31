@@ -5,9 +5,7 @@
      data-controller="enable-on-change">
     <div class="fr-col-12 fr-col-xl-8">
         <div class="fr-callout fr-background-alt--blue-france fr-m-0">
-            <h2 class="fr-callout__title fr-mb-3w">
-                Informations sur le projet
-            </h2>
+            <h2 class="fr-callout__title fr-mb-3w">Informations sur le projet</h2>
             <div class="fr-callout__text">
                 <ul class="no-list-style">
                     <li>
@@ -33,9 +31,7 @@
                         : {{ dossier.ds_date_derniere_modification|date }}
                     </li>
                 </ul>
-                <h6>
-                    Financements :
-                </h6>
+                <h6>Financements :</h6>
 
                 {% if dotation_projets|length > 1 %}
                     <ul class="no-list-style">
@@ -72,9 +68,7 @@
     <div class="fr-container fr-mt-2w">
         <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--center gsl-projet-container">
             <div class="fr-col-4 gsl-projet-menu">
-                <div class="sticky-menu">
-                    {% dsfr_sidemenu menu_dict %}
-                </div>
+                <div class="sticky-menu">{% dsfr_sidemenu menu_dict %}</div>
             </div>
             <div class="fr-col gsl-projet">
                 <section>
@@ -123,9 +117,7 @@
                         <i class="fr-icon-article-fill blue-color" aria-hidden="true"></i>
                         2 - Présentation de l’opération
                     </h2>
-                    <h3 id="presentation_projet">
-                        Projet
-                    </h3>
+                    <h3 id="presentation_projet">Projet</h3>
                     <ul>
                         <li>
                             <b>Intitulé :</b> {{ dossier.projet_intitule }}
@@ -142,20 +134,12 @@
                         {# <li><b>Délibération du conseil municipal ou de l’organe délibérant de l’EPCI :</b> todo </li>#}
                         {# <li><b>Document de présentation du projet :</b> </li>#}
                     </ul>
-                    <h3 id="presentation_dates">
-                        Dates
-                    </h3>
+                    <h3 id="presentation_dates">Dates</h3>
                     <ul>
-                        <li>
-                            Début des travaux : {{ dossier.date_debut|default:"—" }}
-                        </li>
-                        <li>
-                            Achèvement : {{ dossier.date_achevement|default:"—" }}
-                        </li>
+                        <li>Début des travaux : {{ dossier.date_debut|default:"—" }}</li>
+                        <li>Achèvement : {{ dossier.date_achevement|default:"—" }}</li>
                     </ul>
-                    <h3 id="presentation_details_proj">
-                        Détails du projet
-                    </h3>
+                    <h3 id="presentation_details_proj">Détails du projet</h3>
                     <h4 id="presentation_details_proj_immobilier">
                         <span class="fr-icon-building-fill fr-mr-2v" aria-hidden="true"></span>
                         Informations relatives à l'immobilier
@@ -165,20 +149,14 @@
                             Acquisitions immobilières au sein du projet
                             : {{ dossier.projet_immo|yesno:"Oui,Non,Non renseigné" }}
                         </li>
-                        <li>
-                            Travaux au sein du projet : {{ dossier.projet_travaux|yesno:"Oui,Non,Non renseigné" }}
-                        </li>
+                        <li>Travaux au sein du projet : {{ dossier.projet_travaux|yesno:"Oui,Non,Non renseigné" }}</li>
                     </ul>
                     <h4 id="presentation_details_proj_zonage_et_contrats">
                         <span class="fr-icon-france-fill fr-mr-2v" aria-hidden="true"></span>
                         Informations relatives aux zonages et à la contractualisation
                     </h4>
-                    <h5 id="presentation_details_proj_zonage_et_contrats_choix_usager">
-                        Informations spécifiées par le demandeur
-                    </h5>
-                    <h6 class="fr-text--md fr-mb-1v">
-                        Zonage spécifique :
-                    </h6>
+                    <h5 id="presentation_details_proj_zonage_et_contrats_choix_usager">Informations spécifiées par le demandeur</h5>
+                    <h6 class="fr-text--md fr-mb-1v">Zonage spécifique :</h6>
                     {% if dossier.projet_zonage.count > 0 %}
                         <ul>
                             {% for zone in dossier.projet_zonage.all %}
@@ -196,9 +174,7 @@
                             <i>Aucun zonage spécifique</i>
                         </p>
                     {% endif %}
-                    <h6 class="fr-text--md fr-mb-1v">
-                        Contractualisation avec l’État :
-                    </h6>
+                    <h6 class="fr-text--md fr-mb-1v">Contractualisation avec l’État :</h6>
                     {% if dossier.projet_contractualisation.count > 0 %}
                         <ul>
                             {% for contrat in dossier.projet_contractualisation.all %}
@@ -220,9 +196,7 @@
                     {% if projet_form %}
                         {% zonage_form projet %}
                     {% else %}
-                        <h5 id="presentation_details_proj_zonage_et_contrats_choix_instructeur">
-                            Informations spécifiées par l'instructeur
-                        </h5>
+                        <h5 id="presentation_details_proj_zonage_et_contrats_choix_instructeur">Informations spécifiées par l'instructeur</h5>
                         {% if projet.areas_and_contracts_provided_by_instructor|length > 0 %}
                             <ul class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
                                 {% for zonage in projet.areas_and_contracts_provided_by_instructor %}
@@ -252,9 +226,7 @@
                         {% detr_avis_commission_form projet.dotation_detr %}
                     {% endif %}
 
-                    <h3 id="presentation_transition_eco">
-                        Transition écologique
-                    </h3>
+                    <h3 id="presentation_transition_eco">Transition écologique</h3>
                     {% if projet_form %}
                         <p>
                             <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert&nbsp;:</b>&nbsp;{{ projet.dossier_ds.environnement_transition_eco|yesno:"Oui,Non,Non renseigné" }}
@@ -267,14 +239,10 @@
                         </p>
                     {% endif %}
                     {% if dossier.environnement_objectifs.count > 0 %}
-                        <p>
-                            Objectifs environnementaux impactés favorablement
-                        </p>
+                        <p>Objectifs environnementaux impactés favorablement</p>
                         <ul>
                             {% for obj in dossier.environnement_objectifs.all %}
-                                <li>
-                                    {{ obj }}
-                                </li>
+                                <li>{{ obj }}</li>
                             {% endfor %}
                         </ul>
                     {% endif %}
@@ -289,18 +257,14 @@
                         3 - Plan de financement prévisionnel
                     </h2>
 
-                    <h3 id="detail_financement">
-                        Détail du financement
-                    </h3>
+                    <h3 id="detail_financement">Détail du financement</h3>
 
                     <p>
                         Le projet va-t-il générer des recettes
                         ? {{ dossier.finance_recettes|yesno:"Oui,Non,Non renseigné" }}
                     </p>
 
-                    <h3 id="dispositifs_sollicites">
-                        Dispositifs de financement sollicités
-                    </h3>
+                    <h3 id="dispositifs_sollicites">Dispositifs de financement sollicités</h3>
 
                     {% if projet.dossier_ds.is_sans_pieces %}
                         <div class="fr-alert fr-alert--info fr-mb-3w">
@@ -361,9 +325,7 @@
 
                     {% with cofinancements=dossier.cofinancements_avec_montants %}
                         {% if cofinancements %}
-                            <h3 id="cofinancements_sollicites">
-                                Co-financements sollicités
-                            </h3>
+                            <h3 id="cofinancements_sollicites">Co-financements sollicités</h3>
                             <ul>
                                 {% for cofinancement in cofinancements %}
                                     <li>
@@ -378,9 +340,7 @@
                         {% endif %}
                     {% endwith %}
 
-                    <h3 id="couts_financement">
-                        Coûts de financement
-                    </h3>
+                    <h3 id="couts_financement">Coûts de financement</h3>
                     <div class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
                         <p>
                             <b>Coût total de l’opération :</b>

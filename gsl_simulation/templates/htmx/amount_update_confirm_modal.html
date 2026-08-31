@@ -2,8 +2,7 @@
         aria-controls="{{ modal_id }}"
         class="fr-hidden"
         type="button"
-        data-fr-opened="false">
-</button>
+        data-fr-opened="false"></button>
 <div hx-swap-oob="beforeend:body">
     <dialog class="fr-modal"
             id="{{ modal_id }}"
@@ -33,9 +32,7 @@
                                 le projet a été ajouté. Ils apparaîtront aussi dans la programmation officielle
                                 {{ simu.dotation_projet.dotation }} {{ simu.simulation.enveloppe.annee }}.
                             </p>
-                            <p>
-                                Voulez-vous modifier ce montant&nbsp;?
-                            </p>
+                            <p>Voulez-vous modifier ce montant&nbsp;?</p>
                             <form id="{{ modal_id }}-form"
                                   hx-post="{{ confirm_url }}"
                                   hx-target="#{{ modal_id }}"

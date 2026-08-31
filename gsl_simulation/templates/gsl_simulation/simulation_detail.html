@@ -10,9 +10,7 @@
 {% block content %}
     <h1>
         {{ title }}
-        <div class="simulation-menu">
-            {% include "includes/modals/_simulation_actions_menu.html" %}
-        </div>
+        <div class="simulation-menu">{% include "includes/modals/_simulation_actions_menu.html" %}</div>
     </h1>
     {% include "includes/_status_summary.html" %}
     <div class="gsl-dropdown fr-mt-2w fr-mb-2w">
@@ -80,9 +78,7 @@
                                     {% endwith %}
                                 {% empty %}
                                     <tr>
-                                        <td colspan="{{ columns|length|add:1 }}">
-                                            Liste vide.
-                                        </td>
+                                        <td colspan="{{ columns|length|add:1 }}">Liste vide.</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -91,14 +87,11 @@
                 </div>
             </div>
             <div class="fr-table__footer">
-                <div class="fr-table__footer--middle">
-                    {% dsfr_pagination page_obj %}
-                </div>
+                <div class="fr-table__footer--middle">{% dsfr_pagination page_obj %}</div>
             </div>
         </div>
 
-        <div id="bulk-status-modal-host">
-        </div>
+        <div id="bulk-status-modal-host"></div>
     </div>
 
 {% endblock content %}

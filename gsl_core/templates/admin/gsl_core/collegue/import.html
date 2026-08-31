@@ -50,9 +50,7 @@ This only affects user imports, not other model imports.
                                 {% endif %}
 
                                 {% if field.field.help_text %}
-                                    <p class="help">
-                                        {{ field.field.help_text|safe }}
-                                    </p>
+                                    <p class="help">{{ field.field.help_text|safe }}</p>
                                 {% endif %}
                             </div>
                         {% endfor %}
@@ -77,16 +75,12 @@ This only affects user imports, not other model imports.
 
         {% if result.has_errors %}
             {% block errors %}
-                <h2>
-                    {% translate "Errors" %}
-                </h2>
+                <h2>{% translate "Errors" %}</h2>
                 <ul>
                     {% for error in result.base_errors %}
                         <li>
                             {{ error.error }}
-                            <div class="traceback">
-                                {{ error.traceback|linebreaks }}
-                            </div>
+                            <div class="traceback">{{ error.traceback|linebreaks }}</div>
                         </li>
                     {% endfor %}
                     {% block import_error_list %}
@@ -95,19 +89,13 @@ This only affects user imports, not other model imports.
                                 {% block import_error_list_item %}
                                     <li class="import-error-li">
                                         {% if "message" in import_error_display %}
-                                            <div class="import-error-display-message">
-                                                {% translate "Line number" %}: {{ line }} - {{ error.error }}
-                                            </div>
+                                            <div class="import-error-display-message">{% translate "Line number" %}: {{ line }} - {{ error.error }}</div>
                                         {% endif %}
                                         {% if "row" in import_error_display %}
-                                            <div class="import-error-display-row">
-                                                {{ error.row.values|join:", " }}
-                                            </div>
+                                            <div class="import-error-display-row">{{ error.row.values|join:", " }}</div>
                                         {% endif %}
                                         {% if "traceback" in import_error_display %}
-                                            <div class="import-error-display-traceback">
-                                                {{ error.traceback|linebreaks }}
-                                            </div>
+                                            <div class="import-error-display-traceback">{{ error.traceback|linebreaks }}</div>
                                         {% endif %}
                                     </li>
                                 {% endblock import_error_list_item %}
@@ -120,9 +108,7 @@ This only affects user imports, not other model imports.
         {% elif result.has_validation_errors %}
 
             {% block validation_errors %}
-                <h2>
-                    {% translate "Some rows failed to validate" %}
-                </h2>
+                <h2>{% translate "Some rows failed to validate" %}</h2>
 
                 <p>
                     {% translate "Please correct these errors in your data where possible, then reupload it using the form above." %}
@@ -131,25 +117,17 @@ This only affects user imports, not other model imports.
                 <table class="import-preview">
                     <thead>
                         <tr>
-                            <th>
-                                {% translate "Row" %}
-                            </th>
-                            <th>
-                                {% translate "Errors" %}
-                            </th>
+                            <th>{% translate "Row" %}</th>
+                            <th>{% translate "Errors" %}</th>
                             {% for field in result.diff_headers %}
-                                <th>
-                                    {{ field }}
-                                </th>
+                                <th>{{ field }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in result.invalid_rows %}
                             <tr>
-                                <td>
-                                    {{ row.number }}
-                                </td>
+                                <td>{{ row.number }}</td>
                                 <td class="errors">
                                     <span class="validation-error-count">{{ row.error_count }}</span>
                                     <div class="validation-error-container">
@@ -159,9 +137,7 @@ This only affects user imports, not other model imports.
                                                     <span class="validation-error-field-label">{{ field_name }}</span>
                                                     <ul>
                                                         {% for error in error_list %}
-                                                            <li>
-                                                                {{ error }}
-                                                            </li>
+                                                            <li>{{ error }}</li>
                                                         {% endfor %}
                                                     </ul>
                                                 </li>
@@ -171,9 +147,7 @@ This only affects user imports, not other model imports.
                                                     <span class="validation-error-field-label">{% translate "Non field specific" %}</span>
                                                     <ul>
                                                         {% for error in row.non_field_specific_errors %}
-                                                            <li>
-                                                                {{ error }}
-                                                            </li>
+                                                            <li>{{ error }}</li>
                                                         {% endfor %}
                                                     </ul>
                                                 </li>
@@ -182,9 +156,7 @@ This only affects user imports, not other model imports.
                                     </div>
                                 </td>
                                 {% for field in row.values %}
-                                    <td>
-                                        {{ field }}
-                                    </td>
+                                    <td>{{ field }}</td>
                                 {% endfor %}
                             </tr>
                         {% endfor %}
@@ -195,19 +167,14 @@ This only affects user imports, not other model imports.
         {% else %}
 
             {% block preview %}
-                <h2>
-                    {% translate "Preview" %}
-                </h2>
+                <h2>{% translate "Preview" %}</h2>
 
                 <table class="import-preview">
                     <thead>
                         <tr>
-                            <th>
-                            </th>
+                            <th></th>
                             {% for field in result.diff_headers %}
-                                <th>
-                                    {{ field }}
-                                </th>
+                                <th>{{ field }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
@@ -225,9 +192,7 @@ This only affects user imports, not other model imports.
                                 {% endif %}
                             </td>
                             {% for field in row.diff %}
-                                <td>
-                                    {{ field }}
-                                </td>
+                                <td>{{ field }}</td>
                             {% endfor %}
                         </tr>
                     {% endfor %}

@@ -9,9 +9,7 @@
     {% block form_open %}
     {% endblock form_open %}
     <div class="fr-modal__content">
-        <h1 class="fr-modal__title" id="{{ modal_id }}-title">
-            {{ modal_title }}
-        </h1>
+        <h1 class="fr-modal__title" id="{{ modal_id }}-title">{{ modal_title }}</h1>
         {% block stepper_or_error %}
             {% block stepper %}
             {% endblock stepper %}

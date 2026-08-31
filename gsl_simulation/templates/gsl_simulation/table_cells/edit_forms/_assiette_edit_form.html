@@ -30,14 +30,10 @@
             </button>
         </div>
         {% for error in form.assiette.errors %}
-            <p class="fr-error-text">
-                {{ error }}
-            </p>
+            <p class="fr-error-text">{{ error }}</p>
         {% endfor %}
         {% for error in form.non_field_errors %}
-            <p class="fr-error-text">
-                {{ error }}
-            </p>
+            <p class="fr-error-text">{{ error }}</p>
         {% endfor %}
     </div>
 </form>

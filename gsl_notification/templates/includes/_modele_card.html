@@ -3,12 +3,8 @@
 <div class="fr-card fr-card--horizontal">
     <div class="fr-card__body">
         <div class="fr-card__content">
-            <p class="fr-card__title">
-                {{ modele.name }}
-            </p>
-            <p class="fr-card__desc keep-breaklines">
-                {{ modele.description }}
-            </p>
+            <p class="fr-card__title">{{ modele.name }}</p>
+            <p class="fr-card__desc keep-breaklines">{{ modele.description }}</p>
         </div>
 
         <div class="fr-card__footer">
@@ -18,18 +14,14 @@
                         {% if action.type and action.type == "submit" %}
                             <form method="post" action="{{ action.href }}" class="fr-btns-group__form">
                                 {% csrf_token %}
-                                <button class="fr-btn {{ action.class }}" type="submit">
-                                    {{ action.label }}
-                                </button>
+                                <button class="fr-btn {{ action.class }}" type="submit">{{ action.label }}</button>
                             </form>
                         {% elif action.href %}
-                            <a class="fr-btn {{ action.class }}" href="{{ action.href }}">
-                                {{ action.label }}
-                            </a>
+                            <a class="fr-btn {{ action.class }}" href="{{ action.href }}">{{ action.label }}</a>
                         {% else %}
                             <button class="fr-btn {{ action.class }}"
                                     type="button"
-                                    {% if action.aria_controls %} aria-controls="{{ action.aria_controls }}" data-fr-opened="false" data-name="{{ modele.name }}" data-type="modele_{{ modele.type }}" data-delete-title="{{ modele.delete_title }}" data-delete-question="{{ modele.delete_question }}"{% endif %}
+                                    {% if action.aria_controls %} aria-controls="{{ action.aria_controls }}" data-fr-opened="false" data-name="{{ modele.name }}" data-type="modele_{{ modele.type }}"{% endif %}
                                     data-form-action="{% url 'gsl_notification:delete-modele' modele.type modele.id %}"
                                     data-action="click->delete-notification-document-modal#updateModaleTitleAndSubmitAction"
                                     data-delete-title="{{ modele.delete_title }}"
@@ -45,7 +37,7 @@
 
     <div class="fr-card__header">
         <div class="fr-card__img">
-            <img class="fr-responsive-img "
+            <img class="fr-responsive-img"
                  src="{% static "img/placeholder.1x1.svg" %}"
                  alt="placeholder">
             <span class="fr-tag modele-card-badge">{{ modele.type_label }}</span>

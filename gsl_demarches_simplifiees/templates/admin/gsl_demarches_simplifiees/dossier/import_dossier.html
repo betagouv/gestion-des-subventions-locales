@@ -11,14 +11,10 @@
                     <div class="form-row">
                         {{ field.errors }}
                         <div>
-                            <label for="{{ field.id_for_label }}">
-                                {{ field.label }}
-                            </label>
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
                             {% if field.help_text %}
-                                <p class="help">
-                                    {{ field.help_text }}
-                                </p>
+                                <p class="help">{{ field.help_text }}</p>
                             {% endif %}
                         </div>
                     </div>

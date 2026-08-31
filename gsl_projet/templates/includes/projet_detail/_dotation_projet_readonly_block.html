@@ -1,9 +1,7 @@
 {% load ui_tags gsl_filters %}
 
 <div class="fr-callout fr-background-alt--blue-france fr-ml-0 fr-mt-2w">
-    <h5 class="fr-callout__title">
-        {{ dp.dotation }}
-    </h5>
+    <h5 class="fr-callout__title">{{ dp.dotation }}</h5>
     {% ui_status_badge type=dp.status %}
     <ul class="fr-mt-1w">
         <li>

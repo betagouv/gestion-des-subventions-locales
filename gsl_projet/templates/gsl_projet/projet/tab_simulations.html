@@ -14,9 +14,7 @@
                     <fieldset class="fr-segmented"
                               data-controller="radio-navigate"
                               data-action="keydown->radio-navigate#onKeydown">
-                        <legend class="fr-segmented__legend">
-                            Dotation
-                        </legend>
+                        <legend class="fr-segmented__legend">Dotation</legend>
                         <div class="fr-segmented__elements">
                             <div class="fr-segmented__element">
                                 <input class="fr-sr-only"
@@ -26,9 +24,7 @@
                                        value=""
                                        {% if not dotation_filter %}checked{% endif %}
                                        data-action="click->radio-navigate#navigate">
-                                <label class="fr-label" for="filter-toutes">
-                                    Toutes
-                                </label>
+                                <label class="fr-label" for="filter-toutes">Toutes</label>
                             </div>
                             <div class="fr-segmented__element">
                                 <input class="fr-sr-only"
@@ -38,9 +34,7 @@
                                        value="DETR"
                                        {% if dotation_filter == 'DETR' %}checked{% endif %}
                                        data-action="click->radio-navigate#navigate">
-                                <label class="fr-label" for="filter-detr">
-                                    DETR
-                                </label>
+                                <label class="fr-label" for="filter-detr">DETR</label>
                             </div>
                             <div class="fr-segmented__element">
                                 <input class="fr-sr-only"
@@ -50,9 +44,7 @@
                                        value="DSIL"
                                        {% if dotation_filter == 'DSIL' %}checked{% endif %}
                                        data-action="click->radio-navigate#navigate">
-                                <label class="fr-label" for="filter-dsil">
-                                    DSIL
-                                </label>
+                                <label class="fr-label" for="filter-dsil">DSIL</label>
                             </div>
                         </div>
                     </fieldset>
@@ -69,9 +61,7 @@
             </div>
         {% else %}
             <div class="fr-py-8w fr-text--center">
-                <p class="fr-text--lg fr-text--bold">
-                    Aucune simulation pour ce projet
-                </p>
+                <p class="fr-text--lg fr-text--bold">Aucune simulation pour ce projet</p>
                 <p class="fr-text--sm fr-hint-text">
                     Les simulations apparaîtront ici une fois que ce projet aura été ajouté à une simulation.
                 </p>

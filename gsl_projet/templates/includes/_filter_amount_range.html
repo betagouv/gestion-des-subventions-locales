@@ -10,26 +10,20 @@
         </button>
         <div class="gsl-dropdown-content">
             <div class="amount-filter-group">
-                <label class="fr-label" for="id_{{ rc.min_name }}">
-                    {{ rc.label }} minimum
-                </label>
+                <label class="fr-label" for="id_{{ rc.min_name }}">{{ rc.label }} minimum</label>
                 <div class="euro-input-wrap">
                     {{ rc.min_widget }}
                     <span class="euro-input-symbol">€</span>
                 </div>
             </div>
             <div class="amount-filter-group">
-                <label class="fr-label" for="id_{{ rc.max_name }}">
-                    {{ rc.label }} maximum
-                </label>
+                <label class="fr-label" for="id_{{ rc.max_name }}">{{ rc.label }} maximum</label>
                 <div class="euro-input-wrap">
                     {{ rc.max_widget }}
                     <span class="euro-input-symbol">€</span>
                 </div>
             </div>
-            <button type="submit" class="fr-btn fr-btn--sm">
-                Filtrer
-            </button>
+            <button type="submit" class="fr-btn fr-btn--sm">Filtrer</button>
         </div>
     </div>
 </div>

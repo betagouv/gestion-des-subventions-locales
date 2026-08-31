@@ -15,9 +15,7 @@
            class='fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-s-line fr-mb-4w'
            data-action="click->modele-arrete-form#confirmaCancel">Annuler</a>
 
-        <h1>
-            {{ title }}
-        </h1>
+        <h1>{{ title }}</h1>
 
         {% block form_content %}
             {% dsfr_stepper current_step_id=wizard.steps.step1 total_steps=wizard.steps.count current_step_title=step_title next_step_title=next_step_title %}
