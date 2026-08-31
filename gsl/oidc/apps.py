@@ -7,7 +7,8 @@ security_logger = logging.getLogger("gsl.security")
 
 class GslOidcConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "gsl_oidc"
+    name = "gsl.oidc"
+    label = "gsl_oidc"
 
     def ready(self):
         from django.contrib.auth.signals import user_logged_in, user_logged_out
