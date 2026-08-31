@@ -145,6 +145,20 @@ def test_taux_retenu_with_refused_programmation_projet():
 
 
 @pytest.mark.parametrize(
+    ("status", "expected"),
+    (
+        (PROJET_STATUS_ACCEPTED, True),
+        (PROJET_STATUS_REFUSED, True),
+        (PROJET_STATUS_DISMISSED, True),
+        (PROJET_STATUS_PROCESSING, False),
+    ),
+)
+def test_is_treated(status, expected):
+    dotation_projet = DotationProjetFactory(status=status)
+    assert dotation_projet.is_treated is expected
+
+
+@pytest.mark.parametrize(
     ("dotation, avis_commission, must_raise_error"),
     (
         (DOTATION_DETR, True, False),

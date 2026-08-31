@@ -424,21 +424,14 @@ class Projet(BaseModel):
 
     @property
     def to_notify(self) -> bool:
-        """
-        Returns True if the projet has not been notified yet, and all dotations have a programmation.
-
-        Does not check if the programmation has been accepted or refused ! This is not necessary.
-        """
-        dotations = self.dotationprojet_set.all()
-        if not dotations:
+        if self.notified_at is not None:
             return False
-        return all(
-            (
-                hasattr(d, "programmation_projet")
-                and d.programmation_projet.notified_at is None
-            )
-            for d in dotations
-        )
+
+        dotation_projets = self.dotationprojet_set.all()
+        if not dotation_projets:
+            return False
+
+        return all(dp.is_treated for dp in dotation_projets)
 
     @property
     def has_treated_dotation(self) -> bool:
@@ -795,6 +788,10 @@ class DotationProjet(BaseModel):
             .values_list("_notification_status", flat=True)
             .get(pk=self.pk)
         )
+
+    @property
+    def is_treated(self) -> bool:
+        return self.status in PROJET_FINAL_STATUSES
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept_without_ds_update(

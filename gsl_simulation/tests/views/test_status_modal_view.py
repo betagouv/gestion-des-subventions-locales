@@ -69,9 +69,10 @@ def test_refuse_modal_excludes_notified_projects(
     client_with_user_logged, simulation_projet
 ):
     # Mark the related programmation as notified
+    simulation_projet.dotation_projet.projet.notified_at = date.today()
+    simulation_projet.dotation_projet.projet.save()
     ProgrammationProjetFactory(
         dotation_projet=simulation_projet.dotation_projet,
-        notified_at=date.today(),
     )
 
     url = reverse(
@@ -91,7 +92,6 @@ def test_refuse_modal_allows_non_notified_projects(
     # Ensure a related ProgrammationProjet exists without notification
     ProgrammationProjetFactory(
         dotation_projet=simulation_projet.dotation_projet,
-        notified_at=None,
     )
 
     url = reverse(

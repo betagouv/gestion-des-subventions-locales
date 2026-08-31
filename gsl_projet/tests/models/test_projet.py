@@ -101,20 +101,23 @@ def test_to_notify_false_without_dotation_projet():
     assert projet not in Projet.objects.to_notify()
 
 
-def test_to_notify_false_without_programmation():
+def test_to_notify_false_with_prcessing_dotation_projet():
     """Project without any programmation should return False."""
     projet = ProjetFactory()
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
 
     assert projet.to_notify is False
 
 
-def test_to_notify_true_with_programmation_not_notified():
+@pytest.mark.parametrize(
+    "status", (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+)
+def test_to_notify_true_with_treated_dotation_projet(status):
     """Project with programmation but not notified should return True."""
     projet = ProjetFactory()
-    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-
-    ProgrammationProjetFactory(dotation_projet=dotation)
+    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, status=status)
     assert projet.to_notify is True
 
 
@@ -145,12 +148,13 @@ def test_to_notify_with_double_dotation_all_notified():
 
 def test_to_notify_with_double_dotation_partial_programmation():
     """Double dotation project returns False if any dotation lacks programmation."""
-    projet = ProjetFactory()
-    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-
-    # Only create programmation for DETR
-    ProgrammationProjetFactory(dotation_projet=dotation_detr)
+    projet = ProjetFactory(notified_at=None)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+    )
 
     assert projet.to_notify is False
 

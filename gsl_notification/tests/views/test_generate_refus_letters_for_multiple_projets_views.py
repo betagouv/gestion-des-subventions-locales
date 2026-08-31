@@ -47,7 +47,7 @@ def programmation_projets(perimetre):
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_REFUSED,
         montant=0,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
 
 
@@ -195,7 +195,7 @@ def test_launch_wrong_perimetre_renders_error_body(client):
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_REFUSED,
         montant=0,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
     response = _post_launch(client, ids=str(wrong_pp.id))
     assert response.status_code == 200
@@ -213,7 +213,7 @@ def test_launch_ignores_ineligible_ids_silently(client, programmation_projets):
         ].dossier.perimetre,
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
     ids = ",".join([str(pp.id) for pp in programmation_projets] + [str(accepted_pp.id)])
     response = _post_launch(client, ids=ids)

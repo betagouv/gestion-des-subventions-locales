@@ -228,7 +228,7 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         status=PROJET_STATUS_ACCEPTED,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)

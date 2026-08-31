@@ -347,16 +347,6 @@ class ProgrammationProjet(models.Model):
         return hasattr(self, "lettre_refus_signee")
 
     @property
-    @deprecated("Use `Projet.notified_at` instead.")
-    def notified_at(self):
-        return self.projet.notified_at
-
-    @notified_at.setter
-    @deprecated("Use `Projet.notified_at` instead.")
-    def notified_at(self, value):
-        self.projet.notified_at = value
-
-    @property
     def lettre(self):
         return self.lettrenotification
 

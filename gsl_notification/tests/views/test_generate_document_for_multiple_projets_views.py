@@ -53,7 +53,7 @@ def programmation_projets(perimetre):
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
 
 
@@ -197,7 +197,7 @@ def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_pp = ProgrammationProjetFactory(
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
     response = _post_launch(client, ids=str(wrong_pp.id))
     assert response.status_code == 200
@@ -754,7 +754,7 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
             dotation_projet__projet__dossier_ds__perimetre=perimetre,
             dotation_projet__dotation=DOTATION_DETR,
             status=ProgrammationProjet.STATUS_ACCEPTED,
-            notified_at=None,
+            dotation_projet__projet__notified_at=None,
         )
     ]
     _drive_through_format_step(
@@ -821,7 +821,7 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__dotation=DOTATION_DETR,
         status=ProgrammationProjet.STATUS_ACCEPTED,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
     _drive_through_format_step(
         client,
