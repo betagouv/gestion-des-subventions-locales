@@ -14,7 +14,7 @@
         <h3>
             1 - Générer
         </h3>
-        {% generate_documents_form projet %}
+        {% render_fragment "gsl_notification:generate_documents" projet %}
 
         <div data-controller="delete-notification-document-modal form-utils"
              data-delete-notification-document-modal-modal-id-value="delete-document-confirmation-modal"
@@ -43,20 +43,24 @@
         <h3 class="fr-mt-6w">
             3 - Notifier
         </h3>
-        {% notification_message_form projet %}
+        {% render_fragment "gsl_notification:notification_message" projet %}
 
         <h3 class="fr-mt-6w">
             4 - Notifié
         </h3>
-        {% if projet.notified_at %}
-            <p>
-                Notifié le {{ projet.notified_at|date }}.
-            </p>
-        {% else %}
-            <p class="fr-mt-3w fr-mb-1w">
-                Aucune notification.
-            </p>
-        {% endif %}
+        {% partialdef notified inline %}
+            <div id="notified-block" {% if oob %}hx-swap-oob="true"{% endif %}>
+                {% if projet.notified_at %}
+                    <p>
+                        Notifié le {{ projet.notified_at|date }} à {{ projet.notified_at|time }}.
+                    </p>
+                {% else %}
+                    <p class="fr-mt-3w fr-mb-1w">
+                        Aucune notification.
+                    </p>
+                {% endif %}
+            </div>
+        {% endpartialdef %}
     {% endblock notification_content %}
 {% endblock tab_projet %}
 

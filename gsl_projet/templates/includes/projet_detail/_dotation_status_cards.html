@@ -1,0 +1,7 @@
+<div id="dotation-status-cards"
+     hx-swap-oob="{{ hx_swap_oob }}"
+     class="fr-col-12 fr-col-xl-4">
+    {% for dotation_projet in dotation_projets %}
+        {% include "includes/projet_detail/_dotation_status_card.html" with dotation_projet=dotation_projet %}
+    {% endfor %}
+</div>

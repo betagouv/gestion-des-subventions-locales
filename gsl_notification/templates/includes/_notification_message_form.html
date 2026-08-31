@@ -1,8 +1,9 @@
 {% load ui_tags %}
-<div id="notification-message-block">
+<div id="notification-message-block"
+     {% if oob %}hx-swap-oob="true"{% endif %}>
     {% if projet.notified_at %}
         <p class="fr-text-default--success">
-            Message de notification envoyé le {{ projet.notified_at|date }} sur Démarche Numérique.
+            Message de notification envoyé le {{ projet.notified_at|date }} à {{ projet.notified_at|time }} sur Démarche Numérique.
         </p>
     {% elif is_instructor %}
         <div class="fr-grid-row">
@@ -10,7 +11,7 @@
                 <form method="post"
                       data-controller="form-utils"
                       data-action="form-utils#disableButtons"
-                      hx-post="{% url 'gsl_notification:notification-message-form' projet.pk %}"
+                      hx-post="{% url 'fragment:gsl_notification:notification_message' projet.pk %}"
                       hx-target="#notification-message-block"
                       hx-swap="outerHTML">
                     {% csrf_token %}
@@ -39,9 +40,8 @@
                         </div>
                     {% endif %}
 
-                    {% comment %} TODO simplify this with a new and more precise projet.to_notify ? {% endcomment %}
                     <button type="submit"
-                            class="fr-btn fr-mt-3w fr-icon-mail-line fr-btn--icon-right"
+                            class="fr-btn fr-icon-mail-line fr-btn--icon-right"
                             {% if projet.dotation_not_treated or dotation_projets_without_signed_document %}disabled{% endif %}>
                         Notifier
                     </button>

@@ -1,9 +1,10 @@
 {% load ui_tags %}
-<div id="generate-documents-block">
+<div id="generate-documents-block"
+     {% if oob %}hx-swap-oob="true"{% endif %}>
     <form method="post"
           data-controller="form-utils"
           data-action="form-utils#disableButtons"
-          hx-post="{% url 'gsl_notification:generate-documents-form' projet.pk %}"
+          hx-post="{% url 'fragment:gsl_notification:generate_documents' projet.pk %}"
           hx-target="#generate-documents-block"
           hx-swap="outerHTML">
         {% csrf_token %}

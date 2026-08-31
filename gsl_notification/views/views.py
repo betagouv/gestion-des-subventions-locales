@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.db.models import Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -8,26 +7,13 @@ from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, DetailView, FormView, UpdateView
-from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.historique.models import ProjetAction
 from gsl.utils.csp import csp_update
-from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
-    MATOMO_ACTION_ENVOI_DN,
-    MATOMO_CATEGORY_NOTIFICATION,
-)
-from gsl_core.templatetags.fragment_tags import register_fragment_tag
-from gsl_core.view_mixins import OpenHtmxModalMixin
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
     GENERATED_DOCUMENT_TO_FORM,
     ChoixModeleForm,
-    GenerateDotationsDocumentsForm,
-    NotificationMessageForm,
-    RefusedDismissedNotificationForm,
 )
 from gsl_notification.models import (
     GENERATED_DOCUMENTS,
@@ -43,12 +29,7 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-)
-from gsl_projet.models import DotationProjet, Projet
-from gsl_projet.utils.projet_page import get_projet_go_back_context
+from gsl_projet.models import Projet
 from gsl_projet.views import BaseProjetDetailView
 
 # Views for listing notification documents on a programmationProjet, -------------------
@@ -66,177 +47,12 @@ class NotificationDocumentsView(BaseProjetDetailView):
         )
 
     def get_context_data(self, **kwargs):
-        title = self.object.dossier_ds.projet_intitule
         return super().get_context_data(
             **{
-                "dossier": self.object.dossier_ds,
-                "dotation_projets": self.object.dotationprojet_set.all(),
                 "generated_documents": self.object.generated_documents,
                 "imported_documents": self.object.imported_documents,
-                "title": title,
-                **get_projet_go_back_context(self.request),
             }
         )
-
-
-@register_fragment_tag("generate_documents_form")
-@method_decorator(htmx_only, name="dispatch")
-class GenerateDocumentsFormView(UpdateView):
-    """
-    HTMX endpoint backing the "1 - Générer" block of the notifications tab.
-    Always re-renders the whole #generate-documents-block, which is also
-    its own hx-target, so the response can swap itself in place.
-
-    GenerateAcceptedDotationsDocumentsForm is a plain Form (projet/user
-    passed as custom kwargs), not a ModelForm, so ModelFormMixin's
-    get_form_kwargs (which injects `instance`) must be stripped before
-    calling the form.
-    """
-
-    model = Projet
-    form_class = GenerateDotationsDocumentsForm
-    template_name = "includes/_generate_documents_form.html"
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-
-    def get_queryset(self):
-        return (
-            Projet.objects.active()
-            .for_user(self.request.user)
-            .with_at_least_one_treated_dotation()
-            .filter(notified_at__isnull=True)
-        )
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs.pop("instance", None)
-        kwargs["projet"] = self.object
-        kwargs["user"] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        form.save()
-        return HttpResponseClientRefresh()
-
-    def form_invalid(self, form):
-        form.set_autofocus_on_first_error()  # TODO systemize this on form_invalid ??
-        return super().form_invalid(form)
-
-
-@register_fragment_tag("notification_message_form")
-@method_decorator(htmx_only, name="dispatch")
-class NotificationMessageFormView(UpdateView):
-    """
-    HTMX endpoint backing the "3 - Notifier" block of the notifications tab.
-    Always re-renders the whole #notification-message-block, which is also
-    its own hx-target, so the response can swap itself in place.
-    """
-
-    form_class = NotificationMessageForm
-    template_name = "includes/_notification_message_form.html"
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-    model = Projet
-
-    def get_queryset(self):
-        return Projet.objects.active().for_user(self.request.user).to_notify()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["is_instructor"] = self.object.dossier_ds.is_instructeur(
-            self.request.user
-        )
-        context["dotation_projets_without_signed_document"] = list(
-            self.object.dotationprojet_set.without_signed_document()
-        )
-        return context
-
-    def form_valid(self, form):
-        try:
-            form.save(user=self.request.user)
-        except DsServiceException as e:
-            form.add_error(
-                None,
-                f"Une erreur est survenue lors de l'envoi de la notification. {str(e)}",
-            )
-            return self.form_invalid(form)
-
-        messages.success(
-            self.request, "Le dossier a bien été accepté sur Démarche Numérique."
-        )
-        queue_matomo_event(
-            self.request,
-            MATOMO_CATEGORY_NOTIFICATION,
-            MATOMO_ACTION_ENVOI_DN,
-            "accepte",
-        )
-        return HttpResponseClientRefresh()
-
-
-# TODO remove this, once the notification tab is fully implemented and the modal is no longer used
-@method_decorator(htmx_only, name="dispatch")
-class RefusedDismissedNotificationModalView(OpenHtmxModalMixin, UpdateView):
-    """
-    Notification modal for projets that resolved to REFUSED or DISMISSED
-    (no accepted dotation). The status change happened earlier; this view
-    only sends the message to Démarches Numériques.
-    """
-
-    template_name = "gsl_notification/modal/notify_refused_dismissed.html"
-    pk_url_kwarg = "projet_id"
-    context_object_name = "projet"
-    form_class = RefusedDismissedNotificationForm
-
-    def get_queryset(self):
-        return (
-            Projet.objects.for_user(self.request.user)
-            .active()
-            .to_notify()
-            .filter(
-                ~Exists(
-                    DotationProjet.objects.filter(
-                        projet=OuterRef("pk"),
-                        status=PROJET_STATUS_ACCEPTED,
-                    )
-                )
-            )
-        )
-
-    def get_modal_id(self):
-        return f"notify-refused-dismissed-modal-{self.object.pk}"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["trigger_as_link"] = (
-            self.request.htmx.trigger_name == "notify-refused-dismissed-link"
-        )
-        return context
-
-    def form_valid(self, form):
-        try:
-            form.save(user=self.request.user)
-        except DsServiceException as e:
-            form.add_error(
-                None,
-                f"Une erreur est survenue lors de l'envoi de la notification. {str(e)}",
-            )
-            return self.form_invalid(form)
-
-        messages.success(
-            self.request,
-            "Le dossier a bien été mis à jour sur Démarche Numérique.",
-        )
-        queue_matomo_event(
-            self.request,
-            MATOMO_CATEGORY_NOTIFICATION,
-            MATOMO_ACTION_ENVOI_DN,
-            (
-                "classe_sans_suite"
-                if self.object.status == PROJET_STATUS_DISMISSED
-                else "refuse"
-            ),
-        )
-        return HttpResponseClientRefresh()
 
 
 # Edition form for arrêté --------------------------------------------------------------

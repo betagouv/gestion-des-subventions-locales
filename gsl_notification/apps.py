@@ -8,4 +8,5 @@ class GslNotificationConfig(AppConfig):
     verbose_name = "6. Notification"
 
     def ready(self):
+        import gsl_notification.fragments  # noqa: F401
         import gsl_notification.signals  # noqa F401
