@@ -24,7 +24,7 @@ handler500 = "gsl.pages.views.custom_500_view"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("gsl_core.urls")),
-    path("", include("gsl_oidc.urls")),
+    path("", include("gsl.oidc.urls")),
     path("", include("gsl.pages.urls")),
     path(
         "ds/",

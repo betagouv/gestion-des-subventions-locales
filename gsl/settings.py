@@ -81,7 +81,7 @@ INSTALLED_APPS = [
     "gsl_notification",
     "gsl.historique",
     "gsl.pages",
-    "gsl_oidc",
+    "gsl.oidc",
 ]
 
 
@@ -95,7 +95,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
-    "gsl_oidc.middleware.LoginRequiredMiddleware",
+    "gsl.oidc.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
@@ -120,7 +120,7 @@ if ENABLE_QUERY_COUNTER:
 
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesBackend",
-    "gsl_oidc.backends.OIDCAuthenticationBackend",
+    "gsl.oidc.backends.OIDCAuthenticationBackend",
     "gsl_core.auth_backends.LastLoginDeactivationBackend",
 ]
 
