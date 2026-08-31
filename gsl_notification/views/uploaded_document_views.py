@@ -74,7 +74,10 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
     uploaded_doc_class = UPLOADED_DOCUMENTS.get(document_type)
     if uploaded_doc_class is None:
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
-    if programmation_projet.status not in uploaded_doc_class.upload_statuses:
+    if (
+        programmation_projet.status
+        not in uploaded_doc_class.required_programmation_projet_statuses
+    ):
         return HttpResponseBadRequest(
             "Ce type de document ne peut pas être importé pour cette dotation."
         )

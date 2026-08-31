@@ -99,7 +99,9 @@ def test_arrete_form_invalid_missing_fields(form_class):
 @pytest.mark.django_db
 def test_arrete_et_lettre_signe_form_valid(form_class):
     collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory()
+    programmation_projet = ProgrammationProjetFactory(
+        status=form_class._meta.model.required_programmation_projet_statuses[0]
+    )
     data = {
         "created_by": collegue.id,
         "programmation_projet": programmation_projet.id,
@@ -148,7 +150,9 @@ def test_arrete_et_lettre_signe_form_accepts_valid_pdf(
     form_class, file_name, content_type, is_valid
 ):
     collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory()
+    programmation_projet = ProgrammationProjetFactory(
+        status=form_class._meta.model.required_programmation_projet_statuses[0]
+    )
     file = SimpleUploadedFile(file_name, b"dummy content", content_type=content_type)
     form = form_class(
         files={"file": file},
@@ -177,7 +181,9 @@ def test_arrete_et_lettre_signe_form_rejects_large_file(
     form_class, file_size, is_valid
 ):
     collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory()
+    programmation_projet = ProgrammationProjetFactory(
+        status=form_class._meta.model.required_programmation_projet_statuses[0]
+    )
     file = SimpleUploadedFile(
         "test.pdf", b"x" * file_size, content_type="application/pdf"
     )

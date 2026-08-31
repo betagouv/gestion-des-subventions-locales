@@ -12,8 +12,11 @@ from gsl_notification.tests.factories import (
     ArreteFactory,
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
+    LettreRefusFactory,
+    LettreRefusSigneeFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
+    ModeleLettreRefusFactory,
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
@@ -230,6 +233,80 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
     )
 
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "modele_factory, factory, message",
+    (
+        (
+            ModeleArreteFactory,
+            ArreteFactory,
+            "Un arrêté ne peut être associé qu'à un projet de programmation accepté.",
+        ),
+        (
+            ModeleLettreNotificationFactory,
+            LettreNotificationFactory,
+            "Une lettre de notification ne peut être associée qu'à un projet de "
+            "programmation accepté.",
+        ),
+    ),
+)
+def test_generated_document_validation_error_when_pp_status_mismatch(
+    modele_factory, factory, message
+):
+    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
+    modele = modele_factory(dotation=pp.dotation)
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        document = factory(programmation_projet=pp, modele=modele)
+    with pytest.raises(ValidationError) as exc_info:
+        document.clean()
+
+    assert exc_info.value.message == message
+
+
+@pytest.mark.django_db
+def test_lettre_refus_validation_error_when_pp_status_mismatch():
+    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    modele = ModeleLettreRefusFactory(dotation=pp.dotation)
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        document = LettreRefusFactory(programmation_projet=pp, modele=modele)
+    with pytest.raises(ValidationError) as exc_info:
+        document.clean()
+
+    assert exc_info.value.message == (
+        "Une lettre de refus ou de classement sans suite ne peut être associée "
+        "qu'à un projet de programmation refusé ou classé sans suite."
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "modele_factory, factory",
+    (
+        (ModeleArreteFactory, ArreteFactory),
+        (ModeleLettreNotificationFactory, LettreNotificationFactory),
+    ),
+)
+def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
+    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    modele = modele_factory(dotation=pp.dotation)
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        document = factory(programmation_projet=pp, modele=modele)
+    document.clean()  # should not raise
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status",
+    (ProgrammationProjet.STATUS_REFUSED, ProgrammationProjet.STATUS_DISMISSED),
+)
+def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
+    pp = ProgrammationProjetFactory(status=status)
+    modele = ModeleLettreRefusFactory(dotation=pp.dotation)
+    with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
+        document = LettreRefusFactory(programmation_projet=pp, modele=modele)
+    document.clean()  # should not raise
+
+
 @pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_properties(factory):
@@ -307,3 +384,62 @@ def test_two_models_have_different_logos():
     assert first_modele.logo.name != second_modele.logo.name
     assert "my_logo" in first_modele.logo.name
     assert "my_logo" in second_modele.logo.name
+
+
+@pytest.mark.django_db
+def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
+    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
+    doc = LettreEtArreteSignesFactory(programmation_projet=pp)
+    with pytest.raises(ValidationError) as exc_info:
+        doc.clean()
+
+    assert exc_info.value.message == (
+        "La lettre et l'arrêté signés ne peuvent être importés que pour un "
+        "projet de programmation accepté."
+    )
+
+
+@pytest.mark.django_db
+def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
+    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    doc = LettreRefusSigneeFactory(programmation_projet=pp)
+    with pytest.raises(ValidationError) as exc_info:
+        doc.clean()
+
+    assert exc_info.value.message == (
+        "La lettre de refus signée ne peut être importée que pour un projet "
+        "de programmation refusé ou classé sans suite."
+    )
+
+
+@pytest.mark.parametrize(
+    "status",
+    (
+        ProgrammationProjet.STATUS_ACCEPTED,
+        ProgrammationProjet.STATUS_REFUSED,
+        ProgrammationProjet.STATUS_DISMISSED,
+    ),
+)
+@pytest.mark.django_db
+def test_annexe_no_error_regardless_of_pp_status(status):
+    pp = ProgrammationProjetFactory(status=status)
+    doc = AnnexeFactory(programmation_projet=pp)
+    doc.clean()  # should not raise
+
+
+@pytest.mark.django_db
+def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
+    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    doc = LettreEtArreteSignesFactory(programmation_projet=pp)
+    doc.clean()  # should not raise
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status",
+    (ProgrammationProjet.STATUS_REFUSED, ProgrammationProjet.STATUS_DISMISSED),
+)
+def test_lettre_refus_signee_no_error_when_pp_refused_or_dismissed(status):
+    pp = ProgrammationProjetFactory(status=status)
+    doc = LettreRefusSigneeFactory(programmation_projet=pp)
+    doc.clean()  # should not raise

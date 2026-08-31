@@ -165,6 +165,8 @@ GENERATED_DOCUMENTS = {}
 class GeneratedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
     is_feminine: bool = False
+    required_programmation_projet_statuses: tuple[str, ...] = ()
+    status_mismatch_message: str = ""
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
@@ -209,14 +211,20 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if (
-            hasattr(self, "programmation_projet")
-            and hasattr(self, "modele")
-            and self.programmation_projet.dotation != self.modele.dotation
-        ):
-            raise ValidationError(
-                "Le modèle doit avoir la même dotation que le projet de programmation."
-            )
+        if hasattr(self, "programmation_projet"):
+            if (
+                hasattr(self, "modele")
+                and self.programmation_projet.dotation != self.modele.dotation
+            ):
+                raise ValidationError(
+                    "Le modèle doit avoir la même dotation que le projet de programmation."
+                )
+            if (
+                self.required_programmation_projet_statuses
+                and self.programmation_projet.status
+                not in self.required_programmation_projet_statuses
+            ):
+                raise ValidationError(self.status_mismatch_message)
         return super().clean()
 
     def get_download_url(self):
@@ -258,6 +266,10 @@ class Arrete(GeneratedDocument):
     delete_question = "Êtes-vous sûr de vouloir supprimer cet arrêté ?"
     short_name = "Arrêté"
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
+    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    status_mismatch_message = (
+        "Un arrêté ne peut être associé qu'à un projet de programmation accepté."
+    )
 
     class Meta:
         verbose_name = "Arrêté"
@@ -273,6 +285,11 @@ class LettreNotification(GeneratedDocument):
     )
     short_name = "Lettre"
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
+    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    status_mismatch_message = (
+        "Une lettre de notification ne peut être associée qu'à un projet de "
+        "programmation accepté."
+    )
 
     class Meta:
         verbose_name = "Lettre de notification"
@@ -286,6 +303,14 @@ class LettreRefus(GeneratedDocument):
     delete_question = "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou classement sans suite ?"
     short_name = "Lettre de refus"
     modele = models.ForeignKey(ModeleLettreRefus, on_delete=models.PROTECT)
+    required_programmation_projet_statuses = (
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED,
+    )
+    status_mismatch_message = (
+        "Une lettre de refus ou de classement sans suite ne peut être associée "
+        "qu'à un projet de programmation refusé ou classé sans suite."
+    )
 
     class Meta:
         verbose_name = "Lettre de refus ou classement sans suite"
@@ -302,8 +327,9 @@ def uploaded_document_upload_to(instance, filename):
 
 class UploadedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
-    # DotationProjet statuses for which this document can be uploaded.
-    upload_statuses: tuple[str, ...] = ()
+    # ProgrammationProjet statuses for which this document can be uploaded.
+    required_programmation_projet_statuses: tuple[str, ...] = ()
+    status_mismatch_message: str = ""
     # False => OneToOne to ProgrammationProjet: a single document, the choice is
     # disabled once one exists. True => several allowed (e.g. annexes).
     allow_multiple = False
@@ -348,6 +374,16 @@ class UploadedDocument(VerboseNameMixin, models.Model):
             programmation_projet=programmation_projet
         ).exists()
 
+    def clean(self):
+        if (
+            self.required_programmation_projet_statuses
+            and hasattr(self, "programmation_projet")
+            and self.programmation_projet.status
+            not in self.required_programmation_projet_statuses
+        ):
+            raise ValidationError(self.status_mismatch_message)
+        return super().clean()
+
     @property
     def is_downloadable(self):
         if settings.BYPASS_ANTIVIRUS:
@@ -381,8 +417,12 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
 class LettreEtArreteSignes(UploadedDocument):
     document_type = "lettre_et_arrete_signes"
-    upload_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     reattach_source_document_types = (ARRETE, LETTRE)
+    status_mismatch_message = (
+        "La lettre et l'arrêté signés ne peuvent être importés que pour un "
+        "projet de programmation accepté."
+    )
     delete_label = "Suppression de la lettre et de l’arrêté signés"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?"
@@ -404,7 +444,11 @@ class LettreEtArreteSignes(UploadedDocument):
 
 class Annexe(UploadedDocument):
     document_type = "annexe"
-    upload_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_programmation_projet_statuses = (
+        PROJET_STATUS_ACCEPTED,
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED,
+    )
     allow_multiple = True
     delete_label = "Suppression de l’annexe"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
@@ -425,8 +469,15 @@ class Annexe(UploadedDocument):
 
 class LettreRefusSignee(UploadedDocument):
     document_type = "lettre_refus_signee"
-    upload_statuses = (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+    required_programmation_projet_statuses = (
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED,
+    )
     reattach_source_document_types = (LETTRE_REFUS,)
+    status_mismatch_message = (
+        "La lettre de refus signée ne peut être importée que pour un projet "
+        "de programmation refusé ou classé sans suite."
+    )
     delete_label = "Suppression de la lettre de refus signée"
     delete_question = (
         "Êtes-vous sûr de vouloir supprimer cette lettre de refus signée ?"
