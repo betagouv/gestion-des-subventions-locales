@@ -32,9 +32,7 @@
     </div>
     {% if dossier and not dossier.is_active %}
         <div class="fr-alert fr-alert--info fr-mb-4w">
-            <h3 class="fr-alert__title">
-                Dossier {{ dossier.get_raison_desactivation_display|lower }}
-            </h3>
+            <h3 class="fr-alert__title">Dossier {{ dossier.get_raison_desactivation_display|lower }}</h3>
             <p>
                 Ce dossier n'est plus actif sur Démarches Simplifiées et n'apparaît pas dans la liste des projets.
                 {% if dossier.url_on_ds %}
@@ -51,9 +49,7 @@
             </button>
         </div>
     {% endif %}
-    <h1>
-        {{ dossier.projet_intitule|lower|capfirst }}
-    </h1>
+    <h1>{{ dossier.projet_intitule|lower|capfirst }}</h1>
     <div class="projet-header__status">
         {% for dotation_projet in dotation_projets %}
             {% ui_status_badge type=dotation_projet.status dotation=dotation_projet.dotation %}
@@ -67,9 +63,7 @@
 
     {% if dossier.has_missing_annotations %}
         <div role="alert" class="fr-alert fr-alert--error fr-mb-4w">
-            <p class="fr-alert__title">
-                Annotations manquantes
-            </p>
+            <p class="fr-alert__title">Annotations manquantes</p>
             {% with dossier.url_on_ds|add:"/annotations-privees" as annotations_url %}
                 <p>
                     Le projet est accepté sur DN mais les annotations sont manquantes. Nous ne pouvons pas mettre correctement à jour le projet. Veuillez renseigner les annotations manquantes <a href="{{ annotations_url }}"

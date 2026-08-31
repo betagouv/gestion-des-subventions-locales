@@ -3,8 +3,7 @@
 {% url 'index' as home_url %}
 
 {% block brand %}
-    <p class="fr-logo">
-    </p>
+    <p class="fr-logo"></p>
 {% endblock brand %}
 
 {% block header_tools %}
@@ -33,9 +32,7 @@
                         <div class="fr-collapse fr-menu" id="user-menu">
                             <ul class="fr-menu__list">
                                 <li>
-                                    <a class="fr-nav__link blue-color" href="{% url 'oidc_logout' %}">
-                                        Se déconnecter
-                                    </a>
+                                    <a class="fr-nav__link blue-color" href="{% url 'oidc_logout' %}">Se déconnecter</a>
                                 </li>
                             </ul>
                         </div>
@@ -48,7 +45,6 @@
         {% endif %}
     </li>
 {% endblock header_tools %}
-
 
 {# Leave burger_menu and main_menu blocks empty if the main menu is not used #}
 {% block burger_menu %}

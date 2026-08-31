@@ -11,8 +11,7 @@
       Le premier bouton est utile lorsqu'on tape sur Entrée. Le formulaire agit alors en fonction du premier bouton rencontré.
       Ça évite que le bouton Entrée ne réinitialise les filtres
     {% endcomment %}
-    <button type="submit" hidden>
-    </button>
+    <button type="submit" hidden></button>
     {% if current_order %}
         <input type="hidden" name="order" value="{{ current_order }}">
     {% endif %}

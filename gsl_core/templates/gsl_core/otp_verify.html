@@ -15,9 +15,7 @@
                 <div class="fr-container fr-background-alt--grey fr-px-md-0 fr-py-10v fr-py-md-14v">
                     <div class="fr-grid-row fr-grid-row-gutters fr-grid-row--center">
                         <div class="fr-col-12 fr-col-md-9 fr-col-lg-8">
-                            <h1>
-                                Vérification à deux facteurs
-                            </h1>
+                            <h1>Vérification à deux facteurs</h1>
 
                             <p>
                                 Entrez le code généré par votre application d'authentification
@@ -26,9 +24,7 @@
 
                             {% if error %}
                                 <div class="fr-alert fr-alert--error fr-mb-4v">
-                                    <p>
-                                        {{ error }}
-                                    </p>
+                                    <p>{{ error }}</p>
                                 </div>
                             {% endif %}
 
@@ -36,9 +32,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="next" value="{{ next }}">
                                 <div class="fr-input-group {% if error %}fr-input-group--error{% endif %}">
-                                    <label class="fr-label" for="token">
-                                        Code à 6 chiffres
-                                    </label>
+                                    <label class="fr-label" for="token">Code à 6 chiffres</label>
                                     <input class="fr-input {% if error %}fr-input--error{% endif %}"
                                            type="text"
                                            id="token"
@@ -50,9 +44,7 @@
                                            required
                                            autofocus>
                                 </div>
-                                <button class="fr-btn fr-mt-4v" type="submit">
-                                    Valider
-                                </button>
+                                <button class="fr-btn fr-mt-4v" type="submit">Valider</button>
                             </form>
                         </div>
                     </div>

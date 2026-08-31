@@ -4,15 +4,9 @@
 </a>
 
 <div class="arrete-container">
-    <h2 class="fr-mb-3w">
-        {{ page_title }}
-    </h2>
-    <h4>
-        {{ page_step_title }}
-    </h4>
-    <p>
-        Sélectionner un {{ modele_label }} qui va être utilisé pour générer le publipostage
-    </p>
+    <h2 class="fr-mb-3w">{{ page_title }}</h2>
+    <h4>{{ page_step_title }}</h4>
+    <p>Sélectionner un {{ modele_label }} qui va être utilisé pour générer le publipostage</p>
     {% if form.has_modele_choices %}
         <form method="post">
             {% csrf_token %}
@@ -21,9 +15,7 @@
         </form>
     {% else %}
         <div class="fr-callout">
-            <p class="fr-callout__text">
-                Vous n'avez créé aucun modèle pour le moment. Créez un nouveau modèle et revenez ici.
-            </p>
+            <p class="fr-callout__text">Vous n'avez créé aucun modèle pour le moment. Créez un nouveau modèle et revenez ici.</p>
             <a class="fr-btn fr-btn--primary"
                href="{% url 'gsl_notification:modele-creer' document_type dotation %}">
                 Créer un {{ modele_label }}

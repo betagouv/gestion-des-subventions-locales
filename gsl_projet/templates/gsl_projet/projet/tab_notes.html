@@ -21,9 +21,7 @@
 
         {% include "includes/_notes_detail.html" %}
         {% if projet_notes %}
-            <h3>
-                Annotations créées ici
-            </h3>
+            <h3>Annotations créées ici</h3>
             {% for note in projet_notes %}
                 {% include "includes/_projet_note_card.html" with allow_update=True %}
             {% endfor %}
@@ -44,9 +42,7 @@
             {% csrf_token %}
             {{ projet_note_form }}
             <div class="fr-mt-2w submit-projet-note-form-container">
-                <button type="submit" class="fr-btn fr-btn--primary">
-                    Ajouter
-                </button>
+                <button type="submit" class="fr-btn fr-btn--primary">Ajouter</button>
             </div>
         </form>
     </div>

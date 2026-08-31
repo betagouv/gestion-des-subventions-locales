@@ -54,9 +54,7 @@
                                                name="simulation_projet_ids"
                                                value=""
                                                data-checkbox-selection-target="idsInput">
-                                        <button type="submit" class="fr-nav__link">
-                                            {{ status_key|status_to_label|split_symbol_and_status|safe }}
-                                        </button>
+                                        <button type="submit" class="fr-nav__link">{{ status_key|status_to_label|split_symbol_and_status|safe }}</button>
                                     </form>
                                 </li>
                             {% endfor %}

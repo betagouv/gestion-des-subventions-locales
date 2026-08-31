@@ -9,9 +9,7 @@
 {% endblock extra_css %}
 
 {% block content %}
-    <h1>
-        Modèles de publipostage {{ dotation }}
-    </h1>
+    <h1>Modèles de publipostage {{ dotation }}</h1>
     <div class="fr-my-4w"
          data-controller="delete-notification-document-modal"
          data-delete-notification-document-modal-modal-id-value="delete-modele-arrete"
@@ -23,9 +21,7 @@
         </div>
         <ul class="no-list-style arrete-modele-list">
             {% for modele in modeles_list %}
-                <li>
-                    {% include "includes/_modele_card.html" %}
-                </li>
+                <li>{% include "includes/_modele_card.html" %}</li>
             {% empty %}
                 <p>
                     Vous n'avez pas encore de modèles. Vous pouvez en créer

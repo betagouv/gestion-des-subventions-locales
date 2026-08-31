@@ -14,14 +14,10 @@
                   autofocus>{{ form.value.value|default_if_none:'' }}</textarea>
     </div>
     {% for error in form.value.errors %}
-        <p class="fr-error-text">
-            {{ error }}
-        </p>
+        <p class="fr-error-text">{{ error }}</p>
     {% endfor %}
     {% for error in form.non_field_errors %}
-        <p class="fr-error-text">
-            {{ error }}
-        </p>
+        <p class="fr-error-text">{{ error }}</p>
     {% endfor %}
     <ul class="fr-btns-group fr-btns-group--sm fr-btns-group--icon-left fr-btns-group--inline fr-btns-group--right fr-btns-group--inline-reverse">
         <li>

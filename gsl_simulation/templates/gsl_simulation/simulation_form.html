@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>
-        {{ title }}
-    </h1>
+    <h1>{{ title }}</h1>
     <div class="fr-grid-row">
         <div class="fr-col-12 fr-col-md-6">
             <form id="simulation-form" method="POST">
@@ -13,9 +11,7 @@
                     <a class="fr-link"
                        href="{% url 'gsl_projet:enveloppe-create' %}?next={{ request.path }}">Créer une nouvelle sous-enveloppe</a>
                 </p>
-                <button class="fr-btn" type="submit">
-                    Créer une simulation
-                </button>
+                <button class="fr-btn" type="submit">Créer une simulation</button>
             </form>
         </div>
     </div>

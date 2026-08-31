@@ -7,16 +7,12 @@
     </a>
 
     <div class="arrete-container">
-        <h2 class="fr-mb-3w">
-            Importer un document
-        </h2>
+        <h2 class="fr-mb-3w">Importer un document</h2>
 
         <form method="post">
             {% csrf_token %}
             {{ form }}
-            <button class="fr-btn fr-btn--icon-left fr-icon-file-text-line" type="submit">
-                Importer sur Turgot
-            </button>
+            <button class="fr-btn fr-btn--icon-left fr-icon-file-text-line" type="submit">Importer sur Turgot</button>
         </form>
     </div>
 {% endblock notification_content %}

@@ -5,9 +5,7 @@
       data-controller="form-utils"
       data-action="change->enable-on-change#enable submit->form-utils#disableButtons">
     {% csrf_token %}
-    <div class="fr-callout fr-background-alt--blue-france fr-m-0">
-        {% block fields %}{{ form }}{% endblock fields %}
-    </div>
+    <div class="fr-callout fr-background-alt--blue-france fr-m-0">{% block fields %}{{ form }}{% endblock fields %}</div>
     <button class="fr-btn fr-btn--secondary fr-btn--icon-left fr-btn--sm fr-icon-save-3-fill fr-mt-2w"
             type="submit"
             disabled>

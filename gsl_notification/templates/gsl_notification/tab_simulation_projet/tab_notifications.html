@@ -11,9 +11,7 @@
 
 {% block tab_projet %}
     {% block notification_content %}
-        <h3>
-            1 - Générer
-        </h3>
+        <h3>1 - Générer</h3>
         {% render_fragment "gsl_notification:generate_documents" projet %}
 
         <div data-controller="delete-notification-document-modal form-utils"
@@ -30,9 +28,7 @@
                 </a>
             {% endif %}
 
-            <h3 class="fr-mt-6w">
-                2 - Importer
-            </h3>
+            <h3 class="fr-mt-6w">2 - Importer</h3>
             <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line"
                {% if projet.notified_at %}disabled{% else %}href="{% url 'gsl_notification:choose-uploaded-document-type' projet.id %}"{% endif %}>
                 Importer un document
@@ -40,24 +36,16 @@
             {% include "includes/_documents_table.html" with documents=imported_documents caption="Documents importés" date_label="Date d'import" is_imported=True empty_message="Il n’y a pas de document importé pour le moment." %}
         </div>
 
-        <h3 class="fr-mt-6w">
-            3 - Notifier
-        </h3>
+        <h3 class="fr-mt-6w">3 - Notifier</h3>
         {% render_fragment "gsl_notification:notification_message" projet %}
 
-        <h3 class="fr-mt-6w">
-            4 - Notifié
-        </h3>
+        <h3 class="fr-mt-6w">4 - Notifié</h3>
         {% partialdef notified inline %}
             <div id="notified-block" {% if oob %}hx-swap-oob="true"{% endif %}>
                 {% if projet.notified_at %}
-                    <p>
-                        Notifié le {{ projet.notified_at|date }} à {{ projet.notified_at|time }}.
-                    </p>
+                    <p>Notifié le {{ projet.notified_at|date }} à {{ projet.notified_at|time }}.</p>
                 {% else %}
-                    <p class="fr-mt-3w fr-mb-1w">
-                        Aucune notification.
-                    </p>
+                    <p class="fr-mt-3w fr-mb-1w">Aucune notification.</p>
                 {% endif %}
             </div>
         {% endpartialdef %}

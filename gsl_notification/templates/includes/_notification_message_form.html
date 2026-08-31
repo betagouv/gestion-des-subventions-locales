@@ -21,20 +21,14 @@
 
                     {% if projet.dotation_not_treated %}
                         <div role="alert" class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">
-                            <p>
-                                La dotation {{ projet.dotation_not_treated }} est en attente de traitement.
-                            </p>
+                            <p>La dotation {{ projet.dotation_not_treated }} est en attente de traitement.</p>
                         </div>
                     {% elif dotation_projets_without_signed_document %}
                         <div role="alert" class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">
-                            <p>
-                                Documents manquants pour notifier&nbsp;:
-                            </p>
+                            <p>Documents manquants pour notifier&nbsp;:</p>
                             <ul>
                                 {% for dotation_projet in dotation_projets_without_signed_document %}
-                                    <li>
-                                        Lettre de notification et arrêté signés {{ dotation_projet.dotation }}
-                                    </li>
+                                    <li>Lettre de notification et arrêté signés {{ dotation_projet.dotation }}</li>
                                 {% endfor %}
                             </ul>
                         </div>

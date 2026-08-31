@@ -22,60 +22,60 @@ If POST, the modal is already opened and the form is being sent:
         </button>
     {% endblock button %}
     <div hx-swap-oob="beforeend:body">
-    {% endif %}
-    <dialog class="fr-modal"
-            id="{{ modal_id }}"
-            aria-labelledby="{{ modal_id }}-title"
-            {% block dialog_close_behavior %}
-            hx-get="{% url 'simulation:refresh-simulation-row' pk=object.pk %}"
-            hx-trigger="dsfr.conceal"
-            hx-swap="delete"
-            {% endblock dialog_close_behavior %}>
-        <div class="fr-container fr-container--fluid fr-container-md">
-            <div class="fr-grid-row fr-grid-row--center">
-                <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
-                    <div class="fr-modal__body">
-                        <div class="fr-modal__header">
-                            <button aria-controls="{{ modal_id }}"
-                                    title="Fermer"
-                                    type="button"
-                                    class="fr-btn--close fr-btn close-modal">
-                                Fermer
-                            </button>
-                        </div>
-                        <div class="fr-modal__content">
-                            {% block content %}
-                            {% endblock content %}
-                        </div>
+{% endif %}
+<dialog class="fr-modal"
+        id="{{ modal_id }}"
+        aria-labelledby="{{ modal_id }}-title"
+        {% block dialog_close_behavior %}
+        hx-get="{% url 'simulation:refresh-simulation-row' pk=object.pk %}"
+        hx-trigger="dsfr.conceal"
+        hx-swap="delete"
+        {% endblock dialog_close_behavior %}>
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button aria-controls="{{ modal_id }}"
+                                title="Fermer"
+                                type="button"
+                                class="fr-btn--close fr-btn close-modal">
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="fr-modal__content">
+                        {% block content %}
+                        {% endblock content %}
+                    </div>
 
-                        <div class="fr-modal__footer">
-                            {% block footer %}
-                                <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg fr-btns-group--icon-left">
-                                    <li>
-                                        {% block confirmation_button %}
-                                            <button type="submit"
-                                                    class="fr-btn fr-btn--primary"
-                                                    form="{{ modal_id }}-form">
-                                                Confirmer
-                                            </button>
-
-                                        {% endblock confirmation_button %}
-                                    </li>
-                                    <li>
-                                        <button class="fr-btn fr-btn--secondary"
-                                                aria-controls="{{ modal_id }}"
-                                                id="{{ modal_id }}-cancel-button">
-                                            Annuler
+                    <div class="fr-modal__footer">
+                        {% block footer %}
+                            <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline-reverse fr-btns-group--inline-lg fr-btns-group--icon-left">
+                                <li>
+                                    {% block confirmation_button %}
+                                        <button type="submit"
+                                                class="fr-btn fr-btn--primary"
+                                                form="{{ modal_id }}-form">
+                                            Confirmer
                                         </button>
-                                    </li>
-                                </ul>
-                            {% endblock footer %}
-                        </div>
+
+                                    {% endblock confirmation_button %}
+                                </li>
+                                <li>
+                                    <button class="fr-btn fr-btn--secondary"
+                                            aria-controls="{{ modal_id }}"
+                                            id="{{ modal_id }}-cancel-button">
+                                        Annuler
+                                    </button>
+                                </li>
+                            </ul>
+                        {% endblock footer %}
                     </div>
                 </div>
             </div>
         </div>
-    </dialog>
-    {% if request.method == "GET" %}
+    </div>
+</dialog>
+{% if request.method == "GET" %}
     </div>
 {% endif %}

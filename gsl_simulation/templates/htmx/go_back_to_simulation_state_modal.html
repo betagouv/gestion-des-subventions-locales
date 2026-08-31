@@ -34,9 +34,7 @@
         lesquelles il a été ajouté. Il n'apparaîtra plus dans la programmation
         officielle {{ object.enveloppe.dotation }} {{ object.enveloppe.annee }}.
     </p>
-    <p>
-        Êtes-vous sûr⋅e de {{ new_simulation_status|status_to_action_word }} le projet&nbsp;?
-    </p>
+    <p>Êtes-vous sûr⋅e de {{ new_simulation_status|status_to_action_word }} le projet&nbsp;?</p>
     <form id="{{ modal_id }}-form"
           hx-post="{{ request.path }}"
           hx-target="#{{ modal_id }}"

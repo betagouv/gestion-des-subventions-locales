@@ -1,9 +1,7 @@
 {% if programmation_projet.documents_summary %}
     <ul>
         {% for document in programmation_projet.documents_summary %}
-            <li>
-                {{ document }}
-            </li>
+            <li>{{ document }}</li>
         {% endfor %}
     </ul>
 {% else %}

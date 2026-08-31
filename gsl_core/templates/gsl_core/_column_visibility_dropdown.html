@@ -29,9 +29,7 @@
                                    id="toggle-col-{{ column.css_key }}"
                                    {% if simulation %}name="{{ column.css_key }}" value="true"{% endif %}
                                    {% if column.displayed_by_default %}checked{% endif %}>
-                            <label class="fr-label" for="toggle-col-{{ column.css_key }}">
-                                {{ column.label }}
-                            </label>
+                            <label class="fr-label" for="toggle-col-{{ column.css_key }}">{{ column.label }}</label>
                         </div>
                     {% endif %}
                 {% endfor %}

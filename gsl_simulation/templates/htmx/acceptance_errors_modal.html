@@ -10,20 +10,14 @@
         <span class="fr-icon-error-fill fr-icon--lg" aria-hidden="true"></span>
         Impossible d'accepter cette demande
     </h1>
-    <p>
-        Vous ne pouvez pas accepter cette dotation pour ce projet.
-    </p>
+    <p>Vous ne pouvez pas accepter cette dotation pour ce projet.</p>
     <div class="fr-alert fr-alert--error fr-alert--sm fr-mt-4w">
         {% if acceptance_errors|length == 1 %}
-            <p>
-                {{ acceptance_errors.0 }}
-            </p>
+            <p>{{ acceptance_errors.0 }}</p>
         {% else %}
             <ul>
                 {% for error in acceptance_errors %}
-                    <li>
-                        {{ error }}
-                    </li>
+                    <li>{{ error }}</li>
                 {% endfor %}
             </ul>
         {% endif %}

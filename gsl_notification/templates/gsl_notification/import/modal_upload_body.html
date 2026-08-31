@@ -12,9 +12,7 @@
         </button>
     </div>
     <div class="fr-modal__content">
-        <h1 class="fr-modal__title" id="{{ modal_id }}-title">
-            Importer les documents signés
-        </h1>
+        <h1 class="fr-modal__title" id="{{ modal_id }}-title">Importer les documents signés</h1>
         {% dsfr_stepper current_step_id=1 total_steps=3 current_step_title="Téléverser les documents" next_step_title="Traitement des documents" %}
         <div class="gsl-dropzone fr-p-4w fr-mt-3w"
              data-document-import-target="dropzone"
@@ -54,26 +52,21 @@
                    aria-describedby="{{ modal_id }}-remove-qr-messages">
             <label class="fr-label" for="{{ modal_id }}-remove-qr">
                 Retirer le QR&nbsp;code de suivi des documents importés
-                <span class="fr-hint-text">
-                    Décochez cette case pour conserver le QR&nbsp;code apparent lors de la notification.
-                </span>
+                <span class="fr-hint-text">Décochez cette case pour conserver le QR&nbsp;code apparent lors de la notification.</span>
             </label>
             <div class="fr-messages-group"
                  id="{{ modal_id }}-remove-qr-messages"
-                 aria-live="assertive">
-            </div>
+                 aria-live="assertive"></div>
         </div>
         <p class="fr-mt-2w"
            role="status"
            aria-live="polite"
            hidden
-           data-document-import-target="progress">
-        </p>
+           data-document-import-target="progress"></p>
         <p class="fr-mt-2w"
            aria-live="assertive"
            hidden
-           data-document-import-target="error">
-        </p>
+           data-document-import-target="error"></p>
         <form hidden
               data-document-import-target="form"
               hx-post="{% url 'gsl_notification:import-start' %}"
