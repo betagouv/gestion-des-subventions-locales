@@ -27,8 +27,8 @@ makemigrations: (manage "makemigrations")
 migr app migration_number:
     uv run python manage.py migrate {{app}} {{migration_number}}
 
-test:
-    uv run pytest
+test path='':
+    uv run pytest {{path}}
 
 ruff-format:
     uv run ruff format
