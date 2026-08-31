@@ -1,6 +1,7 @@
 """
 POC command: read a scanned signed PDF, decode the QR code on each page, and
-split the scan into one LettreEtArreteSignes per matching ProgrammationProjet.
+split the scan into one signed document (lettre/arrêté, or lettre de refus)
+per matching ProgrammationProjet.
 
 Thin CLI wrapper around `gsl_notification.reattach.reattach_signed_doc`;
 the underlying business logic is shared with the future upload view.
@@ -34,8 +35,8 @@ except ImportError:
 class Command(BaseCommand):
     help = (
         "POC: decode the per-page QR codes from a scanned signed PDF and "
-        "reattach each detected group to its ProgrammationProjet as a "
-        "LettreEtArreteSignes."
+        "reattach each detected group to its ProgrammationProjet as the "
+        "matching signed-document type (lettre/arrêté or lettre de refus)."
     )
 
     def add_arguments(self, parser):
@@ -119,7 +120,8 @@ def _format_attached(report) -> str:
         )
     )
     return (
-        f"ds={report.ds_number} dotation={report.dotation} → "
+        f"ds={report.ds_number} dotation={report.dotation} "
+        f"[{report.target_document_type}] → "
         f"ProgrammationProjet #{report.programmation_projet_id} ({breakdown})"
     )
 

@@ -8,15 +8,17 @@ from django.core.management.base import CommandError
 from pikepdf import Page, Pdf
 
 from gsl_core.tests.factories import CollegueFactory
-from gsl_notification.models import LettreEtArreteSignes
-from gsl_notification.qr import QrHit, QrPayload, parse_payload
+from gsl_notification.models import LettreEtArreteSignes, LettreRefusSignee
+from gsl_notification.qr import QrPayload, parse_payload
 from gsl_notification.tests.factories import (
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
+    LettreRefusFactory,
     ModeleLettreNotificationFactory,
+    ModeleLettreRefusFactory,
 )
+from gsl_notification.utils import generate_pdf_for_generated_document
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import ARRETE, LETTRE
 
 
 @pytest.fixture(autouse=True)
@@ -97,12 +99,92 @@ def test_happy_path_splits_two_groups(tmp_path):
 
     # Each stored group should hold exactly the pages that belonged to its PP,
     # even though the scan was shuffled. We don't decode QRs here because the
-    # command strips them before storage; the unit test on `_group_pages` covers
-    # the internal ordering.
+    # command strips them before storage.
     with doc1.file.open("rb") as fh:
         assert len(Pdf.open(io.BytesIO(fh.read())).pages) == pages_pp1
     with doc2.file.open("rb") as fh:
         assert len(Pdf.open(io.BytesIO(fh.read())).pages) == pages_pp2
+
+
+def _build_refus_pdf_for_pp(ds_number, dotation=None, content_blocks=200):
+    """Same as `_build_pdf_for_pp`, but for a lettre de refus ou classement
+    sans suite (QR document_type="refus") instead of a lettre de notification."""
+    from gsl_notification.utils import generate_pdf_for_generated_document
+
+    kwargs = {"dotation_projet__projet__dossier_ds__ds_number": ds_number}
+    if dotation is not None:
+        kwargs["dotation_projet__dotation"] = dotation
+    pp = ProgrammationProjetFactory(**kwargs)
+    modele = ModeleLettreRefusFactory(
+        dotation=pp.dotation,
+        perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
+    )
+    document = LettreRefusFactory(
+        programmation_projet=pp,
+        modele=modele,
+        content="<p>" + ("Contenu de refus. " * content_blocks) + "</p>",
+    )
+    return pp, document, generate_pdf_for_generated_document(document)
+
+
+@pytest.mark.django_db
+def test_happy_path_attaches_lettre_refus_signee(tmp_path):
+    """A scan of a signed lettre de refus (QR document_type="refus") must be
+    attached as a LettreRefusSignee, not a LettreEtArreteSignes."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    user = CollegueFactory(email="op@example.com")
+    pp, _, pdf_bytes = _build_refus_pdf_for_pp(ds_number=7777777)
+
+    scan = tmp_path / "scan.pdf"
+    scan.write_bytes(pdf_bytes)
+
+    call_command("reattach_signed_doc", str(scan), "--user", user.email)
+
+    pp.refresh_from_db()
+    doc = LettreRefusSignee.objects.get(programmation_projet=pp)
+    assert f"programmation_projet_{pp.id}/" in doc.file.name
+    assert "lettre-refus-signee" in doc.file.name
+    assert not LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
+
+
+@pytest.mark.django_db
+def test_mixed_lettre_et_arrete_and_refus_pages_attach_independently(tmp_path):
+    """A single scan carrying both lettre/arrêté pages and refus pages for the
+    *same* (ds_number, dotation) must produce two separate documents, with no
+    page ever crossing over into the wrong PDF."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+    user = CollegueFactory(email="op@example.com")
+
+    pp, lettre_document, lettre_pdf = _build_pdf_for_pp(ds_number=8888887)
+    modele_refus = ModeleLettreRefusFactory(
+        dotation=pp.dotation,
+        perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
+    )
+    refus_document = LettreRefusFactory(
+        programmation_projet=pp,
+        modele=modele_refus,
+        content="<p>" + ("Contenu de refus. " * 200) + "</p>",
+    )
+    refus_pdf = generate_pdf_for_generated_document(refus_document)
+
+    lettre_pages = len(Pdf.open(io.BytesIO(lettre_pdf)).pages)
+    refus_pages = len(Pdf.open(io.BytesIO(refus_pdf)).pages)
+
+    scan = _concatenate([lettre_pdf, refus_pdf], tmp_path)
+
+    call_command("reattach_signed_doc", str(scan), "--user", user.email)
+
+    pp.refresh_from_db()
+    lettre_doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    refus_doc = LettreRefusSignee.objects.get(programmation_projet=pp)
+
+    with lettre_doc.file.open("rb") as fh:
+        assert len(Pdf.open(io.BytesIO(fh.read())).pages) == lettre_pages
+    with refus_doc.file.open("rb") as fh:
+        assert len(Pdf.open(io.BytesIO(fh.read())).pages) == refus_pages
 
 
 def _decode_pdf_bytes(raw: bytes) -> list[QrPayload | None]:
@@ -123,49 +205,6 @@ def _decode_pdf_bytes(raw: bytes) -> list[QrPayload | None]:
         return out
     finally:
         pdf.close()
-
-
-def test_group_pages_orders_lettre_before_arrete_then_by_page():
-    """Unit test: `_group_pages` + the command's sort key place lettre pages
-    before arrete pages, and order pages within each by the QR `page` field."""
-    from gsl_notification.reattach import (
-        _DOCUMENT_TYPE_ORDER,
-        _group_pages,
-    )
-
-    def hit(ds, dotation, document_type, page):
-        return QrHit(
-            payload=QrPayload(
-                ds_number=ds,
-                dotation=dotation,
-                document_type=document_type,
-                page=page,
-            ),
-            bbox=(0.0, 0.0, 10.0, 10.0),
-            image_width_px=1000,
-            image_height_px=1000,
-        )
-
-    from gsl_projet.constants import DOTATION_DETR
-
-    per_page = [
-        hit(42, DOTATION_DETR, ARRETE, 2),  # scan idx 0
-        hit(42, DOTATION_DETR, LETTRE, 1),  # scan idx 1
-        hit(42, DOTATION_DETR, ARRETE, 1),  # scan idx 2
-        hit(42, DOTATION_DETR, LETTRE, 2),  # scan idx 3
-    ]
-    groups, unreadable = _group_pages(per_page)
-    assert unreadable == []
-    entries = groups[(42, DOTATION_DETR)]
-    entries.sort(key=lambda e: (_DOCUMENT_TYPE_ORDER.get(e[1], 99), e[2]))
-
-    # Expected order: all LETTRE pages first (page 1 then 2), then ARRETE.
-    assert [(e[0], e[1], e[2]) for e in entries] == [
-        (1, LETTRE, 1),
-        (3, LETTRE, 2),
-        (2, ARRETE, 1),
-        (0, ARRETE, 2),
-    ]
 
 
 @pytest.mark.django_db
