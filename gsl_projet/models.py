@@ -19,6 +19,7 @@ from django.db.models import (
 )
 from django_fsm import FSMField, transition
 
+from gsl.historique.models import ProjetAction
 from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
@@ -799,7 +800,6 @@ class DotationProjet(BaseModel):
     def accept_without_ds_update(
         self, montant: float, enveloppe: "Enveloppe", actor=None
     ):
-        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -880,7 +880,6 @@ class DotationProjet(BaseModel):
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe", actor=None):
-        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -917,7 +916,6 @@ class DotationProjet(BaseModel):
 
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
     def dismiss(self, enveloppe: "Enveloppe", actor=None):
-        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 
@@ -957,7 +955,6 @@ class DotationProjet(BaseModel):
         target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing_without_ds(self, actor=None):
-        from gsl_historique.models import ProjetAction
         from gsl_programmation.models import ProgrammationProjet
         from gsl_simulation.models import SimulationProjet
 

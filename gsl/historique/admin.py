@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from gsl_core.models import Collegue
-from gsl_historique.models import CollegueLogEntry, ProjetAction
+
+from .models import CollegueLogEntry, ProjetAction
 
 
 @admin.register(ProjetAction)

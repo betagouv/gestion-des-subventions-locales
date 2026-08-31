@@ -23,10 +23,10 @@ from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
+from gsl.historique.models import ProjetAction
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
-from gsl_historique.models import ProjetAction
 from gsl_notification.models import (
     Annexe,
     GeneratedDocument,

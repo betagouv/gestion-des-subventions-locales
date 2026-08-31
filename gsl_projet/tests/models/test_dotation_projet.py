@@ -7,13 +7,13 @@ from django.forms import ValidationError
 from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
+from gsl.historique.models import ProjetAction
 from gsl_core.tests.factories import (
     CollegueFactory,
     DepartementFactory,
     PerimetreFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_historique.models import ProjetAction
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
