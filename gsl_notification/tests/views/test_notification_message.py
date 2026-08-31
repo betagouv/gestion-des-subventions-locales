@@ -130,7 +130,7 @@ class TestForm:
     def test_save_sets_notified_at_and_creates_projet_action(self, perimetre, collegue):
         projet = _accepted_projet(perimetre)
         with (
-            mock.patch("gsl_notification.forms.DsMutator.dossier_accepter") as ds,
+            mock.patch("gsl_notification.forms.DsService.accept_in_ds") as ds,
             mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
         ):
             form = NotificationMessageForm(data={"message": "Bravo"}, instance=projet)
@@ -157,7 +157,7 @@ class TestForm:
         dsil_annexe = AnnexeFactory(programmation_projet=dsil_pp)
 
         with (
-            mock.patch("gsl_notification.forms.DsMutator.dossier_accepter"),
+            mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
             mock.patch("gsl_notification.forms.merge_documents_into_pdf") as merge_mock,
         ):
             form = NotificationMessageForm(data={"message": ""}, instance=projet)
@@ -196,7 +196,7 @@ class TestForm:
         with (
             mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
             mock.patch("gsl_notification.forms.DsService.dismiss_in_ds") as dismiss,
-            mock.patch("gsl_notification.forms.DsMutator.dossier_accepter") as accepter,
+            mock.patch("gsl_notification.forms.DsService.accept_in_ds") as accepter,
             mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
@@ -213,7 +213,7 @@ class TestForm:
         with (
             mock.patch("gsl_notification.forms.DsService.dismiss_in_ds") as dismiss,
             mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
-            mock.patch("gsl_notification.forms.DsMutator.dossier_accepter") as accepter,
+            mock.patch("gsl_notification.forms.DsService.accept_in_ds") as accepter,
             mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
@@ -326,7 +326,7 @@ class TestView:
             kwargs={"pk": projet.id},
         )
         with (
-            mock.patch("gsl_notification.forms.DsMutator.dossier_accepter"),
+            mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
             mock.patch("gsl_notification.forms.merge_documents_into_pdf"),
         ):
             response = client_with_user_logged.post(

@@ -290,20 +290,20 @@ class DsMutator(DsClientBase):
 
     def dossier_accepter(
         self,
-        dossier: Dossier,
+        dossier_id: str,
         instructeur_id: str,
         motivation: str = "",
         disable_notification: bool = False,
         document: UploadedFile = None,
     ):
         justificatif_id = (
-            self._upload_attachment(dossier.ds_id, document)
+            self._upload_attachment(dossier_id, document)
             if document is not None
             else None
         )
         return self._mutate_with_justificatif_and_motivation(
             "dossierAccepter",
-            dossier_ds_id=dossier.ds_id,
+            dossier_ds_id=dossier_id,
             instructeur_id=instructeur_id,
             motivation=motivation,
             disable_notification=disable_notification,

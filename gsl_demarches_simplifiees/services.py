@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 
 class DsService:
     MUTATION_KEYS = {
+        "accept": "dossierAccepter",
         "dismiss": "dossierClasserSansSuite",
         "refuser": "dossierRefuser",
         "annotations": "dossierModifierAnnotations",
@@ -30,6 +31,7 @@ class DsService:
     }
 
     MUTATION_TYPES = Literal[
+        "accept",
         "dismiss",
         "refuser",
         "annotations",
@@ -78,6 +80,20 @@ class DsService:
             else None
         )
         dossier.save()
+        return results
+
+    def accept_in_ds(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        document: UploadedFile,
+        motivation: str = "",
+    ):
+        instructeur_id = self._get_instructeur_id(user)
+        results = self.mutator.dossier_accepter(
+            dossier.ds_id, instructeur_id, motivation=motivation, document=document
+        )
+        self._check_results(results, dossier, user, "accept", value=motivation)
         return results
 
     def dismiss_in_ds(

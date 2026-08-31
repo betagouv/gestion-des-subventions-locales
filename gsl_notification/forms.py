@@ -11,7 +11,6 @@ from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
-from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
@@ -504,23 +503,24 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             self.instance.notified_at = timezone.now()
             self.instance.save()
 
+            ds_service = DsService()
+
             if status == PROJET_STATUS_ACCEPTED:
-                # TODO use DSService
-                DsMutator().dossier_accepter(
+                ds_service.accept_in_ds(
                     self.instance.dossier_ds,
-                    user.ds_id,
-                    motivation=motivation,
+                    user,
                     document=justificatif_file,
+                    motivation=motivation,
                 )
             elif status == PROJET_STATUS_DISMISSED:
-                DsService().dismiss_in_ds(
+                ds_service.dismiss_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
                     document=justificatif_file,
                 )
             else:
-                DsService().refuser_in_ds(
+                ds_service.refuser_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
