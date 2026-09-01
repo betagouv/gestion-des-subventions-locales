@@ -1,5 +1,5 @@
 {% extends "includes/forms/_htmx_fragment_form.html" %}
 
 {% block post_url %}
-    {% url 'gsl_projet:patch-projet-zonage' projet.id %}
+    {% url 'fragment:gsl_projet:zonage_form' projet.id %}
 {% endblock post_url %}

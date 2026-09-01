@@ -20,26 +20,6 @@ urlpatterns = [
         name="patch-projet",
     ),
     path(
-        "voir/<int:projet_id>/budget-vert/",
-        views.ProjetBudgetVertUpdateView.as_view(),
-        name="patch-projet-budget-vert",
-    ),
-    path(
-        "voir/<int:projet_id>/zonage/",
-        views.ProjetZonageUpdateView.as_view(),
-        name="patch-projet-zonage",
-    ),
-    path(
-        "dotation/<int:pk>/detr-avis/",
-        views.DotationProjetDetrAvisUpdateView.as_view(),
-        name="patch-dotation-projet-detr-avis",
-    ),
-    path(
-        "dotation/<int:pk>/assiette/",
-        views.DotationProjetAssietteUpdateView.as_view(),
-        name="patch-dotation-projet-assiette",
-    ),
-    path(
         "voir/<int:projet_id>/notes/",
         views.ProjetNotesView.as_view(),
         name="get-projet-notes",

@@ -471,7 +471,7 @@ class TestView:
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
-        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+        response = client_with_user_logged.post(url, headers={"HX-Request": "true"})
         assert response.status_code == 404
 
     def test_view_excludes_already_notified_projets(
@@ -485,5 +485,5 @@ class TestView:
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
-        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+        response = client_with_user_logged.post(url, headers={"HX-Request": "true"})
         assert response.status_code == 404

@@ -34,9 +34,7 @@ def projet(collegue):
 
 
 def _url(projet):
-    return reverse(
-        "gsl_projet:patch-projet-budget-vert", kwargs={"projet_id": projet.pk}
-    )
+    return reverse("fragment:gsl_projet:budget_vert_form", kwargs={"pk": projet.pk})
 
 
 @patch("gsl_projet.forms.DsService")

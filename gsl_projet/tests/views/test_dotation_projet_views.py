@@ -66,7 +66,7 @@ def processing_dotation_projet(perimetre_departemental):
 
 
 def _assiette_url(dp):
-    return reverse("gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk})
+    return reverse("fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk})
 
 
 def test_patch_assiette_saves_value_and_returns_updated_fragment(
@@ -181,7 +181,7 @@ def test_patch_detr_avis_commission_saves_value_and_returns_updated_fragment(
     client_with_user_logged, accepted_simulation_projet, value, expected_value
 ):
     dp = accepted_simulation_projet.dotation_projet
-    url = reverse("gsl_projet:patch-dotation-projet-detr-avis", kwargs={"pk": dp.pk})
+    url = reverse("fragment:gsl_projet:detr_avis_commission_form", kwargs={"pk": dp.pk})
     response = client_with_user_logged.post(
         url,
         {"detr_avis_commission": value},
@@ -201,7 +201,7 @@ def test_patch_detr_avis_commission_non_htmx_returns_400(
     client_with_user_logged, accepted_simulation_projet
 ):
     url = reverse(
-        "gsl_projet:patch-dotation-projet-detr-avis",
+        "fragment:gsl_projet:detr_avis_commission_form",
         kwargs={"pk": accepted_simulation_projet.dotation_projet.pk},
     )
     response = client_with_user_logged.post(url, {"detr_avis_commission": "True"})
