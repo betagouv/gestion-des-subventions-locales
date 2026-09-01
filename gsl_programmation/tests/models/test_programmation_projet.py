@@ -248,16 +248,20 @@ def test_programmation_projet_with_a_projet_in_enveloppe_perimetre_must_be_okay(
 class TestProgrammationProjetQuerySet:
     def test_to_notify(self):
         accepted_and_no_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=None
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            dotation_projet__projet__notified_at=None,
         )
         _accepted_and_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_ACCEPTED, notified_at=datetime.now(UTC)
+            status=ProgrammationProjet.STATUS_ACCEPTED,
+            dotation_projet__projet__notified_at=datetime.now(UTC),
         )
         _refused_and_no_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_REFUSED, notified_at=None
+            status=ProgrammationProjet.STATUS_REFUSED,
+            dotation_projet__projet__notified_at=None,
         )
         _refused_and_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_REFUSED, notified_at=datetime.now(UTC)
+            status=ProgrammationProjet.STATUS_REFUSED,
+            dotation_projet__projet__notified_at=datetime.now(UTC),
         )
 
         result = ProgrammationProjet.objects.to_notify()

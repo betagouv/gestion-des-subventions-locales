@@ -224,17 +224,6 @@ class ProjetQuerySet(models.QuerySet):
             notified_at__isnull=True,
         )
 
-    def with_at_least_one_programmed_dotation(self):
-        from gsl_programmation.models import ProgrammationProjet
-
-        return self.filter(
-            Exists(
-                ProgrammationProjet.objects.filter(
-                    dotation_projet__projet=OuterRef("pk")
-                )
-            )
-        )
-
     def with_at_least_one_treated_dotation(self):
         from gsl_programmation.models import ProgrammationProjet
 
@@ -424,27 +413,18 @@ class Projet(BaseModel):
 
     @property
     def to_notify(self) -> bool:
-        """
-        Returns True if the projet has not been notified yet, and all dotations have a programmation.
-
-        Does not check if the programmation has been accepted or refused ! This is not necessary.
-        """
-        dotations = self.dotationprojet_set.all()
-        if not dotations:
+        if self.notified_at is not None:
             return False
-        return all(
-            (
-                hasattr(d, "programmation_projet")
-                and d.programmation_projet.notified_at is None
-            )
-            for d in dotations
-        )
+
+        dotation_projets = self.dotationprojet_set.all()
+        if not dotation_projets:
+            return False
+
+        return all(dp.is_treated for dp in dotation_projets)
 
     @property
     def has_treated_dotation(self) -> bool:
-        return any(
-            d.status in PROJET_FINAL_STATUSES for d in self.dotationprojet_set.all()
-        )
+        return any(dp.is_treated for dp in self.dotationprojet_set.all())
 
     @property
     def can_display_notification_tab(self) -> bool:
@@ -473,17 +453,6 @@ class Projet(BaseModel):
     def all_dotations_have_processing_status(self) -> bool:
         return all(
             dp.status == PROJET_STATUS_PROCESSING
-            for dp in self.dotationprojet_set.all()
-        )
-
-    @property
-    def display_notification_message(self) -> bool:
-        return not self.all_dotations_have_processing_status
-
-    @property
-    def display_notification_button(self) -> bool:
-        return self.to_notify and any(
-            dp.status != PROJET_STATUS_PROCESSING
             for dp in self.dotationprojet_set.all()
         )
 
@@ -795,6 +764,10 @@ class DotationProjet(BaseModel):
             .values_list("_notification_status", flat=True)
             .get(pk=self.pk)
         )
+
+    @property
+    def is_treated(self) -> bool:
+        return self.status in PROJET_FINAL_STATUSES
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept_without_ds_update(

@@ -115,7 +115,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=400,
-        notified_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
+        dotation_projet__projet__notified_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     # Notified or not, projet should stay accepted
 
@@ -178,7 +178,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=400,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
 
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -194,6 +194,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette == 4_000
     assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+    assert dotation_projet.projet.notified_at is None
 
     for simulation_projet in dotation_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -202,7 +203,6 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
 
     programmation_projet = dotation_projet.programmation_projet
     assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
-    assert programmation_projet.notified_at is None
 
 
 @pytest.mark.django_db
@@ -234,7 +234,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         dotation_projet=dotation_projet,
         status=ProgrammationProjet.STATUS_ACCEPTED,
         montant=400,
-        notified_at=None,
+        dotation_projet__projet__notified_at=None,
     )
 
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -360,6 +360,9 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette is None
     assert dotation_projet.status == PROJET_STATUS_REFUSED
+    assert dotation_projet.projet.notified_at == datetime(
+        2024, 1, 15, 10, 30, tzinfo=UTC
+    )
 
     for simulation_projet in dotation_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
@@ -368,7 +371,6 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
 
     programmation_projet = dotation_projet.programmation_projet
     assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
-    assert programmation_projet.notified_at == datetime(2024, 1, 15, 10, 30, tzinfo=UTC)
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
 
@@ -412,6 +414,9 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette is None
     assert dotation_projet.status == PROJET_STATUS_DISMISSED
+    assert dotation_projet.projet.notified_at == datetime(
+        2024, 1, 15, 10, 30, tzinfo=UTC
+    )
 
     for simulation_projet in dotation_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
@@ -420,7 +425,6 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
 
     programmation_projet = dotation_projet.programmation_projet
     assert programmation_projet.status == ProgrammationProjet.STATUS_DISMISSED
-    assert programmation_projet.notified_at == datetime(2024, 1, 15, 10, 30, tzinfo=UTC)
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
 

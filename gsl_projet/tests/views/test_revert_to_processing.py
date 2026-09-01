@@ -1,4 +1,3 @@
-from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -50,7 +49,6 @@ def notified_projet(collegue):
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        notified_at=date.today(),
     )
     return projet
 
