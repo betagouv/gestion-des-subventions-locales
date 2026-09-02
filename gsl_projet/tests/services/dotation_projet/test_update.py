@@ -6,13 +6,15 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from gsl.historique.models import ProjetAction
+from gsl_core.models import Collegue
 from gsl_core.tests.factories import (
+    CollegueFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_demarches_simplifiees.tests.factories import DossierDataFactory, DossierFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -746,3 +748,179 @@ def test_update_assiette_from_dossier_creates_action_when_assiette_changed():
     )
     assert actions.count() == 1
     assert actions.first().euro_field_value == 15_000
+
+
+# -- _update_dotation_projets_from_projet — ProjetAction TYPE_NOTIFIED --
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_creates_notified_action_with_matching_collegue(perimetres):
+    arr_dijon, *_ = perimetres
+    ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+    collegue = CollegueFactory(email="agent@example.fr")
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_date_traitement=ds_date_traitement,
+        dossier_ds__perimetre=arr_dijon,
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+    )
+    DossierDataFactory(
+        dossier=projet.dossier_ds,
+        raw_data={
+            "traitements": [
+                {
+                    "event": "classe_sans_suite",
+                    "dateTraitement": "2025-01-15T00:00:00+00:00",
+                    "emailAgentTraitant": "agent@example.fr",
+                    "motivation": "Hors périmètre",
+                }
+            ]
+        },
+    )
+
+    dps._update_dotation_projets_from_projet(projet)
+
+    action = ProjetAction.objects.get(
+        projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+    )
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.details == "Hors périmètre"
+    assert action.created_at == ds_date_traitement
+    assert action.actor == collegue
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_creates_collegue_when_no_matching_email(perimetres):
+    arr_dijon, *_ = perimetres
+    ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_date_traitement=ds_date_traitement,
+        dossier_ds__perimetre=arr_dijon,
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+    )
+    DossierDataFactory(
+        dossier=projet.dossier_ds,
+        raw_data={
+            "traitements": [
+                {
+                    "event": "classe_sans_suite",
+                    "dateTraitement": "2025-01-15T00:00:00+00:00",
+                    "emailAgentTraitant": "unknown.agent@example.fr",
+                    "motivation": "",
+                }
+            ]
+        },
+    )
+    assert not Collegue.objects.filter(email="unknown.agent@example.fr").exists()
+
+    dps._update_dotation_projets_from_projet(projet)
+
+    action = ProjetAction.objects.get(
+        projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+    )
+    assert action.actor is not None
+    assert action.actor.email == "unknown.agent@example.fr"
+    assert action.actor.username == "unknown.agent@example.fr"
+    assert action.actor.perimetre is None
+    assert action.actor.has_usable_password() is False
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_creates_notified_action_without_traitements_data(perimetres):
+    """No DossierData / no traitements: still logs the notification, with no actor."""
+    arr_dijon, *_ = perimetres
+    ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_date_traitement=ds_date_traitement,
+        dossier_ds__perimetre=arr_dijon,
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+    )
+
+    dps._update_dotation_projets_from_projet(projet)
+
+    action = ProjetAction.objects.get(
+        projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+    )
+    assert action.actor is None
+    assert action.details == ""
+    assert action.created_at == ds_date_traitement
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_does_not_duplicate_notified_action_on_repeated_sync(perimetres):
+    arr_dijon, *_ = perimetres
+    ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_date_traitement=ds_date_traitement,
+        dossier_ds__perimetre=arr_dijon,
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+    )
+
+    dps._update_dotation_projets_from_projet(projet)
+    dps._update_dotation_projets_from_projet(projet)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+        ).count()
+        == 1
+    )
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_does_not_duplicate_notified_action_already_logged_from_turgot(
+    perimetres,
+):
+    """A notification triggered from Turgot (source=SOURCE_TURGOT) already created a
+    TYPE_NOTIFIED action at the exact DN dateTraitement: a later DN resync must not
+    log a second one."""
+    arr_dijon, *_ = perimetres
+    ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+    collegue = CollegueFactory(email="agent-turgot@example.fr")
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_date_traitement=ds_date_traitement,
+        dossier_ds__perimetre=arr_dijon,
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+    )
+    ProjetAction.objects.create(
+        projet=projet,
+        action_type=ProjetAction.TYPE_NOTIFIED,
+        created_at=ds_date_traitement,
+        source=ProjetAction.SOURCE_TURGOT,
+        actor=collegue,
+        details="Motivation saisie dans Turgot",
+    )
+
+    dps._update_dotation_projets_from_projet(projet)
+
+    actions = ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+    )
+    assert actions.count() == 1
+    action = actions.first()
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.actor == collegue

@@ -17,6 +17,7 @@ from django.db.models import (
     Value,
     When,
 )
+from django.utils import timezone
 from django_fsm import FSMField, transition
 
 from gsl.historique.models import ProjetAction
@@ -804,14 +805,14 @@ class DotationProjet(BaseModel):
         )
         self.programmation_projet = programmation_projet
 
+        source, created_at = self._status_change_source_and_created_at(actor)
         if status_is_changing or previous_enveloppe != enveloppe.delegation_root:
             ProjetAction.objects.create(
                 projet=self.projet,
                 action_type=ProjetAction.TYPE_STATUS_CHANGE,
                 actor=actor,
-                source=ProjetAction.SOURCE_TURGOT
-                if actor is not None
-                else ProjetAction.SOURCE_DN,
+                source=source,
+                created_at=created_at,
                 dotation=self.dotation,
                 status=PROJET_STATUS_ACCEPTED,
                 euro_field_value=montant,
@@ -822,9 +823,8 @@ class DotationProjet(BaseModel):
                 projet=self.projet,
                 action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
                 actor=actor,
-                source=ProjetAction.SOURCE_TURGOT
-                if actor is not None
-                else ProjetAction.SOURCE_DN,
+                source=source,
+                created_at=created_at,
                 dotation=self.dotation,
                 euro_field_value=montant,
             )
@@ -874,14 +874,14 @@ class DotationProjet(BaseModel):
                 "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )
+        source, created_at = self._status_change_source_and_created_at(actor)
 
         ProjetAction.objects.create(
             projet=self.projet,
             action_type=ProjetAction.TYPE_STATUS_CHANGE,
             actor=actor,
-            source=ProjetAction.SOURCE_TURGOT
-            if actor is not None
-            else ProjetAction.SOURCE_DN,
+            source=source,
+            created_at=created_at,
             dotation=self.dotation,
             status=PROJET_STATUS_REFUSED,
             enveloppe=enveloppe,
@@ -910,17 +910,35 @@ class DotationProjet(BaseModel):
             },
         )
 
+        source, created_at = self._status_change_source_and_created_at(actor)
         ProjetAction.objects.create(
             projet=self.projet,
             action_type=ProjetAction.TYPE_STATUS_CHANGE,
             actor=actor,
-            source=ProjetAction.SOURCE_TURGOT
-            if actor is not None
-            else ProjetAction.SOURCE_DN,
+            source=source,
+            created_at=created_at,
             dotation=self.dotation,
             status=PROJET_STATUS_DISMISSED,
             enveloppe=enveloppe,
         )
+
+    def _status_change_source_and_created_at(self, actor=None):
+        """
+        Compute the `source` and `created_at` to use for the `ProjetAction`
+        recorded by a status transition (accept/refuse/dismiss).
+
+        When there is no `actor`, the change comes from a Démarches
+        Numériques sync rather than a Turgot user, so the action is
+        backdated to the DS processing date when we know it.
+        """
+        created_at = timezone.now()
+
+        if actor is not None:
+            return ProjetAction.SOURCE_TURGOT, created_at
+
+        if self.dossier_ds.ds_date_traitement:
+            created_at = self.dossier_ds.ds_date_traitement
+        return ProjetAction.SOURCE_DN, created_at
 
     @transition(
         field=status,

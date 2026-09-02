@@ -5,7 +5,7 @@ from typing import Any, Literal
 from django.db import transaction
 
 from gsl.historique.models import ProjetAction
-from gsl_core.models import Perimetre
+from gsl_core.models import Collegue, Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
 from gsl_projet.constants import (
@@ -82,6 +82,7 @@ class DotationProjetService:
         ):
             projet.notified_at = projet.dossier_ds.ds_date_traitement
             projet.save(update_fields=["notified_at"])
+            cls._create_notified_projet_action_from_dossier_treatment(projet)
 
         if dossier_status == Dossier.STATE_ACCEPTE:
             return cls._initialize_dotation_projets_from_projet_accepted(projet)
@@ -210,6 +211,7 @@ class DotationProjetService:
         ):
             projet.notified_at = projet.dossier_ds.ds_date_traitement
             projet.save(update_fields=["notified_at"])
+            cls._create_notified_projet_action_from_dossier_treatment(projet)
 
         if dossier_status == Dossier.STATE_ACCEPTE:
             return cls._update_dotation_projets_from_projet_accepted(projet)
@@ -388,6 +390,65 @@ class DotationProjetService:
         return dotation_projets
 
     ## -------------------------- Utils --------------------------
+
+    @classmethod
+    def _create_notified_projet_action_from_dossier_treatment(
+        cls, projet: Projet
+    ) -> None:
+        dossier = projet.dossier_ds
+        if dossier.ds_date_traitement is None:
+            return
+
+        traitement = cls._get_traitement_matching_dossier_state(dossier)
+        actor = cls._get_or_create_collegue_from_traitement_email(traitement)
+        # created_at is keyed on ds_date_traitement so that a notification
+        # triggered from Turgot (which now reuses this exact same DN date, cf.
+        # NotificationMessageForm.save) doesn't get logged a second time here.
+        ProjetAction.objects.get_or_create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_NOTIFIED,
+            created_at=dossier.ds_date_traitement,
+            defaults={
+                "source": ProjetAction.SOURCE_DN,
+                "details": (traitement or {}).get("motivation") or "",
+                "actor": actor,
+            },
+        )
+
+    @classmethod
+    def _get_traitement_matching_dossier_state(cls, dossier: Dossier) -> dict | None:
+        event_by_dossier_state = {
+            Dossier.STATE_ACCEPTE: "accepte",
+            Dossier.STATE_REFUSE: "refuse",
+            Dossier.STATE_SANS_SUITE: "classe_sans_suite",
+        }
+        ds_data = getattr(dossier, "ds_data", None)
+        traitements = ((ds_data.raw_data if ds_data else None) or {}).get(
+            "traitements"
+        ) or []
+        event = event_by_dossier_state.get(dossier.ds_state)
+        for traitement in reversed(traitements):
+            if traitement.get("event") == event:
+                return traitement
+        return traitements[-1] if traitements else None
+
+    @classmethod
+    def _get_or_create_collegue_from_traitement_email(
+        cls, traitement: dict | None
+    ) -> Collegue | None:
+        if not traitement:
+            return None
+        email = (traitement.get("emailAgentTraitant") or "").strip().lower()
+        if not email:
+            return None
+
+        collegue, created = Collegue.objects.get_or_create(
+            email=email, defaults={"username": email, "is_active": False}
+        )
+        if created:
+            collegue.set_unusable_password()
+            collegue.save(update_fields=["password"])
+        return collegue
 
     @classmethod
     def _update_accepted_dotation_projets_montant_from_dn(cls, projet: Projet) -> None:

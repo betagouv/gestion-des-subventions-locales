@@ -94,6 +94,7 @@ class DsService:
             dossier.ds_id, instructeur_id, motivation=motivation, document=document
         )
         self._check_results(results, dossier, user, "accept", value=motivation)
+        self._update_ds_date_traitement(dossier, results, "accept")
         return results
 
     def dismiss_in_ds(
@@ -108,6 +109,7 @@ class DsService:
             dossier.ds_id, instructeur_id, motivation, document=document
         )
         self._check_results(results, dossier, user, "dismiss", value=motivation)
+        self._update_ds_date_traitement(dossier, results, "dismiss")
         return results
 
     def refuser_in_ds(
@@ -122,7 +124,22 @@ class DsService:
             dossier, instructeur_id, motivation=motivation, document=document
         )
         self._check_results(results, dossier, user, "refuser", value=motivation)
+        self._update_ds_date_traitement(dossier, results, "refuser")
         return results
+
+    def _update_ds_date_traitement(
+        self, dossier: Dossier, results: dict, mutation_type: MUTATION_TYPES
+    ) -> None:
+        mutation_key = self.MUTATION_KEYS[mutation_type]
+        date_traitement = (
+            results.get("data", {})
+            .get(mutation_key, {})
+            .get("dossier", {})
+            .get("dateTraitement")
+        )
+        if date_traitement:
+            dossier.ds_date_traitement = datetime.fromisoformat(date_traitement)
+            dossier.save()
 
     # Annotations
 
