@@ -64,7 +64,6 @@ package = false
 
 [dependency-groups]
 dev = [
-    "diff-cover",
     "django-debug-toolbar",
     "django-query-counter",
     "djlint",
