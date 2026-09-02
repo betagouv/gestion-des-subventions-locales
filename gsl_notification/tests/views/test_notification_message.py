@@ -156,7 +156,7 @@ class TestForm:
         action = ProjetAction.objects.get(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         )
-        assert action.notification_motivation == "Bravo"
+        assert action.reason == "Bravo"
         assert action.notification_document.name.endswith("/notification.pdf")
 
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
@@ -381,7 +381,7 @@ class TestView:
         action = ProjetAction.objects.get(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         )
-        assert action.notification_motivation == "Bravo"
+        assert action.reason == "Bravo"
         # The "4 - Notifications" block lists this notification's details.
         assert "Bravo" in content
 

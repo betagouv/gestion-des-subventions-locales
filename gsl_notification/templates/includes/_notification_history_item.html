@@ -2,9 +2,9 @@
     Notifié le <b>{{ notification.created_at|date:"j F Y" }}</b> à <b>{{ notification.created_at|time }}</b>
     par <b>{{ notification.actor_name }}</b>
 </p>
-{% if notification.notification_motivation %}
+{% if notification.reason %}
     <p class="fr-text--bold fr-mb-1w">Message de motivation :</p>
-    <p class="fr-mb-1w keep-breaklines">{{ notification.notification_motivation }}</p>
+    <p class="fr-mb-1w keep-breaklines">{{ notification.reason }}</p>
 {% endif %}
 {% if notification.notification_document %}
     <a href="{{ notification.notification_document.url }}"
