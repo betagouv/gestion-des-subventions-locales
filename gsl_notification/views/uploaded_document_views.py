@@ -19,12 +19,8 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import (
     UPLOADED_DOCUMENTS,
-    Annexe,
 )
-from gsl_notification.utils import (
-    get_s3_object,
-    update_file_name_to_put_it_in_a_programmation_projet_folder,
-)
+from gsl_notification.utils import get_s3_object
 from gsl_notification.views.views import (
     _enrich_context_for_create_or_get_arrete_view,
 )
@@ -86,11 +82,6 @@ def create_uploaded_document_view(request, projet_id, dotation, document_type):
     if request.method == "POST":
         form = uploaded_doc_form(request.POST, request.FILES)
         if form.is_valid():
-            update_file_name_to_put_it_in_a_programmation_projet_folder(
-                form.instance.file,
-                programmation_projet.id,
-                is_annexe=uploaded_doc_class == Annexe,
-            )
             form.save()
 
             queue_matomo_event(

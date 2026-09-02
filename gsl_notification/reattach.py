@@ -39,9 +39,6 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
 from gsl_core.models import Collegue
 from gsl_notification.models import UPLOADED_DOCUMENTS, UploadedDocument
 from gsl_notification.qr import RENDER_SCALE, iter_decoded_pages
-from gsl_notification.utils import (
-    update_file_name_to_put_it_in_a_programmation_projet_folder,
-)
 from gsl_programmation.models import ProgrammationProjet
 from gsl_projet.constants import ARRETE, LETTRE
 
@@ -299,9 +296,6 @@ def _replace_uploaded_document(target_model, pp, uploaded, user):
             programmation_projet=pp,
             created_by=user,
             file=uploaded,
-        )
-        update_file_name_to_put_it_in_a_programmation_projet_folder(
-            doc.file, pp.id, is_annexe=False
         )
         doc.save()
 

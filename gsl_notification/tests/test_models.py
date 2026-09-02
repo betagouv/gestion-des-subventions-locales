@@ -443,3 +443,38 @@ def test_lettre_refus_signee_no_error_when_pp_refused_or_dismissed(status):
     pp = ProgrammationProjetFactory(status=status)
     doc = LettreRefusSigneeFactory(programmation_projet=pp)
     doc.clean()  # should not raise
+
+
+@pytest.mark.django_db
+def test_uploaded_document_is_stored_in_its_programmation_projet_folder():
+    pp = ProgrammationProjetFactory()
+
+    annexe = AnnexeFactory(programmation_projet=pp, file__filename="rangement.pdf")
+
+    assert annexe.file.name == f"annexe/programmation_projet_{pp.id}/rangement.pdf"
+
+
+@pytest.mark.django_db
+def test_second_annexe_with_the_same_name_is_suffixed():
+    pp = ProgrammationProjetFactory()
+    AnnexeFactory(programmation_projet=pp, file__filename="doublon.pdf")
+
+    annexe = AnnexeFactory(programmation_projet=pp, file__filename="doublon.pdf")
+
+    assert annexe.name == "doublon_2.pdf"
+
+
+@pytest.mark.django_db
+def test_replacing_a_single_document_keeps_its_name():
+    """Only documents that legitimately coexist collide: deleting the previous
+    one frees its stored file, so a replacement is not suffixed."""
+    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    LettreEtArreteSignesFactory(
+        programmation_projet=pp, file__filename="remplacement.pdf"
+    ).delete()
+
+    document = LettreEtArreteSignesFactory(
+        programmation_projet=pp, file__filename="remplacement.pdf"
+    )
+
+    assert document.name == "remplacement.pdf"
