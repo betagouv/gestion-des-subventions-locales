@@ -31,6 +31,16 @@ fragment DossierFragment on Dossier {
     ...ChampFragment
     ...RootChampFragment
   }
+  traitements {
+    ...TraitementFragment
+  }
+}
+
+fragment TraitementFragment on Traitement {
+  event
+  emailAgentTraitant
+  dateTraitement
+  motivation
 }
 
 fragment GeoAreaFragment on GeoArea {
