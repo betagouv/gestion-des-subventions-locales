@@ -538,7 +538,6 @@ class DotationProjetQuerySet(models.QuerySet):
         # on ProgrammationProjet, so that branch is already unreachable in
         # the property today, and referencing it here would raise a
         # FieldError instead of silently doing nothing.
-        # TODO update with refused and dismissed statuses.
         return self.annotate(
             _notification_status=Case(
                 When(programmation_projet__isnull=True, then=Value(None)),
@@ -547,7 +546,8 @@ class DotationProjetQuerySet(models.QuerySet):
                     then=Value(NOTIFICATION_STATUS_NOTIFIED),
                 ),
                 When(
-                    programmation_projet__lettre_et_arrete_signes__isnull=False,
+                    Q(programmation_projet__lettre_et_arrete_signes__isnull=False)
+                    | Q(programmation_projet__lettre_refus_signee__isnull=False),
                     then=Value(NOTIFICATION_STATUS_TO_NOTIFY),
                 ),
                 When(
@@ -556,11 +556,11 @@ class DotationProjetQuerySet(models.QuerySet):
                     programmation_projet__lettrenotification__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
-                # When(
-                #     status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED],
-                #     programmation_projet__lettrerefus__isnull=False,
-                #     then=Value(NOTIFICATION_STATUS_TO_SIGN),
-                # ), # TODO use it when LettreRefus is done
+                When(
+                    status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED],
+                    programmation_projet__lettrerefus__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                ),
                 default=Value(NOTIFICATION_STATUS_TO_GENERATE),
                 output_field=models.CharField(null=True),
             )
