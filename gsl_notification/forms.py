@@ -537,7 +537,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             )
             if justificatif_file:
                 justificatif_file.seek(0)
-                action.notification_document.save(
+                action.document.save(
                     justificatif_file.name, justificatif_file, save=False
                 )
             action.save()

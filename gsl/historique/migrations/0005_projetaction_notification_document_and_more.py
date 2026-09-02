@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="projetaction",
-            name="notification_document",
+            name="document",
             field=models.FileField(
                 blank=True,
                 null=True,

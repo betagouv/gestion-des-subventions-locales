@@ -6,8 +6,8 @@
     <p class="fr-text--bold fr-mb-1w">Message de motivation :</p>
     <p class="fr-mb-1w keep-breaklines">{{ notification.reason }}</p>
 {% endif %}
-{% if notification.notification_document %}
-    <a href="{{ notification.notification_document.url }}"
+{% if notification.document %}
+    <a href="{{ notification.document.url }}"
        target="_blank"
        rel="noopener"
        class="fr-link fr-icon-download-line fr-link--icon-left">

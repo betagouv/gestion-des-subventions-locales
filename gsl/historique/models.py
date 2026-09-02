@@ -87,7 +87,7 @@ class ProjetAction(models.Model):
     boolean_value = models.BooleanField(null=True, blank=True)
     form_id = models.CharField(max_length=200, blank=True, default="")
     reason = models.TextField(blank=True, default="")
-    notification_document = models.FileField(
+    document = models.FileField(
         upload_to=projet_action_document_upload_to, null=True, blank=True
     )
 

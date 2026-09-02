@@ -157,7 +157,7 @@ class TestForm:
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         )
         assert action.reason == "Bravo"
-        assert action.notification_document.name.endswith("/notification.pdf")
+        assert action.document.name.endswith("/notification.pdf")
 
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -265,7 +265,7 @@ class TestForm:
         action = ProjetAction.objects.get(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         )
-        assert not action.notification_document
+        assert not action.document
 
     def test_save_merges_lettre_refus_signee_and_annexe_for_refused(
         self, perimetre, collegue
