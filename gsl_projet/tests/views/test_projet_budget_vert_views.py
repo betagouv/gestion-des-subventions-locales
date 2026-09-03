@@ -1,3 +1,4 @@
+import re
 from unittest.mock import patch
 
 import pytest
@@ -52,6 +53,7 @@ def test_patch_budget_vert_saves_and_returns_updated_fragment(
     content = response.content.decode()
     assert _url(projet) in content
     assert "Modifications enregistrées" in content
+    assert re.search(r'type="submit"\s+disabled\s*>', content)
 
 
 @patch("gsl_projet.forms.DsService")
@@ -81,6 +83,7 @@ def test_patch_budget_vert_ds_error_shown_inline_and_rolled_back(
     content = response.content.decode()
     assert "Erreur DN" in content
     assert "Modifications enregistrées" not in content
+    assert re.search(r'type="submit"\s*>', content)
 
 
 @patch("gsl_projet.forms.DsService")
