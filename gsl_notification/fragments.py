@@ -1,5 +1,6 @@
 from django_htmx.http import HttpResponseClientRefresh
 
+from gsl.historique.models import ProjetAction
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
@@ -30,6 +31,16 @@ class NotifiedFragment(ProjetFragment):
     template_name = (
         "gsl_notification/tab_simulation_projet/tab_notifications.html#notified"
     )
+
+    def get_context(self):
+        return {
+            **super().get_context(),
+            "notifications": self.object.actions.filter(
+                action_type=ProjetAction.TYPE_NOTIFIED
+            )
+            .select_related("actor")
+            .order_by("created_at"),
+        }
 
 
 class GenerateDocumentsFragment(ProjetFragment):

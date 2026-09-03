@@ -527,13 +527,20 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                     document=justificatif_file,
                 )
 
-            ProjetAction.objects.create(
+            action = ProjetAction(
                 projet=self.instance,
                 action_type=ProjetAction.TYPE_NOTIFIED,
                 actor=user,
                 source=ProjetAction.SOURCE_TURGOT,
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+                details=motivation,
             )
+            if justificatif_file:
+                justificatif_file.seek(0)
+                action.document.save(
+                    justificatif_file.name, justificatif_file, save=False
+                )
+            action.save()
 
             return self.instance
 

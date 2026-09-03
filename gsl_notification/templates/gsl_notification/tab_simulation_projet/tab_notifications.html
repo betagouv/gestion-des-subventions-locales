@@ -39,16 +39,22 @@
         <h3 class="fr-mt-6w">3 - Notifier</h3>
         {% render_fragment "gsl_notification:notification_message" projet %}
 
-        <h3 class="fr-mt-6w">4 - Notifié</h3>
-        {% partialdef notified inline %}
+        {% partialdef notified %}
             <div id="notified-block" {% if oob %}hx-swap-oob="true"{% endif %}>
-                {% if projet.notified_at %}
-                    <p>Notifié le {{ projet.notified_at|date }} à {{ projet.notified_at|time }}.</p>
+                <h3 class="fr-mt-6w">4 - Notification{% if notifications|length > 1 %}s{% endif %}</h3>
+                {% if notifications %}
+                    <ul class="notification-history-list fr-mt-3w fr-p-0">
+                        {% for notification in notifications %}
+                            <li class="fr-border fr-p-2w fr-mb-2w">{% include "includes/_notification_history_item.html" %}</li>
+                        {% endfor %}
+                    </ul>
                 {% else %}
                     <p class="fr-mt-3w fr-mb-1w">Aucune notification.</p>
                 {% endif %}
             </div>
         {% endpartialdef %}
+
+        {% render_fragment "gsl_notification:notified" projet %}
     {% endblock notification_content %}
 {% endblock tab_projet %}
 
