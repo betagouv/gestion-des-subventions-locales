@@ -125,6 +125,7 @@ def test_patch_assiette_invalid_returns_errors_inline(
     content = response.content.decode()
     assert "fr-input-group--error" in content
     assert "Modifications enregistrées" not in content
+    assert "autofocus" in content
 
 
 def test_patch_assiette_get_returns_405(

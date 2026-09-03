@@ -94,6 +94,9 @@ class Fragment:
         return self.render_valid()
 
     def on_invalid(self):
+        # The call will fail if there are only non-fields errors.
+        if any(bound_field.errors for bound_field in self.form):
+            self.form.set_autofocus_on_first_error()
         return self.render_invalid()
 
     def on_post(self):
