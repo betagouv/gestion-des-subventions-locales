@@ -86,7 +86,7 @@ class ProjetAction(models.Model):
     boolean_field = models.CharField(max_length=200, blank=True, default="")
     boolean_value = models.BooleanField(null=True, blank=True)
     form_id = models.CharField(max_length=200, blank=True, default="")
-    reason = models.TextField(blank=True, default="")
+    details = models.TextField(blank=True, default="")
     document = models.FileField(
         upload_to=projet_action_document_upload_to, null=True, blank=True
     )
@@ -151,7 +151,7 @@ class ProjetAction(models.Model):
             "corbeille": "Dossier mis à la corbeille",
             "supprime": "Dossier supprimé",
         }
-        return labels.get(self.reason, "Désactivation du dossier")
+        return labels.get(self.details, "Désactivation du dossier")
 
     @property
     def precision_display(self):

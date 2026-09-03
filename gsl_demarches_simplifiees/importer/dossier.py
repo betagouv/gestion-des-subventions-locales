@@ -447,7 +447,7 @@ def _create_dossier_event_actions(
             projet=projet,
             action_type=ProjetAction.TYPE_DEACTIVATION,
             source=ProjetAction.SOURCE_DN,
-            reason=dossier.raison_desactivation,
+            details=dossier.raison_desactivation,
         )
     elif (
         not old_is_active
@@ -458,7 +458,7 @@ def _create_dossier_event_actions(
             projet=projet,
             action_type=ProjetAction.TYPE_DEACTIVATION,
             source=ProjetAction.SOURCE_DN,
-            reason=dossier.raison_desactivation,
+            details=dossier.raison_desactivation,
         )
     elif not old_is_active and dossier.is_active:
         ProjetAction.objects.create(
@@ -583,7 +583,7 @@ def _deactivate_deleted_dossier(deleted_dossier_data: dict, raison: str):
             projet=projet,
             action_type=ProjetAction.TYPE_DEACTIVATION,
             source=ProjetAction.SOURCE_DN,
-            reason=raison,
+            details=raison,
         )
 
 

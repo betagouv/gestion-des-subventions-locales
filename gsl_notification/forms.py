@@ -533,7 +533,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                 actor=user,
                 source=ProjetAction.SOURCE_TURGOT,
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
-                reason=motivation,
+                details=motivation,
             )
             if justificatif_file:
                 justificatif_file.seek(0)

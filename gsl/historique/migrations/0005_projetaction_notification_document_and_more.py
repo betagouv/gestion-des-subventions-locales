@@ -23,11 +23,11 @@ class Migration(migrations.Migration):
         migrations.RenameField(
             model_name="projetaction",
             old_name="deactivation_reason",
-            new_name="reason",
+            new_name="details",
         ),
         migrations.AlterField(
             model_name="projetaction",
-            name="reason",
+            name="details",
             field=models.TextField(blank=True, default=""),
         ),
     ]
