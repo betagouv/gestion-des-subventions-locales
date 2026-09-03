@@ -20,6 +20,6 @@ repos:
         - stylelint@16.23.1
         - stylelint-config-standard@39.0.0
 - repo: https://github.com/standard/standard
-  rev: master
+  rev: v17.1.2
   hooks:
     - id: standard
