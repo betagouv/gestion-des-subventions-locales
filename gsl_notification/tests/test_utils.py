@@ -1,6 +1,5 @@
 import datetime
 import io
-import os
 from unittest.mock import Mock, patch
 
 import pytest
@@ -22,7 +21,6 @@ from gsl_notification.models import (
     LettreNotification,
 )
 from gsl_notification.tests.factories import (
-    AnnexeFactory,
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
 )
@@ -33,7 +31,6 @@ from gsl_notification.utils import (
     merge_documents_into_pdf,
     merge_generated_documents_into_pdf,
     replace_mentions_in_html,
-    update_file_name_to_put_it_in_a_programmation_projet_folder,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import DOTATION_DETR
@@ -159,45 +156,6 @@ def test_replace_mention_date_arrete_uses_current_date(programmation_projet):
     html_content = '<span class="mention" data-type="mention" data-id="date-arrete" data-label="Date d\'édition de l\'arrêté" data-mention-suggestion-char="@">@Date d\'édition de l\'arrêté</span>'
     expected_date = timezone.now().strftime("%d/%m/%Y")
     assert expected_date == replace_mentions_in_html(html_content, programmation_projet)
-
-
-def test_update_file_name_to_put_it_in_a_programmation_projet_folder():
-    # Simulate a file-like object with a 'name' attribute
-    class DummyFile(io.BytesIO):
-        def __init__(self, name):
-            super().__init__()
-            self.name = name
-
-    file = DummyFile("document.pdf")
-    programmation_projet_id = 42
-
-    update_file_name_to_put_it_in_a_programmation_projet_folder(
-        file, programmation_projet_id
-    )
-
-    assert file.name == "programmation_projet_42/document.pdf"
-
-
-@pytest.mark.django_db
-def test_update_file_name_to_put_it_in_a_programmation_projet_folder_with_annexe():
-    pp = ProgrammationProjetFactory()
-    annexe = AnnexeFactory(programmation_projet=pp)
-    assert pp.annexes.count() == 1
-
-    class DummyFile(io.BytesIO):
-        def __init__(self, name):
-            super().__init__()
-            self.name = name
-
-    file_name = annexe.name
-    base_name, _extension = os.path.splitext(file_name)
-    file_2 = DummyFile(file_name)
-
-    update_file_name_to_put_it_in_a_programmation_projet_folder(
-        file_2, pp.id, is_annexe=True
-    )
-
-    assert file_2.name == f"programmation_projet_{pp.id}/{base_name}_2.pdf"
 
 
 @pytest.mark.django_db

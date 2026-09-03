@@ -322,7 +322,8 @@ UPLOADED_DOCUMENTS = {}
 
 def uploaded_document_upload_to(instance, filename):
     # Named (module-level) so it stays migration-serializable, unlike a lambda.
-    return f"{instance.document_type}/{filename}"
+    folder = f"programmation_projet_{instance.programmation_projet_id}"
+    return f"{instance.document_type}/{folder}/{filename}"
 
 
 class UploadedDocument(VerboseNameMixin, models.Model):

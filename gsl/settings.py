@@ -150,7 +150,7 @@ TEMPLATES = [
 
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
+        "BACKEND": "gsl_core.storages.MediaStorage",
         "OPTIONS": {},
     },
     "staticfiles": {
@@ -449,6 +449,10 @@ AWS_S3_REGION_NAME = os.getenv("SCALEWAY_S3_REGION", "fr-par")
 AWS_S3_ENDPOINT_URL = os.getenv(
     "AWS_S3_ENDPOINT_URL", f"https://s3.{AWS_S3_REGION_NAME}.scw.cloud"
 )
+# django-storages defaults this to True, which makes S3 silently overwrite an
+# existing key: two documents uploaded under the same name would end up sharing
+# one file, and deleting either would take the other's content with it.
+AWS_S3_FILE_OVERWRITE = False
 
 MAX_POST_FILE_SIZE_IN_MO = int(os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20))
 # Cumulative size cap for the signed-document re-import wizard. Files are

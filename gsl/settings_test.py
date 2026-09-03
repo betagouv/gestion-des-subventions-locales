@@ -13,7 +13,7 @@ BYPASS_ANTIVIRUS = True
 
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.InMemoryStorage",
+        "BACKEND": "gsl_core.storages.InMemoryMediaStorage",
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
