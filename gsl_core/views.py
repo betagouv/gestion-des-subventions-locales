@@ -1,8 +1,8 @@
 import io
 import logging
+from base64 import b32encode
 
 import segno
-from django.conf import settings
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
@@ -12,8 +12,7 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 security_logger = logging.getLogger("gsl.security")
 
 
-def _generate_qr_svg(device):
-    uri = device.config_url
+def _generate_qr_svg(uri):
     qr = segno.make(uri)
     buffer = io.BytesIO()
     qr.save(buffer, kind="svg", xmldecl=False, svgns=False, scale=4)
@@ -28,18 +27,7 @@ class OTPSetupView(View):
 
     def get(self, request):
         device = self._get_or_create_device(request.user)
-        qr_svg = _generate_qr_svg(device)
-        issuer = getattr(settings, "OTP_TOTP_ISSUER", "Turgot")
-        return render(
-            request,
-            "gsl_core/otp_setup.html",
-            {
-                "qr_svg": qr_svg,
-                "issuer": issuer,
-                "secret": device.key,
-                "error": None,
-            },
-        )
+        return render(request, "gsl_core/otp_setup.html", self._context(device))
 
     def post(self, request):
         device = self._get_or_create_device(request.user)
@@ -53,18 +41,18 @@ class OTPSetupView(View):
             )
             return redirect("/")
 
-        qr_svg = _generate_qr_svg(device)
-        issuer = getattr(settings, "OTP_TOTP_ISSUER", "Turgot")
         return render(
             request,
             "gsl_core/otp_setup.html",
-            {
-                "qr_svg": qr_svg,
-                "issuer": issuer,
-                "secret": device.key,
-                "error": "Code invalide. Veuillez réessayer.",
-            },
+            self._context(device, error="Code invalide. Veuillez réessayer."),
         )
+
+    def _context(self, device, error=None):
+        return {
+            "qr_svg": _generate_qr_svg(device.config_url),
+            "secret": b32encode(device.bin_key).decode(),
+            "error": error,
+        }
 
     def _get_or_create_device(self, user):
         device = TOTPDevice.objects.filter(user=user, confirmed=False).first()
