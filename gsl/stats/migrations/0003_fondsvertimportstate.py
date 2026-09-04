@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("gsl_suivi_financier", "0002_subventionfondsvert"),
+        ("gsl_stats", "0002_subventionfondsvert"),
     ]
 
     operations = [
