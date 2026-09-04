@@ -65,10 +65,6 @@ class GenerateDocumentsFragment(ProjetFragment):
         self.form.save()
         return HttpResponseClientRefresh()
 
-    def on_invalid(self):
-        self.form.set_autofocus_on_first_error()
-        return super().on_invalid()
-
 
 class NotificationMessageFragment(ProjetFragment):
     name = "notification_message"

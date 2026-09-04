@@ -1,3 +1,4 @@
+import re
 from unittest.mock import patch
 
 import pytest
@@ -34,9 +35,7 @@ def projet(collegue):
 
 
 def _url(projet):
-    return reverse(
-        "gsl_projet:patch-projet-budget-vert", kwargs={"projet_id": projet.pk}
-    )
+    return reverse("fragment:gsl_projet:budget_vert_form", kwargs={"pk": projet.pk})
 
 
 @patch("gsl_projet.forms.DsService")
@@ -54,6 +53,7 @@ def test_patch_budget_vert_saves_and_returns_updated_fragment(
     content = response.content.decode()
     assert _url(projet) in content
     assert "Modifications enregistrées" in content
+    assert re.search(r'type="submit"\s+disabled\s*>', content)
 
 
 @patch("gsl_projet.forms.DsService")
@@ -83,6 +83,7 @@ def test_patch_budget_vert_ds_error_shown_inline_and_rolled_back(
     content = response.content.decode()
     assert "Erreur DN" in content
     assert "Modifications enregistrées" not in content
+    assert re.search(r'type="submit"\s*>', content)
 
 
 @patch("gsl_projet.forms.DsService")

@@ -1,7 +1,7 @@
 {% extends "includes/forms/_htmx_fragment_form.html" %}
 
 {% block post_url %}
-    {% url 'gsl_projet:patch-dotation-projet-assiette' dotation_projet.pk %}
+    {% url 'fragment:gsl_projet:assiette_dotation_form' dotation_projet.pk %}
 {% endblock post_url %}
 
 {% block fields %}

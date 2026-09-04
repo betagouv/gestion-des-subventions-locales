@@ -1,7 +1,8 @@
 from collections import defaultdict
+from http import HTTPMethod
 
 from django.apps import apps
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import include, path
@@ -40,6 +41,7 @@ class Fragment:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        cls.allowed_methods = [m for m in HTTPMethod if hasattr(cls, f"on_{m.lower()}")]
         if cls.name:
             Fragment.registry[cls.app_label][cls.name] = cls
 
@@ -67,17 +69,17 @@ class Fragment:
     def get_form(self, data=None):
         return self.form_class(instance=self.object, data=data)
 
-    def render(self, *, oob=False):
+    def render(self, *, oob=False, **extra):
         form = self.form
         if form is None and self.form_class:
             form = self.get_form()
-        context = {**self.get_context(), "oob": oob}
+        context = {**self.get_context(), "oob": oob, **extra}
         if form is not None:
             context["form"] = form
         return render_to_string(self.template_name, context, request=self.request)
 
-    def render_valid(self):
-        html = self.render()
+    def render_valid(self, **extra):
+        html = self.render(**extra)
         html += "".join(
             fragment(self.request, self.object).render(oob=True)
             for fragment in self.oob_fragments
@@ -92,9 +94,12 @@ class Fragment:
         return self.render_valid()
 
     def on_invalid(self):
+        # The call will fail if there are only non-fields errors.
+        if any(bound_field.errors for bound_field in self.form):
+            self.form.set_autofocus_on_first_error()
         return self.render_invalid()
 
-    def post(self):
+    def on_post(self):
         self.form = self.get_form(data=self.request.POST)
         if self.form.is_valid():
             return self.on_valid()
@@ -108,10 +113,10 @@ class Fragment:
     def as_view(cls):
         @htmx_only
         def view(request, **kwargs):
+            if request.method not in cls.allowed_methods:
+                return HttpResponseNotAllowed(cls.allowed_methods)
             fragment = cls(request, cls.get_object(request, **kwargs))
-            if request.method == "POST":
-                return fragment.post()
-            return HttpResponse(fragment.render())
+            return getattr(fragment, f"on_{request.method.lower()}")()
 
         return view
 

@@ -373,7 +373,7 @@ def test_assiette_form_shown_for_processing_non_notified_dotation():
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     assert response.status_code == 200
     assiette_url = reverse(
-        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+        "fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk}
     )
     assert assiette_url in response.content.decode()
 
@@ -389,7 +389,7 @@ def test_readonly_block_shown_for_final_status_dotation(status):
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     content = response.content.decode()
     assiette_url = reverse(
-        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+        "fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk}
     )
     assert assiette_url not in content
     assert "Montant des dépenses éligibles retenues :" in content
@@ -405,7 +405,7 @@ def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     content = response.content.decode()
     assiette_url = reverse(
-        "gsl_projet:patch-dotation-projet-assiette", kwargs={"pk": dp.pk}
+        "fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk}
     )
     assert assiette_url not in content
     assert "Montant des dépenses éligibles retenues :" in content

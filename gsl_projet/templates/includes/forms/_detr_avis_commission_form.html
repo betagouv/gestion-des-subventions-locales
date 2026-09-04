@@ -1,5 +1,5 @@
 {% extends "includes/forms/_htmx_fragment_form.html" %}
 
 {% block post_url %}
-    {% url 'gsl_projet:patch-dotation-projet-detr-avis' dotation_projet.pk %}
+    {% url 'fragment:gsl_projet:detr_avis_commission_form' dotation_projet.pk %}
 {% endblock post_url %}

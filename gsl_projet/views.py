@@ -22,10 +22,8 @@ from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
-from gsl_core.templatetags.fragment_tags import register_fragment_tag
 from gsl_core.view_mixins import (
     FilterSkiplinksMixin,
-    HtmxFragmentFormMixin,
     OpenHtmxModalMixin,
     SafeRedirectMixin,
 )
@@ -38,16 +36,12 @@ from gsl_demarches_simplifiees.models import (
     ProjetZonage,
 )
 from gsl_projet.forms import (
-    DotationProjetAssietteForm,
-    DotationProjetForm,
-    ProjetBudgetVertForm,
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
     ProjetRevertToProcessingForm,
-    ProjetZonageForm,
 )
-from gsl_projet.models import DotationProjet, ProjetNote
+from gsl_projet.models import ProjetNote
 from gsl_projet.utils.django_filters_custom_widget import CustomSelectWidget
 from gsl_projet.utils.projet_filters import (
     ORDERING_MAP,
@@ -275,59 +269,6 @@ class ProjetUpdateView(BaseProjetDetailView, UpdateView):
             self.request.POST.urlencode()
         )
         return _redirect_to_referer_or_projet(self.request, self.object)
-
-
-class UserProjetMixin:
-    model = Projet
-    context_object_name = "projet"
-    pk_url_kwarg = "projet_id"
-
-    def get_queryset(self):
-        return Projet.objects.active().for_user(self.request.user)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
-        return kwargs
-
-
-@register_fragment_tag("budget_vert_form")
-class ProjetBudgetVertUpdateView(UserProjetMixin, HtmxFragmentFormMixin, UpdateView):
-    form_class = ProjetBudgetVertForm
-    template_name = "includes/forms/_is_budget_vert_form.html"
-
-
-@register_fragment_tag("zonage_form")
-class ProjetZonageUpdateView(UserProjetMixin, HtmxFragmentFormMixin, UpdateView):
-    form_class = ProjetZonageForm
-    template_name = "includes/forms/_boolean_fields_projet_form.html"
-
-
-@register_fragment_tag("detr_avis_commission_form")
-class DotationProjetDetrAvisUpdateView(HtmxFragmentFormMixin, UpdateView):
-    model = DotationProjet
-    form_class = DotationProjetForm
-    template_name = "includes/forms/_detr_avis_commission_form.html"
-    context_object_name = "dotation_projet"
-
-    def get_queryset(self):
-        return DotationProjet.objects.filter(
-            projet__in=Projet.objects.active().for_user(self.request.user)
-        )
-
-
-@register_fragment_tag("assiette_dotation_form")
-class DotationProjetAssietteUpdateView(HtmxFragmentFormMixin, UpdateView):
-    model = DotationProjet
-    form_class = DotationProjetAssietteForm
-    template_name = "includes/forms/_assiette_dotation_projet_form.html"
-    context_object_name = "dotation_projet"
-
-    def get_queryset(self):
-        return DotationProjet.objects.filter(
-            projet__in=Projet.objects.active().for_user(self.request.user),
-            projet__notified_at__isnull=True,
-        )
 
 
 @method_decorator(htmx_only, name="dispatch")
