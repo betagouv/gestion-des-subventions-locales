@@ -2,7 +2,7 @@
 Script d'exploration de l'API Fonds Vert.
 
 Usage:
-    FV_USERNAME=... FV_PASSWORD=... venv/bin/python gsl_suivi_financier/exploration_fonds_vert.py
+    FV_USERNAME=... FV_PASSWORD=... venv/bin/python gsl/stats/exploration_fonds_vert.py
 """
 
 import json
