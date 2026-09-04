@@ -431,7 +431,8 @@ def _create_dossier_event_actions(
 
     new_construction_date = dossier.ds_date_passage_en_construction
     if (
-        new_construction_date
+        new_instruction_date
+        and new_construction_date
         and old_construction_date
         and new_construction_date != old_construction_date
     ):

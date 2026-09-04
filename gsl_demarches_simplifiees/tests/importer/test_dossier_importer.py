@@ -1,14 +1,17 @@
 import logging
+from datetime import UTC
 from unittest.mock import patch
 
 import pytest
 from django.contrib import messages
 from django.utils.timezone import datetime
 
+from gsl.historique.models import ProjetAction
 from gsl_core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import (
+    _create_dossier_event_actions,
     _get_handled_departement_insee_codes,
     _is_dossier_in_handled_departement,
     _reinit_demarche_sync_state,
@@ -25,6 +28,7 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,
     DossierFactory,
 )
+from gsl_projet.tests.factories import ProjetFactory
 
 
 def _make_demarche_page(
@@ -1182,3 +1186,134 @@ def test_save_demarche_dossiers_from_ds_calls_reinit_when_updated_since_is_none(
             save_demarche_dossiers_from_ds(demarche_number)
 
     mock_reinit.assert_called_once_with(demarche)
+
+
+# tests _create_dossier_event_actions
+
+
+@pytest.mark.django_db
+def test_create_dossier_event_actions_creates_retour_en_construction_action():
+    new_construction_date = datetime(2025, 6, 5, tzinfo=UTC)
+    dossier = DossierFactory(
+        ds_date_passage_en_instruction=datetime(2025, 6, 10, tzinfo=UTC),
+        ds_date_passage_en_construction=new_construction_date,
+    )
+    ProjetFactory(dossier_ds=dossier)
+
+    _create_dossier_event_actions(
+        dossier,
+        old_instruction_date=datetime(2025, 6, 1, tzinfo=UTC),
+        old_construction_date=datetime(2025, 6, 2, tzinfo=UTC),
+        old_ds_state=Dossier.STATE_EN_INSTRUCTION,
+        old_is_active=True,
+        old_raison="",
+    )
+
+    action = ProjetAction.objects.get(
+        projet=dossier.projet,
+        action_type=ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
+    )
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.created_at == new_construction_date
+
+
+@pytest.mark.django_db
+def test_create_dossier_event_actions_no_retour_en_construction_without_new_instruction_date():
+    """
+    cas pas censé exister car ds_date_passage_en_instruction ne repasse par à None
+    """
+
+    dossier = DossierFactory(
+        ds_date_passage_en_instruction=None,
+        ds_date_passage_en_construction=datetime(2025, 6, 5, tzinfo=UTC),
+    )
+    ProjetFactory(dossier_ds=dossier)
+
+    _create_dossier_event_actions(
+        dossier,
+        old_instruction_date=datetime(2025, 6, 1, tzinfo=UTC),
+        old_construction_date=datetime(2025, 6, 2, tzinfo=UTC),
+        old_ds_state=Dossier.STATE_EN_INSTRUCTION,
+        old_is_active=True,
+        old_raison="",
+    )
+
+    assert not ProjetAction.objects.filter(
+        projet=dossier.projet,
+        action_type=ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_create_dossier_event_actions_no_retour_en_construction_without_old_construction_date():
+    dossier = DossierFactory(
+        ds_date_passage_en_instruction=datetime(2025, 6, 10, tzinfo=UTC),
+        ds_date_passage_en_construction=datetime(2025, 6, 5, tzinfo=UTC),
+    )
+    ProjetFactory(dossier_ds=dossier)
+
+    _create_dossier_event_actions(
+        dossier,
+        old_instruction_date=datetime(2025, 6, 1, tzinfo=UTC),
+        old_construction_date=None,
+        old_ds_state=Dossier.STATE_EN_INSTRUCTION,
+        old_is_active=True,
+        old_raison="",
+    )
+
+    assert not ProjetAction.objects.filter(
+        projet=dossier.projet,
+        action_type=ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_create_dossier_event_actions_no_retour_en_construction_when_date_unchanged():
+    construction_date = datetime(2025, 6, 5, tzinfo=UTC)
+    dossier = DossierFactory(
+        ds_date_passage_en_instruction=datetime(2025, 6, 10, tzinfo=UTC),
+        ds_date_passage_en_construction=construction_date,
+    )
+    ProjetFactory(dossier_ds=dossier)
+
+    _create_dossier_event_actions(
+        dossier,
+        old_instruction_date=datetime(2025, 6, 1, tzinfo=UTC),
+        old_construction_date=construction_date,
+        old_ds_state=Dossier.STATE_EN_INSTRUCTION,
+        old_is_active=True,
+        old_raison="",
+    )
+
+    assert not ProjetAction.objects.filter(
+        projet=dossier.projet,
+        action_type=ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_create_dossier_event_actions_retour_en_construction_is_idempotent():
+    new_construction_date = datetime(2025, 6, 5, tzinfo=UTC)
+    dossier = DossierFactory(
+        ds_date_passage_en_instruction=datetime(2025, 6, 10, tzinfo=UTC),
+        ds_date_passage_en_construction=new_construction_date,
+    )
+    ProjetFactory(dossier_ds=dossier)
+    kwargs = dict(
+        old_instruction_date=datetime(2025, 6, 1, tzinfo=UTC),
+        old_construction_date=datetime(2025, 6, 2, tzinfo=UTC),
+        old_ds_state=Dossier.STATE_EN_INSTRUCTION,
+        old_is_active=True,
+        old_raison="",
+    )
+
+    _create_dossier_event_actions(dossier, **kwargs)
+    _create_dossier_event_actions(dossier, **kwargs)
+
+    assert (
+        ProjetAction.objects.filter(
+            projet=dossier.projet,
+            action_type=ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
+        ).count()
+        == 1
+    )
