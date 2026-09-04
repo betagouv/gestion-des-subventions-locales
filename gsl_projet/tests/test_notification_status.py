@@ -6,6 +6,8 @@ from gsl_notification.tests.factories import (
     ArreteFactory,
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
+    LettreRefusFactory,
+    LettreRefusSigneeFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import (
@@ -99,4 +101,26 @@ def test_refused_or_dismissed_dotation_projet_with_programmation_is_to_generate(
     ProgrammationProjetFactory(dotation_projet=dotation_projet)
 
     assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
+    _assert_property_matches_annotation(dotation_projet)
+
+
+@pytest.mark.parametrize("status", [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
+def test_refused_or_dismissed_dotation_projet_with_lettre_refus_is_to_sign(status):
+    dotation_projet = DotationProjetFactory(status=status)
+    programmation_projet = ProgrammationProjetFactory(dotation_projet=dotation_projet)
+    LettreRefusFactory(programmation_projet=programmation_projet)
+
+    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_SIGN
+    _assert_property_matches_annotation(dotation_projet)
+
+
+@pytest.mark.parametrize("status", [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
+def test_refused_or_dismissed_dotation_projet_with_signed_lettre_refus_is_to_notify(
+    status,
+):
+    dotation_projet = DotationProjetFactory(status=status)
+    programmation_projet = ProgrammationProjetFactory(dotation_projet=dotation_projet)
+    LettreRefusSigneeFactory(programmation_projet=programmation_projet)
+
+    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_NOTIFY
     _assert_property_matches_annotation(dotation_projet)
