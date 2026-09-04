@@ -15,3 +15,12 @@
 #projet_note_form {
   display: none;
 }
+
+/* Le wrapper .fr-checkbox-group généré par django-dsfr force fr-mb-2w ;
+   on le supprime quand c'est le dernier champ *visible* d'un fr-callout,
+   pour éviter un double espacement avec le padding du fr-callout. Les
+   champs suivants masqués via .fr-hidden (cf conditionalField.js) ne
+   comptent pas comme "visibles". */
+.fr-callout > .fr-checkbox-group:not(:has(~ *:not(.fr-hidden))) {
+  margin-bottom: 0 !important;
+}
