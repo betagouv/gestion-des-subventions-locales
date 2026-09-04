@@ -617,6 +617,103 @@ def test_dismiss_from_processing():
         assert simulation_projet.taux == 0
 
 
+# Source & created_at of the ProjetAction created on transition
+
+
+@pytest.mark.parametrize(
+    "transition_name, transition_kwargs, expected_status",
+    (
+        ("accept_without_ds_update", {"montant": 5_000}, PROJET_STATUS_ACCEPTED),
+        ("refuse", {}, PROJET_STATUS_REFUSED),
+        ("dismiss", {}, PROJET_STATUS_DISMISSED),
+    ),
+)
+def test_transition_action_uses_turgot_source_when_actor_given(
+    transition_name, transition_kwargs, expected_status
+):
+    dotation_projet = DotationProjetFactory(
+        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
+    enveloppe = DetrEnveloppeFactory(annee=2025)
+    actor = CollegueFactory()
+
+    getattr(dotation_projet, transition_name)(
+        enveloppe=enveloppe, actor=actor, **transition_kwargs
+    )
+
+    action = ProjetAction.objects.get(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        status=expected_status,
+    )
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.actor == actor
+
+
+@pytest.mark.parametrize(
+    "transition_name, transition_kwargs, expected_status",
+    (
+        ("accept_without_ds_update", {"montant": 5_000}, PROJET_STATUS_ACCEPTED),
+        ("refuse", {}, PROJET_STATUS_REFUSED),
+        ("dismiss", {}, PROJET_STATUS_DISMISSED),
+    ),
+)
+def test_transition_action_uses_dn_source_and_now_when_no_actor_and_no_ds_date_traitement(
+    transition_name, transition_kwargs, expected_status
+):
+    dotation_projet = DotationProjetFactory(
+        assiette=10_000,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
+        projet__dossier_ds__ds_date_traitement=None,
+    )
+    enveloppe = DetrEnveloppeFactory(annee=2025)
+
+    before = timezone.now()
+    getattr(dotation_projet, transition_name)(enveloppe=enveloppe, **transition_kwargs)
+    after = timezone.now()
+
+    action = ProjetAction.objects.get(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        status=expected_status,
+    )
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.actor is None
+    assert before <= action.created_at <= after
+
+
+@pytest.mark.parametrize(
+    "transition_name, transition_kwargs, expected_status",
+    (
+        ("accept_without_ds_update", {"montant": 5_000}, PROJET_STATUS_ACCEPTED),
+        ("refuse", {}, PROJET_STATUS_REFUSED),
+        ("dismiss", {}, PROJET_STATUS_DISMISSED),
+    ),
+)
+def test_transition_action_is_backdated_to_ds_date_traitement_when_no_actor(
+    transition_name, transition_kwargs, expected_status
+):
+    ds_date_traitement = timezone.now() - timezone.timedelta(days=3)
+    dotation_projet = DotationProjetFactory(
+        assiette=10_000,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
+        projet__dossier_ds__ds_date_traitement=ds_date_traitement,
+    )
+    enveloppe = DetrEnveloppeFactory(annee=2025)
+
+    getattr(dotation_projet, transition_name)(enveloppe=enveloppe, **transition_kwargs)
+
+    action = ProjetAction.objects.get(
+        projet=dotation_projet.projet,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        status=expected_status,
+    )
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.created_at == ds_date_traitement
+
+
 # Set back status to processing
 
 

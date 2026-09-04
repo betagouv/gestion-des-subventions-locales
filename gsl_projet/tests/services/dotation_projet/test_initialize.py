@@ -5,12 +5,15 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
+from gsl.historique.models import ProjetAction
 from gsl_core.tests.factories import (
+    CollegueFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -258,3 +261,55 @@ def test_initialize_dotation_projets_from_projet_en_construction_or_instruction(
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.montant_retenu is None
     assert not hasattr(dsil_dp, "programmation_projet")
+
+
+# -- _initialize_dotation_projets_from_projet — ProjetAction TYPE_NOTIFIED --
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_initialize_dotation_projets_from_projet_creates_notified_action(perimetres):
+    """A dossier arriving already accepted directly on DN (never notified from
+    Turgot) must get a TYPE_NOTIFIED ProjetAction logged, matching the agent
+    from `traitements[].emailAgentTraitant` to an existing Collegue."""
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+    collegue = CollegueFactory(email="agent@example.fr")
+
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        dossier_ds__demande_dispositif_sollicite=DOTATION_DETR,
+        dossier_ds__annotations_montant_accorde_detr=5_000,
+        dossier_ds__ds_date_traitement=ds_date_traitement,
+        dossier_ds__perimetre=arr_dijon,
+    )
+    DossierDataFactory(
+        dossier=projet.dossier_ds,
+        raw_data={
+            "traitements": [
+                {
+                    "event": "depose",
+                    "dateTraitement": "2024-12-01T10:00:00+01:00",
+                    "emailAgentTraitant": None,
+                    "motivation": None,
+                },
+                {
+                    "event": "accepte",
+                    "dateTraitement": "2025-01-15T00:00:00+00:00",
+                    "emailAgentTraitant": "agent@example.fr",
+                    "motivation": "Dossier complet",
+                },
+            ]
+        },
+    )
+
+    dps._initialize_dotation_projets_from_projet(projet)
+
+    action = ProjetAction.objects.get(
+        projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+    )
+    assert action.source == ProjetAction.SOURCE_DN
+    assert action.details == "Dossier complet"
+    assert action.created_at == ds_date_traitement
+    assert action.actor == collegue

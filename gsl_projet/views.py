@@ -1,7 +1,18 @@
 import json
 
 from django.contrib import messages
-from django.db.models import Case, DecimalField, F, Max, Prefetch, Q, Sum, When
+from django.db.models import (
+    Case,
+    DecimalField,
+    F,
+    IntegerField,
+    Max,
+    Prefetch,
+    Q,
+    Sum,
+    Value,
+    When,
+)
 from django.http import QueryDict
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
@@ -20,6 +31,7 @@ from django_htmx.http import HttpResponseClientRedirect
 
 from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
+from gsl.historique.models import ProjetAction
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import (
@@ -158,8 +170,19 @@ class ProjetHistoriqueView(BaseProjetDetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["actions"] = self.object.actions.select_related("actor").order_by(
-            "-created_at"
+        # Une notification déclenchée par DN et le changement de statut qui
+        # l'accompagne partagent le même created_at (cf.
+        # DotationProjetService._create_notified_projet_action_from_dossier_treatment) ;
+        # on affiche alors la notification au-dessus du changement de statut.
+        display_priority = Case(
+            When(action_type=ProjetAction.TYPE_NOTIFIED, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
+        context["actions"] = (
+            self.object.actions.select_related("actor")
+            .annotate(_display_priority=display_priority)
+            .order_by("-created_at", "_display_priority")
         )
         return context
 
