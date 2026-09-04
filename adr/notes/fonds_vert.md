@@ -149,7 +149,7 @@ class SubventionFondsVert(models.Model):
 
 ### Tâche Celery + commande de management
 
-- Commande `import_fonds_vert` dans `gsl_suivi_financier/management/commands/`
+- Commande `import_fonds_vert` dans `gsl/stats/management/commands/`
 - Tâche Celery périodique (sync quotidienne ou hebdomadaire)
 - Filtrage par `date_derniere_modification__gte` pour les mises à jour incrémentales
 - Credentials via variables d'environnement `FONDS_VERT_USERNAME` / `FONDS_VERT_PASSWORD`

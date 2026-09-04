@@ -1,7 +1,8 @@
 from django.apps import AppConfig
 
 
-class GslSuiviFinancierConfig(AppConfig):
+class GslStatsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "gsl_suivi_financier"
+    name = "gsl.stats"
+    label = "gsl_stats"
     verbose_name = "7. Suivi financier"
