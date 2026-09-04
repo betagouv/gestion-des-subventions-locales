@@ -3,8 +3,8 @@ import logging
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from gsl_suivi_financier.models import FondsVertImportState
-from gsl_suivi_financier.tasks import (
+from gsl.stats.models import FondsVertImportState
+from gsl.stats.tasks import (
     FONDS_VERT_BASE_URL,
     _fonds_vert_login,
     _iter_fonds_vert_pages,

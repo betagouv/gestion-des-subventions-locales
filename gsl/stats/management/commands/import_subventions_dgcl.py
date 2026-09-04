@@ -3,7 +3,7 @@ import logging
 import requests
 from django.core.management.base import BaseCommand
 
-from gsl_suivi_financier.tasks import DGCL_API_URL, _import_csv_resource
+from gsl.stats.tasks import DGCL_API_URL, _import_csv_resource
 
 logger = logging.getLogger(__name__)
 

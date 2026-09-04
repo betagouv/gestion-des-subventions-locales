@@ -9,7 +9,7 @@ from .models import Beneficiaire
 
 class BeneficiaireListView(ListView):
     model = Beneficiaire
-    template_name = "gsl_suivi_financier/beneficiaire_list.html"
+    template_name = "gsl_stats/beneficiaire_list.html"
     context_object_name = "beneficiaires"
     paginate_by = 50
 
@@ -32,7 +32,7 @@ class BeneficiaireListView(ListView):
 class BeneficiaireDetailView(DetailView):
     model = Beneficiaire
     pk_url_kwarg = "siren"
-    template_name = "gsl_suivi_financier/beneficiaire_detail.html"
+    template_name = "gsl_stats/beneficiaire_detail.html"
 
     def get_queryset(self):
         qs = Beneficiaire.objects.all()

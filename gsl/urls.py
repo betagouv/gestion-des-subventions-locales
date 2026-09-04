@@ -49,7 +49,7 @@ urlpatterns = [
     ),
     path(
         "beneficiaires/",
-        include(("gsl_suivi_financier.urls", "gsl_suivi_financier"), "suivi_financier"),
+        include(("gsl.stats.urls", "gsl_stats"), "suivi_financier"),
     ),
     fragment_urlpatterns(),
 ]

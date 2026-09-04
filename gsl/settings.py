@@ -82,7 +82,7 @@ INSTALLED_APPS = [
     "gsl.historique",
     "gsl.pages",
     "gsl.oidc",
-    "gsl_suivi_financier",
+    "gsl.stats",
 ]
 
 

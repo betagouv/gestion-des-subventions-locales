@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
     dependencies = [
         ("gsl_core", "0016_alter_departement_active"),
-        ("gsl_suivi_financier", "0001_initial"),
+        ("gsl_stats", "0001_initial"),
     ]
 
     operations = [
@@ -81,7 +81,7 @@ class Migration(migrations.Migration):
                     "beneficiaire",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to="gsl_suivi_financier.beneficiaire",
+                        to="gsl_stats.beneficiaire",
                         verbose_name="Bénéficiaire",
                     ),
                 ),

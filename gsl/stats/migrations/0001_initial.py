@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
                     "beneficiaire",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to="gsl_suivi_financier.beneficiaire",
+                        to="gsl_stats.beneficiaire",
                         verbose_name="Bénéficiaire",
                     ),
                 ),
