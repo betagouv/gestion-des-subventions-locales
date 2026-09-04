@@ -3,7 +3,7 @@ POC command: read a scanned signed PDF, decode the QR code on each page, and
 split the scan into one signed document (lettre/arrêté, or lettre de refus)
 per matching ProgrammationProjet.
 
-Thin CLI wrapper around `gsl_notification.reattach.reattach_signed_doc`;
+Thin CLI wrapper around `gsl_notification.qr.reattach.reattach_signed_doc`;
 the underlying business logic is shared with the future upload view.
 
 Usage:
@@ -15,7 +15,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 
 from gsl_core.models import Collegue
-from gsl_notification.reattach import (
+from gsl_notification.qr.reattach import (
     _DOCUMENT_TYPE_ORDER,
     DecodeStarted,
     GroupAttached,

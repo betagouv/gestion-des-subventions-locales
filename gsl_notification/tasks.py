@@ -250,7 +250,7 @@ def _reattach_all_files(job, files, result) -> None:
     if not files:
         return
 
-    from gsl_notification.reattach import reattach_signed_docs
+    from gsl_notification.qr.reattach import reattach_signed_docs
 
     events = _consume_reattach_events(
         reattach_signed_docs(
@@ -310,7 +310,7 @@ def _consume_reattach_events(events, job, result):
     GroupFailed mutate `result` without yielding, so they are applied lazily
     when the caller drives the generator to its final `next()`.
     """
-    from gsl_notification.reattach import (
+    from gsl_notification.qr.reattach import (
         DecodeStarted,
         GroupAttached,
         GroupFailed,

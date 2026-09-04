@@ -744,7 +744,7 @@ def test_document_download_includes_qr_by_default_and_respects_stored_choice(
 ):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
-    from gsl_notification.qr import decode_per_page
+    from gsl_notification.qr.codec import decode_per_page
 
     with_qr = factory(
         programmation_projet=programmation_projet,

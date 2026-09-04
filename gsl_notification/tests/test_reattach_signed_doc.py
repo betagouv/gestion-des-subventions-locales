@@ -9,7 +9,7 @@ from pikepdf import Page, Pdf
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.models import LettreEtArreteSignes, LettreRefusSignee
-from gsl_notification.qr import QrPayload, parse_payload
+from gsl_notification.qr.codec import QrPayload, parse_payload
 from gsl_notification.tests.factories import (
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
@@ -215,7 +215,7 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    from gsl_notification.reattach import (
+    from gsl_notification.qr.reattach import (
         DecodeStarted,
         GroupAttached,
         PageDecoded,
@@ -380,7 +380,7 @@ def test_qr_mask_blends_in_with_surrounding_texture(tmp_path):
     import pypdfium2 as pdfium
     from PIL import ImageStat
 
-    from gsl_notification.qr import RENDER_SCALE, decode_per_page
+    from gsl_notification.qr.codec import RENDER_SCALE, decode_per_page
 
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999991)
@@ -469,7 +469,7 @@ def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    from gsl_notification.reattach import reattach_signed_doc
+    from gsl_notification.qr.reattach import reattach_signed_doc
 
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999999)
@@ -513,7 +513,7 @@ def test_reimport_same_scan_filename_keeps_new_file(
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    from gsl_notification.reattach import reattach_signed_doc
+    from gsl_notification.qr.reattach import reattach_signed_doc
 
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999992)

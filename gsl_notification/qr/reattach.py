@@ -39,8 +39,9 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
 from gsl.projet.constants import ARRETE, LETTRE
 from gsl_core.models import Collegue
 from gsl_notification.models import UPLOADED_DOCUMENTS, UploadedDocument
-from gsl_notification.qr import RENDER_SCALE, iter_decoded_pages
 from gsl_programmation.models import ProgrammationProjet
+
+from .codec import RENDER_SCALE, iter_decoded_pages
 
 _DOCUMENT_TYPE_ORDER = {LETTRE: 0, ARRETE: 1}
 

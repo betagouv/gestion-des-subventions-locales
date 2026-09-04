@@ -7,7 +7,7 @@ from PIL import Image
 
 from gsl.projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
 from gsl_notification.models import GENERATED_DOCUMENTS
-from gsl_notification.qr import (
+from gsl_notification.qr.codec import (
     QrPayload,
     build_payload,
     decode_per_page,
