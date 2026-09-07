@@ -23,7 +23,7 @@
                         <span aria-hidden="true">📍</span> Demandeur
                         : {{ dossier.ds_demandeur|default:"-" }}
                         {% if dossier.ds_demandeur.siren %}
-                            (<a href="{% url 'suivi_financier:beneficiaire-detail' dossier.ds_demandeur.siren %}">fiche bénéficiaire</a>)
+                            (<a href="{% url 'suivi_financier:collectivite-detail' dossier.ds_demandeur.siren %}">fiche collectivité</a>)
                         {% endif %}
                     </li>
                     <li>
