@@ -186,9 +186,9 @@ def run_document_import_job(job_id: str) -> None:
 
     Download and virus-scan every uploaded PDF first (skipping & recording
     infected ones), then drain `reattach_signed_docs` over the whole batch in a
-    single pass: it decodes the per-page GSL QR codes and merges page-groups
-    sharing a `(ds_number, dotation)` across all files into one document per
-    project. Progress and the report-only summary are stored on the job row;
+    single pass: it decodes the per-page GSL QR codes and gathers the pages of
+    each document across all files. Progress and the summary are stored on the
+    job row;
     temporary S3 objects are deleted once the job completes.
     """
     from gsl_notification.utils import get_s3_client
@@ -246,8 +246,8 @@ def _download_and_scan_all(job, s3, bucket, result) -> list[ContentFile]:
 
 
 def _reattach_all_files(job, pdfs, result) -> None:
-    """Drain `reattach_signed_docs` over the whole batch, merging page-groups
-    across files. Progress is saved every few pages so the polling view
+    """Drain `reattach_signed_docs` over the whole batch, gathering each
+    document's pages across files. Progress is saved every few pages so the polling view
     advances without one DB write per page on large scans."""
     if not pdfs:
         return
@@ -275,7 +275,7 @@ def _reattach_all_files(job, pdfs, result) -> None:
     result["files_processed"] += len(pdfs)
 
 
-def _download_and_scan(s3, bucket, s3_key, stem, result) -> bytes | None:
+def _download_and_scan(s3, bucket, s3_key, name, result) -> bytes | None:
     """Download `s3_key` to a temp file and virus-scan it. Return the PDF bytes,
     or None (recording an error) if the file is infected."""
     tmp_path = None
@@ -291,7 +291,7 @@ def _download_and_scan(s3, bucket, s3_key, stem, result) -> bytes | None:
                 result["errors"].append(
                     {
                         "type": "infected_file",
-                        "file": stem,
+                        "file": name,
                         "message": "Fichier identifié comme infecté, ignoré.",
                     }
                 )
@@ -307,7 +307,7 @@ def _consume_reattach_events(events, job, result):
     """Update counters/report from each reattach event, yielding once per
     processed page so the caller can track progress.
 
-    Each page event carries the stem of the source file it belongs to.
+    Each page event carries the name of the source file it belongs to.
     Only PageDecoded yields; DocumentAttached and MatchFailed mutate `result`
     without yielding, so they are applied lazily when the caller drives the
     generator to its final `next()`.

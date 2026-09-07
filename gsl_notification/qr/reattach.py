@@ -2,23 +2,10 @@
 Business logic for reattaching a scanned signed PDF to the matching
 ProgrammationProjet(s), decoded from per-page GSL QR codes.
 
-`reattach_signed_docs()` is the entry point: the CLI command in
-`gsl_notification/management/commands/reattach_signed_doc.py` hands it one
-file, the web import flow (`gsl_notification/tasks.py`) hands it the whole
-batch.
-
-Pages sharing `(ds_number, dotation)` *and* targeting the same document model
-are grouped and reassembled (ordered by document type — lettre before
-arrêté — then by the QR `page` field) into a single PDF before being
-attached as the matching `UploadedDocument` subclass, replacing any existing
-document of that kind for the project: `arrete`/`lettre` QR pages produce a
-`LettreEtArreteSignes`, `refus` QR pages produce a `LettreRefusSignee`.
-
-Grouping spans the *whole* job: `reattach_signed_docs()` decodes every
-uploaded file first, then merges pages by `(ds_number, dotation, target_model)`
-across all of them, so an arrêté file and a lettre file uploaded together end
-up in a single `LettreEtArreteSignes` per project — while a lettre de refus
-scanned alongside them is routed independently to its own `LettreRefusSignee`.
+`extract_documents()` reads and matches, `replace_documents()` writes.
+`reattach_signed_docs()` composes them, and is what the CLI command in
+`gsl_notification/management/commands/reattach_signed_doc.py` and the web
+import flow (`gsl_notification/tasks.py`) both call.
 """
 
 import io
@@ -29,6 +16,7 @@ from typing import Iterator
 from django.core.files.base import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
+from django.db.models import QuerySet
 from pikepdf import Pdf
 
 from gsl.projet.constants import ARRETE, LETTRE
@@ -41,11 +29,8 @@ from .mask import mask_qr_on_last_page
 
 DOCUMENT_TYPE_ORDER = {LETTRE: 0, ARRETE: 1}
 
-# Which UploadedDocument subclass a QR document_type is reattached as, built
-# from each model's `reattach_source_document_types` (see models.py):
-# arrete/lettre pages are merged into a single LettreEtArreteSignes; refus
-# pages (lettre de refus / classement sans suite) go to their own
-# LettreRefusSignee, never mixed with the other two.
+# Built by asking each UploadedDocument subclass which QR document types it is
+# the target of, through `reattach_source_document_types` (see models.py).
 _TARGET_MODEL_BY_DOCUMENT_TYPE: dict[str, type[UploadedDocument]] = {
     document_type: model
     for model in UPLOADED_DOCUMENTS.values()
@@ -120,25 +105,11 @@ ReattachEvent = DecodeStarted | PageDecoded | DocumentAttached | MatchFailed
 def reattach_signed_docs(
     pdfs: list[File],
     user: Collegue,
-    programmation_projets,
+    programmation_projets: QuerySet[ProgrammationProjet],
     remove_qr_code: bool = True,
 ) -> Iterator[ReattachEvent]:
-    """Decode QRs across *all* uploaded files, merge pages sharing a
-    `(ds_number, dotation, target_model)` into a single PDF, attach each
-    group to its ProgrammationProjet as the matching document type, and
-    stream events.
-
-    `pdfs` are read once, up front. A named one (`ContentFile(..., name=...)`,
-    or the `UploadedFile` a form hands over) has its name reported on any page
-    that fails to decode, so the agent knows which upload to look at.
-
-    Grouping spans the whole batch,
-    so an arrêté file and a lettre file uploaded together produce one combined
-    `LettreEtArreteSignes` per project (`_replace_uploaded_document` runs once
-    per project and per target model, not once per file). A lettre de refus
-    scanned in the same batch never merges with those pages — it targets a
-    different model (`LettreRefusSignee`) and is grouped, reported, and
-    attached independently, even for the same `(ds_number, dotation)`.
+    """Extract every document from the batch, then store each one, streaming
+    events.
 
     Side effects (DB writes, file storage) happen lazily as the caller
     iterates. Callers must drain the generator.
@@ -150,55 +121,91 @@ def reattach_signed_docs(
     When `remove_qr_code` is True (the default), the GSL QR code is masked off
     each stored page; set it False to keep the QR visible on the stored file.
     """
-    srcs: list[Pdf] = []
-    pdf_bytes_list: list[bytes] = []
-    try:
-        scanned_pages_by_document: dict[DeclaredDocument, list[ScannedPage]] = (
-            defaultdict(list)
-        )
-        for file_index, pdf in enumerate(pdfs):
-            # An UploadedFile a form has already validated sits at EOF.
-            pdf.seek(0)
-            pdf_bytes = pdf.read()
-            src = Pdf.open(io.BytesIO(pdf_bytes))
-            srcs.append(src)
-            pdf_bytes_list.append(pdf_bytes)
-            yield DecodeStarted(total_pages=len(src.pages))
+    documents = []
+    for event in extract_documents(pdfs, programmation_projets):
+        if isinstance(event, DocumentMatched):
+            documents.append(event.document)
+        else:
+            yield event
 
-            for scan_index, hit in enumerate(iter_decoded_pages(pdf_bytes)):
-                if hit is not None:
-                    target_model = _TARGET_MODEL_BY_DOCUMENT_TYPE[
-                        hit.payload.document_type
-                    ]
-                    declared = DeclaredDocument(
-                        ds_number=hit.payload.ds_number,
-                        dotation=hit.payload.dotation,
-                        target_model=target_model,
-                    )
-                    scanned_pages_by_document[declared].append(
-                        ScannedPage(
-                            file_index=file_index,
-                            scan_index=scan_index,
-                            doc_type=hit.payload.document_type,
-                            claimed_page=hit.payload.page,
-                            bbox=hit.bbox,
-                            image_height_px=hit.image_height_px,
-                        )
-                    )
-                yield PageDecoded(
-                    scan_page=scan_index + 1, qr_found=hit is not None, file=pdf.name
+    for document in replace_documents(documents, pdfs, user, remove_qr_code):
+        yield DocumentAttached(document=document)
+
+
+def extract_documents(
+    pdfs: list[File],
+    programmation_projets: QuerySet[ProgrammationProjet],
+) -> Iterator[ExtractionEvent]:
+    """Decode every page, gather the pages of each declared document across the
+    whole batch, and match it to its ProgrammationProjet — without writing
+    anything.
+
+    A named `pdf` (`ContentFile(..., name=...)`, or the `UploadedFile` a form
+    hands over) has its name reported on every page event, so the agent knows
+    which upload a faulty page came from.
+
+    Writing nothing is what lets a caller take in the whole batch before
+    committing to any of it: a scan carrying pages it should not touch can be
+    refused as a whole, rather than half-attached before the problem shows up.
+    """
+    scanned_pages_by_document: dict[DeclaredDocument, list[ScannedPage]] = defaultdict(
+        list
+    )
+    for file_index, pdf in enumerate(pdfs):
+        pdf_bytes = _read(pdf)
+        with Pdf.open(io.BytesIO(pdf_bytes)) as src:
+            total_pages = len(src.pages)
+        yield DecodeStarted(total_pages=total_pages)
+
+        for scan_index, hit in enumerate(iter_decoded_pages(pdf_bytes)):
+            if hit is not None:
+                target_model = _TARGET_MODEL_BY_DOCUMENT_TYPE[hit.payload.document_type]
+                declared = DeclaredDocument(
+                    ds_number=hit.payload.ds_number,
+                    dotation=hit.payload.dotation,
+                    target_model=target_model,
                 )
-
-        for declared, pages in scanned_pages_by_document.items():
-            pages.sort(
-                key=lambda p: (DOCUMENT_TYPE_ORDER.get(p.doc_type, 99), p.claimed_page)
+                scanned_pages_by_document[declared].append(
+                    ScannedPage(
+                        file_index=file_index,
+                        scan_index=scan_index,
+                        doc_type=hit.payload.document_type,
+                        claimed_page=hit.payload.page,
+                        bbox=hit.bbox,
+                        image_height_px=hit.image_height_px,
+                    )
+                )
+            yield PageDecoded(
+                scan_page=scan_index + 1, qr_found=hit is not None, file=pdf.name
             )
-            outcome = _match_document(declared, pages, programmation_projets)
-            if isinstance(outcome, MatchFailed):
-                yield outcome
-                continue
 
-            document = outcome.document
+    for declared, pages in scanned_pages_by_document.items():
+        pages.sort(
+            key=lambda p: (DOCUMENT_TYPE_ORDER.get(p.doc_type, 99), p.claimed_page)
+        )
+        yield _match_document(declared, pages, programmation_projets)
+
+
+def replace_documents(
+    documents: list[ExtractedDocument],
+    pdfs: list[File],
+    user: Collegue,
+    remove_qr_code: bool = True,
+) -> Iterator[ExtractedDocument]:
+    """Assemble each document into a single PDF and store it on its
+    ProgrammationProjet, deleting any existing document of the same kind — its
+    stored file included.
+
+    `pdfs` must be the batch `documents` were extracted from: a page locates
+    itself by index into it.
+    """
+    if not documents:
+        return
+
+    pdf_bytes_list = [_read(pdf) for pdf in pdfs]
+    srcs = [Pdf.open(io.BytesIO(pdf_bytes)) for pdf_bytes in pdf_bytes_list]
+    try:
+        for document in documents:
             uploaded = _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code)
             _replace_uploaded_document(
                 document.declared.target_model,
@@ -206,10 +213,16 @@ def reattach_signed_docs(
                 uploaded,
                 user,
             )
-            yield DocumentAttached(document=document)
+            yield document
     finally:
         for src in srcs:
             src.close()
+
+
+def _read(pdf: File) -> bytes:
+    # An UploadedFile a form has already validated sits at EOF.
+    pdf.seek(0)
+    return pdf.read()
 
 
 def _match_document(

@@ -1,10 +1,11 @@
 """
-POC command: read a scanned signed PDF, decode the QR code on each page, and
-split the scan into one signed document (lettre/arrêté, or lettre de refus)
-per matching ProgrammationProjet.
+Read a scanned signed PDF, decode the QR code on each page, and split the scan
+into one signed document (lettre/arrêté, or lettre de refus) per matching
+ProgrammationProjet.
 
-Thin CLI wrapper around `gsl_notification.qr.reattach.reattach_signed_doc`;
-the underlying business logic is shared with the future upload view.
+Thin CLI wrapper around `gsl_notification.qr.reattach.reattach_signed_docs`,
+which the web import flow calls too. Matching is global here, where the web
+flow scopes it to the importer's perimetre.
 
 Usage:
     python manage.py reattach_signed_doc path/to/scan.pdf --user me@example.com
@@ -35,9 +36,9 @@ except ImportError:
 
 class Command(BaseCommand):
     help = (
-        "POC: decode the per-page QR codes from a scanned signed PDF and "
-        "reattach each detected group to its ProgrammationProjet as the "
-        "matching signed-document type (lettre/arrêté or lettre de refus)."
+        "Decode the per-page QR codes from a scanned signed PDF and reattach "
+        "each document it contains to its ProgrammationProjet, as the matching "
+        "signed-document type (lettre/arrêté or lettre de refus)."
     )
 
     def add_arguments(self, parser):
@@ -65,20 +66,18 @@ class Command(BaseCommand):
             raise CommandError(f"No Collegue with email {options['user']!r}")
 
         pdfs = [ContentFile(pdf_path.read_bytes(), name=pdf_path.name)]
-        attached, unreadable, failed_groups = self._consume_events(
+        attached, unreadable, unmatched = self._consume_events(
             reattach_signed_docs(pdfs, user, ProgrammationProjet.objects.all())
         )
 
-        self._print_summary(attached, unreadable, failed_groups)
+        self._print_summary(attached, unreadable, unmatched)
 
-        if unreadable or failed_groups:
-            raise CommandError(
-                _format_issue_report(attached, unreadable, failed_groups)
-            )
+        if unreadable or unmatched:
+            raise CommandError(_format_issue_report(attached, unreadable, unmatched))
 
     def _consume_events(self, events):
         attached: list[str] = []
-        failed_groups: list[str] = []
+        unmatched: list[str] = []
         unreadable: list[int] = []
         progress = None
         try:
@@ -96,21 +95,21 @@ class Command(BaseCommand):
                 elif isinstance(event, DocumentAttached):
                     attached.append(_format_attached(event.document))
                 elif isinstance(event, MatchFailed):
-                    failed_groups.append(_format_failed(event))
+                    unmatched.append(_format_failed(event))
         finally:
             if progress is not None:
                 progress.close()
-        return attached, unreadable, failed_groups
+        return attached, unreadable, unmatched
 
-    def _print_summary(self, attached, unreadable, failed_groups):
-        self.stdout.write(f"Attached {len(attached)} group(s):")
+    def _print_summary(self, attached, unreadable, unmatched):
+        self.stdout.write(f"Attached {len(attached)} document(s):")
         for line in attached:
             self.stdout.write(f"  {line}")
         self.stdout.write(f"Skipped {len(unreadable)} unreadable page(s).")
         if unreadable:
             self.stdout.write(f"  pages: {unreadable}")
-        self.stdout.write(f"Failed {len(failed_groups)} group(s).")
-        for line in failed_groups:
+        self.stdout.write(f"Matched no ProgrammationProjet: {len(unmatched)}.")
+        for line in unmatched:
             self.stdout.write(f"  {line}")
 
 
@@ -153,15 +152,15 @@ def _format_failed(event) -> str:
 
 
 def _format_issue_report(
-    attached: list[str], unreadable: list[int], failed_groups: list[str]
+    attached: list[str], unreadable: list[int], unmatched: list[str]
 ) -> str:
     details = []
     if unreadable:
         details.append(f"unreadable pages: {unreadable}")
-    if failed_groups:
-        details.append("unrouted groups: " + "; ".join(failed_groups))
+    if unmatched:
+        details.append("unmatched documents: " + "; ".join(unmatched))
     return (
         f"Completed with issues: {len(unreadable)} unreadable page(s), "
-        f"{len(failed_groups)} unrouted group(s). "
-        f"{len(attached)} group(s) attached successfully. " + " | ".join(details)
+        f"{len(unmatched)} unmatched document(s). "
+        f"{len(attached)} document(s) attached successfully. " + " | ".join(details)
     )
