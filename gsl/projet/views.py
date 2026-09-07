@@ -167,7 +167,7 @@ class ProjetSuiviFinancierView(BaseProjetDetailView):
     template_name = "gsl_projet/projet/tab_suivi_financier.html"
 
     def get_queryset(self):
-        return super().get_queryset().with_at_least_one_treated_dotation()
+        return super().get_queryset().with_at_least_one_accepted_dotation()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
