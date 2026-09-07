@@ -40,7 +40,7 @@ from gsl_programmation.models import ProgrammationProjet
 from .codec import iter_decoded_pages
 from .mask import mask_qr_on_last_page
 
-_DOCUMENT_TYPE_ORDER = {LETTRE: 0, ARRETE: 1}
+DOCUMENT_TYPE_ORDER = {LETTRE: 0, ARRETE: 1}
 
 # Which UploadedDocument subclass a QR document_type is reattached as, built
 # from each model's `reattach_source_document_types` (see models.py):
@@ -186,7 +186,7 @@ def reattach_signed_docs(
                 yield PageDecoded(scan_page=scan_page, file=stem)
 
         for (ds, dot, target_model), entries in groups.items():
-            entries.sort(key=lambda e: (_DOCUMENT_TYPE_ORDER.get(e[2], 99), e[3]))
+            entries.sort(key=lambda e: (DOCUMENT_TYPE_ORDER.get(e[2], 99), e[3]))
             report = _attach_group(
                 srcs,
                 pdf_bytes_list,
@@ -307,13 +307,3 @@ def _build_group_pdf(
         content=buf.read(),
         content_type="application/pdf",
     )
-
-
-def _format_page_range(pages):
-    if not pages:
-        return ""
-    if len(pages) == 1:
-        return str(pages[0])
-    if pages == list(range(pages[0], pages[-1] + 1)):
-        return f"{pages[0]}–{pages[-1]}"
-    return ", ".join(str(p) for p in pages)

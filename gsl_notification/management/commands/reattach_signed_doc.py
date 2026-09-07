@@ -16,13 +16,12 @@ from django.core.management.base import BaseCommand, CommandError
 
 from gsl_core.models import Collegue
 from gsl_notification.qr.reattach import (
-    _DOCUMENT_TYPE_ORDER,
+    DOCUMENT_TYPE_ORDER,
     DecodeStarted,
     GroupAttached,
     GroupFailed,
     PageDecoded,
     UnreadablePage,
-    _format_page_range,
     reattach_signed_doc,
 )
 
@@ -113,11 +112,21 @@ class Command(BaseCommand):
             self.stdout.write(f"  {line}")
 
 
+def _format_page_range(pages):
+    if not pages:
+        return ""
+    if len(pages) == 1:
+        return str(pages[0])
+    if pages == list(range(pages[0], pages[-1] + 1)):
+        return f"{pages[0]}–{pages[-1]}"
+    return ", ".join(str(p) for p in pages)
+
+
 def _format_attached(report) -> str:
     breakdown = ", ".join(
         f"{doc_type}: pages {_format_page_range(report.pages_by_doc_type[doc_type])}"
         for doc_type in sorted(
-            report.pages_by_doc_type, key=lambda t: _DOCUMENT_TYPE_ORDER.get(t, 99)
+            report.pages_by_doc_type, key=lambda t: DOCUMENT_TYPE_ORDER.get(t, 99)
         )
     )
     return (
