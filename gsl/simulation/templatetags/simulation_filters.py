@@ -1,7 +1,7 @@
 from django import template
 from django.urls import reverse
 
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,

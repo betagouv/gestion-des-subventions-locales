@@ -6,6 +6,13 @@ from django.test import Client
 from django.urls import resolve, reverse
 from django.utils import timezone
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.models import Projet
+from gsl.projet.tests.factories import (
+    DetrProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreDepartementalFactory,
@@ -14,13 +21,6 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-)
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import Projet
-from gsl_projet.tests.factories import (
-    DetrProjetFactory,
-    DsilProjetFactory,
-    ProjetFactory,
 )
 
 from ...models import SimulationProjet

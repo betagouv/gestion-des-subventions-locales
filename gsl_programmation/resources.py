@@ -2,8 +2,8 @@ from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_core.models import Departement, Perimetre, Region
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 from .models import Enveloppe
 

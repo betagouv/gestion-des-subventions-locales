@@ -74,7 +74,7 @@ INSTALLED_APPS = [
     "gsl_core",
     "gsl_demarches_simplifiees",
     "gsl_ds_proxy",
-    "gsl_projet",
+    "gsl.projet",
     "gsl.chorus",
     "gsl_programmation",
     "gsl.simulation",

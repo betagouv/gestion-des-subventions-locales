@@ -5,6 +5,23 @@ from django_filters import (
     RangeFilter,
 )
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+)
+from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.utils.django_filters_custom_widget import (
+    CustomCheckboxSelectMultiple,
+    CustomSelectWidget,
+    DsfrRangeWidget,
+)
+from gsl.projet.utils.projet_filters import (
+    ORDERING_MAP,
+    CommonFiltersFields,
+    ProjetOrderingFilter,
+    make_filter_search,
+)
+from gsl.projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -13,23 +30,6 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-)
-from gsl_projet.models import DotationProjet, Projet
-from gsl_projet.utils.django_filters_custom_widget import (
-    CustomCheckboxSelectMultiple,
-    CustomSelectWidget,
-    DsfrRangeWidget,
-)
-from gsl_projet.utils.projet_filters import (
-    ORDERING_MAP,
-    CommonFiltersFields,
-    ProjetOrderingFilter,
-    make_filter_search,
-)
-from gsl_projet.utils.utils import order_couples_tuple_by_first_value
 
 from .models import SimulationProjet
 
@@ -217,7 +217,7 @@ class SimulationProjetFilters(CommonFiltersFields):
 
     @property
     def qs(self):
-        from gsl_projet.models import DotationProjet
+        from gsl.projet.models import DotationProjet
 
         slug_filter = {"simulationprojet__simulation__slug": self.slug}
         simu_dp_qs = DotationProjet.objects.active().filter(

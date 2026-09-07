@@ -6,6 +6,7 @@ import pytest
 from django.urls import reverse
 from pikepdf import Pdf
 
+from gsl.projet.constants import DOTATION_DETR
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -17,7 +18,6 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR
 
 pytestmark = pytest.mark.django_db
 

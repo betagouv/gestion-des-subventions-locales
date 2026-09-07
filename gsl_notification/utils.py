@@ -24,6 +24,10 @@ from pikepdf import Pdf
 from weasyprint import HTML
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    POSSIBLE_DOTATIONS,
+)
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -33,10 +37,6 @@ from gsl_notification.models import (
 )
 from gsl_notification.qr import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    POSSIBLE_DOTATIONS,
-)
 
 
 def get_nested_attribute(obj, attribute_path):

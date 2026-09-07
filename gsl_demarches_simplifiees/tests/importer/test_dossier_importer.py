@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.utils.timezone import datetime
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.tests.factories import ProjetFactory
 from gsl_core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
@@ -28,7 +29,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,
     DossierFactory,
 )
-from gsl_projet.tests.factories import ProjetFactory
 
 
 def _make_demarche_page(

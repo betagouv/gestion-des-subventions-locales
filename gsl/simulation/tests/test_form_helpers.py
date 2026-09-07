@@ -3,6 +3,20 @@ from decimal import Decimal
 
 import pytest
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.services.dotation_projet_services import DotationProjetService
+from gsl.projet.tests.factories import (
+    DetrProjetFactory,
+    DotationProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -13,20 +27,6 @@ from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-)
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.tests.factories import (
-    DetrProjetFactory,
-    DotationProjetFactory,
-    DsilProjetFactory,
-    ProjetFactory,
 )
 
 from ..forms import _add_enveloppe_projets_to_simulation

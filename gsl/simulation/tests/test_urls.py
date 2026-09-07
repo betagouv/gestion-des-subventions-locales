@@ -4,6 +4,10 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.tests.factories import (
+    DotationProjetFactory,
+)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -12,10 +16,6 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.tests.factories import (
-    DotationProjetFactory,
-)
 
 from ..models import SimulationProjet
 from .factories import SimulationFactory, SimulationProjetFactory

@@ -3,7 +3,7 @@
 from django.db import migrations
 from django.db.migrations import RunPython
 
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 
 def delegate_enveloppes(apps, schema_editor):

@@ -4,6 +4,11 @@ from decimal import Decimal
 import pytest
 from django.test import RequestFactory
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.tests.factories import (
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     CollegueFactory,
@@ -24,11 +29,6 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
-)
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.tests.factories import (
-    DotationProjetFactory,
-    ProjetFactory,
 )
 
 

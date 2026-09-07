@@ -3,6 +3,14 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils import timezone
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -10,14 +18,6 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.tests.factories import DotationProjetFactory
 
 from ...models import SimulationProjet
 from ..factories import (

@@ -8,17 +8,17 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
-from gsl_core.models import Collegue
-from gsl_core.templatetags.gsl_filters import euro
-from gsl_programmation.models import Enveloppe
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
 )
-from gsl_projet.models import (
+from gsl.projet.models import (
     DotationProjet,
     Projet,
 )
-from gsl_projet.utils.utils import compute_taux
+from gsl.projet.utils.utils import compute_taux
+from gsl_core.models import Collegue
+from gsl_core.templatetags.gsl_filters import euro
+from gsl_programmation.models import Enveloppe
 
 from .models import BulkStatusJob, Simulation, SimulationProjet
 from .services.simulation_projet_service import SimulationProjetService

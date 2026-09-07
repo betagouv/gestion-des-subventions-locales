@@ -8,6 +8,13 @@ from django.utils.text import slugify
 from freezegun import freeze_time
 from pikepdf import Pdf
 
+from gsl.projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    PROJET_STATUS_ACCEPTED,
+)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -26,13 +33,6 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import (
-    ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    LETTRE,
-    PROJET_STATUS_ACCEPTED,
-)
 
 ## FIXTURES
 

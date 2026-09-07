@@ -13,6 +13,15 @@ from unittest import mock
 
 import pytest
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
 from gsl_programmation.models import ProgrammationProjet
@@ -21,15 +30,6 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet

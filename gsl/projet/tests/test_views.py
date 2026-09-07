@@ -1,0 +1,1053 @@
+from datetime import UTC
+from decimal import Decimal
+
+import pytest
+from django.db import connection
+from django.db.models import Count, F, Q
+from django.urls import reverse
+from django.utils import timezone
+
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.models import Projet
+from gsl.projet.tests.factories import (
+    DetrProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
+from gsl.projet.utils.projet_filters import ProjetFilters
+from gsl.projet.views import (
+    ProjetListView,
+    ProjetListViewFilters,
+)
+from gsl_core.models import Collegue, Departement, Perimetre
+from gsl_core.tests.factories import (
+    ArrondissementFactory,
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    DepartementFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreFactory,
+    PerimetreRegionalFactory,
+    RequestFactory,
+)
+from gsl_demarches_simplifiees.models import NaturePorteurProjet
+from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
+from gsl_notification.tests.factories import ArreteFactory, LettreNotificationFactory
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+pytestmark = pytest.mark.django_db
+
+requires_postgres = pytest.mark.skipif(
+    connection.vendor != "postgresql",
+    reason="diacritic-insensitive search requires PostgreSQL (unaccent + pg_trgm)",
+)
+
+
+@pytest.fixture
+def dep_finistere() -> Departement:
+    return DepartementFactory(name="Finistère")
+
+
+@pytest.fixture()
+def perimetre(dep_finistere) -> Perimetre:
+    return PerimetreFactory(departement=dep_finistere)
+
+
+@pytest.fixture
+def finisterien(perimetre) -> Collegue:
+    collegue = CollegueFactory()
+    collegue.perimetre = perimetre
+    collegue.save()
+    return collegue
+
+
+@pytest.fixture
+def req(finisterien) -> RequestFactory:
+    return RequestFactory(user=finisterien)
+
+
+@pytest.fixture
+def view() -> ProjetListView:
+    return ProjetListView()
+
+
+### Test du tri
+
+
+@pytest.mark.parametrize(
+    "tri_param,expected_ordering",
+    [
+        ("-date", (F("dossier_ds__ds_date_depot").desc(nulls_last=True),)),
+        ("date", (F("dossier_ds__ds_date_depot").asc(nulls_last=True),)),
+        ("-cout", (F("dossier_ds__finance_cout_total").desc(nulls_last=True),)),
+        ("cout", (F("dossier_ds__finance_cout_total").asc(nulls_last=True),)),
+        (
+            "-demandeur",
+            (F("dossier_ds__ds_demandeur__raison_sociale").desc(nulls_last=True),),
+        ),
+        (
+            "demandeur",
+            (F("dossier_ds__ds_demandeur__raison_sociale").asc(nulls_last=True),),
+        ),
+        (
+            None,
+            (F("dossier_ds__ds_date_depot").desc(nulls_last=True),),
+        ),  # Test valeur par défaut
+        (
+            "invalid_value",
+            (F("dossier_ds__ds_date_depot").desc(nulls_last=True),),
+        ),  # Test valeur invalide
+    ],
+)
+def test_get_ordering(req, view, tri_param, expected_ordering):
+    """Test que get_ordering retourne le bon ordre selon le paramètre 'tri'"""
+    request = req.get("/")
+    if tri_param is not None:
+        request = req.get("/", data={"order": tri_param})
+
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.query.order_by == expected_ordering
+
+
+@pytest.fixture
+def projets() -> list[Projet]:
+    projet0 = ProjetFactory(
+        dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 1, tzinfo=UTC),
+        dossier_ds__finance_cout_total=1000,
+        dossier_ds__ds_demandeur__raison_sociale="Commune A",
+    )
+    projet1 = ProjetFactory(
+        dossier_ds__ds_date_depot=timezone.datetime(2024, 9, 2, tzinfo=UTC),
+        dossier_ds__finance_cout_total=2000,
+        dossier_ds__ds_demandeur__raison_sociale="Commune B",
+    )
+    return [projet0, projet1]
+
+
+@pytest.mark.parametrize(
+    "tri_param,expected_ordering",
+    [
+        ("-date", "1-0"),
+        ("date", "0-1"),
+        ("-cout", "1-0"),
+        ("cout", "0-1"),
+        ("-demandeur", "1-0"),
+        ("demandeur", "0-1"),
+        ("", "1-0"),
+        ("invalid_value", "1-0"),
+    ],
+)
+def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
+    request = req.get("/", data={"order": tri_param})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    projets_lis = [projets[1], projets[0]] if expected_ordering == "1-0" else projets
+    assert list(qs) == projets_lis
+
+
+### Test du filtre par dispositif
+
+
+@pytest.fixture
+def projets_detr() -> list[Projet]:
+    dotation_projets = DetrProjetFactory.create_batch(3)
+    return [dp.projet for dp in dotation_projets]
+
+
+@pytest.fixture
+def projets_dsil() -> list[Projet]:
+    dotation_projets = DsilProjetFactory.create_batch(2)
+    return [dp.projet for dp in dotation_projets]
+
+
+@pytest.fixture
+def projets_with_double_dotations_values() -> list[Projet]:
+    projets = []
+    for _ in range(4):
+        detr_projet = DetrProjetFactory()
+        DsilProjetFactory(projet=detr_projet.projet)
+        projets.append(detr_projet.projet)
+    return projets
+
+
+@pytest.fixture
+def projets_with_other_dotations_values() -> list[Projet]:
+    return [
+        ProjetFactory(dossier_ds__demande_dispositif_sollicite=dotation)
+        for dotation in (
+            "",
+            "Fond vert",
+        )
+    ]
+
+
+def test_filter_by_dotation_only_detr(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/", data={"dotation": ["DETR"]})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 3
+    assert all(p.dotationprojet_set.count() == 1 for p in qs)
+    assert all(p.dotationprojet_set.first().dotation == DOTATION_DETR for p in qs)
+
+
+def test_filter_by_dotation_only_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/", data={"dotation": ["DSIL"]})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 2
+    assert all(p.dotationprojet_set.count() == 1 for p in qs)
+    assert all(p.dotationprojet_set.first().dotation == DOTATION_DSIL for p in qs)
+
+
+def test_filter_by_dotation_detr_and_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/", data={"dotation": ["DETR", "DSIL"]})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 3 + 2
+    assert all(p.dotationprojet_set.count() == 1 for p in qs)
+    assert qs.filter(dotationprojet__dotation=DOTATION_DETR).count() == 3
+    assert qs.filter(dotationprojet__dotation=DOTATION_DSIL).count() == 2
+
+
+def test_filter_by_dotation_only_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/", data={"dotation": ["DETR_et_DSIL"]})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 4
+    assert (
+        sum(
+            1
+            for projet in qs
+            if "DETR" in projet.dotations and "DSIL" in projet.dotations
+        )
+        == 4
+    )
+
+
+def test_filter_by_dotation_detr_and_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/", data={"dotation": ["DETR", "DETR_et_DSIL"]})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 3 + 4
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 7
+    assert (
+        sum(
+            1
+            for projet in qs
+            if "DETR" in projet.dotations and "DSIL" not in projet.dotations
+        )
+        == 3
+    )
+    assert sum(1 for projet in qs if "DSIL" in projet.dotations) == 4
+
+
+def test_filter_by_dotation_dsil_and_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/", data={"dotation": ["DSIL", "DETR_et_DSIL"]})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 2 + 4
+    assert all("DSIL" in projet.dotations for projet in qs)
+    assert sum(1 for projet in qs if "DETR" not in projet.dotations) == 2
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 4
+
+
+def test_filter_by_dotation_detr_and_dsil_and_detr_dsil(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/", data={"dotation": ["DETR", "DSIL", "DETR_et_DSIL"]})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert Projet.objects.count() == 11
+
+    assert qs.count() == 3 + 2 + 4
+    assert sum(1 for projet in qs if "DETR" in projet.dotations) == 7
+    assert sum(1 for projet in qs if "DETR" not in projet.dotations) == 2
+    assert sum(1 for projet in qs if "DSIL" in projet.dotations) == 6
+    assert sum(1 for projet in qs if "DSIL" not in projet.dotations) == 3
+    assert sum(1 for projet in qs if len(projet.dotations) == 2) == 4
+
+
+def test_no_dispositif_filter(
+    req,
+    view,
+    projets_detr,
+    projets_dsil,
+    projets_with_double_dotations_values,
+    projets_with_other_dotations_values,
+):
+    request = req.get("/")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 11
+
+
+### Test du filtre par porteur
+
+
+@pytest.fixture
+def projets_epci() -> list[Projet]:
+    projets = []
+    for epci_label in (
+        "EPCI",
+        "Pôle d'équilibre territorial et rural",
+        "Syndicat de communes",
+    ):
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=epci_label, type=NaturePorteurProjet.EPCI
+        )
+        projets.append(
+            ProjetFactory(
+                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+            )
+        )
+    return projets
+
+
+@pytest.fixture
+def projets_communes() -> list[Projet]:
+    for commune_label in ("Commune",):
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=commune_label, type=NaturePorteurProjet.COMMUNES
+        )
+        projet = ProjetFactory(
+            dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+        )
+    return [projet]
+
+
+@pytest.fixture
+def projets_other() -> list[Projet]:
+    projets = []
+    for commune_label in ("test_gsl", "Departement"):
+        nature_porteur_projet = NaturePorteurProjetFactory(
+            label=commune_label, type=NaturePorteurProjet.AUTRE
+        )
+        projets.append(
+            ProjetFactory(
+                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+            )
+        )
+    return projets
+
+
+@pytest.fixture
+def projets_unknown_projet() -> list[Projet]:
+    projets = []
+    for porteur_label in ("Inconnu", "Fake", "Wrong"):
+        nature_porteur_projet = NaturePorteurProjetFactory(label=porteur_label)
+        projets.append(
+            ProjetFactory(
+                dossier_ds__porteur_de_projet_nature=nature_porteur_projet,
+            )
+        )
+    return projets
+
+
+@pytest.mark.parametrize(
+    "porteur, expected_count",
+    (
+        ("epci", 3),
+        ("communes", 1),
+        ("autre", 2),
+        ("inconnu", 9),
+        ("", 9),
+    ),
+)
+def test_filter_by_epci_porteur(
+    req,
+    view,
+    projets_epci,
+    projets_unknown_projet,
+    projets_other,
+    projets_communes,
+    porteur,
+    expected_count,
+):
+    request = req.get(f"/?porteur={porteur}")
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == expected_count
+
+
+### Test du filtre par coût
+
+
+@pytest.fixture
+def projets_with_finance_cout_total_from_dossier_ds() -> list[Projet]:
+    return [
+        ProjetFactory(dossier_ds__finance_cout_total=amount)
+        for amount in (120_000, 170_000, 220_000, 270_000, 320_000)
+    ]
+
+
+def test_filter_by_min_cost(
+    req,
+    view,
+    projets_with_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/", data={"cout_min": 150_000})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    assert all(150_000 <= p.dossier_ds.finance_cout_total for p in qs)
+
+
+def test_filter_by_max_cost(
+    req,
+    view,
+    projets_with_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/", data={"cout_max": 250_000})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 3
+    assert all(p.dossier_ds.finance_cout_total <= 250_000 for p in qs)
+
+
+def test_filter_by_cost_range(
+    req,
+    view,
+    projets_with_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/", data={"cout_min": 150_000, "cout_max": 250_000})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 2
+    assert all(100000 <= p.dossier_ds.finance_cout_total <= 250000 for p in qs)
+
+
+def test_filter_with_wrong_values(
+    req,
+    view,
+    projets_with_finance_cout_total_from_dossier_ds,
+):
+    request = req.get("/", data={"cout_min": "wrong"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 5
+
+
+### Test du filtre par montant retenu
+
+
+@pytest.fixture
+def projets_with_montant_retenu(perimetre) -> list[Projet]:
+    projets = []
+    for detr_montant, dsil_montant in (
+        (None, 50_000),
+        (50_000, 50_000),
+        (100_000, 50_000),
+        (100_000, 100_000),
+        (150_000, 50_000),
+        (150_000, 150_000),
+    ):
+        projet = ProjetFactory(
+            dossier_ds__perimetre=perimetre,
+        )
+        detr_projet = DetrProjetFactory(projet=projet)
+        if detr_montant is not None:
+            ProgrammationProjetFactory(
+                dotation_projet=detr_projet, montant=detr_montant
+            )
+
+        dsil_projet = DsilProjetFactory(projet=projet)
+        if dsil_montant is not None:
+            ProgrammationProjetFactory(
+                dotation_projet=dsil_projet, montant=dsil_montant
+            )
+
+        projets.append(projet)
+    return projets
+
+
+def test_annotate_montant_retenu(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    projet_qs = Projet.objects.all()
+    projet_qs = projet_qs.annotate(
+        dotation_projet_with_this_minimum_montant_retenu_count=Count(
+            "dotationprojet",
+            filter=Q(dotationprojet__programmation_projet__montant__gte=100_000),
+        )
+    )
+    projet_qs = projet_qs.filter(
+        dotation_projet_with_this_minimum_montant_retenu_count__gt=0
+    )
+    assert projet_qs.count() == 4
+
+
+def test_filter_by_min_montant_retenu(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get("/", data={"montant_retenu_min": 100_000})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    for p in qs:
+        assert any(100_000 <= dp.montant_retenu for dp in p.dotationprojet_set.all())
+
+
+def test_filter_by_max_montant_retenu(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get("/", data={"montant_retenu_max": 100_000})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    # (None, 50_000) ✅
+    # (50_000, 50_000) ✅
+    # (100_000, 50_000) ✅
+    # (100_000, 100_000) ✅
+    # (150_000, 50_000) ✅
+    # (150_000, 150_000) ❌
+    assert qs.count() == 5
+    for p in qs:
+        assert any(
+            (dp.montant_retenu or 0.0) <= 100_000 for dp in p.dotationprojet_set.all()
+        )
+
+
+def test_filter_by_montant_retenu_range(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get(
+        "/", data={"montant_retenu_min": 90_000, "montant_retenu_max": 110_000}
+    )
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    # (None, 50_000) ❌
+    # (50_000, 50_000) ❌
+    # (100_000, 50_000) ✅
+    # (100_000, 100_000) ✅
+    # (150_000, 50_000) ❌ Il faut qu'un dotation_projet matche les deux filtres
+    # (150_000, 150_000) ❌
+
+    assert qs.count() == 2
+    for p in qs:
+        assert any(
+            90_000 <= dp.montant_retenu <= 110_000 for dp in p.dotationprojet_set.all()
+        )
+
+
+def test_filter_with_wrong_montant_retenu_values(
+    req,
+    view,
+    projets_with_montant_retenu,
+):
+    request = req.get("/", data={"montant_retenu_min": "wrong"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 6
+
+
+def test_order_by_montant_retenu(req, view, projets_with_montant_retenu):
+    request = req.get("/", data={"order": "-montant_retenu"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    assert qs.count() == 6
+    assert qs[0].dotation_detr.montant_retenu == 150_000
+
+
+def test_order_by_assiette(req, view, perimetre):
+    projet_low = ProjetFactory(dossier_ds__perimetre=perimetre)
+    DetrProjetFactory(projet=projet_low, assiette=Decimal("50000"))
+
+    projet_high = ProjetFactory(dossier_ds__perimetre=perimetre)
+    DetrProjetFactory(projet=projet_high, assiette=Decimal("200000"))
+
+    request = req.get("/", data={"order": "assiette"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    result = list(qs)
+    assert result.index(projet_low) < result.index(projet_high)
+
+
+def test_order_by_taux(req, view, perimetre):
+    # projet_low: montant=10000, assiette=100000 -> taux=10%
+    projet_low = ProjetFactory(dossier_ds__perimetre=perimetre)
+    dp_low = DetrProjetFactory(projet=projet_low, assiette=Decimal("100000"))
+    ProgrammationProjetFactory(dotation_projet=dp_low, montant=Decimal("10000"))
+
+    # projet_high: montant=80000, assiette=100000 -> taux=80%
+    projet_high = ProjetFactory(dossier_ds__perimetre=perimetre)
+    dp_high = DetrProjetFactory(projet=projet_high, assiette=Decimal("100000"))
+    ProgrammationProjetFactory(dotation_projet=dp_high, montant=Decimal("80000"))
+
+    request = req.get("/", data={"order": "taux"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    result = list(qs)
+    assert result.index(projet_low) < result.index(projet_high)
+
+
+def test_order_by_numero_dn(req, view, perimetre):
+    projet_low = ProjetFactory(
+        dossier_ds__ds_number=1000,
+        dossier_ds__perimetre=perimetre,
+    )
+    projet_high = ProjetFactory(
+        dossier_ds__ds_number=9000,
+        dossier_ds__perimetre=perimetre,
+    )
+
+    request = req.get("/", data={"order": "numero_dn"})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    result = list(qs)
+    assert result.index(projet_low) < result.index(projet_high)
+
+
+### Test du filtre par montant demandé
+
+
+@pytest.fixture
+def projets_with_montant_demande() -> list[Projet]:
+    return [
+        ProjetFactory(dossier_ds__demande_montant=amount)
+        for amount in (None, 30_000, 60_000, 90_000, 120_000, 150_000)
+    ]
+
+
+def test_filter_by_min_montant_demande(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get("/", data={"montant_demande_min": 60_000})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    assert all(60_000 <= p.dossier_ds.demande_montant for p in qs)
+
+
+def test_filter_by_max_montant_demande(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get("/", data={"montant_demande_max": 120_000})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 4
+    assert all(p.dossier_ds.demande_montant <= 120_000 for p in qs)
+
+
+def test_filter_by_montant_demande_range(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get(
+        "/", data={"montant_demande_min": 60_000, "montant_demande_max": 120_000}
+    )
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 3
+    assert all(60_000 <= p.dossier_ds.demande_montant <= 120_000 for p in qs)
+
+
+def test_filter_with_wrong_montant_demande_values(
+    req,
+    view,
+    projets_with_montant_demande,
+):
+    request = req.get("/", data={"montant_demande_min": "wrong"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 6
+
+
+### Test du filtre par statut
+
+
+@pytest.fixture
+def projets_with_status() -> list[Projet]:
+    projets = []
+    for status, count in (
+        ("accepted", 1),
+        ("processing", 2),
+        ("refused", 4),
+        ("dismissed", 5),
+    ):
+        for _ in range(count):
+            projet = ProjetFactory()
+            DetrProjetFactory(projet=projet, status=status)
+            projets.append(projet)
+    return projets
+
+
+@pytest.mark.parametrize(
+    "status,expected_count",
+    [
+        ("accepted", 1),
+        ("processing", 2),
+        ("refused", 4),
+        ("dismissed", 5),
+    ],
+)
+def test_filter_by_status(req, view, projets_with_status, status, expected_count):
+    request = req.get("/", data={"status": status})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == expected_count
+    assert qs.first().status == status
+
+
+def test_filter_by_status_refused_excludes_project_without_dotation(req, view):
+    ProjetFactory()  # projet sans DotationProjet
+    projet_refuse = ProjetFactory()
+    DetrProjetFactory(projet=projet_refuse, status="refused")
+
+    request = req.get("/", data={"status": "refused"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 1
+    assert qs.first().pk == projet_refuse.pk
+
+
+### Test du filtre par statut de notification
+
+
+@pytest.fixture
+def projet_with_mixed_notification_statuses() -> Projet:
+    """Une dotation DETR 'to_sign' (arrêté + lettre générés) et une dotation
+    DSIL 'to_generate' (aucun document). L'agrégat par projet (le moins
+    avancé gagne) donnerait 'to_generate', mais le filtre doit quand même
+    trouver le projet via sa dotation DETR."""
+    projet = ProjetFactory()
+
+    to_sign_dp = DetrProjetFactory(projet=projet, status="accepted")
+    to_sign_pp = ProgrammationProjetFactory(dotation_projet=to_sign_dp)
+    ArreteFactory(programmation_projet=to_sign_pp)
+    LettreNotificationFactory(programmation_projet=to_sign_pp)
+
+    to_generate_dp = DsilProjetFactory(projet=projet, status="accepted")
+    ProgrammationProjetFactory(dotation_projet=to_generate_dp)
+
+    return projet
+
+
+@pytest.mark.parametrize(
+    "notification_status,expected_count",
+    [
+        ("to_generate", 1),
+        ("to_sign", 1),
+        ("to_notify", 0),
+        ("notified", 0),
+    ],
+)
+def test_filter_by_notification_status_matches_projet_if_any_dotation_matches(
+    req,
+    view,
+    projet_with_mixed_notification_statuses,
+    notification_status,
+    expected_count,
+):
+    request = req.get("/", data={"notification_status": notification_status})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == expected_count
+    if expected_count == 1:
+        assert qs.first().pk == projet_with_mixed_notification_statuses.pk
+
+
+### Test du filtre par territoire
+@pytest.fixture
+def perimetre_29(dep_finistere):
+    return PerimetreDepartementalFactory(departement=dep_finistere)
+
+
+@pytest.fixture
+def perimetre_quimper(perimetre_29):
+    arrondissement = ArrondissementFactory(departement=perimetre_29.departement)
+    return PerimetreArrondissementFactory(arrondissement=arrondissement)
+
+
+@pytest.fixture
+def perimetre_brest(perimetre_29):
+    arrondissement = ArrondissementFactory(departement=perimetre_29.departement)
+    return PerimetreArrondissementFactory(arrondissement=arrondissement)
+
+
+@pytest.fixture
+def projets_29(perimetre_29, perimetre_quimper, perimetre_brest):
+    return [
+        ProjetFactory(dossier_ds__perimetre=perimetre_29),
+        ProjetFactory(dossier_ds__perimetre=perimetre_quimper),
+        ProjetFactory(dossier_ds__perimetre=perimetre_brest),
+    ]
+
+
+def test_filter_territoire_with_a_departement_gives_all_departement_projets(
+    req, view, projets_29, perimetre_29
+):
+    request = req.get("/", data={"territoire": perimetre_29.id})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+
+    assert qs.count() == 3
+    assert all(perimetre_29.contains_or_equal(p.perimetre) for p in qs)
+
+
+def test_filter_territoire_with_an_arrondissement_gives_only_arrondissement_projets(
+    req, view, projets_29, perimetre_quimper
+):
+    request = req.get("/", data={"territoire": perimetre_quimper.id})
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    assert qs.count() == 1
+    assert qs.first().perimetre == perimetre_quimper
+
+
+def test_filter_territoire_with_two_arrondissements_gives_only_these_arrondissement_projets(
+    req, view, projets_29, perimetre_quimper, perimetre_brest
+):
+    request = req.get(
+        "/", data={"territoire": [perimetre_quimper.id, perimetre_brest.id]}
+    )
+    view.request = request
+    qs = view.get_filterset(ProjetListViewFilters).qs
+
+    assert qs.count() == 2
+    assert qs.first().perimetre in [perimetre_quimper, perimetre_brest]
+
+
+### Tests du filtre de recherche
+
+
+@pytest.fixture
+def searchable_projets() -> dict[str, Projet]:
+    return {
+        "ecole": ProjetFactory(
+            dossier_ds__projet_intitule="Rénovation de l'école Jules Ferry",
+            dossier_ds__ds_demandeur__raison_sociale="Commune de Brest",
+            dossier_ds__ds_number=1234567,
+        ),
+        "mairie": ProjetFactory(
+            dossier_ds__projet_intitule="Construction d'une nouvelle mairie",
+            dossier_ds__ds_demandeur__raison_sociale="Commune de Quimper",
+            dossier_ds__ds_number=2345678,
+        ),
+        "voirie": ProjetFactory(
+            dossier_ds__projet_intitule="Réfection de la voirie communale",
+            dossier_ds__ds_demandeur__raison_sociale="EPCI Pays de Morlaix",
+            dossier_ds__ds_number=3456789,
+        ),
+        "numerisation": ProjetFactory(
+            dossier_ds__projet_intitule="Numérisation des écoles",
+            dossier_ds__ds_demandeur__raison_sociale="Commune de Rennes",
+            dossier_ds__ds_number=4567890,
+        ),
+    }
+
+
+def test_filter_search_matches_projet_intitule(req, view, searchable_projets):
+    request = req.get("/", data={"search": "Jules Ferry"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["ecole"]]
+
+
+def test_filter_search_matches_raison_sociale(req, view, searchable_projets):
+    request = req.get("/", data={"search": "Quimper"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["mairie"]]
+
+
+def test_filter_search_matches_ds_number_exactly(req, view, searchable_projets):
+    request = req.get("/", data={"search": "3456789"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["voirie"]]
+
+
+def test_filter_search_matches_ds_number_substring(req, view, searchable_projets):
+    # "123" n'est un fragment que du numéro de dossier 1234567
+    request = req.get("/", data={"search": "123"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["ecole"]]
+
+
+def test_filter_search_empty_returns_all(req, view, searchable_projets):
+    request = req.get("/", data={"search": ""})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert qs.count() == len(searchable_projets)
+
+
+def test_filter_search_no_match_returns_empty(req, view, searchable_projets):
+    request = req.get("/", data={"search": "zzzzzNonExistent"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert qs.count() == 0
+
+
+@requires_postgres
+def test_filter_search_matches_ignoring_diacritics_in_query(
+    req, view, searchable_projets
+):
+    request = req.get("/", data={"search": "Numerisation"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["numerisation"]]
+
+
+@requires_postgres
+def test_filter_search_matches_with_diacritics_in_query(req, view, searchable_projets):
+    request = req.get("/", data={"search": "Numérisation"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert list(qs) == [searchable_projets["numerisation"]]
+
+
+@requires_postgres
+def test_filter_search_matches_ignoring_diacritics_in_stored_value(
+    req, view, searchable_projets
+):
+    request = req.get("/", data={"search": "ecoles"})
+    view.request = request
+    qs = view.get_filterset(ProjetFilters).qs
+    assert searchable_projets["numerisation"] in qs
+
+
+def test_projet_list_view_excludes_inactive_dossiers():
+    perimetre = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    active_projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    ProjetFactory(dossier_ds__perimetre=perimetre, dossier_ds__is_active=False)
+
+    client = ClientWithLoggedUserFactory(user)
+    response = client.get(reverse("projet:list"))
+
+    assert response.status_code == 200
+    object_list = response.context["object_list"]
+    assert object_list.count() == 1
+    assert active_projet in object_list
+
+
+def test_view_has_correct_territoire_choices():
+    perimetre_arrondissement_A = PerimetreArrondissementFactory()
+    perimetre_arrondissement_B = PerimetreArrondissementFactory()
+
+    perimetre_departement_A = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_A.departement,
+    )
+    _perimetre_departement_B = PerimetreDepartementalFactory(
+        departement=perimetre_arrondissement_B.departement,
+    )
+    perimetre_region_A = PerimetreRegionalFactory(
+        region=perimetre_departement_A.region,
+    )
+
+    user = CollegueFactory(perimetre=perimetre_region_A)
+    client = ClientWithLoggedUserFactory(user)
+    url = reverse("projet:list")
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assert len(response.context["territoire_choices"]) == 3
+    assert response.context["territoire_choices"] == (
+        perimetre_region_A,
+        perimetre_departement_A,
+        perimetre_arrondissement_A,
+    )

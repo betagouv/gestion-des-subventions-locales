@@ -11,6 +11,17 @@ from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.constants import (
+    ARRETE,
+    DOTATIONS,
+    LETTRE,
+    LETTRE_REFUS,
+    PROJET_FINAL_STATUSES,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.models import Projet
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
@@ -36,17 +47,6 @@ from gsl_programmation.models import ProgrammationProjet, ProgrammationProjetQue
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
 )
-from gsl_projet.constants import (
-    ARRETE,
-    DOTATIONS,
-    LETTRE,
-    LETTRE_REFUS,
-    PROJET_FINAL_STATUSES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.models import Projet
 
 
 class PresignedUploadForm(forms.Form):

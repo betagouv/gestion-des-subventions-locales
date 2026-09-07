@@ -6,6 +6,15 @@ from django.db import connection
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 
+from gsl.projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
+from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
@@ -31,15 +40,6 @@ from gsl_notification.tests.factories import (
 from gsl_notification.utils import MENTIONS
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import (
-    ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    LETTRE,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
-)
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 # GeneratedDocumentForm
 

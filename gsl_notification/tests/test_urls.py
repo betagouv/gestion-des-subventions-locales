@@ -1,17 +1,17 @@
 import pytest
 from django.urls import reverse
 
-from gsl_notification.tests.factories import (
-    ModeleArreteFactory,
-    ModeleLettreNotificationFactory,
-)
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     ANNEXE,
     ARRETE,
     DOTATION_DETR,
     DOTATION_DSIL,
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
+)
+from gsl_notification.tests.factories import (
+    ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
 )
 
 

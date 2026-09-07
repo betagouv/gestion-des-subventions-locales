@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from gsl.celery import TASK_PRIORITY_HIGH, TASK_PRIORITY_LOW
 from gsl.historique.models import ProjetAction
+from gsl.projet.services.projet_services import ProjetService
 from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
@@ -15,7 +16,6 @@ from gsl_demarches_simplifiees.importer.utils import (
     get_or_create_profile,
 )
 from gsl_demarches_simplifiees.models import Demarche, Dossier, DossierData
-from gsl_projet.services.projet_services import ProjetService
 
 logger = logging.getLogger(__name__)
 
@@ -408,7 +408,7 @@ def _create_dossier_event_actions(
     old_is_active,
     old_raison,
 ):
-    from gsl_projet.models import Projet
+    from gsl.projet.models import Projet
 
     try:
         projet = dossier.projet
@@ -555,7 +555,7 @@ def _build_groupe_index_from_demarche(demarche: Demarche) -> dict[str, list[dict
 
 
 def _deactivate_deleted_dossier(deleted_dossier_data: dict, raison: str):
-    from gsl_projet.models import Projet
+    from gsl.projet.models import Projet
 
     ds_number = deleted_dossier_data["number"]
     try:

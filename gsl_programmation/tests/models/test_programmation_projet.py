@@ -5,6 +5,9 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.models import Perimetre
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
@@ -24,9 +27,6 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import DotationProjet, Projet
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 
 @pytest.mark.django_db

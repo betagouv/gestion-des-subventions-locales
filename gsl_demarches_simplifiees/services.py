@@ -6,6 +6,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.core.files.uploadedfile import UploadedFile
 from django.db import models
 
+from gsl.projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.exceptions import (
@@ -15,7 +16,6 @@ from gsl_demarches_simplifiees.exceptions import (
     UserRightsError,
 )
 from gsl_demarches_simplifiees.models import Dossier, FieldMapping
-from gsl_projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 
 logger = getLogger(__name__)
 

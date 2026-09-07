@@ -1,0 +1,1009 @@
+from datetime import UTC, date, datetime
+from datetime import timezone as tz
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from django.db import models, transaction
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    OuterRef,
+    Q,
+    Sum,
+    UniqueConstraint,
+    Value,
+    When,
+)
+from django_fsm import FSMField, transition
+
+from gsl.historique.models import ProjetAction
+from gsl.projet.constants import (
+    DOTATION_CHOICES,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    DOTATIONS,
+    MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
+    NOTIFICATION_STATUS_NOTIFIED,
+    NOTIFICATION_STATUS_TO_GENERATE,
+    NOTIFICATION_STATUS_TO_NOTIFY,
+    NOTIFICATION_STATUS_TO_SIGN,
+    POSSIBLE_DOTATIONS,
+    PROJET_FINAL_STATUSES,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.utils.utils import floatize
+from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
+from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
+from gsl_notification.models import (
+    GENERATED_DOCUMENTS,
+    UPLOADED_DOCUMENTS,
+)
+
+if TYPE_CHECKING:
+    from gsl.simulation.models import SimulationProjet
+    from gsl_demarches_simplifiees.models import Dossier
+    from gsl_programmation.models import Enveloppe
+
+
+class CategorieDetrQueryset(models.QuerySet):
+    def current_for_departement(self, departement: Departement):
+        return self.filter(departement=departement, is_current=True)
+
+
+# TODO : useless now. Remove it if we don't allow to set DETR category
+class CategorieDetr(models.Model):
+    libelle = models.CharField("Libellé")
+    rang = models.IntegerField("Rang", default=0)
+    annee = models.IntegerField("Année")
+    departement = models.ForeignKey(
+        Departement, verbose_name="Département", on_delete=models.PROTECT
+    )
+    is_current = models.BooleanField(
+        "Actuelle",
+        help_text="Indique si cette catégorie est utilisable sur la campagne actuelle ou non",
+        default=False,
+    )
+
+    objects = CategorieDetrQueryset.as_manager()
+
+    class Meta:
+        verbose_name = "Catégorie DETR"
+        verbose_name_plural = "Catégories DETR"
+        constraints = (
+            UniqueConstraint(
+                fields=("departement", "annee", "rang"),
+                name="unique_by_departement_rang_annee",
+            ),
+        )
+
+    def __str__(self):
+        return f"Catégorie DETR {self.id} - {self.libelle}"
+
+    @property
+    def label(self):
+        if self.libelle[0].isdigit():
+            return self.libelle
+        return f"{self.rang} - {self.libelle}"
+
+
+class ProjetQuerySet(models.QuerySet):
+    def for_user(self, user: Collegue):
+        if user.perimetre is None:
+            if user.is_staff or user.is_superuser:
+                return self
+            return self.none()
+
+        return self.for_perimetre(user.perimetre)
+
+    def annotate_status(self):
+        # Check if all dotations have a programmation_projet
+        has_processing = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"), status=PROJET_STATUS_PROCESSING
+            )
+        )
+
+        # Count dotations with specific programmation status
+        has_accepted = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_ACCEPTED,
+            )
+        )
+
+        has_dismissed = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_DISMISSED,
+            )
+        )
+
+        has_refused = Exists(
+            DotationProjet.objects.filter(
+                projet=OuterRef("pk"),
+                status=PROJET_STATUS_REFUSED,
+            )
+        )
+
+        return self.annotate(
+            _status=Case(
+                # If not all dotations have programmation, return PROCESSING
+                When(
+                    has_processing,
+                    then=Value(PROJET_STATUS_PROCESSING),
+                ),
+                # If any dotation is ACCEPTED, return ACCEPTED
+                When(
+                    has_accepted,
+                    then=Value(PROJET_STATUS_ACCEPTED),
+                ),
+                # If any dotation is DISMISSED, return DISMISSED
+                When(
+                    has_dismissed,
+                    then=Value(PROJET_STATUS_DISMISSED),
+                ),
+                # If any dotation is REFUSED, return REFUSED
+                When(
+                    has_refused,
+                    then=Value(PROJET_STATUS_REFUSED),
+                ),
+                # Projects without any DotationProjet have no status
+                default=Value(None),
+            )
+        )
+
+    def for_perimetre(self, perimetre: Perimetre | None):
+        if perimetre is None:
+            return self
+        if perimetre.arrondissement:
+            return self.filter(
+                dossier_ds__perimetre__arrondissement=perimetre.arrondissement
+            )
+        if perimetre.departement:
+            return self.filter(dossier_ds__perimetre__departement=perimetre.departement)
+        if perimetre.region:
+            return self.filter(dossier_ds__perimetre__region=perimetre.region)
+
+    def for_current_year(self):
+        return self.not_processed_before_the_start_of_the_year(date.today().year)
+
+    def not_processed_before_the_start_of_the_year(self, year: int):
+        return self.filter(
+            Q(
+                dossier_ds__ds_state__in=[
+                    Dossier.STATE_EN_CONSTRUCTION,
+                    Dossier.STATE_EN_INSTRUCTION,
+                ]
+            )
+            | Q(
+                dossier_ds__ds_state__in=[
+                    Dossier.STATE_ACCEPTE,
+                    Dossier.STATE_SANS_SUITE,
+                    Dossier.STATE_REFUSE,
+                ],
+                dossier_ds__ds_date_traitement__gte=datetime(
+                    year, 1, 1, 0, 0, tzinfo=tz.utc
+                ),
+            )
+        )
+
+    def included_in_enveloppe(self, enveloppe: "Enveloppe"):
+        projet_qs = self.for_perimetre(enveloppe.perimetre)
+        projet_qs_with_the_correct_dotation = projet_qs.filter(
+            dotationprojet__dotation=enveloppe.dotation
+        )
+        projet_qs_submitted_before_the_end_of_the_year = (
+            projet_qs_with_the_correct_dotation.filter(
+                dossier_ds__ds_date_depot__lt=datetime(
+                    enveloppe.annee + 1, 1, 1, tzinfo=UTC
+                ),
+            )
+        )
+        projet_qs_not_processed_before_the_start_of_the_year = projet_qs_submitted_before_the_end_of_the_year.not_processed_before_the_start_of_the_year(
+            enveloppe.annee
+        )
+        return projet_qs_not_processed_before_the_start_of_the_year
+
+    def to_notify(self):
+        return self.annotate(
+            dotations_count=Count("dotationprojet"),
+            programmation_count=Count(
+                "dotationprojet__programmation_projet",
+            ),
+        ).filter(
+            dotations_count__gt=0,
+            dotations_count=F("programmation_count"),
+            notified_at__isnull=True,
+        )
+
+    def with_at_least_one_treated_dotation(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        return self.filter(
+            Exists(
+                ProgrammationProjet.objects.filter(
+                    dotation_projet__projet=OuterRef("pk"),
+                    status__in=PROJET_FINAL_STATUSES,
+                )
+            )
+        )
+
+    def with_missing_annotations(self):
+        """Projets dont le dossier DS est accepté mais a des annotations DETR/DSIL incomplètes."""
+        return self.filter(
+            dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        ).filter(
+            Q(dossier_ds__annotations_dotation="")
+            | Q(dossier_ds__annotations_dotation="[]")
+            | Q(dossier_ds__annotations_dotation__isnull=True)
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DETR")
+                & (
+                    Q(dossier_ds__annotations_assiette_detr__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_detr__isnull=True)
+                )
+            )
+            | (
+                Q(dossier_ds__annotations_dotation__contains="DSIL")
+                & (
+                    Q(dossier_ds__annotations_assiette_dsil__isnull=True)
+                    | Q(dossier_ds__annotations_montant_accorde_dsil__isnull=True)
+                )
+            )
+        )
+
+    def totals(self):
+        from gsl_programmation.models import ProgrammationProjet
+
+        if getattr(self, "_totals", None) is None:
+            self._totals = self.aggregate(
+                total_cost=Sum("dossier_ds__finance_cout_total"),
+                total_amount_asked=Sum("dossier_ds__demande_montant"),
+                total_amount_granted=Sum(
+                    "dotationprojet__programmation_projet__montant",
+                    filter=Q(
+                        dotationprojet__programmation_projet__status=ProgrammationProjet.STATUS_ACCEPTED
+                    ),
+                ),
+            )
+
+        return self._totals
+
+    def active(self):
+        return self.filter(dossier_ds__is_active=True)
+
+
+class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("dossier_ds")
+            .prefetch_related("dotationprojet_set")
+        )
+
+
+class Projet(BaseModel):
+    dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
+
+    address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
+    departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
+
+    notified_at = models.DateTimeField(
+        verbose_name="Date de notification", null=True, blank=True
+    )
+
+    is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
+    is_attached_to_a_crte = models.BooleanField(
+        "Projet rattaché à un CRTE",
+        null=False,
+        default=False,
+    )
+    is_budget_vert = models.BooleanField(
+        "Projet concourant à la transition écologique au sens budget vert",
+        null=False,
+        default=False,
+    )
+    is_frr = models.BooleanField(
+        "Projet situé en FRR",
+        null=False,
+        default=False,
+    )
+    is_acv = models.BooleanField(
+        "Projet rattaché à un programme Action coeurs de Ville (ACV)",
+        null=False,
+        default=False,
+    )
+    is_pvd = models.BooleanField(
+        "Projet rattaché à un programme Petites villes de demain (PVD)",
+        null=False,
+        default=False,
+    )
+    is_va = models.BooleanField(
+        "Projet rattaché à un programme Villages d'avenir",
+        null=False,
+        default=False,
+    )
+    is_autre_zonage_local = models.BooleanField(
+        "Projet rattaché à un autre zonage local",
+        null=False,
+        default=False,
+    )
+    autre_zonage_local = models.CharField("Nom du zonage local", blank=True)
+    is_contrat_local = models.BooleanField(
+        "Projet rattaché à un contrat local",
+        null=False,
+        default=False,
+    )
+    contrat_local = models.CharField("Nom du contrat local", blank=True)
+    comment_1 = models.TextField("Commentaire 1", blank=True, default="")
+    comment_2 = models.TextField("Commentaire 2", blank=True, default="")
+    comment_3 = models.TextField("Commentaire 3", blank=True, default="")
+
+    dotations_updated_in_app = models.BooleanField(
+        "Dotations modifiées dans Turgot",
+        null=False,
+        default=False,
+    )
+
+    objects = ProjetManager()
+
+    def __str__(self):
+        return f"Projet {self.pk} — Dossier {self.dossier_ds.ds_number}"
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("projet:get-projet", kwargs={"projet_id": self.id})
+
+    @property
+    def perimetre(self):
+        return self.dossier_ds.perimetre
+
+    @property
+    def status(self):
+        if hasattr(self, "_status"):
+            return self._status
+
+        return projet_status_from_dotation_statuses(
+            list(d.status for d in self.dotationprojet_set.all())
+        )
+
+    @property
+    def can_have_a_commission_detr_avis(self) -> bool:
+        return (
+            self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
+            and self.dossier_ds.demande_montant is not None
+            and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+        )
+
+    @property
+    def dotations(self) -> list[POSSIBLE_DOTATIONS]:
+        return sorted(
+            [
+                dotation.dotation
+                for dotation in self.dotationprojet_set.all()
+                if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
+            ]
+        )
+
+    @property
+    def has_double_dotations(self):
+        return self.dotationprojet_set.count() > 1
+
+    @property
+    def dotation_detr(self):
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DETR:
+                return dp
+
+    @property
+    def dotation_dsil(self):
+        for dp in self.dotationprojet_set.all():
+            if dp.dotation == DOTATION_DSIL:
+                return dp
+
+    @property
+    def to_notify(self) -> bool:
+        if self.notified_at is not None:
+            return False
+
+        dotation_projets = self.dotationprojet_set.all()
+        if not dotation_projets:
+            return False
+
+        return all(dp.is_treated for dp in dotation_projets)
+
+    @property
+    def has_treated_dotation(self) -> bool:
+        return any(dp.is_treated for dp in self.dotationprojet_set.all())
+
+    @property
+    def can_display_notification_tab(self) -> bool:
+        return self.has_treated_dotation
+
+    @property
+    def can_display_suivi_financier_tab(self) -> bool:
+        return self.has_accepted_dotation
+
+    @property
+    def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
+        # Python-side sort so we benefit from the dotationprojet_set
+        # prefetch instead of re-querying via order_by().
+        return next(
+            (
+                dp.dotation
+                for dp in sorted(
+                    self.dotationprojet_set.all(), key=lambda dp: dp.dotation
+                )
+                if dp.status == PROJET_STATUS_PROCESSING
+            ),
+            None,
+        )
+
+    @property
+    def all_dotations_have_processing_status(self) -> bool:
+        return all(
+            dp.status == PROJET_STATUS_PROCESSING
+            for dp in self.dotationprojet_set.all()
+        )
+
+    @property
+    def generated_documents(self):
+        documents = [
+            document
+            for model in GENERATED_DOCUMENTS.values()
+            for document in model.objects.filter(
+                programmation_projet__dotation_projet__projet=self
+            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
+        ]
+        return sorted(
+            documents,
+            key=lambda d: (
+                DOTATIONS.index(d.programmation_projet.dotation),
+                list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
+            ),
+        )
+
+    @property
+    def imported_documents(self):
+        documents = [
+            document
+            for model in UPLOADED_DOCUMENTS.values()
+            for document in model.objects.filter(
+                programmation_projet__dotation_projet__projet=self
+            ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
+        ]
+        return sorted(
+            documents,
+            key=lambda d: (
+                DOTATIONS.index(d.programmation_projet.dotation),
+                list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
+            ),
+        )
+
+    @property
+    def areas_and_contracts_provided_by_instructor(self) -> List[str]:
+        ZONAGE_AND_CONTRACTS_FIELDS = [
+            "is_in_qpv",
+            "is_attached_to_a_crte",
+            "is_frr",
+            "is_acv",
+            "is_pvd",
+            "is_va",
+            "is_autre_zonage_local",
+            "is_contrat_local",
+        ]
+
+        return [
+            self._meta.get_field(field).verbose_name
+            for field in ZONAGE_AND_CONTRACTS_FIELDS
+            if getattr(self, field)
+        ]
+
+
+# Used to construct file name
+_GENERATED_DOCUMENT_SELECT_RELATED = (
+    "programmation_projet__enveloppe",
+    "programmation_projet__dotation_projet__projet__dossier_ds__ds_demandeur",
+)
+
+# Used for dotation column
+_UPLOADED_DOCUMENT_SELECT_RELATED = ("programmation_projet__dotation_projet",)
+
+
+class DotationProjetQuerySet(models.QuerySet):
+    def without_signed_document(self):
+        return self.filter(
+            programmation_projet__isnull=False,
+            status=PROJET_STATUS_ACCEPTED,
+            programmation_projet__lettre_et_arrete_signes__isnull=True,
+        )
+
+    def active(self):
+        return self.filter(projet__dossier_ds__is_active=True)
+
+    def annotate_notification_status(self):
+        # Mirrors DotationProjet.notification_status. The REFUSED/DISMISSED +
+        # LETTRE_REFUS branch from the property is intentionally not
+        # reproduced here: LETTRE_REFUS ("refus") isn't a real related_name
+        # on ProgrammationProjet, so that branch is already unreachable in
+        # the property today, and referencing it here would raise a
+        # FieldError instead of silently doing nothing.
+        return self.annotate(
+            _notification_status=Case(
+                When(programmation_projet__isnull=True, then=Value(None)),
+                When(
+                    projet__notified_at__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_NOTIFIED),
+                ),
+                When(
+                    Q(programmation_projet__lettre_et_arrete_signes__isnull=False)
+                    | Q(programmation_projet__lettre_refus_signee__isnull=False),
+                    then=Value(NOTIFICATION_STATUS_TO_NOTIFY),
+                ),
+                When(
+                    status=PROJET_STATUS_ACCEPTED,
+                    programmation_projet__arrete__isnull=False,
+                    programmation_projet__lettrenotification__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                ),
+                When(
+                    status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED],
+                    programmation_projet__lettrerefus__isnull=False,
+                    then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                ),
+                default=Value(NOTIFICATION_STATUS_TO_GENERATE),
+                output_field=models.CharField(null=True),
+            )
+        )
+
+
+class DotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
+    pass
+
+
+class DotationProjet(BaseModel):
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
+    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
+    # TODO pr_dotation put back protected=True, once every status transition is handled ?
+    status = FSMField(
+        "Statut",
+        choices=PROJET_STATUS_CHOICES,
+        default=PROJET_STATUS_PROCESSING,
+    )
+    assiette = models.DecimalField(
+        "Assiette subventionnable",
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        blank=True,
+        null=True,
+    )
+    detr_avis_commission = models.BooleanField(
+        "Avis commission DETR",
+        help_text="Pour les projets de plus de 100 000 €",
+        null=True,
+    )
+    # TODO : useless now. Remove it if we don't allow to set DETR category
+    detr_categories = models.ManyToManyField(
+        CategorieDetr, verbose_name="Catégories d’opération DETR"
+    )
+
+    objects = DotationProjetManager()
+
+    class Meta:
+        unique_together = ("projet", "dotation")
+        verbose_name = "Dotation projet"
+        verbose_name_plural = "Dotations projet"
+
+    def __str__(self):
+        return f"Projet {self.projet_id} - Dotation {self.dotation}"
+
+    def clean_fields(self, exclude=None):
+        try:
+            super().clean_fields(exclude=exclude)
+        except ValidationError as e:
+            errors = e.update_error_dict({})
+        else:
+            errors = {}
+
+        if "detr_avis_commission" not in exclude:
+            self._validate_detr_avis_commission(errors)
+
+        if "assiette" not in exclude:
+            if (
+                self.dossier_ds.finance_cout_total
+                and self.assiette
+                and self.dossier_ds.finance_cout_total < self.assiette
+            ):
+                errors["assiette"] = (
+                    "L'assiette doit être inférieure ou égale au coût total du projet."
+                )
+
+        if "detr_categories" not in exclude:
+            self._validate_detr_categories(errors)
+
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_detr_avis_commission(self, errors):
+        if self.detr_avis_commission is None:
+            return
+
+        if self.dotation == DOTATION_DSIL:
+            errors["detr_avis_commission"] = (
+                "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
+            )
+
+        if (
+            self.dossier_ds.demande_montant is not None
+            and self.dossier_ds.demande_montant < MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+        ):
+            errors["detr_avis_commission"] = (
+                f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
+            )
+
+    def _validate_detr_categories(self, errors):
+        if self.dotation != DOTATION_DETR:
+            if self.detr_categories.exists():
+                errors["detr_categories"] = (
+                    "Les catégories DETR ne doivent être renseignées que pour les projets DETR."
+                )
+            return
+
+        projet_departement = (
+            self.projet.perimetre.departement
+            if self.projet and self.projet.perimetre
+            else None
+        )
+        for categorie in self.detr_categories.all():
+            if categorie.departement != projet_departement:
+                errors["detr_categories"] = (
+                    f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
+                )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.assiette is None:
+            dossier = self.dossier_ds
+            if self.dotation == DOTATION_DETR:
+                annotation_assiette = dossier.annotations_assiette_detr
+            else:
+                annotation_assiette = dossier.annotations_assiette_dsil
+            self.assiette = (
+                annotation_assiette
+                if annotation_assiette is not None
+                else dossier.finance_cout_total
+            )
+        super().save(*args, **kwargs)
+
+    @property
+    def dossier_ds(self):
+        return self.projet.dossier_ds
+
+    @property
+    def other_dotations(self) -> List["DotationProjet"]:
+        return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
+
+    @property
+    def other_accepted_dotations(self) -> List[POSSIBLE_DOTATIONS]:
+        return [
+            d.dotation
+            for d in self.other_dotations
+            if d.status == PROJET_STATUS_ACCEPTED
+        ]
+
+    @property
+    def last_updated_simulation_projet(self) -> Optional["SimulationProjet"]:
+        """
+        We use python side sort so we benefit from prefetching !
+        """
+        simulations = sorted(
+            self.simulationprojet_set.all(),
+            key=lambda s: s.updated_at,
+            reverse=True,
+        )
+        return simulations[0] if len(simulations) else None
+
+    @property
+    def assiette_or_cout_total(self):
+        if self.assiette is not None:
+            return self.assiette
+        return self.dossier_ds.finance_cout_total
+
+    def compute_montant_from_taux(self, new_taux):
+        from decimal import Decimal, InvalidOperation
+
+        try:
+            assiette = self.assiette_or_cout_total
+            new_montant = (assiette * Decimal(new_taux) / 100) if assiette else 0
+            new_montant = round(new_montant, 2)
+            return max(min(new_montant, self.assiette_or_cout_total), 0)
+        except TypeError:
+            return 0
+        except InvalidOperation:
+            return 0
+
+    @property
+    def taux_de_subvention_sollicite(self) -> float | None:
+        if (
+            self.assiette_or_cout_total is not None
+            and self.dossier_ds.demande_montant is not None
+            and self.assiette_or_cout_total > 0
+        ):
+            return self.dossier_ds.demande_montant * 100 / self.assiette_or_cout_total
+        return None
+
+    @property
+    def montant_retenu(self) -> float | None:
+        if hasattr(self, "programmation_projet"):
+            return self.programmation_projet.montant
+        return None
+
+    @property
+    def taux_retenu(self) -> float | None:
+        if hasattr(self, "programmation_projet"):
+            return self.programmation_projet.taux
+        return None
+
+    @property
+    def notification_status(self) -> str | None:
+        if hasattr(self, "_notification_status"):
+            return self._notification_status
+
+        return (
+            DotationProjet.objects.annotate_notification_status()
+            .values_list("_notification_status", flat=True)
+            .get(pk=self.pk)
+        )
+
+    @property
+    def is_treated(self) -> bool:
+        return self.status in PROJET_FINAL_STATUSES
+
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    def accept_without_ds_update(
+        self, montant: float, enveloppe: "Enveloppe", actor=None
+    ):
+        from gsl.simulation.models import SimulationProjet
+        from gsl_programmation.models import ProgrammationProjet
+
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
+
+        status_is_changing = self.status != PROJET_STATUS_ACCEPTED
+        try:
+            previous_enveloppe = self.programmation_projet.enveloppe
+            previous_montant = self.programmation_projet.montant
+        except ProgrammationProjet.DoesNotExist:
+            previous_enveloppe = None
+            previous_montant = None
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_ACCEPTED,
+            montant=montant,
+        )
+
+        programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
+            dotation_projet=self,
+            defaults={
+                "enveloppe": enveloppe.delegation_root,
+                "montant": montant,
+                "status": ProgrammationProjet.STATUS_ACCEPTED,
+            },
+        )
+        self.programmation_projet = programmation_projet
+
+        if status_is_changing or previous_enveloppe != enveloppe.delegation_root:
+            ProjetAction.objects.create(
+                projet=self.projet,
+                action_type=ProjetAction.TYPE_STATUS_CHANGE,
+                actor=actor,
+                source=ProjetAction.SOURCE_TURGOT
+                if actor is not None
+                else ProjetAction.SOURCE_DN,
+                dotation=self.dotation,
+                status=PROJET_STATUS_ACCEPTED,
+                euro_field_value=montant,
+                enveloppe=enveloppe,
+            )
+        elif previous_montant is not None and previous_montant != montant:
+            ProjetAction.objects.create(
+                projet=self.projet,
+                action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
+                actor=actor,
+                source=ProjetAction.SOURCE_TURGOT
+                if actor is not None
+                else ProjetAction.SOURCE_DN,
+                dotation=self.dotation,
+                euro_field_value=montant,
+            )
+
+    @transaction.atomic
+    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    def accept(
+        self,
+        montant: float,
+        enveloppe: "Enveloppe",
+        user: Collegue,
+    ):
+        self.accept_without_ds_update(montant, enveloppe, actor=user)
+
+        projet_dotation_checked = self.other_accepted_dotations
+        ds_service = DsService()
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=self.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=[self.dotation] + projet_dotation_checked,
+            annotations_dotation_to_update=self.dotation,
+            assiette=floatize(self.assiette),
+            montant=floatize(montant),
+            taux=floatize(self.taux_retenu),
+        )
+
+    @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
+    def refuse(self, enveloppe: "Enveloppe", actor=None):
+        from gsl.simulation.models import SimulationProjet
+        from gsl_programmation.models import ProgrammationProjet
+
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_REFUSED,
+            montant=0,
+        )
+
+        ProgrammationProjet.objects.update_or_create(
+            dotation_projet=self,
+            defaults={
+                "enveloppe": enveloppe.delegation_root,
+                "montant": 0,
+                "status": ProgrammationProjet.STATUS_REFUSED,
+            },
+        )
+
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_STATUS_CHANGE,
+            actor=actor,
+            source=ProjetAction.SOURCE_TURGOT
+            if actor is not None
+            else ProjetAction.SOURCE_DN,
+            dotation=self.dotation,
+            status=PROJET_STATUS_REFUSED,
+            enveloppe=enveloppe,
+        )
+
+    @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
+    def dismiss(self, enveloppe: "Enveloppe", actor=None):
+        from gsl.simulation.models import SimulationProjet
+        from gsl_programmation.models import ProgrammationProjet
+
+        if self.dotation != enveloppe.dotation:
+            raise ValidationError(
+                "La dotation du projet et de l'enveloppe ne correspondent pas."
+            )
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_DISMISSED, montant=0
+        )
+
+        ProgrammationProjet.objects.update_or_create(
+            dotation_projet=self,
+            defaults={
+                "enveloppe": enveloppe.delegation_root,
+                "montant": 0,
+                "status": ProgrammationProjet.STATUS_DISMISSED,
+            },
+        )
+
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_STATUS_CHANGE,
+            actor=actor,
+            source=ProjetAction.SOURCE_TURGOT
+            if actor is not None
+            else ProjetAction.SOURCE_DN,
+            dotation=self.dotation,
+            status=PROJET_STATUS_DISMISSED,
+            enveloppe=enveloppe,
+        )
+
+    @transition(
+        field=status,
+        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+        target=PROJET_STATUS_PROCESSING,
+    )
+    def set_back_status_to_processing_without_ds(self, actor=None):
+        from gsl.simulation.models import SimulationProjet
+        from gsl_programmation.models import ProgrammationProjet
+
+        SimulationProjet.objects.filter(dotation_projet=self).update(
+            status=SimulationProjet.STATUS_PROCESSING,
+        )
+
+        ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+        self.projet.notified_at = None
+        self.projet.save()
+
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_STATUS_CHANGE,
+            actor=actor,
+            source=ProjetAction.SOURCE_TURGOT
+            if actor is not None
+            else ProjetAction.SOURCE_DN,
+            dotation=self.dotation,
+            status=PROJET_STATUS_PROCESSING,
+        )
+
+    @transaction.atomic
+    @transition(
+        field=status,
+        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+        target=PROJET_STATUS_PROCESSING,
+    )
+    def set_back_status_to_processing(self, user: Collegue):
+        is_notified = self.projet.notified_at is not None
+        ds_service = DsService()
+
+        self.set_back_status_to_processing_without_ds(actor=user)
+
+        if is_notified:
+            ds_service.repasser_en_instruction(self.projet.dossier_ds, user)
+
+        ds_service.update_ds_annotations_for_one_dotation(
+            dossier=self.projet.dossier_ds,
+            user=user,
+            dotations_to_be_checked=self.other_accepted_dotations,
+        )
+
+
+class ProjetNote(BaseModel):
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE, related_name="notes")
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+
+
+def projet_status_from_dotation_statuses(
+    statuses: List[str] | Tuple[str],
+) -> str | None:
+    from gsl.simulation.models import SimulationProjet
+
+    if not statuses:
+        return None
+
+    if any(
+        status == PROJET_STATUS_PROCESSING
+        or status == SimulationProjet.STATUS_PROCESSING
+        for status in statuses
+    ):
+        return PROJET_STATUS_PROCESSING
+
+    if any(
+        status == PROJET_STATUS_ACCEPTED or status == SimulationProjet.STATUS_ACCEPTED
+        for status in statuses
+    ):
+        return PROJET_STATUS_ACCEPTED
+
+    if any(
+        status == PROJET_STATUS_DISMISSED or status == SimulationProjet.STATUS_DISMISSED
+        for status in statuses
+    ):
+        return PROJET_STATUS_DISMISSED
+
+    return PROJET_STATUS_REFUSED

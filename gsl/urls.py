@@ -30,7 +30,7 @@ urlpatterns = [
         "ds/",
         include(("gsl_demarches_simplifiees.urls", "gsl_demarches_simplifiees"), "ds"),
     ),
-    path("projets/", include(("gsl_projet.urls", "gsl_projet"), "projet")),
+    path("projets/", include(("gsl.projet.urls", "gsl_projet"), "projet")),
     path(
         "simulation/",
         include(("gsl.simulation.urls", "gsl_simulation"), "simulation"),

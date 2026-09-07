@@ -4,13 +4,13 @@ import factory
 import factory.fuzzy
 from django.db.models.signals import post_save
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_core.tests.factories import (
     AdresseFactory,
     ArrondissementFactory,
     PerimetreArrondissementFactory,
 )
 from gsl_core.tests.factories import DepartementFactory as CoreDepartementFactory
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 from ..models import (
     CategorieDetr,

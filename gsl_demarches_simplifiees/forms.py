@@ -4,14 +4,14 @@ from django import forms
 from django.forms.widgets import CheckboxSelectMultiple
 from dsfr.forms import DsfrBaseForm
 
+from gsl.projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.services.dotation_projet_services import DotationProjetService
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
     Demarche,
     Dossier,
 )
-from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.services.dotation_projet_services import DotationProjetService
 
 
 class DotationFormField(forms.MultipleChoiceField):

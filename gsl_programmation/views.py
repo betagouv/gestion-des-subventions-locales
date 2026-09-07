@@ -10,6 +10,10 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+)
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
@@ -23,10 +27,6 @@ from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
-)
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
 )
 
 

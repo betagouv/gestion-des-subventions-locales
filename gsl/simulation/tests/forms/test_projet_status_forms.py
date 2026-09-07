@@ -3,6 +3,14 @@ from unittest import mock
 
 import pytest
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
 from gsl_programmation.models import ProgrammationProjet
@@ -10,14 +18,6 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.tests.factories import DotationProjetFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet
@@ -48,7 +48,7 @@ def test_refuse_or_dismiss_does_not_touch_ds(
     simulation_projet = SimulationProjetFactory()
 
     with mock.patch(
-        f"gsl_projet.models.DotationProjet.{dotation_projet_transition}",
+        f"gsl.projet.models.DotationProjet.{dotation_projet_transition}",
         wraps=getattr(simulation_projet.dotation_projet, dotation_projet_transition),
     ) as mock_transition:
         with (

@@ -4,6 +4,12 @@ from unittest.mock import patch
 import pytest
 from django.urls import resolve, reverse
 
+from gsl.projet.models import Projet
+from gsl.projet.services.dotation_projet_services import DotationProjetService
+from gsl.projet.tests.factories import (
+    DotationProjetFactory,
+    ProjetFactory,
+)
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     ClientWithLoggedUserFactory,
@@ -22,12 +28,6 @@ from gsl_demarches_simplifiees.tests.factories import (
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-)
-from gsl_projet.models import Projet
-from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.tests.factories import (
-    DotationProjetFactory,
-    ProjetFactory,
 )
 
 from ...forms import _add_enveloppe_projets_to_simulation

@@ -2,8 +2,8 @@ import pytest
 from django.conf import settings
 from django.db import IntegrityError
 
-from gsl_projet.constants import DOTATION_DETR
-from gsl_projet.tests.factories import (
+from gsl.projet.constants import DOTATION_DETR
+from gsl.projet.tests.factories import (
     DetrProjetFactory,
 )
 

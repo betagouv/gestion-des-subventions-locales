@@ -4,6 +4,8 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.tests.factories import ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -14,8 +16,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     CategorieDsilFactory,
     DossierFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
 

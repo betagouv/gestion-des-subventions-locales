@@ -9,6 +9,7 @@ from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
 from gsl.celery import TASK_PRIORITY_NORMAL
+from gsl.projet.constants import DOTATIONS, LETTRE_REFUS
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_notification.forms import (
@@ -27,7 +28,6 @@ from gsl_notification.forms import (
 from gsl_notification.models import ExportJob
 from gsl_notification.tasks import generate_export_task
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import DOTATIONS, LETTRE_REFUS
 
 
 @dataclass(frozen=True)
