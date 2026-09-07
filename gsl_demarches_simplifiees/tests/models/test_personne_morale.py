@@ -33,3 +33,16 @@ def test_create_personne_morale_commune(ds_demandeur_data):
     assert isinstance(personne.address, Adresse)
     assert isinstance(personne.naf, Naf)
     assert isinstance(personne.forme_juridique, FormeJuridique)
+
+
+def test_siren_is_computed_from_siret_on_save():
+    personne = PersonneMorale(siret="12345678900012")
+    personne.save()
+    assert personne.siren == "123456789"
+
+
+def test_siren_is_recomputed_when_siret_changes():
+    personne = PersonneMorale.objects.create(siret="12345678900012")
+    personne.siret = "98765432100045"
+    personne.save()
+    assert personne.siren == "987654321"

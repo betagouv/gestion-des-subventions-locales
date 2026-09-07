@@ -134,7 +134,11 @@ class PersonneMorale(models.Model):
         blank=True,
     )
 
-    siren = models.CharField("SIREN", blank=True)
+    siren = models.CharField(
+        "SIREN",
+        blank=True,
+        help_text="Calculé automatiquement à partir du SIRET.",
+    )
     naf = models.ForeignKey(Naf, on_delete=models.PROTECT, null=True)
     forme_juridique = models.ForeignKey(
         FormeJuridique, on_delete=models.PROTECT, null=True
@@ -146,6 +150,11 @@ class PersonneMorale(models.Model):
 
     def __str__(self):
         return self.raison_sociale or self.siret
+
+    def save(self, *args, **kwargs):
+        if self.siret:
+            self.siren = self.siret[:9]
+        super().save(*args, **kwargs)
 
     def update_from_raw_ds_data(self, ds_data):
         self.siret = ds_data.get("siret")
@@ -164,7 +173,6 @@ class PersonneMorale(models.Model):
         entreprise_data = ds_data.get("entreprise")
         if entreprise_data:
             self.raison_sociale = entreprise_data.get("raisonSociale")
-            self.siren = entreprise_data.get("siren")
             self.forme_juridique, _ = FormeJuridique.objects.get_or_create(
                 code=entreprise_data.get("formeJuridiqueCode"),
                 defaults={"libelle": entreprise_data.get("formeJuridique")},
