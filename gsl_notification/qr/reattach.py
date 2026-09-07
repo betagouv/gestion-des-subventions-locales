@@ -116,12 +116,14 @@ def reattach_signed_doc(
     )
 
 
-# Each grouped page carries the index of the file it came from, so the
-# reattach phase can pull it from the right source PDF:
-# (file_idx, scan_idx, doc_type, page, bbox, image_height_px).
-GroupEntry = tuple[
-    int, int, str, int, tuple[float, float, float, float] | None, int | None
-]
+@dataclass(frozen=True)
+class ScannedPage:
+    file_index: int
+    scan_index: int
+    doc_type: str
+    claimed_page: int
+    bbox: tuple[float, float, float, float] | None
+    image_height_px: int | None
 
 
 def reattach_signed_docs(
@@ -156,17 +158,17 @@ def reattach_signed_docs(
     srcs: list[Pdf] = []
     pdf_bytes_list: list[bytes] = []
     try:
-        groups: dict[tuple[int, str, type[UploadedDocument]], list[GroupEntry]] = (
+        groups: dict[tuple[int, str, type[UploadedDocument]], list[ScannedPage]] = (
             defaultdict(list)
         )
-        for file_idx, (stem, pdf_bytes) in enumerate(files):
+        for file_index, (stem, pdf_bytes) in enumerate(files):
             src = Pdf.open(io.BytesIO(pdf_bytes))
             srcs.append(src)
             pdf_bytes_list.append(pdf_bytes)
             yield DecodeStarted(total_pages=len(src.pages))
 
-            for scan_idx, hit in enumerate(iter_decoded_pages(pdf_bytes)):
-                scan_page = scan_idx + 1
+            for scan_index, hit in enumerate(iter_decoded_pages(pdf_bytes)):
+                scan_page = scan_index + 1
                 if hit is None:
                     yield UnreadablePage(scan_page=scan_page, file=stem)
                     continue
@@ -174,26 +176,28 @@ def reattach_signed_docs(
                 groups[
                     (hit.payload.ds_number, hit.payload.dotation, target_model)
                 ].append(
-                    (
-                        file_idx,
-                        scan_idx,
-                        hit.payload.document_type,
-                        hit.payload.page,
-                        hit.bbox,
-                        hit.image_height_px,
+                    ScannedPage(
+                        file_index=file_index,
+                        scan_index=scan_index,
+                        doc_type=hit.payload.document_type,
+                        claimed_page=hit.payload.page,
+                        bbox=hit.bbox,
+                        image_height_px=hit.image_height_px,
                     )
                 )
                 yield PageDecoded(scan_page=scan_page, file=stem)
 
-        for (ds, dot, target_model), entries in groups.items():
-            entries.sort(key=lambda e: (DOCUMENT_TYPE_ORDER.get(e[2], 99), e[3]))
+        for (ds, dot, target_model), pages in groups.items():
+            pages.sort(
+                key=lambda p: (DOCUMENT_TYPE_ORDER.get(p.doc_type, 99), p.claimed_page)
+            )
             report = _attach_group(
                 srcs,
                 pdf_bytes_list,
                 ds,
                 dot,
                 target_model,
-                entries,
+                pages,
                 user,
                 restrict_to_user_perimetre,
                 remove_qr_code,
@@ -213,14 +217,14 @@ def _attach_group(
     ds,
     dot,
     target_model,
-    entries,
+    pages,
     user,
     restrict_to_user_perimetre=False,
     remove_qr_code=True,
 ) -> GroupReport:
     by_type: dict[str, list[int]] = defaultdict(list)
-    for _file_idx, scan_idx, doc_type, *_ in entries:
-        by_type[doc_type].append(scan_idx + 1)
+    for page in pages:
+        by_type[page.doc_type].append(page.scan_index + 1)
     for doc_type in by_type:
         by_type[doc_type].sort()
     pages_by_doc_type = dict(by_type)
@@ -261,7 +265,7 @@ def _attach_group(
         )
 
     uploaded = _build_group_pdf(
-        srcs, entries, ds, dot, target_model, pdf_bytes_list, remove_qr_code
+        srcs, pages, ds, dot, target_model, pdf_bytes_list, remove_qr_code
     )
     _replace_uploaded_document(target_model, pp, uploaded, user)
 
@@ -290,14 +294,18 @@ def _replace_uploaded_document(target_model, pp, uploaded, user):
 
 
 def _build_group_pdf(
-    srcs, entries, ds, dot, target_model, pdf_bytes_list, remove_qr_code=True
+    srcs, pages, ds, dot, target_model, pdf_bytes_list, remove_qr_code=True
 ):
     out = Pdf.new()
-    for file_idx, scan_idx, _, _, bbox_px, image_height_px in entries:
-        out.pages.append(srcs[file_idx].pages[scan_idx])
+    for page in pages:
+        out.pages.append(srcs[page.file_index].pages[page.scan_index])
         if remove_qr_code:
             mask_qr_on_last_page(
-                out, bbox_px, image_height_px, pdf_bytes_list[file_idx], scan_idx
+                out,
+                page.bbox,
+                page.image_height_px,
+                pdf_bytes_list[page.file_index],
+                page.scan_index,
             )
     buf = io.BytesIO()
     out.save(buf)
