@@ -126,6 +126,20 @@ class ScannedPage:
     image_height_px: int | None
 
 
+@dataclass(frozen=True)
+class DeclaredDocument:
+    """The document a scanned page says it belongs to, before any lookup.
+
+    Pages sharing one become a single stored document, which is why the target
+    model is part of it: an arrêté page and a lettre page of the same projet
+    merge, a lettre de refus page of that same projet does not.
+    """
+
+    ds_number: int
+    dotation: str
+    target_model: type[UploadedDocument]
+
+
 def reattach_signed_docs(
     files: list[tuple[str, bytes]],
     user: Collegue,
@@ -158,7 +172,7 @@ def reattach_signed_docs(
     srcs: list[Pdf] = []
     pdf_bytes_list: list[bytes] = []
     try:
-        groups: dict[tuple[int, str, type[UploadedDocument]], list[ScannedPage]] = (
+        scanned_pages_by_document: dict[DeclaredDocument, list[ScannedPage]] = (
             defaultdict(list)
         )
         for file_index, (stem, pdf_bytes) in enumerate(files):
@@ -173,9 +187,12 @@ def reattach_signed_docs(
                     yield UnreadablePage(scan_page=scan_page, file=stem)
                     continue
                 target_model = _TARGET_MODEL_BY_DOCUMENT_TYPE[hit.payload.document_type]
-                groups[
-                    (hit.payload.ds_number, hit.payload.dotation, target_model)
-                ].append(
+                declared = DeclaredDocument(
+                    ds_number=hit.payload.ds_number,
+                    dotation=hit.payload.dotation,
+                    target_model=target_model,
+                )
+                scanned_pages_by_document[declared].append(
                     ScannedPage(
                         file_index=file_index,
                         scan_index=scan_index,
@@ -187,16 +204,14 @@ def reattach_signed_docs(
                 )
                 yield PageDecoded(scan_page=scan_page, file=stem)
 
-        for (ds, dot, target_model), pages in groups.items():
+        for declared, pages in scanned_pages_by_document.items():
             pages.sort(
                 key=lambda p: (DOCUMENT_TYPE_ORDER.get(p.doc_type, 99), p.claimed_page)
             )
             report = _attach_group(
                 srcs,
                 pdf_bytes_list,
-                ds,
-                dot,
-                target_model,
+                declared,
                 pages,
                 user,
                 restrict_to_user_perimetre,
@@ -214,9 +229,7 @@ def reattach_signed_docs(
 def _attach_group(
     srcs,
     pdf_bytes_list,
-    ds,
-    dot,
-    target_model,
+    declared,
     pages,
     user,
     restrict_to_user_perimetre=False,
@@ -228,7 +241,7 @@ def _attach_group(
     for doc_type in by_type:
         by_type[doc_type].sort()
     pages_by_doc_type = dict(by_type)
-    target_document_type = target_model.document_type
+    target_document_type = declared.target_model.document_type
 
     # Scope matching to the importer's perimetre for the web flow; the operator
     # CLI keeps the global queryset. Out-of-perimetre groups simply miss the
@@ -241,13 +254,13 @@ def _attach_group(
 
     try:
         pp = queryset.get(
-            dotation_projet__projet__dossier_ds__ds_number=ds,
-            dotation_projet__dotation=dot,
+            dotation_projet__projet__dossier_ds__ds_number=declared.ds_number,
+            dotation_projet__dotation=declared.dotation,
         )
     except ProgrammationProjet.DoesNotExist:
         return GroupReport(
-            ds_number=ds,
-            dotation=dot,
+            ds_number=declared.ds_number,
+            dotation=declared.dotation,
             programmation_projet_id=None,
             target_document_type=target_document_type,
             pages_by_doc_type=pages_by_doc_type,
@@ -255,8 +268,8 @@ def _attach_group(
         )
     except ProgrammationProjet.MultipleObjectsReturned:
         return GroupReport(
-            ds_number=ds,
-            dotation=dot,
+            ds_number=declared.ds_number,
+            dotation=declared.dotation,
             programmation_projet_id=None,
             target_document_type=target_document_type,
             pages_by_doc_type=pages_by_doc_type,
@@ -264,14 +277,12 @@ def _attach_group(
             "(incohérence, à corriger manuellement).",
         )
 
-    uploaded = _build_group_pdf(
-        srcs, pages, ds, dot, target_model, pdf_bytes_list, remove_qr_code
-    )
-    _replace_uploaded_document(target_model, pp, uploaded, user)
+    uploaded = _build_group_pdf(srcs, pages, declared, pdf_bytes_list, remove_qr_code)
+    _replace_uploaded_document(declared.target_model, pp, uploaded, user)
 
     return GroupReport(
-        ds_number=ds,
-        dotation=dot,
+        ds_number=declared.ds_number,
+        dotation=declared.dotation,
         programmation_projet_id=pp.id,
         target_document_type=target_document_type,
         pages_by_doc_type=pages_by_doc_type,
@@ -293,9 +304,7 @@ def _replace_uploaded_document(target_model, pp, uploaded, user):
         doc.save()
 
 
-def _build_group_pdf(
-    srcs, pages, ds, dot, target_model, pdf_bytes_list, remove_qr_code=True
-):
+def _build_group_pdf(srcs, pages, declared, pdf_bytes_list, remove_qr_code=True):
     out = Pdf.new()
     for page in pages:
         out.pages.append(srcs[page.file_index].pages[page.scan_index])
@@ -310,8 +319,9 @@ def _build_group_pdf(
     buf = io.BytesIO()
     out.save(buf)
     buf.seek(0)
+    prefix = declared.target_model.reattach_filename_prefix()
     return SimpleUploadedFile(
-        name=f"{target_model.reattach_filename_prefix()}-{ds}-{dot}.pdf",
+        name=f"{prefix}-{declared.ds_number}-{declared.dotation}.pdf",
         content=buf.read(),
         content_type="application/pdf",
     )
