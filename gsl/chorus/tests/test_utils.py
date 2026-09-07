@@ -2,14 +2,14 @@ from decimal import Decimal
 
 import pytest
 
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.models import ProgrammationProjet
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.tests.factories import (
+from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
 )
+from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_programmation.models import ProgrammationProjet
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ..models import SuiviFinancier
 from ..utils import par_dotation

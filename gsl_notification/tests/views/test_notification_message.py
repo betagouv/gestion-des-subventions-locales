@@ -14,6 +14,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -32,15 +41,6 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -389,7 +389,7 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         """A projet can be re-notified after a dotation change resets
-        `notified_at` (see gsl_projet/forms.py) — every past notification
+        `notified_at` (see gsl/projet/forms.py) — every past notification
         should still show up, oldest first."""
         projet = _accepted_projet(perimetre)
         url = reverse(

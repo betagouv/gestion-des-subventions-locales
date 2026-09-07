@@ -2,10 +2,7 @@ import logging
 
 import pytest
 
-from gsl_programmation.tests.factories import (
-    ProgrammationProjetFactory,
-)
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
@@ -13,9 +10,12 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.tests.factories import (
+from gsl.projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
+)
+from gsl_programmation.tests.factories import (
+    ProgrammationProjetFactory,
 )
 
 from ...models import SimulationProjet

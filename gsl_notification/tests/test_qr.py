@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
+from gsl.projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
 from gsl_notification.models import GENERATED_DOCUMENTS
 from gsl_notification.qr import (
     QrPayload,
@@ -13,7 +14,6 @@ from gsl_notification.qr import (
     generate_qr_png_data_uri,
     parse_payload,
 )
-from gsl_projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
 
 
 def test_build_payload_format():

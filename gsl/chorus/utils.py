@@ -1,9 +1,9 @@
-from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
+from gsl_programmation.models import ProgrammationProjet
 
 from .models import SuiviFinancier
 

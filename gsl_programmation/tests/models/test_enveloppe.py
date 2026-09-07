@@ -2,6 +2,10 @@ from datetime import UTC, datetime
 
 import pytest
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.models import Projet
+from gsl.projet.services.dotation_projet_services import DotationProjetService
+from gsl.projet.tests.factories import DotationProjetFactory, SubmittedProjetFactory
 from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
@@ -14,10 +18,6 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.models import Projet
-from gsl_projet.services.dotation_projet_services import DotationProjetService
-from gsl_projet.tests.factories import DotationProjetFactory, SubmittedProjetFactory
 
 
 @pytest.fixture

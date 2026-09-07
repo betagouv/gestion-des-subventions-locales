@@ -4,13 +4,13 @@ import factory
 from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.tests.factories import DotationProjetFactory
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):

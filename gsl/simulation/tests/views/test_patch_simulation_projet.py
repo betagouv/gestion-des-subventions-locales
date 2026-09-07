@@ -7,6 +7,13 @@ import pytest
 from django.contrib.messages import INFO, SUCCESS, get_messages
 from django.urls import reverse
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
+from gsl.projet.models import DotationProjet
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -15,13 +22,6 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
-)
-from gsl_projet.models import DotationProjet
-from gsl_projet.tests.factories import DotationProjetFactory
 
 from ...models import SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory

@@ -2,7 +2,7 @@ from django.contrib.admin.models import LogEntry
 from django.db import models
 from django.utils import timezone
 
-from gsl_projet.constants import DOTATION_CHOICES
+from gsl.projet.constants import DOTATION_CHOICES
 
 
 def projet_action_document_upload_to(instance, filename):

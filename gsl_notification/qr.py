@@ -28,14 +28,14 @@ from typing import BinaryIO, Iterator
 
 import segno
 
-from gsl_notification.models import GENERATED_DOCUMENTS
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     ARRETE,
     DOTATION_DETR,
     DOTATION_DSIL,
     LETTRE,
     LETTRE_REFUS,
 )
+from gsl_notification.models import GENERATED_DOCUMENTS
 
 PAYLOAD_PREFIX = "GSL1"
 

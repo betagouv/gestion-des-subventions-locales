@@ -9,6 +9,8 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.models import Projet
+from gsl.projet.views import BaseProjetDetailView
 from gsl.utils.csp import csp_update
 from gsl_core.exceptions import Http404
 from gsl_notification.forms import (
@@ -29,8 +31,6 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.models import Projet
-from gsl_projet.views import BaseProjetDetailView
 
 # Views for listing notification documents on a programmationProjet, -------------------
 # in various contexts

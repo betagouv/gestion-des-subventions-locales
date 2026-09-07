@@ -4,6 +4,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.urls import reverse
 
+from gsl.projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    LETTRE_REFUS,
+)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -26,13 +33,6 @@ from gsl_notification.tests.factories import (
     ModeleLettreRefusFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import (
-    ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    LETTRE,
-    LETTRE_REFUS,
-)
 
 
 @pytest.fixture

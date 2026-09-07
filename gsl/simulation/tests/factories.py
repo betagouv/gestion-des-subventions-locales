@@ -4,9 +4,9 @@ from typing import cast
 from factory import LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
+from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from gsl_projet.tests.factories import DotationProjetFactory
 
 from ..models import Simulation, SimulationProjet
 

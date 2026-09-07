@@ -1,0 +1,431 @@
+from logging import getLogger
+
+from django import forms
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.forms import ModelForm
+from dsfr.forms import DsfrBaseForm
+
+from gsl.historique.models import ProjetAction
+from gsl_core.models import Collegue
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.services import DsService
+
+from .constants import (
+    DOTATION_CHOICES,
+    POSSIBLE_DOTATIONS,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
+from .models import DotationProjet, Projet, ProjetNote
+
+logger = getLogger(__name__)
+
+
+class ProjetForm(ModelForm, DsfrBaseForm):
+    dotations = forms.MultipleChoiceField(
+        choices=DOTATION_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"form": "projet-form"}),
+    )
+
+    class Meta:
+        model = Projet
+        fields = []
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["dotations"].initial = self.instance.dotations
+        self.user = user
+
+    def is_valid(self):
+        valid = super().is_valid()
+        if not self.cleaned_data.get("dotations"):
+            self.add_error("dotations", "Veuillez sélectionner au moins une dotation.")
+            valid = False
+        return valid
+
+    def clean_dotations(self):
+        dotations = self.cleaned_data.get("dotations")
+        if self.instance.notified_at and set(dotations) != set(self.instance.dotations):
+            raise ValidationError(
+                "Les dotations d'un projet déjà notifié ne peuvent être modifiées."
+            )
+        return dotations
+
+    @transaction.atomic
+    def save(self, commit=True):
+        instance: Projet = super().save(commit=False)
+        if not commit:
+            return instance
+
+        dotations = self.cleaned_data.get("dotations")
+        if dotations:
+            self.update_dotation(instance, dotations, self.user)
+
+        return instance
+
+    @transaction.atomic
+    def update_dotation(
+        self, projet: Projet, dotations: list[POSSIBLE_DOTATIONS], user: Collegue
+    ):
+        from .services.dotation_projet_services import DotationProjetService
+
+        if len(dotations) == 0:
+            logger.warning(
+                "Projet must have at least one dotation", extra={"projet": projet.pk}
+            )
+            self.add_error("dotations", "Le projet doit avoir au moins une dotation.")
+            return
+
+        if len(dotations) > 2:
+            logger.warning(
+                "Projet can't have more than two dotations", extra={"projet": projet.pk}
+            )
+            self.add_error(
+                "dotations", "Le projet ne peut avoir plus de deux dotations."
+            )
+            return
+
+        new_dotations = set(dotations) - set(projet.dotations)
+        dotation_to_remove = set[POSSIBLE_DOTATIONS](projet.dotations) - set(dotations)
+        dotations_updated_in_app = new_dotations or dotation_to_remove
+
+        for dotation in new_dotations:
+            dotation_projet = DotationProjet.objects.create(
+                projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            )
+            DotationProjetService.create_simulation_projets_from_dotation_projet(
+                dotation_projet
+            )
+            ProjetAction.objects.create(
+                projet=projet,
+                action_type=ProjetAction.TYPE_DOTATION_ADDED,
+                actor=user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=dotation,
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+            )
+
+        dotation_projet_to_remove = DotationProjet.objects.filter(
+            projet=projet, dotation__in=dotation_to_remove
+        )
+
+        if dotation_projet_to_remove.filter(status=PROJET_STATUS_ACCEPTED).exists():
+            dotations_to_be_checked = (
+                DotationProjet.objects.filter(
+                    projet=projet, status=PROJET_STATUS_ACCEPTED
+                )
+                .exclude(dotation__in=dotation_to_remove)
+                .values_list("dotation", flat=True)
+            )
+
+            ds_service = DsService()
+            ds_service.update_ds_annotations_for_one_dotation(
+                dossier=projet.dossier_ds,
+                user=user,
+                dotations_to_be_checked=list(dotations_to_be_checked),
+            )
+
+        for dotation in dotation_to_remove:
+            ProjetAction.objects.create(
+                projet=projet,
+                action_type=ProjetAction.TYPE_DOTATION_REMOVED,
+                actor=user,
+                source=ProjetAction.SOURCE_TURGOT,
+                dotation=dotation,
+                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+            )
+
+        dotation_projet_to_remove.delete()
+
+        if dotations_updated_in_app:
+            projet.dotations_updated_in_app = True
+            projet.save()
+
+
+class ProjetAnnotationsForm(ModelForm, DsfrBaseForm):
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def _annotation_key(self, field):
+        return f"annotations_{field}"
+
+    def save(self, commit=True):
+        instance: Projet = super().save(commit=False)
+        if not commit:
+            return instance
+        if not any(field in self.changed_data for field in self.fields):
+            return instance
+
+        with transaction.atomic():
+            instance.save()
+            for name in self.changed_data:
+                if isinstance(self.fields[name], forms.BooleanField):
+                    ProjetAction.objects.create(
+                        projet=instance,
+                        action_type=ProjetAction.TYPE_BOOLEAN_MODIFIED,
+                        actor=self.user,
+                        source=ProjetAction.SOURCE_TURGOT,
+                        boolean_field=self.fields[name].label,
+                        boolean_value=self.cleaned_data.get(name),
+                        form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+                    )
+            try:
+                DsService().update_annotations(
+                    dossier=instance.dossier_ds,
+                    user=self.user,
+                    annotations={
+                        self._annotation_key(name): self.cleaned_data.get(name)
+                        for name in self.fields
+                    },
+                )
+            except DsServiceException as err:
+                self.add_error(None, str(err))
+                transaction.set_rollback(True)
+        return instance
+
+
+class ProjetBudgetVertForm(ProjetAnnotationsForm):
+    is_budget_vert = forms.BooleanField(
+        label="Projet concourant à la transition écologique au sens budget vert",
+        required=False,
+    )
+
+    class Meta:
+        model = Projet
+        fields = ["is_budget_vert"]
+
+
+class ProjetZonageForm(ProjetAnnotationsForm):
+    is_in_qpv = forms.BooleanField(label="Projet situé en QPV", required=False)
+    is_attached_to_a_crte = forms.BooleanField(
+        label="Projet rattaché à un CRTE", required=False
+    )
+    is_frr = forms.BooleanField(label="Projet situé en FRR", required=False)
+    is_acv = forms.BooleanField(
+        label="Projet rattaché à un programme Action coeurs de Ville (ACV)",
+        required=False,
+    )
+    is_pvd = forms.BooleanField(
+        label="Projet rattaché à un programme Petites villes de demain (PVD)",
+        required=False,
+    )
+    is_va = forms.BooleanField(
+        label="Projet rattaché à un programme Villages d'avenir", required=False
+    )
+    is_autre_zonage_local = forms.BooleanField(
+        label="Projet rattaché à un autre zonage local",
+        required=False,
+        widget=forms.CheckboxInput(
+            attrs={
+                "data-controller": "conditional-field",
+                "data-action": "change->conditional-field#toggle",
+                "data-conditional-field-for": "id_autre_zonage_local",
+            }
+        ),
+    )
+    autre_zonage_local = forms.CharField(
+        label="Nom du zonage local",
+        required=False,
+    )
+    is_contrat_local = forms.BooleanField(
+        label="Projet rattaché à un contrat local",
+        required=False,
+        widget=forms.CheckboxInput(
+            attrs={
+                "data-controller": "conditional-field",
+                "data-action": "change->conditional-field#toggle",
+                "data-conditional-field-for": "id_contrat_local",
+            }
+        ),
+    )
+    contrat_local = forms.CharField(
+        label="Nom du contrat local",
+        required=False,
+    )
+
+    class Meta:
+        model = Projet
+        fields = [
+            "is_in_qpv",
+            "is_attached_to_a_crte",
+            "is_frr",
+            "is_acv",
+            "is_pvd",
+            "is_va",
+            "is_autre_zonage_local",
+            "autre_zonage_local",
+            "is_contrat_local",
+            "contrat_local",
+        ]
+
+    def _annotation_key(self, field):
+        overrides = {
+            "is_in_qpv": "annotations_is_qpv",
+            "is_attached_to_a_crte": "annotations_is_crte",
+        }
+        return overrides.get(field, super()._annotation_key(field))
+
+    def clean_autre_zonage_local(self):
+        is_autre_zonage_local = self.cleaned_data.get("is_autre_zonage_local")
+        autre_zonage_local = self.cleaned_data.get("autre_zonage_local")
+        if is_autre_zonage_local and not autre_zonage_local:
+            self.add_error(
+                "autre_zonage_local",
+                "Ce champ est obligatoire si le projet est rattaché à un autre zonage local.",
+            )
+        if not is_autre_zonage_local:
+            autre_zonage_local = ""
+        return autre_zonage_local
+
+    def clean_contrat_local(self):
+        is_contrat_local = self.cleaned_data.get("is_contrat_local")
+        contrat_local = self.cleaned_data.get("contrat_local")
+        if is_contrat_local and not contrat_local:
+            self.add_error(
+                "contrat_local",
+                "Ce champ est obligatoire si le projet est rattaché à un contrat local.",
+            )
+        if not is_contrat_local:
+            contrat_local = ""
+        return contrat_local
+
+
+class DotationProjetForm(ModelForm, DsfrBaseForm):
+    DETR_AVIS_CHOICES = [
+        (None, "En cours"),
+        (True, "Oui"),
+        (False, "Non"),
+    ]
+
+    detr_avis_commission = forms.ChoiceField(
+        label="L'avis de la commission est-il positif ?",
+        choices=DETR_AVIS_CHOICES,
+        required=False,
+    )
+
+    def clean_detr_avis_commission(self):
+        value = self.cleaned_data.get("detr_avis_commission")
+        if value == "":
+            return None
+        if value == "True":
+            return True
+        if value == "False":
+            return False
+        return value
+
+    class Meta:
+        model = DotationProjet
+        fields = [
+            "detr_avis_commission",
+        ]
+
+
+class FrenchDecimalField(forms.DecimalField):
+    def to_python(self, value):
+        if isinstance(value, str):
+            value = "".join(value.split()).replace(",", ".")
+        return super().to_python(value)
+
+
+class DotationProjetAssietteForm(ModelForm, DsfrBaseForm):
+    assiette = FrenchDecimalField(
+        label="Montant des dépenses éligibles retenues (€)",
+        required=True,
+        help_text=" Cette valeur est identique sur toutes les simulations de cette dotation.",
+        widget=forms.TextInput(
+            attrs={
+                "class": "fr-input",
+                "inputmode": "numeric",
+                "data-controller": "format-montant",
+                "data-format-montant-target": "field",
+                "data-action": "change->format-montant#format",
+            }
+        ),
+    )
+
+    class Meta:
+        model = DotationProjet
+        fields = ["assiette"]
+
+
+class ProjetNoteForm(ModelForm, DsfrBaseForm):
+    title = forms.CharField(
+        label="Titre de la note",
+    )
+    content = forms.CharField(
+        label="Note",
+        widget=forms.Textarea(attrs={"rows": 6}),
+    )
+
+    class Meta:
+        model = ProjetNote
+        fields = [
+            "title",
+            "content",
+        ]
+
+
+COMMENT_FIELDS = {
+    "1": "comment_1",
+    "2": "comment_2",
+    "3": "comment_3",
+}
+
+
+class ProjetRevertToProcessingForm(forms.ModelForm):
+    @transaction.atomic
+    def save(self, user, commit=True):
+        ds_service = DsService()
+        ds_service.repasser_en_instruction(self.instance.dossier_ds, user)
+        self.instance.notified_at = None
+        self.instance.save(update_fields=["notified_at"])
+        return self.instance
+
+    class Meta:
+        model = Projet
+        fields = ()
+
+
+class ProjetCommentForm(ModelForm, DsfrBaseForm):
+    comment_number = forms.ChoiceField(
+        choices=(
+            ("1", "Commentaire 1"),
+            ("2", "Commentaire 2"),
+            ("3", "Commentaire 3"),
+        ),
+        widget=forms.HiddenInput,
+    )
+    value = forms.CharField(
+        label="Commentaire",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": "Saisir le commentaire…",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        number = self.initial.get("comment_number")
+        if number is not None:
+            self.fields["value"].label = "Commentaire " + number
+            self.fields["value"].initial = getattr(
+                self.instance, COMMENT_FIELDS[number]
+            )
+
+    class Meta:
+        model = Projet
+        fields = []
+
+    def save(self, commit=True):
+        instance: Projet = self.instance
+        field_name = COMMENT_FIELDS[self.cleaned_data["comment_number"]]
+        setattr(instance, field_name, self.cleaned_data["value"])
+        if commit:
+            instance.save(update_fields=[field_name])
+        return instance

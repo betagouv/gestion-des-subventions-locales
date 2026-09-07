@@ -9,6 +9,7 @@ from django.core.files.storage import default_storage
 from django.test import override_settings
 from freezegun import freeze_time
 
+from gsl.projet.constants import DOTATION_DETR, LETTRE_REFUS
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -26,7 +27,6 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, LETTRE_REFUS
 
 pytestmark = pytest.mark.django_db
 

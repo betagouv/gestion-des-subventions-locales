@@ -1,6 +1,13 @@
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.constants import (
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.fragments import ProjetActionsFragment, ProjetFragment
+from gsl.projet.models import Projet
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
@@ -11,13 +18,6 @@ from gsl_notification.forms import (
     GenerateDotationsDocumentsForm,
     NotificationMessageForm,
 )
-from gsl_projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.fragments import ProjetActionsFragment, ProjetFragment
-from gsl_projet.models import Projet
 
 NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
     PROJET_STATUS_ACCEPTED: "accepte",

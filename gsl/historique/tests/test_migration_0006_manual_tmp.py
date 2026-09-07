@@ -5,8 +5,8 @@ import pytest
 from django.apps import apps as django_apps
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_projet.tests.factories import ProjetFactory
 
 
 @pytest.mark.django_db

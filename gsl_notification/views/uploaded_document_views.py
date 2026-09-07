@@ -7,6 +7,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django.views.generic import UpdateView
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.models import Projet
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
@@ -25,7 +26,6 @@ from gsl_notification.views.views import (
     _enrich_context_for_create_or_get_arrete_view,
 )
 from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.models import Projet
 
 
 class ChooseDocumentTypeForUploadView(LoginRequiredMixin, UpdateView):

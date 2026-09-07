@@ -2,6 +2,13 @@ from decimal import Decimal
 
 import pytest
 
+from gsl.projet.constants import (
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_core.templatetags.gsl_filters import (
     create_alert_data,
     euro,
@@ -10,13 +17,6 @@ from gsl_core.templatetags.gsl_filters import (
     percent,
     percent_value,
     remove_first_word,
-)
-from gsl_projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_CHOICES,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
 )
 
 

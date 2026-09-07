@@ -5,6 +5,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
 
+from gsl.projet.constants import (
+    ANNEXE,
+    LETTRE_ET_ARRETE_SIGNES,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_REFUSED,
+)
+from gsl.projet.tests.factories import DetrProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -17,13 +24,6 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import (
-    ANNEXE,
-    LETTRE_ET_ARRETE_SIGNES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_REFUSED,
-)
-from gsl_projet.tests.factories import DetrProjetFactory, ProjetFactory
 
 LETTRE_REFUS_SIGNEE = LettreRefusSignee.document_type
 

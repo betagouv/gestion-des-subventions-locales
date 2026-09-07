@@ -1,8 +1,7 @@
 import logging
 from decimal import Decimal
 
-from gsl_programmation.models import ProgrammationProjet
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
@@ -10,7 +9,8 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.models import DotationProjet
+from gsl.projet.models import DotationProjet
+from gsl_programmation.models import ProgrammationProjet
 
 from ..models import Simulation, SimulationProjet
 

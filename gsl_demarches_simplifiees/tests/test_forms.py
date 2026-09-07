@@ -3,6 +3,8 @@ from unittest.mock import patch
 
 import pytest
 
+from gsl.projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.forms import (
     DossierReporteSansPieceForm,
     DotationFormField,
@@ -12,8 +14,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     CategorieDsilFactory,
     DossierFactory,
 )
-from gsl_projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
-from gsl_projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -234,7 +234,7 @@ class TestDossierReporteSansPieceForm:
 
         form.save()
 
-        from gsl_projet.models import DotationProjet
+        from gsl.projet.models import DotationProjet
 
         dp = DotationProjet.objects.get(
             projet__dossier_ds=dossier, dotation=DOTATION_DETR

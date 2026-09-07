@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
+from gsl.projet.constants import DOTATION_DETR
 from gsl_core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
@@ -33,7 +34,6 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR
 
 
 @pytest.fixture

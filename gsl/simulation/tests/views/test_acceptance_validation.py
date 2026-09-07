@@ -14,6 +14,12 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_PROCESSING,
+)
+from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -21,12 +27,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_PROCESSING,
-)
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet
@@ -231,7 +231,7 @@ class TestAcceptanceModalView:
         ]
         assert "inférieure au montant accordé" in response.content.decode()
 
-    @mock.patch("gsl_projet.models.DsService.update_ds_annotations_for_one_dotation")
+    @mock.patch("gsl.projet.models.DsService.update_ds_annotations_for_one_dotation")
     def test_post_blocks_acceptance_when_validation_fails(
         self,
         mock_update,
@@ -250,7 +250,7 @@ class TestAcceptanceModalView:
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         mock_update.assert_not_called()
 
-    @mock.patch("gsl_projet.models.DsService.update_ds_annotations_for_one_dotation")
+    @mock.patch("gsl.projet.models.DsService.update_ds_annotations_for_one_dotation")
     def test_post_shows_ds_error_inline_in_modal_and_rolls_back(
         self,
         mock_update,

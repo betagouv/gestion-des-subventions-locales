@@ -8,10 +8,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl_core.models import BaseModel, Collegue, Perimetre
-from gsl_core.utils import kebab_case
-from gsl_notification.validators import document_file_validator, logo_file_validator
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     ARRETE,
     DOTATION_CHOICES,
     LETTRE,
@@ -20,6 +17,9 @@ from gsl_projet.constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
+from gsl_core.models import BaseModel, Collegue, Perimetre
+from gsl_core.utils import kebab_case
+from gsl_notification.validators import document_file_validator, logo_file_validator
 
 
 def tokenized_file_in_timestamped_folder(_, filename):

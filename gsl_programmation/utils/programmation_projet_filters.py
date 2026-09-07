@@ -6,6 +6,21 @@ from django_filters import (
     RangeFilter,
 )
 
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+)
+from gsl.projet.models import DotationProjet
+from gsl.projet.utils.django_filters_custom_widget import (
+    CustomCheckboxSelectMultiple,
+    CustomSelectWidget,
+    DsfrRangeWidget,
+)
+from gsl.projet.utils.projet_filters import (
+    CommonFiltersFields,
+    ProjetOrderingFilter,
+    make_filter_search,
+)
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -18,21 +33,6 @@ from gsl_demarches_simplifiees.models import (
 from gsl_programmation.models import (
     Enveloppe,
     ProgrammationProjet,
-)
-from gsl_projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-)
-from gsl_projet.models import DotationProjet
-from gsl_projet.utils.django_filters_custom_widget import (
-    CustomCheckboxSelectMultiple,
-    CustomSelectWidget,
-    DsfrRangeWidget,
-)
-from gsl_projet.utils.projet_filters import (
-    CommonFiltersFields,
-    ProjetOrderingFilter,
-    make_filter_search,
 )
 
 PROGRAMMATION_ORDERING_MAP = {

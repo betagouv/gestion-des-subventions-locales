@@ -76,7 +76,7 @@ def test_run_bulk_status_job_to_accepted_fires_ds_mutation_per_row(
     job = _make_job(simulation, collegue, [sp], SimulationProjet.STATUS_ACCEPTED)
 
     with mock.patch(
-        "gsl_projet.models.DsService.update_ds_annotations_for_one_dotation"
+        "gsl.projet.models.DsService.update_ds_annotations_for_one_dotation"
     ) as ds_mock:
         run_bulk_status_job(str(job.pk))
 
@@ -111,7 +111,7 @@ def test_run_bulk_status_job_continues_when_one_row_fails_ds(
         return None
 
     with mock.patch(
-        "gsl_projet.models.DsService.update_ds_annotations_for_one_dotation",
+        "gsl.projet.models.DsService.update_ds_annotations_for_one_dotation",
         side_effect=side_effect,
     ):
         run_bulk_status_job(str(job.pk))
@@ -140,7 +140,7 @@ def test_run_bulk_status_job_records_validation_error_for_missing_assiette(
     job = _make_job(simulation, collegue, [sp], SimulationProjet.STATUS_ACCEPTED)
 
     with mock.patch(
-        "gsl_projet.models.DsService.update_ds_annotations_for_one_dotation"
+        "gsl.projet.models.DsService.update_ds_annotations_for_one_dotation"
     ) as ds_mock:
         run_bulk_status_job(str(job.pk))
 
@@ -229,7 +229,7 @@ def test_run_bulk_status_job_preserves_recorded_errors_when_crashing(
 
     with (
         mock.patch(
-            "gsl_projet.models.DsService.update_ds_annotations_for_one_dotation",
+            "gsl.projet.models.DsService.update_ds_annotations_for_one_dotation",
             side_effect=ds_side_effect,
         ),
         mock.patch(

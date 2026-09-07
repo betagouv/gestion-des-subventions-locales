@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_demarches_simplifiees.services import (
@@ -21,7 +22,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     FieldMappingFactory,
     ProfileFactory,
 )
-from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 
 pytestmark = pytest.mark.django_db
 

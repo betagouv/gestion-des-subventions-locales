@@ -4,14 +4,14 @@ import pytest
 from django.db import IntegrityError
 from django.urls import reverse
 
+from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from gsl_projet.tests.factories import DotationProjetFactory
 
 from ...models import BulkStatusJob, SimulationProjet
 from ..factories import (

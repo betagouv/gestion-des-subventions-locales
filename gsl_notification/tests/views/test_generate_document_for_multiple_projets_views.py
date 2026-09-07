@@ -11,6 +11,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 from freezegun import freeze_time
 
+from gsl.projet.constants import DOTATION_DETR, LETTRE
+from gsl.projet.models import Projet
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -32,8 +34,6 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
-from gsl_projet.constants import DOTATION_DETR, LETTRE
-from gsl_projet.models import Projet
 
 pytestmark = pytest.mark.django_db
 

@@ -9,6 +9,11 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from gsl.projet.tests.factories import (
+    DetrProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     CollegueFactory,
@@ -18,11 +23,6 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
-)
-from gsl_projet.tests.factories import (
-    DetrProjetFactory,
-    DsilProjetFactory,
-    ProjetFactory,
 )
 
 pytestmark = pytest.mark.django_db

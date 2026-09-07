@@ -6,6 +6,8 @@ from django.test import Client
 from django.urls import resolve, reverse
 from django.utils import timezone
 
+from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -15,8 +17,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from gsl_projet.tests.factories import DotationProjetFactory
 
 from ...models import SimulationProjet
 from ...views.simulation_views import FilteredProjetsExportView

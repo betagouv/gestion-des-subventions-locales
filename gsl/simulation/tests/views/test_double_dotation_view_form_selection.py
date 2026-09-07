@@ -12,13 +12,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueWithDSProfileFactory,
-    PerimetreDepartementalFactory,
-)
-from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl_projet.constants import (
+from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
@@ -26,7 +20,13 @@ from gsl_projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueWithDSProfileFactory,
+    PerimetreDepartementalFactory,
+)
+from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ...models import SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory
