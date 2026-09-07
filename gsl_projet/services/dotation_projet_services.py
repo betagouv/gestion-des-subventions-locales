@@ -5,6 +5,7 @@ from typing import Any, Literal
 from django.db import transaction
 
 from gsl.historique.models import ProjetAction
+from gsl.simulation.models import Simulation, SimulationProjet
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
@@ -18,7 +19,6 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import DotationProjet, Projet
-from gsl_simulation.models import Simulation, SimulationProjet
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class DotationProjetService:
         cls,
         dotation_projet: DotationProjet,
     ):
-        from gsl_simulation.services.simulation_projet_service import (
+        from gsl.simulation.services.simulation_projet_service import (
             SimulationProjetService,
         )
 
@@ -587,7 +587,7 @@ class DotationProjetService:
     def _add_dotation_projets_to_all_concerned_simulations(
         cls, dotation_projets: list[DotationProjet]
     ):
-        from gsl_simulation.services.simulation_projet_service import (
+        from gsl.simulation.services.simulation_projet_service import (
             SimulationProjetService,
         )
 

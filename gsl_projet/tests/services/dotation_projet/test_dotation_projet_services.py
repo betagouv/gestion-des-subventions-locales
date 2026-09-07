@@ -6,6 +6,8 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from gsl.historique.models import ProjetAction
+from gsl.simulation.models import Simulation, SimulationProjet
+from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -36,8 +38,6 @@ from gsl_projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
 )
-from gsl_simulation.models import Simulation, SimulationProjet
-from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 CURRENT_YEAR = datetime.datetime.now().year
 

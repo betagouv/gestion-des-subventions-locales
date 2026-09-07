@@ -20,6 +20,8 @@ from django_htmx.http import HttpResponseClientRedirect
 
 from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
+from gsl.simulation.forms import SimulationProjetForm
+from gsl.simulation.models import SimulationProjet
 from gsl_core.decorators import htmx_only
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import (
@@ -50,8 +52,6 @@ from gsl_projet.utils.projet_filters import (
 )
 from gsl_projet.utils.projet_page import PROJET_MENU, get_projet_go_back_context
 from gsl_projet.utils.utils import get_comment_cards
-from gsl_simulation.forms import SimulationProjetForm
-from gsl_simulation.models import SimulationProjet
 
 from .models import Projet
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS

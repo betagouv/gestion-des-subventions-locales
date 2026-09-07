@@ -1,5 +1,6 @@
 import pytest
 
+from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
@@ -13,7 +14,6 @@ from gsl_programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
 

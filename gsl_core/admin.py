@@ -18,6 +18,7 @@ from import_export.admin import ImportMixin
 from import_export.formats.base_formats import CSV
 from import_export.forms import ImportForm
 
+from gsl.simulation.models import Simulation
 from gsl_core.admin_alerts import notify_admins
 from gsl_core.models import (
     Adresse,
@@ -29,7 +30,6 @@ from gsl_core.models import (
     Region,
 )
 from gsl_core.tasks import associate_or_update_ds_profile_to_users
-from gsl_simulation.models import Simulation
 
 from .resources import (
     ArrondissementResource,

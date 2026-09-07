@@ -1,0 +1,340 @@
+import uuid
+
+from django.core.validators import MinValueValidator
+from django.db import models
+from django.db.models import Count, Q, QuerySet, Sum
+from django.forms import ValidationError
+from django_extensions.db.fields import AutoSlugField
+
+from gsl_core.models import BaseModel, Collegue, Perimetre
+from gsl_programmation.models import Enveloppe
+from gsl_programmation.services.enveloppe_service import EnveloppeService
+from gsl_projet.models import DotationProjet, Projet
+from gsl_projet.utils.utils import compute_taux
+
+
+def validate_columns_visibility(value):
+    from gsl.simulation.table_columns import SIMULATION_TABLE_COLUMNS
+
+    if not isinstance(value, dict):
+        raise ValidationError("La valeur doit être un objet JSON.")
+    valid_keys = {col.css_key for col in SIMULATION_TABLE_COLUMNS if col.hideable}
+    for key, val in value.items():
+        if key not in valid_keys:
+            raise ValidationError(f"Clé de colonne inconnue : {key}")
+        if not isinstance(val, bool):
+            raise ValidationError(f"La valeur pour '{key}' doit être un booléen.")
+
+
+class SimulationQuerySet(models.QuerySet):
+    def containing_perimetre(self, perimetre: Perimetre):
+        ancestors_qs = perimetre.ancestors()
+        perimetres_to_filter = list(ancestors_qs) + [perimetre]
+        return self.filter(enveloppe__perimetre__in=perimetres_to_filter)
+
+    def visible_for_user(self, user: Collegue):
+        return self.filter(
+            enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(user)
+        )
+
+
+class SimulationManager(models.Manager.from_queryset(SimulationQuerySet)):
+    pass
+
+
+class Simulation(BaseModel):
+    title = models.CharField(verbose_name="Titre")
+    created_by = models.ForeignKey(Collegue, on_delete=models.SET_NULL, null=True)
+    enveloppe = models.ForeignKey(
+        Enveloppe,
+        on_delete=models.PROTECT,
+        verbose_name="Enveloppe de dotation associée",
+    )
+    slug = AutoSlugField(
+        verbose_name="Clé d’URL",
+        unique=True,
+        max_length=120,
+        populate_from="title",
+        blank=False,
+    )
+    columns_visibility = models.JSONField(
+        verbose_name="Colonnes affichées",
+        null=True,
+        blank=True,
+        default=None,
+        validators=[validate_columns_visibility],
+    )
+    filters = models.JSONField(
+        verbose_name="Filtres appliqués",
+        null=True,
+        blank=True,
+        default=None,
+    )
+    downloaded_at = models.DateTimeField(
+        verbose_name="Date de téléchargement",
+        null=True,
+        blank=True,
+        default=None,
+    )
+
+    objects = SimulationManager()
+
+    class Meta:
+        verbose_name = "Simulation"
+        verbose_name_plural = "Simulations"
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def dotation(self):
+        return self.enveloppe.dotation
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        if not self.slug:
+            return reverse("simulation:simulation-form")
+
+        return reverse("simulation:simulation-detail", kwargs={"slug": self.slug})
+
+    def get_projet_status_summary(self):
+        default_status_summary = {
+            SimulationProjet.STATUS_PROCESSING: 0,
+            SimulationProjet.STATUS_ACCEPTED: 0,
+            SimulationProjet.STATUS_REFUSED: 0,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: 0,
+            SimulationProjet.STATUS_PROVISIONALLY_REFUSED: 0,
+            "notified": 0,
+        }
+        status_count = (
+            SimulationProjet.objects.active()
+            .filter(simulation=self)
+            .values("status")
+            .annotate(count=Count("status"))
+        )
+
+        summary = {item["status"]: item["count"] for item in status_count}
+
+        notified_count = (
+            SimulationProjet.objects.active()
+            .filter(
+                simulation=self,
+                dotation_projet__projet__notified_at__isnull=False,
+            )
+            .count()
+        )
+
+        return {**default_status_summary, **summary, "notified": notified_count}
+
+    def get_total_amount_granted(self, qs: QuerySet[Projet]):
+        statuses_to_include = (
+            SimulationProjet.STATUS_ACCEPTED,
+            SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        )
+        return (
+            qs.filter(
+                dotationprojet__simulationprojet__simulation=self,
+                dotationprojet__simulationprojet__status__in=statuses_to_include,
+            ).aggregate(Sum("dotationprojet__simulationprojet__montant"))[
+                "dotationprojet__simulationprojet__montant__sum"
+            ]
+            or 0.0
+        )
+
+
+class SimulationProjetQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(dotation_projet__projet__dossier_ds__is_active=True)
+
+    def in_user_perimeter(self, user: Collegue):
+        if user.is_staff:
+            return self.all()
+        return self.filter(
+            simulation__enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(
+                user
+            )
+        )
+
+
+class SimulationProjetManager(models.Manager.from_queryset(SimulationProjetQuerySet)):
+    pass
+
+
+class SimulationProjet(BaseModel):
+    STATUS_PROCESSING = "draft"
+    STATUS_ACCEPTED = "valid"
+    STATUS_REFUSED = "cancelled"
+    STATUS_PROVISIONALLY_ACCEPTED = "provisionally_accepted"
+    STATUS_PROVISIONALLY_REFUSED = "provisionally_refused"
+    STATUS_DISMISSED = "dismissed"
+
+    STATUS_CHOICES = (
+        (STATUS_PROCESSING, "🔄 En traitement"),
+        (STATUS_ACCEPTED, "✅ Accepté"),
+        (STATUS_PROVISIONALLY_ACCEPTED, "✔️ Accepté provisoirement"),
+        (STATUS_PROVISIONALLY_REFUSED, "✖️ Refusé provisoirement"),
+        (STATUS_REFUSED, "❌ Refusé"),
+        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
+    )
+
+    SIMULATION_PENDING_STATUSES = (
+        STATUS_PROCESSING,
+        STATUS_PROVISIONALLY_ACCEPTED,
+        STATUS_PROVISIONALLY_REFUSED,
+    )
+
+    dotation_projet = models.ForeignKey(
+        DotationProjet, on_delete=models.CASCADE, null=True
+    )
+    simulation = models.ForeignKey(
+        Simulation, on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    montant = models.DecimalField(
+        decimal_places=2,
+        max_digits=14,
+        validators=[MinValueValidator(0)],
+        verbose_name="Montant",
+    )
+    status = models.CharField(
+        verbose_name="État", choices=STATUS_CHOICES, default=STATUS_PROCESSING
+    )
+
+    objects = SimulationProjetManager()
+
+    class Meta:
+        verbose_name = "Projet de simulation"
+        verbose_name_plural = "Projets de simulation"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("dotation_projet", "simulation"),
+                name="unique_projet_simulation",
+                nulls_distinct=True,
+            ),
+        )
+
+    def __str__(self):
+        return f"Simulation projet {self.pk}"
+
+    @property
+    def projet(self):
+        return self.dotation_projet.projet
+
+    @property
+    def dossier(self):
+        return self.projet.dossier_ds
+
+    @property
+    def enveloppe(self):
+        return self.simulation.enveloppe
+
+    @property
+    def dotation(self):
+        return self.dotation_projet.dotation
+
+    @property
+    def taux(self):
+        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
+
+    def clean(self):
+        errors = []
+
+        if self.status not in self.SIMULATION_PENDING_STATUSES:
+            self._validate_montant(errors)
+        self._validate_dotation(errors)
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_montant(self, errors):
+        if self.dotation_projet.assiette is not None:
+            if self.montant and self.montant > self.dotation_projet.assiette:
+                errors.append(
+                    "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
+                )
+        else:
+            if (
+                self.montant
+                and self.projet.dossier_ds.finance_cout_total
+                and self.montant > self.projet.dossier_ds.finance_cout_total
+            ):
+                errors.append(
+                    "Le montant doit être inférieur ou égal au coût total du projet."
+                )
+
+    def _validate_dotation(self, errors):
+        if self.dotation_projet.dotation != self.simulation.enveloppe.dotation:
+            errors.append(
+                "La dotation du projet doit être la même que la dotation de la simulation."
+            )
+
+
+_ALLOWED_TARGET_STATUSES = (
+    SimulationProjet.STATUS_ACCEPTED,
+    SimulationProjet.STATUS_REFUSED,
+    SimulationProjet.STATUS_DISMISSED,
+    *SimulationProjet.SIMULATION_PENDING_STATUSES,
+)
+
+
+class BulkStatusJob(BaseModel):
+    """
+    Tracks an async bulk SimulationProjet status change that involves slow
+    Démarches Numériques mutations. The row is the single source of truth for
+    progress: the Celery task updates `processed`/`errors` after each row, and
+    the browser polls a view that reads this model.
+    """
+
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_DONE = "done"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "En attente"),
+        (STATUS_RUNNING, "En cours"),
+        (STATUS_DONE, "Terminé"),
+    )
+
+    ALLOWED_TARGET_STATUSES = _ALLOWED_TARGET_STATUSES
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+    target_status = models.CharField(
+        max_length=32,
+        choices=[
+            (key, label)
+            for key, label in SimulationProjet.STATUS_CHOICES
+            if key in _ALLOWED_TARGET_STATUSES
+        ],
+        verbose_name="Statut cible",
+    )
+    simulation_projet_ids = models.JSONField(default=list)
+    status = models.CharField(
+        max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    processed = models.PositiveIntegerField(default=0)
+    errors = models.JSONField(default=list)
+
+    class Meta:
+        verbose_name = "Changement de statut en masse"
+        verbose_name_plural = "Changements de statut en masse"
+        ordering = ("-created_at",)
+        constraints = (
+            models.UniqueConstraint(
+                fields=("simulation",),
+                condition=Q(status__in=("pending", "running")),
+                name="uq_bulkstatusjob_active_per_simulation",
+            ),
+        )
+
+    @property
+    def total(self) -> int:
+        return len(self.simulation_projet_ids)
+
+    @property
+    def is_running(self) -> bool:
+        return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
+
+    @property
+    def succeeded_count(self) -> int:
+        return self.processed - len(self.errors)

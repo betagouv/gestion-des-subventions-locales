@@ -5,9 +5,9 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
+from gsl.simulation.models import SimulationProjet
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.templatetags.gsl_filters import euro, percent
-from gsl_simulation.models import SimulationProjet
 
 from .models import Enveloppe, ProgrammationProjet
 from .resources import EnveloppeDETRResource, EnveloppeDSILResource

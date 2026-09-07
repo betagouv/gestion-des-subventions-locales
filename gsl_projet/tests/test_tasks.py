@@ -3,6 +3,8 @@ from unittest import mock
 
 import pytest
 
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -29,8 +31,6 @@ from gsl_projet.tasks import (
     task_create_or_update_projets_and_co_from_all_dossiers,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
-from gsl_simulation.models import SimulationProjet
-from gsl_simulation.tests.factories import SimulationProjetFactory
 
 # Fixtures
 

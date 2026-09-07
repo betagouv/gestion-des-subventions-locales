@@ -1,0 +1,552 @@
+from decimal import Decimal
+from typing import cast
+from unittest import mock
+from unittest.mock import patch
+
+import pytest
+from django.contrib.messages import INFO, SUCCESS, get_messages
+from django.urls import reverse
+
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueWithDSProfileFactory,
+    PerimetreDepartementalFactory,
+)
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
+from gsl_projet.constants import (
+    DOTATION_DETR,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
+from gsl_projet.models import DotationProjet
+from gsl_projet.tests.factories import DotationProjetFactory
+
+pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def perimetre_departemental():
+    return PerimetreDepartementalFactory()
+
+
+@pytest.fixture
+def ds_field():
+    return FieldMappingFactory(ds_field_id=101112)
+
+
+@pytest.fixture
+def detr_enveloppe(perimetre_departemental):
+    return DetrEnveloppeFactory(
+        perimetre=perimetre_departemental, annee=2025, montant=1_000_000
+    )
+
+
+@pytest.fixture
+def simulation(detr_enveloppe):
+    return SimulationFactory(enveloppe=detr_enveloppe)
+
+
+@pytest.fixture
+def collegue(perimetre_departemental):
+    return CollegueWithDSProfileFactory(perimetre=perimetre_departemental)
+
+
+@pytest.fixture
+def client_with_user_logged(collegue):
+    return ClientWithLoggedUserFactory(collegue)
+
+
+@pytest.fixture
+def simulation_projet(collegue, simulation):
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_PROCESSING,
+        projet__dossier_ds__perimetre=collegue.perimetre,
+        dotation=DOTATION_DETR,
+        assiette=10_000,
+    )
+    return cast(
+        SimulationProjet,
+        SimulationProjetFactory(
+            dotation_projet=dotation_projet,
+            status=SimulationProjet.STATUS_PROCESSING,
+            montant=1000,
+            simulation=simulation,
+        ),
+    )
+
+
+def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
+    client_with_user_logged, simulation_projet
+):
+    page_url = reverse(
+        "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
+    )
+    url = reverse(
+        "simulation:simulation-projet-update-programmed-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
+    )
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+    ) as mock_update_ds_annotations_for_one_dotation:
+        mock_update_ds_annotations_for_one_dotation.return_value = None
+        response = client_with_user_logged.post(
+            url,
+            headers={"HX-Request": "true", "HX-Request-URL": page_url},
+        )
+
+    updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
+    dotation_projet = DotationProjet.objects.get(
+        id=updated_simulation_projet.dotation_projet.id
+    )
+
+    assert response.status_code == 200
+    assert "HX-Redirect" in response.headers
+    assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
+    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+
+
+data_test = (
+    (
+        SimulationProjet.STATUS_ACCEPTED,
+        "La demande de financement avec la dotation DETR a bien été acceptée avec un montant de 1\xa0000,00\xa0€.",
+        "accepted",
+    ),
+    (
+        SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
+        "La dotation DETR est acceptée provisoirement dans cette simulation.",
+        "provisionally_accepted",
+    ),
+    (
+        SimulationProjet.STATUS_PROCESSING,
+        "La demande de financement avec la dotation DETR est bien repassée en traitement.",
+        "draft",
+    ),
+)
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+@pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
+def test_patch_status_simulation_projet_gives_message(
+    mock_ds_update,
+    client_with_user_logged,
+    simulation_projet,
+    status,
+    expected_message,
+    expected_tag,
+):
+    if status == SimulationProjet.STATUS_PROCESSING:
+        simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
+        simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
+        simulation_projet.dotation_projet.save()
+        simulation_projet.save()
+
+    page_url = reverse(
+        "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
+    )
+    url = reverse(
+        (
+            "simulation:simulation-projet-update-simulation-status"
+            if status in SimulationProjet.SIMULATION_PENDING_STATUSES
+            else "simulation:simulation-projet-update-programmed-status"
+        ),
+        args=[simulation_projet.id, status],
+    )
+    response = client_with_user_logged.post(
+        url, headers={"HX-Request": "true", "HX-Request-URL": page_url}
+    )
+
+    if status == SimulationProjet.STATUS_ACCEPTED:
+        mock_ds_update.assert_called_once_with(
+            dossier=simulation_projet.projet.dossier_ds,
+            user=client_with_user_logged.user,
+            annotations_dotation_to_update=simulation_projet.dotation,
+            dotations_to_be_checked=[simulation_projet.dotation],
+            assiette=simulation_projet.dotation_projet.assiette,
+            montant=Decimal(simulation_projet.montant),
+            taux=Decimal(simulation_projet.taux),
+        )
+
+    assert response.status_code == 200
+
+    messages = get_messages(response.wsgi_request)
+    assert len(messages) == 1
+
+    message = list(messages)[0]
+    assert (
+        message.level == INFO
+        if status in SimulationProjet.SIMULATION_PENDING_STATUSES
+        else SUCCESS
+    )
+    assert message.message == expected_message
+    assert message.extra_tags == expected_tag
+
+
+@pytest.mark.parametrize("data", ({"status": "invalid_status"}, {}))
+def test_patch_status_simulation_projet_invalid_status(
+    client_with_user_logged, simulation_projet, data
+):
+    url = reverse(
+        "simulation:simulation-projet-update-simulation-status",
+        args=[simulation_projet.id, "invalid"],
+    )
+    response = client_with_user_logged.post(
+        url,
+        follow=True,
+        headers={"HX-Request": "true"},
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
+    assert response.status_code == 404
+    assert updated_simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+
+
+@pytest.fixture
+def accepted_simulation_projet(collegue, simulation):
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_PROCESSING,
+        assiette=10_000,
+        projet__dossier_ds__perimetre=collegue.perimetre,
+        projet__is_budget_vert=False,
+        dotation=DOTATION_DETR,
+    )
+
+    return cast(
+        SimulationProjet,
+        SimulationProjetFactory(
+            dotation_projet=dotation_projet,
+            status=SimulationProjet.STATUS_ACCEPTED,
+            montant=1_000,
+            simulation=simulation,
+        ),
+    )
+
+
+def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
+    client_with_user_logged, simulation_projet
+):
+    simulation_projet.projet.dossier_ds.ds_instructeurs.add(
+        client_with_user_logged.user.ds_profile
+    )
+
+    page_url = reverse(
+        "simulation:simulation-detail", args=[simulation_projet.simulation.slug]
+    )
+    url = reverse(
+        "simulation:simulation-projet-update-programmed-status",
+        args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
+    )
+
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+        side_effect=DsServiceException("Erreur !"),
+    ):
+        response = client_with_user_logged.post(
+            url,
+            headers={"HX-Request": "true", "HX-Request-URL": page_url},
+            follow=True,
+        )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert (
+        "Une erreur est survenue lors de la mise à jour des informations sur Démarche Numérique"
+        in content
+    )
+    assert "Erreur !" in content
+    simulation_projet.refresh_from_db()
+    assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING  # Not updated
+    assert (
+        simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
+    )  # Not updated
+
+
+# --- Click-to-edit CBV tests ---
+
+
+def test_edit_taux_get_returns_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="edit-taux-{accepted_simulation_projet.pk}"' in content
+    assert "Enregistrer" in content
+    assert "Annuler" in content
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_edit_taux_post_saves_and_returns_oob(
+    mock_ds_update,
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.post(
+        url,
+        {"taux": "75.0", "confirmed": "1"},
+        headers={"HX-Request": "true"},
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.get(
+        id=accepted_simulation_projet.id
+    )
+
+    mock_ds_update.assert_called_once_with(
+        dossier=accepted_simulation_projet.projet.dossier_ds,
+        user=client_with_user_logged.user,
+        annotations_dotation_to_update=accepted_simulation_projet.dotation,
+        dotations_to_be_checked=[accepted_simulation_projet.dotation],
+        assiette=accepted_simulation_projet.dotation_projet.assiette,
+        montant=7_500,
+        taux=75.0,
+    )
+    assert response.status_code == 200
+    assert updated_simulation_projet.taux == 75.0
+    assert updated_simulation_projet.montant == 7_500
+    assert (
+        '<span hx-swap-oob="innerHTML" id="total-amount-granted">7\xa0500\xa0€</span>'
+        in response.content.decode()
+    )
+
+
+@pytest.mark.parametrize("taux", ("-3", "100.1"))
+def test_edit_taux_post_with_wrong_value_returns_form_with_errors(
+    client_with_user_logged, accepted_simulation_projet, taux
+):
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.post(
+        url,
+        {"taux": f"{taux}"},
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "fr-input-group--error" in content or "fr-error-text" in content
+
+    accepted_simulation_projet.refresh_from_db()
+    assert accepted_simulation_projet.taux == 10
+    assert accepted_simulation_projet.montant == 1_000
+
+
+def test_edit_taux_post_rolls_back_on_ds_error(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
+
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+        side_effect=DsServiceException("Erreur !"),
+    ):
+        response = client_with_user_logged.post(
+            url,
+            {"taux": 75, "confirmed": "1"},
+        )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Erreur !" in content
+
+    accepted_simulation_projet.refresh_from_db()
+    assert accepted_simulation_projet.taux == 10.0  # Not updated
+    assert accepted_simulation_projet.montant == 1_000  # Not updated
+
+
+def test_edit_montant_get_returns_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse("simulation:edit-montant", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="edit-montant-{accepted_simulation_projet.pk}"' in content
+    assert "Enregistrer" in content
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_edit_montant_post_saves_and_returns_oob(
+    mock_ds_update,
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse(
+        "simulation:edit-montant",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"montant": "1267.32", "confirmed": "1"},
+        headers={"HX-Request": "true"},
+    )
+
+    updated_simulation_projet = SimulationProjet.objects.get(
+        id=accepted_simulation_projet.id
+    )
+
+    mock_ds_update.assert_called_once()
+    call_kwargs = mock_ds_update.call_args.kwargs
+    assert call_kwargs["dossier"] == accepted_simulation_projet.projet.dossier_ds
+    assert (
+        call_kwargs["annotations_dotation_to_update"]
+        == accepted_simulation_projet.dotation
+    )
+    assert call_kwargs["dotations_to_be_checked"] == [
+        accepted_simulation_projet.dotation
+    ]
+    assert float(call_kwargs["montant"]) == 1267.32
+    assert float(call_kwargs["taux"]) == pytest.approx(12.6732, abs=0.001)
+
+    assert response.status_code == 200
+    assert updated_simulation_projet.montant == Decimal("1267.32")
+    assert (
+        '<span hx-swap-oob="innerHTML" id="total-amount-granted">1\xa0267\xa0€</span>'
+        in response.content.decode()
+    )
+
+
+def test_edit_montant_post_with_wrong_value_returns_form_with_errors(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:edit-montant",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"montant": 12_000},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "fr-input-group--error" in content or "fr-error-text" in content
+
+    accepted_simulation_projet.refresh_from_db()
+    assert accepted_simulation_projet.montant == 1_000
+    assert accepted_simulation_projet.taux == 10.0
+
+
+def test_edit_montant_post_rolls_back_on_ds_error(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:edit-montant",
+        args=[accepted_simulation_projet.id],
+    )
+
+    with patch(
+        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+        side_effect=DsServiceException("Erreur !"),
+    ):
+        response = client_with_user_logged.post(
+            url,
+            {"montant": 2_000, "confirmed": "1"},
+        )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Erreur !" in content
+
+    accepted_simulation_projet.refresh_from_db()
+    assert accepted_simulation_projet.montant == 1_000
+    assert accepted_simulation_projet.taux == 10.0
+
+
+def test_edit_assiette_get_returns_form(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse("simulation:edit-assiette", args=[accepted_simulation_projet.id])
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="edit-assiette-{accepted_simulation_projet.pk}"' in content
+    assert "Enregistrer" in content
+
+
+def test_edit_assiette_post_saves(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse(
+        "simulation:edit-assiette",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"assiette": "8000"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    accepted_simulation_projet.dotation_projet.refresh_from_db()
+    assert accepted_simulation_projet.dotation_projet.assiette == Decimal("8000")
+
+
+def test_edit_assiette_post_keeps_bulk_status_checkbox_in_row(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    """The HTMX row partial returned after a successful edit must still
+    contain the bulk-status selection checkbox so the row stays selectable
+    without a full page reload. Other edit views (montant, taux, comment)
+    share `render_success_partial`, so this single assertion covers all four.
+    """
+    url = reverse(
+        "simulation:edit-assiette",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"assiette": "8000"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="bulk-status-checkbox-{accepted_simulation_projet.pk}"' in content
+    assert 'data-checkbox-selection-target="rowCheckbox"' in content
+
+
+def test_edit_assiette_post_with_wrong_value_returns_form_with_errors(
+    client_with_user_logged, accepted_simulation_projet
+):
+    url = reverse(
+        "simulation:edit-assiette",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.post(
+        url,
+        {"assiette": "-100"},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "fr-input-group--error" in content or "fr-error-text" in content
+
+    accepted_simulation_projet.dotation_projet.refresh_from_db()
+    assert accepted_simulation_projet.dotation_projet.assiette == 10_000
+
+
+def test_refresh_simulation_row(
+    client_with_user_logged,
+    accepted_simulation_projet,
+):
+    url = reverse(
+        "simulation:refresh-simulation-row",
+        args=[accepted_simulation_projet.id],
+    )
+    response = client_with_user_logged.get(url)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert f'id="simulation-{accepted_simulation_projet.pk}"' in content

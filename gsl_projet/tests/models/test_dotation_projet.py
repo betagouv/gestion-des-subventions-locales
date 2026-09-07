@@ -8,6 +8,8 @@ from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
 from gsl.historique.models import ProjetAction
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import (
     CollegueFactory,
     DepartementFactory,
@@ -38,8 +40,6 @@ from gsl_projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
-from gsl_simulation.models import SimulationProjet
-from gsl_simulation.tests.factories import SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
