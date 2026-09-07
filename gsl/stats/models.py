@@ -1,27 +1,10 @@
 from django.db import models
-from django.db.models import Case, Value, When
 
 from gsl.projet.utils.utils import compute_taux
 
 
-class Beneficiaire(models.Model):
-    siren = models.CharField(max_length=9, primary_key=True, verbose_name="SIREN")
-    nom = models.CharField(max_length=200, verbose_name="Nom")
-    type = models.CharField(max_length=50, verbose_name="Type")
-
-    class Meta:
-        verbose_name = "Bénéficiaire"
-        verbose_name_plural = "Bénéficiaires"
-        ordering = [Case(When(nom="", then=Value(1)), default=Value(0)), "nom"]
-
-    def __str__(self):
-        return f"{self.nom} ({self.siren})"
-
-
 class SubventionDgcl(models.Model):
-    beneficiaire = models.ForeignKey(
-        Beneficiaire, on_delete=models.CASCADE, verbose_name="Bénéficiaire"
-    )
+    siren = models.CharField(max_length=9, db_index=True, verbose_name="SIREN")
     exercice = models.PositiveSmallIntegerField(verbose_name="Exercice")
     dispositif = models.CharField(
         max_length=80, verbose_name="Dispositif"
@@ -51,11 +34,13 @@ class SubventionDgcl(models.Model):
     class Meta:
         verbose_name = "Subvention DGCL"
         verbose_name_plural = "Subventions DGCL"
-        unique_together = [("exercice", "dispositif", "beneficiaire", "intitule")]
+        unique_together = [("exercice", "dispositif", "siren", "intitule")]
         ordering = ["-exercice"]
 
     def __str__(self):
-        return f"{self.exercice} {self.dispositif} - {self.beneficiaire} - {self.intitule[:50]}"
+        return (
+            f"{self.exercice} {self.dispositif} - {self.siren} - {self.intitule[:50]}"
+        )
 
     @property
     def taux(self):
@@ -93,9 +78,7 @@ class SubventionFondsVert(models.Model):
     dossier_number = models.IntegerField(
         unique=True, verbose_name="Numéro de dossier DS"
     )
-    beneficiaire = models.ForeignKey(
-        Beneficiaire, on_delete=models.CASCADE, verbose_name="Bénéficiaire"
-    )
+    siren = models.CharField(max_length=9, db_index=True, verbose_name="SIREN")
     annee_millesime = models.PositiveSmallIntegerField(verbose_name="Millésime")
     demarche_number = models.IntegerField(verbose_name="Numéro de démarche DS")
     demarche_title = models.CharField(max_length=200, verbose_name="Démarche")
@@ -140,7 +123,7 @@ class SubventionFondsVert(models.Model):
         ordering = ["-annee_millesime"]
 
     def __str__(self):
-        return f"{self.annee_millesime} Fonds Vert - {self.beneficiaire} - {self.nom_du_projet[:50]}"
+        return f"{self.annee_millesime} Fonds Vert - {self.siren} - {self.nom_du_projet[:50]}"
 
     @property
     def taux(self):

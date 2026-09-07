@@ -274,13 +274,13 @@ def remove_filter_qs(context, field):
 
 
 _DISPOSITIF_SHORT = {
-    "DSIL exceptionnelle": "DSIL EXC.",
+    "dsil exceptionnelle": "DSIL EXC.",
 }
 
 
 @register.filter
 def dispositif_short(label):
-    return _DISPOSITIF_SHORT.get(label, label)
+    return _DISPOSITIF_SHORT.get(label.lower(), label)
 
 
 _FONDS_VERT_STATUT_TO_CSS = {
