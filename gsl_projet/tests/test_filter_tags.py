@@ -6,6 +6,7 @@ import pytest
 from bs4 import BeautifulSoup
 from django.urls import reverse
 
+from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -18,7 +19,6 @@ from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
 from gsl_projet.tests.factories import ProjetFactory
-from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

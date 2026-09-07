@@ -33,7 +33,7 @@ urlpatterns = [
     path("projets/", include(("gsl_projet.urls", "gsl_projet"), "projet")),
     path(
         "simulation/",
-        include(("gsl_simulation.urls", "gsl_simulation"), "simulation"),
+        include(("gsl.simulation.urls", "gsl_simulation"), "simulation"),
     ),
     path(
         "programmation/",

@@ -4,6 +4,8 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -12,8 +14,6 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
 from gsl_projet.tests.factories import DotationProjetFactory
-from gsl_simulation.models import SimulationProjet
-from gsl_simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

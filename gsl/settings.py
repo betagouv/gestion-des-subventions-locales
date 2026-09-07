@@ -77,7 +77,7 @@ INSTALLED_APPS = [
     "gsl_projet",
     "gsl.chorus",
     "gsl_programmation",
-    "gsl_simulation",
+    "gsl.simulation",
     "gsl_notification",
     "gsl.historique",
     "gsl.pages",

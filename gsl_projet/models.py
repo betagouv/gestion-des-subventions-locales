@@ -48,9 +48,9 @@ from gsl_projet.constants import (
 from gsl_projet.utils.utils import floatize
 
 if TYPE_CHECKING:
+    from gsl.simulation.models import SimulationProjet
     from gsl_demarches_simplifiees.models import Dossier
     from gsl_programmation.models import Enveloppe
-    from gsl_simulation.models import SimulationProjet
 
 
 class CategorieDetrQueryset(models.QuerySet):
@@ -773,8 +773,8 @@ class DotationProjet(BaseModel):
     def accept_without_ds_update(
         self, montant: float, enveloppe: "Enveloppe", actor=None
     ):
+        from gsl.simulation.models import SimulationProjet
         from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
             raise ValidationError(
@@ -853,8 +853,8 @@ class DotationProjet(BaseModel):
 
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe", actor=None):
+        from gsl.simulation.models import SimulationProjet
         from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
             raise ValidationError(
@@ -889,8 +889,8 @@ class DotationProjet(BaseModel):
 
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
     def dismiss(self, enveloppe: "Enveloppe", actor=None):
+        from gsl.simulation.models import SimulationProjet
         from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
 
         if self.dotation != enveloppe.dotation:
             raise ValidationError(
@@ -928,8 +928,8 @@ class DotationProjet(BaseModel):
         target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing_without_ds(self, actor=None):
+        from gsl.simulation.models import SimulationProjet
         from gsl_programmation.models import ProgrammationProjet
-        from gsl_simulation.models import SimulationProjet
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_PROCESSING,
@@ -982,7 +982,7 @@ class ProjetNote(BaseModel):
 def projet_status_from_dotation_statuses(
     statuses: List[str] | Tuple[str],
 ) -> str | None:
-    from gsl_simulation.models import SimulationProjet
+    from gsl.simulation.models import SimulationProjet
 
     if not statuses:
         return None

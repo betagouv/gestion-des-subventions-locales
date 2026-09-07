@@ -5,10 +5,10 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from gsl.simulation.models import SimulationProjet
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
 from gsl_programmation.models import ProgrammationProjet
-from gsl_simulation.models import SimulationProjet
 
 from .constants import PROJET_STATUS_CHOICES
 from .models import CategorieDetr, DotationProjet, Projet, ProjetQuerySet

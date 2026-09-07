@@ -1,0 +1,130 @@
+from django.urls import path
+
+from .views import simulation_views
+from .views.bulk_status_job_views import (
+    BulkStatusJobProgressView,
+    BulkStatusJobStartView,
+)
+from .views.decorators import (
+    simulation_must_be_visible_by_user,
+)
+from .views.simulation_projet_views import (
+    BulkSimulationProjetStatusUpdateView,
+    CleanupAmountModalView,
+    EditAssietteView,
+    EditCommentView,
+    EditMontantView,
+    EditTauxView,
+    ProgrammationStatusUpdateView,
+    RefreshSimulationRowView,
+    SimulationProjetCardUpdateView,
+    SimulationProjetStatusUpdateView,
+)
+from .views.simulation_views import (
+    SimulationColumnsVisibilityView,
+    SimulationCreateView,
+    SimulationDeleteView,
+    SimulationRenameView,
+)
+
+urlpatterns = [
+    path(
+        "liste/",
+        simulation_views.SimulationListView.as_view(),
+        name="simulation-list",
+    ),
+    path(
+        "creation-simulation",
+        SimulationCreateView.as_view(),
+        name="simulation-form",
+    ),
+    path(
+        "voir/<slug:slug>/",
+        simulation_must_be_visible_by_user(
+            simulation_views.SimulationDetailView.as_view()
+        ),
+        name="simulation-detail",
+    ),
+    path(
+        "<int:pk>/supprimer/",
+        SimulationDeleteView.as_view(),
+        name="simulation-delete",
+    ),
+    path(
+        "voir/<slug:slug>/columns-visibility/",
+        SimulationColumnsVisibilityView.as_view(),
+        name="simulation-columns-visibility",
+    ),
+    path(
+        "<int:pk>/renommer/",
+        SimulationRenameView.as_view(),
+        name="simulation-rename",
+    ),
+    path(
+        "voir/<slug:slug>/<str:type>/",
+        simulation_must_be_visible_by_user(
+            simulation_views.FilteredProjetsExportView.as_view()
+        ),
+        name="simulation-projets-export",
+    ),
+    path(
+        "<int:pk>/carte/modifier/",
+        SimulationProjetCardUpdateView.as_view(),
+        name="simulation-projet-card-update",
+    ),
+    path(
+        "edit-assiette/<int:pk>/",
+        EditAssietteView.as_view(),
+        name="edit-assiette",
+    ),
+    path(
+        "edit-montant/<int:pk>/",
+        EditMontantView.as_view(),
+        name="edit-montant",
+    ),
+    path(
+        "edit-taux/<int:pk>/",
+        EditTauxView.as_view(),
+        name="edit-taux",
+    ),
+    path(
+        "edit-comment/<int:pk>/<int:comment_number>/",
+        EditCommentView.as_view(),
+        name="edit-comment",
+    ),
+    path(
+        "refresh-row/<int:pk>/",
+        RefreshSimulationRowView.as_view(),
+        name="refresh-simulation-row",
+    ),
+    path(
+        "refresh-card/<int:pk>/",
+        CleanupAmountModalView.as_view(),
+        name="cleanup-amount-modal",
+    ),
+    path(
+        "<int:pk>/simuler/<str:status>/",
+        SimulationProjetStatusUpdateView.as_view(),
+        name="simulation-projet-update-simulation-status",
+    ),
+    path(
+        "bulk-simuler/start-job/",
+        BulkStatusJobStartView.as_view(),
+        name="bulk-status-job-start",
+    ),
+    path(
+        "bulk-simuler/job/<uuid:pk>/progress/",
+        BulkStatusJobProgressView.as_view(),
+        name="bulk-status-job-progress",
+    ),
+    path(
+        "bulk-simuler/<str:status>/",
+        BulkSimulationProjetStatusUpdateView.as_view(),
+        name="simulation-projet-bulk-update-simulation-status",
+    ),
+    path(
+        "<int:pk>/programmer/<str:status>/",
+        ProgrammationStatusUpdateView.as_view(),
+        name="simulation-projet-update-programmed-status",
+    ),
+]

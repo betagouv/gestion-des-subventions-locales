@@ -7,7 +7,7 @@ from django import template
 from django.template.defaultfilters import floatformat
 from django.utils.safestring import mark_safe
 
-from gsl_simulation.models import SimulationProjet
+from gsl.simulation.models import SimulationProjet
 
 register = template.Library()
 

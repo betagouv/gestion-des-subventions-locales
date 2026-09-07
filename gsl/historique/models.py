@@ -107,7 +107,7 @@ class ProjetAction(models.Model):
 
     @property
     def status_label(self):
-        from gsl_simulation.templatetags.simulation_filters import STATUS_LABELS
+        from gsl.simulation.templatetags.simulation_filters import STATUS_LABELS
 
         return STATUS_LABELS.get(self.status, self.status or "")
 
