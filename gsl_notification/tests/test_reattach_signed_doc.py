@@ -212,14 +212,14 @@ def _decode_pdf_bytes(raw: bytes) -> list[QrPayload | None]:
 @pytest.mark.django_db
 def test_event_stream_emits_per_page_decode_events(tmp_path):
     """`reattach_signed_docs` should emit DecodeStarted, then a
-    PageDecoded per page, then GroupAttached/Failed
-    per group — in that order."""
+    PageDecoded per page, then DocumentAttached/MatchFailed
+    per document — in that order."""
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
     from gsl_notification.qr.reattach import (
         DecodeStarted,
-        GroupAttached,
+        DocumentAttached,
         PageDecoded,
         reattach_signed_docs,
     )
@@ -261,7 +261,7 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
     assert per_page_events == expected_per_page
 
     assert len(events) == 1 + total_pages + 1
-    assert isinstance(events[-1], GroupAttached)
+    assert isinstance(events[-1], DocumentAttached)
 
 
 @pytest.mark.django_db

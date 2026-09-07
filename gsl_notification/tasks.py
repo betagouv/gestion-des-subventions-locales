@@ -308,14 +308,14 @@ def _consume_reattach_events(events, job, result):
     processed page so the caller can track progress.
 
     Each page event carries the stem of the source file it belongs to.
-    Only PageDecoded yields; GroupAttached and GroupFailed mutate `result`
+    Only PageDecoded yields; DocumentAttached and MatchFailed mutate `result`
     without yielding, so they are applied lazily when the caller drives the
     generator to its final `next()`.
     """
     from gsl_notification.qr.reattach import (
         DecodeStarted,
-        GroupAttached,
-        GroupFailed,
+        DocumentAttached,
+        MatchFailed,
         PageDecoded,
     )
 
@@ -336,18 +336,16 @@ def _consume_reattach_events(events, job, result):
                     }
                 )
             yield event
-        elif isinstance(event, GroupAttached):
+        elif isinstance(event, DocumentAttached):
             result["documents_attached"] += 1
-            result["pages_attached"] += sum(
-                len(pages) for pages in event.report.pages_by_doc_type.values()
-            )
-        elif isinstance(event, GroupFailed):
+            result["pages_attached"] += len(event.document.pages)
+        elif isinstance(event, MatchFailed):
             result["errors"].append(
                 {
                     "type": "group_failed",
-                    "ds_number": event.report.ds_number,
-                    "dotation": event.report.dotation,
-                    "message": event.report.error,
+                    "ds_number": event.declared.ds_number,
+                    "dotation": event.declared.dotation,
+                    "message": event.error,
                 }
             )
 

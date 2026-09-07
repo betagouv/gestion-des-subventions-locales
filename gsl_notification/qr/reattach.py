@@ -54,41 +54,6 @@ _TARGET_MODEL_BY_DOCUMENT_TYPE: dict[str, type[UploadedDocument]] = {
 
 
 @dataclass(frozen=True)
-class GroupReport:
-    ds_number: int
-    dotation: str
-    programmation_projet_id: int | None
-    target_document_type: str
-    pages_by_doc_type: dict[str, list[int]]
-    error: str | None
-
-
-@dataclass(frozen=True)
-class DecodeStarted:
-    total_pages: int
-
-
-@dataclass(frozen=True)
-class PageDecoded:
-    scan_page: int  # 1-based
-    qr_found: bool
-    file: str | None = None  # stem of the source file the page belongs to
-
-
-@dataclass(frozen=True)
-class GroupAttached:
-    report: GroupReport
-
-
-@dataclass(frozen=True)
-class GroupFailed:
-    report: GroupReport
-
-
-ReattachEvent = DecodeStarted | PageDecoded | GroupAttached | GroupFailed
-
-
-@dataclass(frozen=True)
 class ScannedPage:
     file_index: int
     scan_index: int
@@ -110,6 +75,46 @@ class DeclaredDocument:
     ds_number: int
     dotation: str
     target_model: type[UploadedDocument]
+
+
+@dataclass(frozen=True)
+class ExtractedDocument:
+    declared: DeclaredDocument
+    programmation_projet_id: int
+    pages: tuple[ScannedPage, ...]
+
+
+@dataclass(frozen=True)
+class DecodeStarted:
+    total_pages: int
+
+
+@dataclass(frozen=True)
+class PageDecoded:
+    scan_page: int  # 1-based
+    qr_found: bool
+    file: str | None = None  # name of the source file the page belongs to
+
+
+@dataclass(frozen=True)
+class DocumentMatched:
+    document: ExtractedDocument
+
+
+@dataclass(frozen=True)
+class MatchFailed:
+    declared: DeclaredDocument
+    error: str
+
+
+@dataclass(frozen=True)
+class DocumentAttached:
+    document: ExtractedDocument
+
+
+ExtractionEvent = DecodeStarted | PageDecoded | DocumentMatched | MatchFailed
+
+ReattachEvent = DecodeStarted | PageDecoded | DocumentAttached | MatchFailed
 
 
 def reattach_signed_docs(
@@ -188,96 +193,73 @@ def reattach_signed_docs(
             pages.sort(
                 key=lambda p: (DOCUMENT_TYPE_ORDER.get(p.doc_type, 99), p.claimed_page)
             )
-            report = _attach_group(
-                srcs,
-                pdf_bytes_list,
-                declared,
-                pages,
+            outcome = _match_document(declared, pages, programmation_projets)
+            if isinstance(outcome, MatchFailed):
+                yield outcome
+                continue
+
+            document = outcome.document
+            uploaded = _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code)
+            _replace_uploaded_document(
+                document.declared.target_model,
+                document.programmation_projet_id,
+                uploaded,
                 user,
-                programmation_projets,
-                remove_qr_code,
             )
-            if report.error is None:
-                yield GroupAttached(report=report)
-            else:
-                yield GroupFailed(report=report)
+            yield DocumentAttached(document=document)
     finally:
         for src in srcs:
             src.close()
 
 
-def _attach_group(
-    srcs,
-    pdf_bytes_list,
-    declared,
-    pages,
-    user,
-    programmation_projets,
-    remove_qr_code=True,
-) -> GroupReport:
-    by_type: dict[str, list[int]] = defaultdict(list)
-    for page in pages:
-        by_type[page.doc_type].append(page.scan_index + 1)
-    for doc_type in by_type:
-        by_type[doc_type].sort()
-    pages_by_doc_type = dict(by_type)
-    target_document_type = declared.target_model.document_type
-
+def _match_document(
+    declared, pages, programmation_projets
+) -> DocumentMatched | MatchFailed:
     try:
-        pp = programmation_projets.get(
+        programmation_projet = programmation_projets.get(
             dotation_projet__projet__dossier_ds__ds_number=declared.ds_number,
             dotation_projet__dotation=declared.dotation,
         )
     except ProgrammationProjet.DoesNotExist:
-        return GroupReport(
-            ds_number=declared.ds_number,
-            dotation=declared.dotation,
-            programmation_projet_id=None,
-            target_document_type=target_document_type,
-            pages_by_doc_type=pages_by_doc_type,
-            error="Aucun projet programmé correspondant.",
+        return MatchFailed(
+            declared=declared, error="Aucun projet programmé correspondant."
         )
     except ProgrammationProjet.MultipleObjectsReturned:
-        return GroupReport(
-            ds_number=declared.ds_number,
-            dotation=declared.dotation,
-            programmation_projet_id=None,
-            target_document_type=target_document_type,
-            pages_by_doc_type=pages_by_doc_type,
+        return MatchFailed(
+            declared=declared,
             error="Plusieurs projets programmés correspondent "
             "(incohérence, à corriger manuellement).",
         )
 
-    uploaded = _build_group_pdf(srcs, pages, declared, pdf_bytes_list, remove_qr_code)
-    _replace_uploaded_document(declared.target_model, pp, uploaded, user)
-
-    return GroupReport(
-        ds_number=declared.ds_number,
-        dotation=declared.dotation,
-        programmation_projet_id=pp.id,
-        target_document_type=target_document_type,
-        pages_by_doc_type=pages_by_doc_type,
-        error=None,
+    return DocumentMatched(
+        document=ExtractedDocument(
+            declared=declared,
+            programmation_projet_id=programmation_projet.id,
+            pages=tuple(pages),
+        )
     )
 
 
-def _replace_uploaded_document(target_model, pp, uploaded, user):
+def _replace_uploaded_document(target_model, programmation_projet_id, uploaded, user):
     with transaction.atomic():
-        existing = target_model.objects.filter(programmation_projet=pp).first()
+        existing = target_model.objects.filter(
+            programmation_projet_id=programmation_projet_id
+        ).first()
         if existing is not None:
             existing.delete()  # post_delete signal removes its stored file
 
         doc = target_model(
-            programmation_projet=pp,
+            programmation_projet_id=programmation_projet_id,
             created_by=user,
             file=uploaded,
         )
         doc.save()
 
 
-def _build_group_pdf(srcs, pages, declared, pdf_bytes_list, remove_qr_code=True):
+def _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code=True):
+    declared = document.declared
     out = Pdf.new()
-    for page in pages:
+    for page in document.pages:
         out.pages.append(srcs[page.file_index].pages[page.scan_index])
         if remove_qr_code:
             mask_qr_on_last_page(

@@ -10,6 +10,7 @@ Usage:
     python manage.py reattach_signed_doc path/to/scan.pdf --user me@example.com
 """
 
+from collections import defaultdict
 from pathlib import Path
 
 from django.core.files.base import ContentFile
@@ -19,8 +20,8 @@ from gsl_core.models import Collegue
 from gsl_notification.qr.reattach import (
     DOCUMENT_TYPE_ORDER,
     DecodeStarted,
-    GroupAttached,
-    GroupFailed,
+    DocumentAttached,
+    MatchFailed,
     PageDecoded,
     reattach_signed_docs,
 )
@@ -92,10 +93,10 @@ class Command(BaseCommand):
                         progress.update(1)
                     if not event.qr_found:
                         unreadable.append(event.scan_page)
-                elif isinstance(event, GroupAttached):
-                    attached.append(_format_attached(event.report))
-                elif isinstance(event, GroupFailed):
-                    failed_groups.append(_format_failed(event.report))
+                elif isinstance(event, DocumentAttached):
+                    attached.append(_format_attached(event.document))
+                elif isinstance(event, MatchFailed):
+                    failed_groups.append(_format_failed(event))
         finally:
             if progress is not None:
                 progress.close()
@@ -123,22 +124,32 @@ def _format_page_range(pages):
     return ", ".join(str(p) for p in pages)
 
 
-def _format_attached(report) -> str:
+def _scan_pages_by_doc_type(document) -> dict[str, list[int]]:
+    by_doc_type = defaultdict(list)
+    for page in document.pages:
+        by_doc_type[page.doc_type].append(page.scan_index + 1)
+    return {doc_type: sorted(pages) for doc_type, pages in by_doc_type.items()}
+
+
+def _format_attached(document) -> str:
+    pages_by_doc_type = _scan_pages_by_doc_type(document)
     breakdown = ", ".join(
-        f"{doc_type}: pages {_format_page_range(report.pages_by_doc_type[doc_type])}"
+        f"{doc_type}: pages {_format_page_range(pages_by_doc_type[doc_type])}"
         for doc_type in sorted(
-            report.pages_by_doc_type, key=lambda t: DOCUMENT_TYPE_ORDER.get(t, 99)
+            pages_by_doc_type, key=lambda t: DOCUMENT_TYPE_ORDER.get(t, 99)
         )
     )
+    declared = document.declared
     return (
-        f"ds={report.ds_number} dotation={report.dotation} "
-        f"[{report.target_document_type}] → "
-        f"ProgrammationProjet #{report.programmation_projet_id} ({breakdown})"
+        f"ds={declared.ds_number} dotation={declared.dotation} "
+        f"[{declared.target_model.document_type}] → "
+        f"ProgrammationProjet #{document.programmation_projet_id} ({breakdown})"
     )
 
 
-def _format_failed(report) -> str:
-    return f"ds={report.ds_number} dotation={report.dotation}: {report.error}"
+def _format_failed(event) -> str:
+    declared = event.declared
+    return f"ds={declared.ds_number} dotation={declared.dotation}: {event.error}"
 
 
 def _format_issue_report(
