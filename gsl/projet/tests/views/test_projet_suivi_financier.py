@@ -4,12 +4,6 @@ import pytest
 from django.shortcuts import reverse
 
 from gsl.chorus.models import SuiviFinancier
-from gsl.projet.constants import PROJET_STATUS_PROCESSING
-from gsl.projet.tests.factories import (
-    DetrProjetFactory,
-    DotationProjetFactory,
-    ProjetFactory,
-)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -17,6 +11,13 @@ from gsl_core.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ...constants import PROJET_STATUS_PROCESSING
+from ..factories import (
+    DetrProjetFactory,
+    DotationProjetFactory,
+    ProjetFactory,
+)
 
 pytestmark = pytest.mark.django_db()
 

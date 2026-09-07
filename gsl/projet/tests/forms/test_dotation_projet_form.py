@@ -1,10 +1,10 @@
 import pytest
 from django import forms
 
-from gsl.projet.constants import DOTATION_DETR
-from gsl.projet.forms import DotationProjetForm
-from gsl.projet.models import DotationProjet
-from gsl.projet.tests.factories import DotationProjetFactory
+from ...constants import DOTATION_DETR
+from ...forms import DotationProjetForm
+from ...models import DotationProjet
+from ..factories import DotationProjetFactory
 
 
 @pytest.fixture

@@ -1,11 +1,12 @@
 import pytest
 
-from gsl.projet.models import CategorieDetr
-from gsl.projet.tests.factories import (
-    CategorieDetrFactory,
-)
 from gsl_core.tests.factories import (
     DepartementFactory,
+)
+
+from ...models import CategorieDetr
+from ..factories import (
+    CategorieDetrFactory,
 )
 
 pytestmark = pytest.mark.django_db

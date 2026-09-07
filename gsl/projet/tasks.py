@@ -3,10 +3,10 @@ from itertools import batched
 from celery import shared_task
 
 from gsl.celery import TASK_PRIORITY_LOW
-from gsl.projet.models import Projet
-from gsl.projet.services.dotation_projet_services import DotationProjetService
 from gsl_demarches_simplifiees.models import Dossier
 
+from .models import Projet
+from .services.dotation_projet_services import DotationProjetService
 from .services.projet_services import ProjetService
 
 

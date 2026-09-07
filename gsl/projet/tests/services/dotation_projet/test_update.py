@@ -6,22 +6,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl.projet.models import DotationProjet
-from gsl.projet.services.dotation_projet_services import (
-    DotationProjetService as dps,
-)
-from gsl.projet.tests.factories import (
-    DotationProjetFactory,
-    ProjetFactory,
-)
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -33,6 +17,23 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
+)
+
+from ....constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from ....models import DotationProjet
+from ....services.dotation_projet_services import (
+    DotationProjetService as dps,
+)
+from ...factories import (
+    DotationProjetFactory,
+    ProjetFactory,
 )
 
 

@@ -2,7 +2,16 @@ from datetime import UTC, datetime
 
 import pytest
 
-from gsl.projet.constants import (
+from gsl_notification.tests.factories import (
+    ArreteFactory,
+    LettreEtArreteSignesFactory,
+    LettreNotificationFactory,
+    LettreRefusFactory,
+    LettreRefusSigneeFactory,
+)
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ..constants import (
     NOTIFICATION_STATUS_NOTIFIED,
     NOTIFICATION_STATUS_TO_GENERATE,
     NOTIFICATION_STATUS_TO_NOTIFY,
@@ -12,16 +21,8 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import DotationProjet
-from gsl.projet.tests.factories import DotationProjetFactory
-from gsl_notification.tests.factories import (
-    ArreteFactory,
-    LettreEtArreteSignesFactory,
-    LettreNotificationFactory,
-    LettreRefusFactory,
-    LettreRefusSigneeFactory,
-)
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from ..models import DotationProjet
+from .factories import DotationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

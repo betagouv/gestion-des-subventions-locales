@@ -7,16 +7,17 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
+from gsl_core.models import Collegue
+from gsl_demarches_simplifiees.exceptions import DsServiceException
+from gsl_demarches_simplifiees.services import DsService
+
+from .constants import (
     DOTATION_CHOICES,
     POSSIBLE_DOTATIONS,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
-from gsl.projet.models import DotationProjet, Projet, ProjetNote
-from gsl_core.models import Collegue
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.services import DsService
+from .models import DotationProjet, Projet, ProjetNote
 
 logger = getLogger(__name__)
 
@@ -68,7 +69,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     def update_dotation(
         self, projet: Projet, dotations: list[POSSIBLE_DOTATIONS], user: Collegue
     ):
-        from gsl.projet.services.dotation_projet_services import DotationProjetService
+        from .services.dotation_projet_services import DotationProjetService
 
         if len(dotations) == 0:
             logger.warning(

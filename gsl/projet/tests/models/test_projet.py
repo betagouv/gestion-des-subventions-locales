@@ -1,15 +1,5 @@
 import pytest
 
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl.projet.models import Projet
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl_notification.tests.factories import (
     AnnexeFactory,
@@ -20,6 +10,17 @@ from gsl_notification.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet as pp
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ...constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from ...models import Projet
+from ..factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 

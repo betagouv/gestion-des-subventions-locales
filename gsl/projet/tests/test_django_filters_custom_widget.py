@@ -3,7 +3,7 @@ filter widgets. Each widget formats its own dismissible active-filter tag."""
 
 from datetime import date
 
-from gsl.projet.utils.django_filters_custom_widget import (
+from ..utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     DsfrDateRangeWidget,
     DsfrRangeWidget,

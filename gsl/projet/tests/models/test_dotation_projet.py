@@ -8,24 +8,6 @@ from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    DOTATIONS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl.projet.models import (
-    DotationProjet,
-)
-from gsl.projet.tests.factories import (
-    CategorieDetrFactory,
-    DotationProjetFactory,
-    DsilProjetFactory,
-    ProjetFactory,
-)
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import (
@@ -39,6 +21,25 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
     ProgrammationProjetFactory,
+)
+
+from ...constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    DOTATIONS,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from ...models import (
+    DotationProjet,
+)
+from ..factories import (
+    CategorieDetrFactory,
+    DotationProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
 )
 
 pytestmark = pytest.mark.django_db

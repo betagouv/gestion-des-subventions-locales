@@ -1,11 +1,5 @@
 import factory
 
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    DOTATIONS,
-    PROJET_STATUS_CHOICES,
-)
 from gsl_core.tests.factories import (
     AdresseFactory,
     CollegueFactory,
@@ -14,6 +8,12 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
+from ..constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    DOTATIONS,
+    PROJET_STATUS_CHOICES,
+)
 from ..models import CategorieDetr, DotationProjet, Projet, ProjetNote
 
 

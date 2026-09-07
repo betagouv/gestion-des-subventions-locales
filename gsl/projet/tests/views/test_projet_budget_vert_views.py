@@ -4,13 +4,14 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
-from gsl.projet.tests.factories import ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
+
+from ..factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
 

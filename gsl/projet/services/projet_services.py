@@ -1,8 +1,9 @@
 import logging
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.models import Projet
 from gsl_demarches_simplifiees.models import Dossier
+
+from ..models import Projet
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 class ProjetService:
     @classmethod
     def create_or_update_projet_and_co_from_dossier(cls, ds_dossier_number: str):
-        from gsl.projet.services.dotation_projet_services import DotationProjetService
+        from .dotation_projet_services import DotationProjetService
 
         ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
         projet = cls.create_or_update_from_ds_dossier(ds_dossier)

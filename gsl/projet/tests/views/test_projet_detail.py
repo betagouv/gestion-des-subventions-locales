@@ -5,7 +5,14 @@ import pytest
 from django.shortcuts import reverse
 from django.utils import timezone
 
-from gsl.projet.constants import (
+from gsl_core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreArrondissementFactory,
+)
+from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
@@ -13,13 +20,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueFactory,
-    PerimetreArrondissementFactory,
-)
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
+from ..factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db()
 

@@ -9,4 +9,4 @@ class GslProjetConfig(AppConfig):
     verbose_name = "3. Projets"
 
     def ready(self):
-        import gsl.projet.fragments  # noqa: F401
+        from . import fragments  # noqa: F401

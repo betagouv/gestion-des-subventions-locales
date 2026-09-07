@@ -43,7 +43,7 @@ def floatize(value: float | Decimal | None) -> float | None:
 def get_comment_cards(projet):
     """Retourne la liste des cartes commentaires d'arbitrage pour le template."""
 
-    from gsl.projet.forms import ProjetCommentForm
+    from ..forms import ProjetCommentForm
 
     return [
         {

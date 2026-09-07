@@ -2,14 +2,15 @@ from django import forms
 from django.utils.safestring import mark_safe
 from django_filters.widgets import SuffixedMultiWidget
 
-from gsl.projet.constants import (
+from gsl.simulation.models import SimulationProjet
+from gsl_programmation.models import ProgrammationProjet
+
+from ..constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.simulation.models import SimulationProjet
-from gsl_programmation.models import ProgrammationProjet
 
 
 class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):

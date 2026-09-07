@@ -5,7 +5,12 @@ from typing import Any, Literal
 from django.db import transaction
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
+from gsl.simulation.models import Simulation, SimulationProjet
+from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.models import Dossier
+from gsl_programmation.models import Enveloppe
+
+from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
@@ -14,11 +19,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import DotationProjet, Projet
-from gsl.simulation.models import Simulation, SimulationProjet
-from gsl_core.models import Perimetre
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_programmation.models import Enveloppe
+from ..models import DotationProjet, Projet
 
 logger = logging.getLogger(__name__)
 

@@ -3,11 +3,12 @@ from unittest.mock import patch
 import pytest
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.forms import ProjetZonageForm
-from gsl.projet.tests.factories import ProjetFactory
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
+
+from ...forms import ProjetZonageForm
+from ..factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
 

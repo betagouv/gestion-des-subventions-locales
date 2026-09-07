@@ -6,7 +6,6 @@ import pytest
 from bs4 import BeautifulSoup
 from django.urls import reverse
 
-from gsl.projet.tests.factories import ProjetFactory
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -19,6 +18,8 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
 )
+
+from .factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db
 

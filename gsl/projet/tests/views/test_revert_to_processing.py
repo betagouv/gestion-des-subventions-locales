@@ -4,18 +4,19 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-)
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ...constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+)
+from ..factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 

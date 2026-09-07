@@ -14,24 +14,6 @@ from django_filters import (
     RangeFilter,
 )
 
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    NOTIFICATION_STATUS_CHOICES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_CHOICES,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
-from gsl.projet.models import DotationProjet, Projet
-from gsl.projet.utils.django_filters_custom_widget import (
-    CustomCheckboxSelectMultiple,
-    CustomSelectWidget,
-    DsfrDateRangeWidget,
-    DsfrRangeWidget,
-)
-from gsl.projet.utils.utils import order_couples_tuple_by_first_value
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -42,6 +24,25 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
+
+from ..constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    NOTIFICATION_STATUS_CHOICES,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_CHOICES,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_PROCESSING,
+    PROJET_STATUS_REFUSED,
+)
+from ..models import DotationProjet, Projet
+from .django_filters_custom_widget import (
+    CustomCheckboxSelectMultiple,
+    CustomSelectWidget,
+    DsfrDateRangeWidget,
+    DsfrRangeWidget,
+)
+from .utils import order_couples_tuple_by_first_value
 
 
 class LabelFromInstanceField(forms.ModelMultipleChoiceField):

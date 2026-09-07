@@ -2,12 +2,13 @@ import pytest
 from django import forms
 from django.db import IntegrityError, transaction
 
-from gsl.projet.forms import ProjetNoteForm
-from gsl.projet.models import ProjetNote
-from gsl.projet.tests.factories import (
+from gsl_core.tests.factories import CollegueFactory
+
+from ...forms import ProjetNoteForm
+from ...models import ProjetNote
+from ..factories import (
     ProjetFactory,
 )
-from gsl_core.tests.factories import CollegueFactory
 
 
 @pytest.mark.django_db

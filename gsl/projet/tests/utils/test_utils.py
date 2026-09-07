@@ -2,12 +2,12 @@ from decimal import Decimal
 
 import pytest
 
-from gsl.projet.tests.factories import ProjetFactory
-from gsl.projet.utils.utils import (
+from ...utils.utils import (
     compute_taux,
     get_comment_cards,
     order_couples_tuple_by_first_value,
 )
+from ..factories import ProjetFactory
 
 
 @pytest.fixture

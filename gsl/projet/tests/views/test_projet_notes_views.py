@@ -1,8 +1,6 @@
 import pytest
 from django.urls import reverse
 
-from gsl.projet.constants import DOTATION_DETR
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetNoteFactory
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -10,6 +8,9 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
+
+from ...constants import DOTATION_DETR
+from ..factories import DotationProjetFactory, ProjetNoteFactory
 
 
 @pytest.fixture

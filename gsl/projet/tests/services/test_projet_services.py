@@ -1,8 +1,5 @@
 import pytest
 
-from gsl.projet.models import Projet
-from gsl.projet.services.projet_services import ProjetService as ps
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
@@ -13,6 +10,10 @@ from gsl_demarches_simplifiees.tests.factories import (
 )
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ...models import Projet
+from ...services.projet_services import ProjetService as ps
+from ..factories import DotationProjetFactory, ProjetFactory
 
 
 @pytest.mark.django_db

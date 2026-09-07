@@ -3,21 +3,6 @@ from unittest import mock
 
 import pytest
 
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
-)
-from gsl.projet.models import DotationProjet
-from gsl.projet.tasks import (
-    task_create_or_update_dotation_projets_from_projet_batch,
-    task_create_or_update_projet_and_co_from_dossier,
-    task_create_or_update_projets_and_co_batch,
-    task_create_or_update_projets_and_co_from_all_dossiers,
-)
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import (
@@ -31,6 +16,22 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
 )
+
+from ..constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
+)
+from ..models import DotationProjet
+from ..tasks import (
+    task_create_or_update_dotation_projets_from_projet_batch,
+    task_create_or_update_projet_and_co_from_dossier,
+    task_create_or_update_projets_and_co_batch,
+    task_create_or_update_projets_and_co_from_all_dossiers,
+)
+from .factories import DotationProjetFactory, ProjetFactory
 
 # Fixtures
 

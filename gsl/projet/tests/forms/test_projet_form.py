@@ -5,16 +5,6 @@ import pytest
 from django import forms
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
-)
-from gsl.projet.forms import ProjetBudgetVertForm, ProjetForm
-from gsl.projet.models import DotationProjet
-from gsl.projet.services.dotation_projet_services import DotationProjetService
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
@@ -22,6 +12,17 @@ from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ...constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
+from ...forms import ProjetBudgetVertForm, ProjetForm
+from ...models import DotationProjet
+from ...services.dotation_projet_services import DotationProjetService
+from ..factories import DotationProjetFactory, ProjetFactory
 
 
 @pytest.fixture

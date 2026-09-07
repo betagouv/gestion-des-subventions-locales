@@ -7,18 +7,6 @@ from django.db.models import Count, F, Q
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl.projet.models import Projet
-from gsl.projet.tests.factories import (
-    DetrProjetFactory,
-    DsilProjetFactory,
-    ProjetFactory,
-)
-from gsl.projet.utils.projet_filters import ProjetFilters
-from gsl.projet.views import (
-    ProjetListView,
-    ProjetListViewFilters,
-)
 from gsl_core.models import Collegue, Departement, Perimetre
 from gsl_core.tests.factories import (
     ArrondissementFactory,
@@ -35,6 +23,19 @@ from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_notification.tests.factories import ArreteFactory, LettreNotificationFactory
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
+
+from ..constants import DOTATION_DETR, DOTATION_DSIL
+from ..models import Projet
+from ..utils.projet_filters import ProjetFilters
+from ..views import (
+    ProjetListView,
+    ProjetListViewFilters,
+)
+from .factories import (
+    DetrProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 
 pytestmark = pytest.mark.django_db
 

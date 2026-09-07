@@ -20,7 +20,15 @@ from django.db.models import (
 from django_fsm import FSMField, transition
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
+from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
+from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
+from gsl_notification.models import (
+    GENERATED_DOCUMENTS,
+    UPLOADED_DOCUMENTS,
+)
+
+from .constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -38,14 +46,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.utils.utils import floatize
-from gsl_core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.services import DsService
-from gsl_notification.models import (
-    GENERATED_DOCUMENTS,
-    UPLOADED_DOCUMENTS,
-)
+from .utils.utils import floatize
 
 if TYPE_CHECKING:
     from gsl.simulation.models import SimulationProjet

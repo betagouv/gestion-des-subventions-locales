@@ -1,11 +1,12 @@
-from gsl.projet.forms import (
+from gsl_core.fragments import Fragment
+
+from .forms import (
     DotationProjetAssietteForm,
     DotationProjetForm,
     ProjetBudgetVertForm,
     ProjetZonageForm,
 )
-from gsl.projet.models import DotationProjet, Projet
-from gsl_core.fragments import Fragment
+from .models import DotationProjet, Projet
 
 
 class ProjetFragment(Fragment):

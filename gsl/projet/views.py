@@ -20,21 +20,6 @@ from django_htmx.http import HttpResponseClientRedirect
 
 from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
-from gsl.projet.forms import (
-    ProjetCommentForm,
-    ProjetForm,
-    ProjetNoteForm,
-    ProjetRevertToProcessingForm,
-)
-from gsl.projet.models import ProjetNote
-from gsl.projet.utils.django_filters_custom_widget import CustomSelectWidget
-from gsl.projet.utils.projet_filters import (
-    ORDERING_MAP,
-    ProjetFilters,
-    ProjetOrderingFilter,
-)
-from gsl.projet.utils.projet_page import PROJET_MENU, get_projet_go_back_context
-from gsl.projet.utils.utils import get_comment_cards
 from gsl.simulation.forms import SimulationProjetForm
 from gsl.simulation.models import SimulationProjet
 from gsl_core.decorators import htmx_only
@@ -53,8 +38,22 @@ from gsl_demarches_simplifiees.models import (
     ProjetZonage,
 )
 
-from .models import Projet
+from .forms import (
+    ProjetCommentForm,
+    ProjetForm,
+    ProjetNoteForm,
+    ProjetRevertToProcessingForm,
+)
+from .models import Projet, ProjetNote
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
+from .utils.django_filters_custom_widget import CustomSelectWidget
+from .utils.projet_filters import (
+    ORDERING_MAP,
+    ProjetFilters,
+    ProjetOrderingFilter,
+)
+from .utils.projet_page import PROJET_MENU, get_projet_go_back_context
+from .utils.utils import get_comment_cards
 
 
 class BaseProjetDetailView(DetailView):
