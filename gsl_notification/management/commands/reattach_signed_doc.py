@@ -21,7 +21,6 @@ from gsl_notification.qr.reattach import (
     GroupAttached,
     GroupFailed,
     PageDecoded,
-    UnreadablePage,
     reattach_signed_doc,
 )
 
@@ -86,10 +85,10 @@ class Command(BaseCommand):
                         progress = tqdm(
                             total=event.total_pages, unit="page", desc="Decoding"
                         )
-                elif isinstance(event, (PageDecoded, UnreadablePage)):
+                elif isinstance(event, PageDecoded):
                     if progress is not None:
                         progress.update(1)
-                    if isinstance(event, UnreadablePage):
+                    if not event.qr_found:
                         unreadable.append(event.scan_page)
                 elif isinstance(event, GroupAttached):
                     attached.append(_format_attached(event.report))

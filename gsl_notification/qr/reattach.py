@@ -71,13 +71,8 @@ class DecodeStarted:
 
 @dataclass(frozen=True)
 class PageDecoded:
-    scan_page: int  # 1-based; emitted when a page yielded a valid QR
-    file: str | None = None  # stem of the source file the page belongs to
-
-
-@dataclass(frozen=True)
-class UnreadablePage:
     scan_page: int  # 1-based
+    qr_found: bool
     file: str | None = None  # stem of the source file the page belongs to
 
 
@@ -91,9 +86,7 @@ class GroupFailed:
     report: GroupReport
 
 
-ReattachEvent = (
-    DecodeStarted | PageDecoded | UnreadablePage | GroupAttached | GroupFailed
-)
+ReattachEvent = DecodeStarted | PageDecoded | GroupAttached | GroupFailed
 
 
 def reattach_signed_doc(
@@ -182,27 +175,28 @@ def reattach_signed_docs(
             yield DecodeStarted(total_pages=len(src.pages))
 
             for scan_index, hit in enumerate(iter_decoded_pages(pdf_bytes)):
-                scan_page = scan_index + 1
-                if hit is None:
-                    yield UnreadablePage(scan_page=scan_page, file=stem)
-                    continue
-                target_model = _TARGET_MODEL_BY_DOCUMENT_TYPE[hit.payload.document_type]
-                declared = DeclaredDocument(
-                    ds_number=hit.payload.ds_number,
-                    dotation=hit.payload.dotation,
-                    target_model=target_model,
-                )
-                scanned_pages_by_document[declared].append(
-                    ScannedPage(
-                        file_index=file_index,
-                        scan_index=scan_index,
-                        doc_type=hit.payload.document_type,
-                        claimed_page=hit.payload.page,
-                        bbox=hit.bbox,
-                        image_height_px=hit.image_height_px,
+                if hit is not None:
+                    target_model = _TARGET_MODEL_BY_DOCUMENT_TYPE[
+                        hit.payload.document_type
+                    ]
+                    declared = DeclaredDocument(
+                        ds_number=hit.payload.ds_number,
+                        dotation=hit.payload.dotation,
+                        target_model=target_model,
                     )
+                    scanned_pages_by_document[declared].append(
+                        ScannedPage(
+                            file_index=file_index,
+                            scan_index=scan_index,
+                            doc_type=hit.payload.document_type,
+                            claimed_page=hit.payload.page,
+                            bbox=hit.bbox,
+                            image_height_px=hit.image_height_px,
+                        )
+                    )
+                yield PageDecoded(
+                    scan_page=scan_index + 1, qr_found=hit is not None, file=stem
                 )
-                yield PageDecoded(scan_page=scan_page, file=stem)
 
         for declared, pages in scanned_pages_by_document.items():
             pages.sort(

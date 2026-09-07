@@ -210,7 +210,7 @@ def _decode_pdf_bytes(raw: bytes) -> list[QrPayload | None]:
 @pytest.mark.django_db
 def test_event_stream_emits_per_page_decode_events(tmp_path):
     """`reattach_signed_doc` should emit DecodeStarted, then a
-    PageDecoded/UnreadablePage per page, then GroupAttached/Failed
+    PageDecoded per page, then GroupAttached/Failed
     per group — in that order."""
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
@@ -219,7 +219,6 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
         DecodeStarted,
         GroupAttached,
         PageDecoded,
-        UnreadablePage,
         reattach_signed_doc,
     )
 
@@ -250,9 +249,12 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
     per_page_events = events[1 : 1 + total_pages]
     # Each page event carries the stem of its source file.
     expected_per_page = [
-        PageDecoded(scan_page=i, file=scan.stem) for i in range(1, valid_page_count + 1)
+        PageDecoded(scan_page=i, qr_found=True, file=scan.stem)
+        for i in range(1, valid_page_count + 1)
     ]
-    expected_per_page.append(UnreadablePage(scan_page=total_pages, file=scan.stem))
+    expected_per_page.append(
+        PageDecoded(scan_page=total_pages, qr_found=False, file=scan.stem)
+    )
     assert per_page_events == expected_per_page
 
     assert len(events) == 1 + total_pages + 1

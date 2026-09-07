@@ -306,16 +306,15 @@ def _consume_reattach_events(events, job, result):
     processed page so the caller can track progress.
 
     Each page event carries the stem of the source file it belongs to.
-    Only page events (PageDecoded/UnreadablePage) yield; GroupAttached and
-    GroupFailed mutate `result` without yielding, so they are applied lazily
-    when the caller drives the generator to its final `next()`.
+    Only PageDecoded yields; GroupAttached and GroupFailed mutate `result`
+    without yielding, so they are applied lazily when the caller drives the
+    generator to its final `next()`.
     """
     from gsl_notification.qr.reattach import (
         DecodeStarted,
         GroupAttached,
         GroupFailed,
         PageDecoded,
-        UnreadablePage,
     )
 
     for event in events:
@@ -325,8 +324,8 @@ def _consume_reattach_events(events, job, result):
                 updated_at=timezone.now(),
             )
             result["pages_extracted"] += event.total_pages
-        elif isinstance(event, (PageDecoded, UnreadablePage)):
-            if isinstance(event, UnreadablePage):
+        elif isinstance(event, PageDecoded):
+            if not event.qr_found:
                 result["errors"].append(
                     {
                         "type": "unreadable_page",
