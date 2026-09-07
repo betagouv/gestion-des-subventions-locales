@@ -9,10 +9,10 @@ from gsl_demarches_simplifiees.models import PersonneMorale
 from .models import SubventionDgcl, SubventionFondsVert
 
 
-class BeneficiaireListView(ListView):
+class CollectiviteListView(ListView):
     model = PersonneMorale
-    template_name = "gsl_stats/beneficiaire_list.html"
-    context_object_name = "beneficiaires"
+    template_name = "gsl_stats/collectivite_list.html"
+    context_object_name = "collectivites"
     paginate_by = 50
 
     def get_queryset(self):
@@ -40,13 +40,13 @@ class BeneficiaireListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["search_query"] = self.request.GET.get("q", "")
-        context["title"] = "Bénéficiaires"
+        context["title"] = "Collectivités"
         return context
 
 
-class BeneficiaireDetailView(DetailView):
+class CollectiviteDetailView(DetailView):
     model = PersonneMorale
-    template_name = "gsl_stats/beneficiaire_detail.html"
+    template_name = "gsl_stats/collectivite_detail.html"
 
     def get_queryset(self):
         return _personnes_morales_in_perimetre(self.request.user)
@@ -55,7 +55,7 @@ class BeneficiaireDetailView(DetailView):
         queryset = queryset or self.get_queryset()
         obj = queryset.filter(siren=self.kwargs["siren"]).first()
         if obj is None:
-            raise Http404("Bénéficiaire introuvable")
+            raise Http404("Collectivité introuvable")
         return obj
 
     def get_context_data(self, **kwargs):
@@ -87,15 +87,15 @@ class BeneficiaireDetailView(DetailView):
             .order_by("-dossier_ds__ds_date_depot")
         )
 
-        beneficiaire_nom = personne_morale.raison_sociale or siren
+        collectivite_nom = personne_morale.raison_sociale or siren
         context.update(
             {
                 "siren": siren,
-                "beneficiaire_nom": beneficiaire_nom,
+                "collectivite_nom": collectivite_nom,
                 "subventions": subventions,
                 "subventions_fonds_vert": subventions_fonds_vert,
                 "projets": projets,
-                "title": f"Bénéficiaire – {beneficiaire_nom}",
+                "title": f"Collectivité – {collectivite_nom}",
             }
         )
         return context

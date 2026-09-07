@@ -3,13 +3,13 @@
 
 {% block content %}
     <div class="fr-mb-4w">
-        <a href="{% url 'suivi_financier:beneficiaire-list' %}"
+        <a href="{% url 'suivi_financier:collectivite-list' %}"
            class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
-            Retour à la liste des bénéficiaires
+            Retour à la liste des collectivités
         </a>
     </div>
 
-    <h1>{{ beneficiaire_nom }}</h1>
+    <h1>{{ collectivite_nom }}</h1>
     <p class="fr-text--sm fr-text-mention--grey">SIREN : {{ siren }}</p>
 
     <h2 class="fr-mt-6w">Historique des subventions DGCL</h2>
@@ -23,7 +23,7 @@
                 <div class="fr-table__container">
                     <div class="fr-table__content">
                         <table class="table-fixed">
-                            <caption>Subventions DGCL pour {{ beneficiaire_nom }}</caption>
+                            <caption>Subventions DGCL pour {{ collectivite_nom }}</caption>
                             <colgroup>
                                 <col class="col-annee">
                                 <col class="col-dotation">
@@ -60,7 +60,7 @@
             </div>
         </div>
     {% else %}
-        <p>Aucune subvention DGCL trouvée pour ce bénéficiaire dans votre périmètre.</p>
+        <p>Aucune subvention DGCL trouvée pour cette collectivité dans votre périmètre.</p>
     {% endif %}
 
     <h2 class="fr-mt-6w">Historique des subventions Fonds Vert</h2>
@@ -72,7 +72,7 @@
                 <div class="fr-table__container">
                     <div class="fr-table__content">
                         <table class="table-fixed">
-                            <caption>Subventions Fonds Vert pour {{ beneficiaire_nom }}</caption>
+                            <caption>Subventions Fonds Vert pour {{ collectivite_nom }}</caption>
                             <colgroup>
                                 <col class="col-annee">
                                 <col>
@@ -122,7 +122,7 @@
             </div>
         </div>
     {% else %}
-        <p>Aucune subvention Fonds Vert trouvée pour ce bénéficiaire.</p>
+        <p>Aucune subvention Fonds Vert trouvée pour cette collectivité.</p>
     {% endif %}
 
     <h2 class="fr-mt-6w">Projets en cours dans Turgot</h2>
@@ -133,7 +133,7 @@
                 <div class="fr-table__container">
                     <div class="fr-table__content">
                         <table>
-                            <caption>Projets Turgot pour {{ beneficiaire_nom }}</caption>
+                            <caption>Projets Turgot pour {{ collectivite_nom }}</caption>
                             <thead>
                                 <tr>
                                     <th scope="col">Date de dépôt</th>
@@ -181,6 +181,6 @@
             </div>
         </div>
     {% else %}
-        <p>Aucun projet Turgot trouvé pour ce bénéficiaire dans votre périmètre.</p>
+        <p>Aucun projet Turgot trouvé pour cette collectivité dans votre périmètre.</p>
     {% endif %}
 {% endblock content %}
