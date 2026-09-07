@@ -12,6 +12,7 @@ Usage:
 
 from pathlib import Path
 
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 
 from gsl_core.models import Collegue
@@ -21,8 +22,9 @@ from gsl_notification.qr.reattach import (
     GroupAttached,
     GroupFailed,
     PageDecoded,
-    reattach_signed_doc,
+    reattach_signed_docs,
 )
+from gsl_programmation.models import ProgrammationProjet
 
 try:
     from tqdm import tqdm
@@ -61,9 +63,9 @@ class Command(BaseCommand):
         except Collegue.DoesNotExist:
             raise CommandError(f"No Collegue with email {options['user']!r}")
 
-        pdf_bytes = pdf_path.read_bytes()
+        pdfs = [ContentFile(pdf_path.read_bytes(), name=pdf_path.name)]
         attached, unreadable, failed_groups = self._consume_events(
-            reattach_signed_doc(pdf_bytes, user, name_stem=pdf_path.stem)
+            reattach_signed_docs(pdfs, user, ProgrammationProjet.objects.all())
         )
 
         self._print_summary(attached, unreadable, failed_groups)

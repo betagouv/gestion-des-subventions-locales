@@ -2,11 +2,10 @@
 Business logic for reattaching a scanned signed PDF to the matching
 ProgrammationProjet(s), decoded from per-page GSL QR codes.
 
-The CLI command in
-`gsl_notification/management/commands/reattach_signed_doc.py` is a thin
-wrapper around `reattach_signed_doc()`; the web import flow
-(`gsl_notification/tasks.py`) calls `reattach_signed_docs()` with the bytes of
-every uploaded file.
+`reattach_signed_docs()` is the entry point: the CLI command in
+`gsl_notification/management/commands/reattach_signed_doc.py` hands it one
+file, the web import flow (`gsl_notification/tasks.py`) hands it the whole
+batch.
 
 Pages sharing `(ds_number, dotation)` *and* targeting the same document model
 are grouped and reassembled (ordered by document type — lettre before
@@ -20,7 +19,6 @@ uploaded file first, then merges pages by `(ds_number, dotation, target_model)`
 across all of them, so an arrêté file and a lettre file uploaded together end
 up in a single `LettreEtArreteSignes` per project — while a lettre de refus
 scanned alongside them is routed independently to its own `LettreRefusSignee`.
-`reattach_signed_doc()` is a single-file wrapper kept for the operator CLI.
 """
 
 import io
@@ -28,6 +26,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Iterator
 
+from django.core.files.base import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from pikepdf import Pdf
@@ -89,26 +88,6 @@ class GroupFailed:
 ReattachEvent = DecodeStarted | PageDecoded | GroupAttached | GroupFailed
 
 
-def reattach_signed_doc(
-    pdf_bytes: bytes,
-    user: Collegue,
-    name_stem: str = "signed",
-    restrict_to_user_perimetre: bool = False,
-    remove_qr_code: bool = True,
-) -> Iterator[ReattachEvent]:
-    """Single-file wrapper around `reattach_signed_docs` (used by the CLI).
-
-    See `reattach_signed_docs` for the semantics; this entry point keeps the
-    operator command and any single-PDF caller unchanged.
-    """
-    yield from reattach_signed_docs(
-        [(name_stem, pdf_bytes)],
-        user,
-        restrict_to_user_perimetre=restrict_to_user_perimetre,
-        remove_qr_code=remove_qr_code,
-    )
-
-
 @dataclass(frozen=True)
 class ScannedPage:
     file_index: int
@@ -134,9 +113,9 @@ class DeclaredDocument:
 
 
 def reattach_signed_docs(
-    files: list[tuple[str, bytes]],
+    pdfs: list[File],
     user: Collegue,
-    restrict_to_user_perimetre: bool = False,
+    programmation_projets,
     remove_qr_code: bool = True,
 ) -> Iterator[ReattachEvent]:
     """Decode QRs across *all* uploaded files, merge pages sharing a
@@ -144,7 +123,11 @@ def reattach_signed_docs(
     group to its ProgrammationProjet as the matching document type, and
     stream events.
 
-    `files` is a list of `(stem, pdf_bytes)`. Grouping spans the whole list,
+    `pdfs` are read once, up front. A named one (`ContentFile(..., name=...)`,
+    or the `UploadedFile` a form hands over) has its name reported on any page
+    that fails to decode, so the agent knows which upload to look at.
+
+    Grouping spans the whole batch,
     so an arrêté file and a lettre file uploaded together produce one combined
     `LettreEtArreteSignes` per project (`_replace_uploaded_document` runs once
     per project and per target model, not once per file). A lettre de refus
@@ -155,9 +138,9 @@ def reattach_signed_docs(
     Side effects (DB writes, file storage) happen lazily as the caller
     iterates. Callers must drain the generator.
 
-    When `restrict_to_user_perimetre` is True, matching is scoped to the
-    ProgrammationProjet visible to `user` (used by the web upload flow); the
-    operator CLI leaves it False to keep matching global.
+    `programmation_projets` is the queryset a document is looked up in: the web
+    flow scopes it to the importer's perimetre, the operator CLI passes them
+    all. `user` is recorded as the author of every stored document.
 
     When `remove_qr_code` is True (the default), the GSL QR code is masked off
     each stored page; set it False to keep the QR visible on the stored file.
@@ -168,7 +151,10 @@ def reattach_signed_docs(
         scanned_pages_by_document: dict[DeclaredDocument, list[ScannedPage]] = (
             defaultdict(list)
         )
-        for file_index, (stem, pdf_bytes) in enumerate(files):
+        for file_index, pdf in enumerate(pdfs):
+            # An UploadedFile a form has already validated sits at EOF.
+            pdf.seek(0)
+            pdf_bytes = pdf.read()
             src = Pdf.open(io.BytesIO(pdf_bytes))
             srcs.append(src)
             pdf_bytes_list.append(pdf_bytes)
@@ -195,7 +181,7 @@ def reattach_signed_docs(
                         )
                     )
                 yield PageDecoded(
-                    scan_page=scan_index + 1, qr_found=hit is not None, file=stem
+                    scan_page=scan_index + 1, qr_found=hit is not None, file=pdf.name
                 )
 
         for declared, pages in scanned_pages_by_document.items():
@@ -208,7 +194,7 @@ def reattach_signed_docs(
                 declared,
                 pages,
                 user,
-                restrict_to_user_perimetre,
+                programmation_projets,
                 remove_qr_code,
             )
             if report.error is None:
@@ -226,7 +212,7 @@ def _attach_group(
     declared,
     pages,
     user,
-    restrict_to_user_perimetre=False,
+    programmation_projets,
     remove_qr_code=True,
 ) -> GroupReport:
     by_type: dict[str, list[int]] = defaultdict(list)
@@ -237,17 +223,8 @@ def _attach_group(
     pages_by_doc_type = dict(by_type)
     target_document_type = declared.target_model.document_type
 
-    # Scope matching to the importer's perimetre for the web flow; the operator
-    # CLI keeps the global queryset. Out-of-perimetre groups simply miss the
-    # lookup and fall through to the DoesNotExist branch below.
-    queryset = (
-        ProgrammationProjet.objects.visible_to_user(user)
-        if restrict_to_user_perimetre
-        else ProgrammationProjet.objects
-    )
-
     try:
-        pp = queryset.get(
+        pp = programmation_projets.get(
             dotation_projet__projet__dossier_ds__ds_number=declared.ds_number,
             dotation_projet__dotation=declared.dotation,
         )

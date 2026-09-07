@@ -6,6 +6,7 @@ from pathlib import Path
 
 from celery import shared_task
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db.models import F
 from django.utils import timezone
 
@@ -18,6 +19,7 @@ from gsl_notification.models import (
     ModeleArrete,
     ModeleLettreNotification,
 )
+from gsl_programmation.models import ProgrammationProjet
 
 logger = logging.getLogger(__name__)
 
@@ -200,8 +202,8 @@ def run_document_import_job(job_id: str) -> None:
         s3 = get_s3_client()
         bucket = settings.AWS_STORAGE_BUCKET_NAME
 
-        files = _download_and_scan_all(job, s3, bucket, result)
-        _reattach_all_files(job, files, result)
+        pdfs = _download_and_scan_all(job, s3, bucket, result)
+        _reattach_all_files(job, pdfs, result)
 
         _delete_temp_objects(s3, bucket, job.s3_keys)
 
@@ -230,33 +232,33 @@ def run_document_import_job(job_id: str) -> None:
             )
 
 
-def _download_and_scan_all(job, s3, bucket, result) -> list[tuple[str, bytes]]:
+def _download_and_scan_all(job, s3, bucket, result) -> list[ContentFile]:
     """Download and virus-scan every uploaded file, returning the surviving
-    `(stem, pdf_bytes)` list. Infected files are skipped and recorded in
+    PDFs under their uploaded name. Infected files are skipped and recorded in
     `result` so the batch decode below sees only clean PDFs."""
-    files: list[tuple[str, bytes]] = []
+    pdfs = []
     for s3_key in job.s3_keys:
-        stem = Path(s3_key).stem
-        pdf_bytes = _download_and_scan(s3, bucket, s3_key, stem, result)
+        name = Path(s3_key).name
+        pdf_bytes = _download_and_scan(s3, bucket, s3_key, name, result)
         if pdf_bytes is not None:
-            files.append((stem, pdf_bytes))
-    return files
+            pdfs.append(ContentFile(pdf_bytes, name=name))
+    return pdfs
 
 
-def _reattach_all_files(job, files, result) -> None:
+def _reattach_all_files(job, pdfs, result) -> None:
     """Drain `reattach_signed_docs` over the whole batch, merging page-groups
     across files. Progress is saved every few pages so the polling view
     advances without one DB write per page on large scans."""
-    if not files:
+    if not pdfs:
         return
 
     from gsl_notification.qr.reattach import reattach_signed_docs
 
     events = _consume_reattach_events(
         reattach_signed_docs(
-            files,
+            pdfs,
             job.created_by,
-            restrict_to_user_perimetre=True,
+            ProgrammationProjet.objects.visible_to_user(job.created_by),
             remove_qr_code=job.remove_qr_code,
         ),
         job,
@@ -270,7 +272,7 @@ def _reattach_all_files(job, files, result) -> None:
             pages_since_save = 0
     _bump_processed_pages(job, pages_since_save)
 
-    result["files_processed"] += len(files)
+    result["files_processed"] += len(pdfs)
 
 
 def _download_and_scan(s3, bucket, s3_key, stem, result) -> bytes | None:

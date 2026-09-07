@@ -2,6 +2,7 @@ import io
 from unittest.mock import patch
 
 import pytest
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -18,6 +19,7 @@ from gsl_notification.tests.factories import (
     ModeleLettreRefusFactory,
 )
 from gsl_notification.utils import generate_pdf_for_generated_document
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 
@@ -209,7 +211,7 @@ def _decode_pdf_bytes(raw: bytes) -> list[QrPayload | None]:
 
 @pytest.mark.django_db
 def test_event_stream_emits_per_page_decode_events(tmp_path):
-    """`reattach_signed_doc` should emit DecodeStarted, then a
+    """`reattach_signed_docs` should emit DecodeStarted, then a
     PageDecoded per page, then GroupAttached/Failed
     per group — in that order."""
     pytest.importorskip("pypdfium2")
@@ -219,7 +221,7 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
         DecodeStarted,
         GroupAttached,
         PageDecoded,
-        reattach_signed_doc,
+        reattach_signed_docs,
     )
 
     user = CollegueFactory(email="op@example.com")
@@ -242,18 +244,19 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
         src.close()
 
     total_pages = valid_page_count + 1
-    events = list(reattach_signed_doc(scan.read_bytes(), user, name_stem=scan.stem))
+    pdfs = [ContentFile(scan.read_bytes(), name=scan.name)]
+    events = list(reattach_signed_docs(pdfs, user, ProgrammationProjet.objects.all()))
 
     assert events[0] == DecodeStarted(total_pages=total_pages)
 
     per_page_events = events[1 : 1 + total_pages]
-    # Each page event carries the stem of its source file.
+    # Each page event carries the name of the file it was decoded from.
     expected_per_page = [
-        PageDecoded(scan_page=i, qr_found=True, file=scan.stem)
+        PageDecoded(scan_page=i, qr_found=True, file=scan.name)
         for i in range(1, valid_page_count + 1)
     ]
     expected_per_page.append(
-        PageDecoded(scan_page=total_pages, qr_found=False, file=scan.stem)
+        PageDecoded(scan_page=total_pages, qr_found=False, file=scan.name)
     )
     assert per_page_events == expected_per_page
 
@@ -471,7 +474,7 @@ def test_qr_is_kept_when_remove_qr_code_is_false():
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    from gsl_notification.qr.reattach import reattach_signed_doc
+    from gsl_notification.qr.reattach import reattach_signed_docs
 
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999999)
@@ -482,7 +485,9 @@ def test_qr_is_kept_when_remove_qr_code_is_false():
         "generated PDF should carry QRs before reattachment"
     )
 
-    list(reattach_signed_doc(pdf_bytes, user, name_stem="scan", remove_qr_code=False))
+    pdfs = [ContentFile(pdf_bytes)]
+    all_pps = ProgrammationProjet.objects.all()
+    list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=False))
 
     doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
     with doc.file.open("rb") as fh:
@@ -512,20 +517,21 @@ def test_reimport_same_scan_filename_keeps_new_file(
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    from gsl_notification.qr.reattach import reattach_signed_doc
+    from gsl_notification.qr.reattach import reattach_signed_docs
 
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999992)
 
+    pdfs = [ContentFile(pdf_bytes)]
+    all_pps = ProgrammationProjet.objects.all()
+
     # 1st import: QR removed.
-    list(reattach_signed_doc(pdf_bytes, user, name_stem="scan", remove_qr_code=True))
+    list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=True))
 
     # 2nd import: same scan stem (colliding storage key), QR kept. Forcing the
     # on_commit callbacks to run reproduces the bug on FileSystemStorage.
     with django_capture_on_commit_callbacks(execute=True):
-        list(
-            reattach_signed_doc(pdf_bytes, user, name_stem="scan", remove_qr_code=False)
-        )
+        list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=False))
 
     doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
     assert doc.file.storage.exists(doc.file.name), (

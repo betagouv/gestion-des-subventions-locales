@@ -39,8 +39,8 @@ from gsl_notification.models import GENERATED_DOCUMENTS
 PAYLOAD_PREFIX = "GSL1"
 
 # Scale used when rasterising pages for QR detection. Kept module-level so the
-# texture-patch code in `reattach_signed_doc` can render at the exact same
-# resolution and reuse the bbox coordinates without rescaling.
+# texture-patch code in `mask` can render at the exact same resolution and
+# reuse the bbox coordinates without rescaling.
 RENDER_SCALE = 200 / 72
 
 _ALLOWED_DOTATIONS = (DOTATION_DETR, DOTATION_DSIL)
