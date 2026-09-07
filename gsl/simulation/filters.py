@@ -5,7 +5,6 @@ from django_filters import (
     RangeFilter,
 )
 
-from gsl.simulation.models import SimulationProjet
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -31,6 +30,8 @@ from gsl_projet.utils.projet_filters import (
     make_filter_search,
 )
 from gsl_projet.utils.utils import order_couples_tuple_by_first_value
+
+from .models import SimulationProjet
 
 
 class SimulationProjetFilters(CommonFiltersFields):

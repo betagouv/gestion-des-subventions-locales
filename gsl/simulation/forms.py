@@ -8,8 +8,6 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
-from gsl.simulation.models import BulkStatusJob, Simulation, SimulationProjet
-from gsl.simulation.services.simulation_projet_service import SimulationProjetService
 from gsl_core.models import Collegue
 from gsl_core.templatetags.gsl_filters import euro
 from gsl_programmation.models import Enveloppe
@@ -21,6 +19,9 @@ from gsl_projet.models import (
     Projet,
 )
 from gsl_projet.utils.utils import compute_taux
+
+from .models import BulkStatusJob, Simulation, SimulationProjet
+from .services.simulation_projet_service import SimulationProjetService
 
 logger = getLogger(__name__)
 

@@ -6,8 +6,9 @@ from import_export.widgets import (
     Widget,
 )
 
-from gsl.simulation.models import SimulationProjet
 from gsl_demarches_simplifiees.models import Dossier
+
+from .models import SimulationProjet
 
 # Mapping from table Column.css_key → resource field name (1:1)
 CSS_KEY_TO_RESOURCE_FIELDS = {
@@ -241,7 +242,7 @@ class BaseSimulationProjetResource(ModelResource):
         if not columns_visibility:
             return self._get_default_hidden_headers()
 
-        from gsl.simulation.table_columns import SIMULATION_TABLE_COLUMNS
+        from .table_columns import SIMULATION_TABLE_COLUMNS
 
         hidden_resource_fields = set()
         for css_key, visible in columns_visibility.items():
@@ -260,7 +261,7 @@ class BaseSimulationProjetResource(ModelResource):
         return self._to_hidden_headers(hidden_resource_fields)
 
     def _get_default_hidden_headers(self):
-        from gsl.simulation.table_columns import SIMULATION_TABLE_COLUMNS
+        from .table_columns import SIMULATION_TABLE_COLUMNS
 
         hidden_resource_fields = set()
         for col in SIMULATION_TABLE_COLUMNS:

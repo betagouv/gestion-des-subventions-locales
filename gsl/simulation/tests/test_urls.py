@@ -4,8 +4,6 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -18,6 +16,9 @@ from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import (
     DotationProjetFactory,
 )
+
+from ..models import SimulationProjet
+from .factories import SimulationFactory, SimulationProjetFactory
 
 
 @pytest.fixture

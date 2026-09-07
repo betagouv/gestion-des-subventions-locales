@@ -5,10 +5,6 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
 from django_htmx.http import trigger_client_event
 
-from gsl.simulation.forms import BulkStatusJobForm
-from gsl.simulation.models import BulkStatusJob, Simulation, SimulationProjet
-from gsl.simulation.table_columns import SIMULATION_TABLE_COLUMNS
-from gsl.simulation.tasks import run_bulk_status_job
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
@@ -17,6 +13,11 @@ from gsl_core.matomo_constants import (
     MATOMO_CATEGORY_SIMULATION,
 )
 from gsl_projet.constants import DOTATIONS
+
+from ..forms import BulkStatusJobForm
+from ..models import BulkStatusJob, Simulation, SimulationProjet
+from ..table_columns import SIMULATION_TABLE_COLUMNS
+from ..tasks import run_bulk_status_job
 
 BULK_STATUS_MODAL_ID = "bulk-status-confirm-modal"
 

@@ -2,9 +2,6 @@ import logging
 
 import pytest
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.services.simulation_projet_service import SimulationProjetService
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_programmation.tests.factories import (
     ProgrammationProjetFactory,
 )
@@ -20,6 +17,10 @@ from gsl_projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
 )
+
+from ...models import SimulationProjet
+from ...services.simulation_projet_service import SimulationProjetService
+from ..factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

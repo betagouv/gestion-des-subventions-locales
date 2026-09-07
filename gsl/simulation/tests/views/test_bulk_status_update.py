@@ -3,12 +3,6 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import (
-    SimulationFactory,
-    SimulationProjetFactory,
-    make_detr_simu_projet,
-)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -24,6 +18,13 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory
+
+from ...models import SimulationProjet
+from ..factories import (
+    SimulationFactory,
+    SimulationProjetFactory,
+    make_detr_simu_projet,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -210,7 +211,7 @@ def test_bulk_status_update_to_accepted_returns_confirmation_modal(
     assert response.headers.get("HX-Refresh") != "true"
     assert b"bulk-status-confirm-modal" in response.content
     assert b"Lancer le traitement" in response.content
-    from gsl.simulation.models import BulkStatusJob
+    from ...models import BulkStatusJob
 
     assert BulkStatusJob.objects.count() == 0
     for sp in (sp1, sp2):

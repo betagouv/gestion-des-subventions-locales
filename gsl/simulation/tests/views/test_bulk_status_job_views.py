@@ -4,12 +4,6 @@ import pytest
 from django.db import IntegrityError
 from django.urls import reverse
 
-from gsl.simulation.models import BulkStatusJob, SimulationProjet
-from gsl.simulation.tests.factories import (
-    SimulationFactory,
-    SimulationProjetFactory,
-    make_detr_simu_projet,
-)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -18,6 +12,13 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
 from gsl_projet.tests.factories import DotationProjetFactory
+
+from ...models import BulkStatusJob, SimulationProjet
+from ..factories import (
+    SimulationFactory,
+    SimulationProjetFactory,
+    make_detr_simu_projet,
+)
 
 pytestmark = pytest.mark.django_db
 

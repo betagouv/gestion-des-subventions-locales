@@ -5,14 +5,15 @@ from unittest.mock import patch
 import pytest
 from django import forms
 
-from gsl.simulation.forms import SimulationProjetForm
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_projet.constants import PROJET_STATUS_ACCEPTED
 from gsl_projet.tests.factories import DetrProjetFactory
+
+from ...forms import SimulationProjetForm
+from ...models import SimulationProjet
+from ..factories import SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

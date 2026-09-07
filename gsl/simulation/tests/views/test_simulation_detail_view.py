@@ -6,14 +6,6 @@ from django.test import Client
 from django.urls import resolve, reverse
 from django.utils import timezone
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import (
-    SimulationFactory,
-    SimulationProjetFactory,
-)
-from gsl.simulation.views.simulation_views import (
-    FilteredProjetsExportView,
-)
 from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreDepartementalFactory,
@@ -29,6 +21,15 @@ from gsl_projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
+)
+
+from ...models import SimulationProjet
+from ...views.simulation_views import (
+    FilteredProjetsExportView,
+)
+from ..factories import (
+    SimulationFactory,
+    SimulationProjetFactory,
 )
 
 pytestmark = pytest.mark.django_db

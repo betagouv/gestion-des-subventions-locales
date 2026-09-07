@@ -2,9 +2,10 @@ import logging
 
 from django.shortcuts import get_object_or_404
 
-from gsl.simulation.models import Simulation
 from gsl_core.exceptions import Http404
 from gsl_programmation.services.enveloppe_service import EnveloppeService
+
+from ..models import Simulation
 
 logger = logging.getLogger(__name__)
 

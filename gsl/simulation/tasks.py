@@ -4,9 +4,10 @@ from django.db.models import F
 from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
-from gsl.simulation.forms import SimulationProjetStatusForm
-from gsl.simulation.models import BulkStatusJob, SimulationProjet
 from gsl_demarches_simplifiees.exceptions import DsServiceException
+
+from .forms import SimulationProjetStatusForm
+from .models import BulkStatusJob, SimulationProjet
 
 
 @shared_task

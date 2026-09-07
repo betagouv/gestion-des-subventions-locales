@@ -1,14 +1,14 @@
 from django.urls import path
 
-from gsl.simulation.views import simulation_views
-from gsl.simulation.views.bulk_status_job_views import (
+from .views import simulation_views
+from .views.bulk_status_job_views import (
     BulkStatusJobProgressView,
     BulkStatusJobStartView,
 )
-from gsl.simulation.views.decorators import (
+from .views.decorators import (
     simulation_must_be_visible_by_user,
 )
-from gsl.simulation.views.simulation_projet_views import (
+from .views.simulation_projet_views import (
     BulkSimulationProjetStatusUpdateView,
     CleanupAmountModalView,
     EditAssietteView,
@@ -20,7 +20,7 @@ from gsl.simulation.views.simulation_projet_views import (
     SimulationProjetCardUpdateView,
     SimulationProjetStatusUpdateView,
 )
-from gsl.simulation.views.simulation_views import (
+from .views.simulation_views import (
     SimulationColumnsVisibilityView,
     SimulationCreateView,
     SimulationDeleteView,

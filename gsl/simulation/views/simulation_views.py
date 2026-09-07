@@ -13,22 +13,6 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
-from gsl.simulation.filters import SimulationProjetFilters
-from gsl.simulation.forms import (
-    SimulationColumnsVisibilityForm,
-    SimulationForm,
-    SimulationRenameForm,
-)
-from gsl.simulation.models import (
-    BulkStatusJob,
-    Simulation,
-    SimulationProjet,
-)
-from gsl.simulation.resources import (
-    DetrSimulationProjetResource,
-    DsilSimulationProjetResource,
-)
-from gsl.simulation.table_columns import SIMULATION_TABLE_COLUMNS
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_CREATION_SIMULATION,
@@ -40,6 +24,23 @@ from gsl_core.view_mixins import FilterSkiplinksMixin, NoFeedbackHtmxFormViewMix
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_projet.constants import DOTATION_DSIL, DOTATIONS
 from gsl_projet.models import DotationProjet, Projet
+
+from ..filters import SimulationProjetFilters
+from ..forms import (
+    SimulationColumnsVisibilityForm,
+    SimulationForm,
+    SimulationRenameForm,
+)
+from ..models import (
+    BulkStatusJob,
+    Simulation,
+    SimulationProjet,
+)
+from ..resources import (
+    DetrSimulationProjetResource,
+    DsilSimulationProjetResource,
+)
+from ..table_columns import SIMULATION_TABLE_COLUMNS
 
 
 class SimulationListView(ListView):

@@ -3,19 +3,20 @@ from unittest import mock
 
 import pytest
 
-from gsl.simulation.forms import (
-    AssietteSingleFieldForm,
-    MontantSingleFieldForm,
-    TauxSingleFieldForm,
-)
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 from gsl_projet.constants import PROJET_STATUS_ACCEPTED
 from gsl_projet.tests.factories import DetrProjetFactory, DotationProjetFactory
+
+from ...forms import (
+    AssietteSingleFieldForm,
+    MontantSingleFieldForm,
+    TauxSingleFieldForm,
+)
+from ...models import SimulationProjet
+from ..factories import SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

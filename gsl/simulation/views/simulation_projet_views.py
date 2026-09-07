@@ -16,22 +16,6 @@ from django_htmx.http import (
     trigger_client_event,
 )
 
-from gsl.simulation.filters import SimulationProjetFilters
-from gsl.simulation.forms import (
-    AssietteSingleFieldForm,
-    CommentSingleFieldForm,
-    MontantSingleFieldForm,
-    SimulationProjetForm,
-    SimulationProjetStatusForm,
-    TauxSingleFieldForm,
-)
-from gsl.simulation.models import (
-    BulkStatusJob,
-    SimulationProjet,
-    SimulationProjetQuerySet,
-)
-from gsl.simulation.table_columns import SIMULATION_TABLE_COLUMNS
-from gsl.simulation.views.bulk_status_job_views import BULK_STATUS_MODAL_ID
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
@@ -58,6 +42,23 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.models import projet_status_from_dotation_statuses
+
+from ..filters import SimulationProjetFilters
+from ..forms import (
+    AssietteSingleFieldForm,
+    CommentSingleFieldForm,
+    MontantSingleFieldForm,
+    SimulationProjetForm,
+    SimulationProjetStatusForm,
+    TauxSingleFieldForm,
+)
+from ..models import (
+    BulkStatusJob,
+    SimulationProjet,
+    SimulationProjetQuerySet,
+)
+from ..table_columns import SIMULATION_TABLE_COLUMNS
+from .bulk_status_job_views import BULK_STATUS_MODAL_ID
 
 
 class SimulationTableCellEditMixin(UpdateView):

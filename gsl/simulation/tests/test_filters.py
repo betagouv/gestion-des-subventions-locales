@@ -1,12 +1,13 @@
 import pytest
 from django.test import RequestFactory
 
-from gsl.simulation.filters import SimulationProjetFilters
 from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
+
+from ..filters import SimulationProjetFilters
 
 pytestmark = pytest.mark.django_db
 

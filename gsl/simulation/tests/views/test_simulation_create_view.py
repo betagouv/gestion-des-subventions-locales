@@ -1,8 +1,6 @@
 import pytest
 from django.urls import reverse
 
-from gsl.simulation.models import Simulation, SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -15,6 +13,9 @@ from gsl_programmation.tests.factories import (
 )
 from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.tests.factories import DotationProjetFactory
+
+from ...models import Simulation, SimulationProjet
+from ..factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
 

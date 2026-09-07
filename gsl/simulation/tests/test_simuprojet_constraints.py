@@ -2,12 +2,13 @@ import pytest
 from django.conf import settings
 from django.db import IntegrityError
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_projet.constants import DOTATION_DETR
 from gsl_projet.tests.factories import (
     DetrProjetFactory,
 )
+
+from ..models import SimulationProjet
+from .factories import SimulationFactory, SimulationProjetFactory
 
 skip_on_sqlite = pytest.mark.skipif(
     "sqlite" in settings.DATABASES["default"]["ENGINE"],

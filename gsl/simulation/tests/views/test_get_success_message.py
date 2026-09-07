@@ -9,9 +9,6 @@ from decimal import Decimal
 
 import pytest
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
-from gsl.simulation.views.simulation_projet_views import ProgrammationStatusUpdateView
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -27,6 +24,10 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+
+from ...models import SimulationProjet
+from ...views.simulation_projet_views import ProgrammationStatusUpdateView
+from ..factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

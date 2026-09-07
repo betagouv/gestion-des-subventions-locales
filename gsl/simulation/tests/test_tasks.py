@@ -3,15 +3,16 @@ from unittest import mock
 
 import pytest
 
-from gsl.simulation.models import BulkStatusJob, SimulationProjet
-from gsl.simulation.tasks import run_bulk_status_job
-from gsl.simulation.tests.factories import SimulationFactory, make_detr_simu_projet
 from gsl_core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
+
+from ..models import BulkStatusJob, SimulationProjet
+from ..tasks import run_bulk_status_job
+from .factories import SimulationFactory, make_detr_simu_projet
 
 pytestmark = pytest.mark.django_db
 
@@ -165,7 +166,7 @@ def test_run_bulk_status_job_lets_unexpected_exception_propagate(
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
     )
 
-    from gsl.simulation.forms import SimulationProjetStatusForm as _Form
+    from ..forms import SimulationProjetStatusForm as _Form
 
     original_save = _Form.save
 
@@ -217,7 +218,7 @@ def test_run_bulk_status_job_preserves_recorded_errors_when_crashing(
             raise DsServiceException("Échec DN simulé")
         return None
 
-    from gsl.simulation.forms import SimulationProjetStatusForm as _Form
+    from ..forms import SimulationProjetStatusForm as _Form
 
     original_save = _Form.save
 
@@ -267,7 +268,7 @@ def test_run_bulk_status_job_records_transition_not_allowed_per_row(
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
     )
 
-    from gsl.simulation.forms import SimulationProjetStatusForm as _Form
+    from ..forms import SimulationProjetStatusForm as _Form
 
     original_save = _Form.save
 
@@ -305,7 +306,7 @@ def test_run_bulk_status_job_records_validation_error_per_row(
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
     )
 
-    from gsl.simulation.forms import SimulationProjetStatusForm as _Form
+    from ..forms import SimulationProjetStatusForm as _Form
 
     original_save = _Form.save
 

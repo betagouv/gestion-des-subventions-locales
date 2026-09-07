@@ -14,7 +14,7 @@ from gsl_projet.utils.utils import compute_taux
 
 
 def validate_columns_visibility(value):
-    from gsl.simulation.table_columns import SIMULATION_TABLE_COLUMNS
+    from .table_columns import SIMULATION_TABLE_COLUMNS
 
     if not isinstance(value, dict):
         raise ValidationError("La valeur doit être un objet JSON.")

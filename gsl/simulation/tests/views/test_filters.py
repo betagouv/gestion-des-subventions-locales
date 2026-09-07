@@ -4,13 +4,6 @@ from unittest.mock import patch
 import pytest
 from django.urls import resolve, reverse
 
-from gsl.simulation.forms import _add_enveloppe_projets_to_simulation
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
-from gsl.simulation.views.simulation_views import (
-    SimulationDetailView,
-    SimulationListView,
-)
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     ClientWithLoggedUserFactory,
@@ -36,6 +29,14 @@ from gsl_projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
 )
+
+from ...forms import _add_enveloppe_projets_to_simulation
+from ...models import SimulationProjet
+from ...views.simulation_views import (
+    SimulationDetailView,
+    SimulationListView,
+)
+from ..factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

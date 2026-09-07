@@ -3,8 +3,6 @@ from decimal import Decimal
 import pytest
 from django.forms import ValidationError
 
-from gsl.simulation.models import Simulation, SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -13,6 +11,9 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl_projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_projet.tests.factories import DotationProjetFactory
+
+from ..models import Simulation, SimulationProjet
+from .factories import SimulationFactory, SimulationProjetFactory
 
 
 @pytest.mark.parametrize(

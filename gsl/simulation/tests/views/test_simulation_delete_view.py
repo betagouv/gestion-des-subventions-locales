@@ -1,13 +1,14 @@
 import pytest
 from django.urls import reverse
 
-from gsl.simulation.models import Simulation
-from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
 )
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
+
+from ...models import Simulation
+from ..factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
 

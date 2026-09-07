@@ -3,9 +3,6 @@ from decimal import Decimal
 
 import pytest
 
-from gsl.simulation.forms import _add_enveloppe_projets_to_simulation
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -31,6 +28,10 @@ from gsl_projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
+
+from ..forms import _add_enveloppe_projets_to_simulation
+from ..models import SimulationProjet
+from .factories import SimulationFactory
 
 CURRENT_YEAR = datetime.now(tz=UTC).year
 

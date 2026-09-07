@@ -1,13 +1,14 @@
 from django import template
 from django.urls import reverse
 
-from gsl.simulation.models import SimulationProjet
 from gsl_projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
+
+from ..models import SimulationProjet
 
 register = template.Library()
 

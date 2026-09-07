@@ -1,7 +1,7 @@
 import pytest
 
-from gsl.simulation.models import Simulation, SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
+from ..models import Simulation, SimulationProjet
+from .factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

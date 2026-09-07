@@ -3,9 +3,6 @@ from unittest import mock
 
 import pytest
 
-from gsl.simulation.forms import SimulationProjetStatusForm
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
 from gsl_programmation.models import ProgrammationProjet
@@ -21,6 +18,10 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory
+
+from ...forms import SimulationProjetStatusForm
+from ...models import SimulationProjet
+from ..factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 

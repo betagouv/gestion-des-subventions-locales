@@ -12,8 +12,6 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -29,6 +27,9 @@ from gsl_projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl_projet.tests.factories import DotationProjetFactory, ProjetFactory
+
+from ...models import SimulationProjet
+from ..factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
