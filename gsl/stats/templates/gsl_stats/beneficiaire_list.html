@@ -35,10 +35,10 @@
                                 {% for b in beneficiaires %}
                                     <tr>
                                         <td>
-                                            <a href="{% url 'suivi_financier:beneficiaire-detail' b.siren %}">{{ b.nom }}</a>
+                                            <a href="{% url 'suivi_financier:beneficiaire-detail' b.siren %}">{{ b.raison_sociale }}</a>
                                         </td>
                                         <td>{{ b.siren }}</td>
-                                        <td>{{ b.type }}</td>
+                                        <td>{{ b.forme_juridique.libelle }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

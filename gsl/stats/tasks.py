@@ -10,7 +10,6 @@ from django.conf import settings
 from gsl.celery import TASK_PRIORITY_LOW
 
 from .models import (
-    Beneficiaire,
     FondsVertImportState,
     SubventionDgcl,
     SubventionFondsVert,
@@ -103,24 +102,12 @@ def _import_row(row):
     )
     dispositif = (row.get("dispositif") or row.get("Dispositif") or "").strip().upper()
     programme = _parse_int(row.get("programme") or row.get("Programme") or "0") or 0
-    beneficiaire_type = (
-        row.get("beneficiaire_type")
-        or row.get("Bénéficiaire - Type")
-        or row.get("type_beneficiaire")
-        or ""
-    ).strip()
     beneficiaire_siren = (
         row.get("beneficiaire_siren")
         or row.get("Bénéficiaire - SIREN")
         or row.get("siret_beneficiaire")
         or ""
     ).strip()[:9]
-    beneficiaire_nom = (
-        row.get("beneficiaire_nom")
-        or row.get("Bénéficiaire - Nom")
-        or row.get("nom_beneficiaire")
-        or ""
-    ).strip()[:200]
     intitule = (
         row.get("intitule") or row.get("Intitulé du projet") or row.get("objet") or ""
     ).strip()
@@ -155,16 +142,10 @@ def _import_row(row):
     departement = _resolve_departement(dep_code)
     commune = _resolve_commune(insee_code)
 
-    # Upsert le bénéficiaire — le nom/type reflète toujours la dernière donnée importée.
-    beneficiaire, _ = Beneficiaire.objects.update_or_create(
-        siren=beneficiaire_siren,
-        defaults={"nom": beneficiaire_nom, "type": beneficiaire_type},
-    )
-
     _, created = SubventionDgcl.objects.update_or_create(
         exercice=exercice,
         dispositif=dispositif,
-        beneficiaire=beneficiaire,
+        siren=beneficiaire_siren,
         intitule=intitule,
         defaults={
             "programme": programme,
@@ -289,17 +270,9 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
 
     dossier_number = sc.get("dossier_number")
     siret = (sc.get("siret") or "").strip()
-    nom = (sc.get("entreprise_raison_sociale") or "").strip()[:200]
-    entreprise_type = (sc.get("entreprise_forme_juridique") or "").strip()[:50]
 
     if not dossier_number or not siret:
         return False
-
-    siren = siret[:9]
-    beneficiaire, _ = Beneficiaire.objects.update_or_create(
-        siren=siren,
-        defaults={"nom": nom, "type": entreprise_type},
-    )
 
     departement = _resolve_departement(sc.get("code_departement", ""))
     commune = _resolve_commune(sc.get("code_commune", ""))
@@ -307,7 +280,7 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
     _, created = SubventionFondsVert.objects.update_or_create(
         dossier_number=dossier_number,
         defaults={
-            "beneficiaire": beneficiaire,
+            "siren": siret[:9],
             "annee_millesime": sc.get("annee_millesime") or 0,
             "demarche_number": sc.get("demarche_number") or 0,
             "demarche_title": (sc.get("demarche_title") or "")[:200],

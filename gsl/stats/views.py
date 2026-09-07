@@ -1,26 +1,41 @@
-from django.db.models import Q
+from django.db.models import Case, Min, Q, Value, When
+from django.http import Http404
 from django.views.generic import DetailView, ListView
 
 from gsl.projet.models import Projet
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.models import PersonneMorale
 
-from .models import Beneficiaire
+from .models import SubventionDgcl, SubventionFondsVert
 
 
 class BeneficiaireListView(ListView):
-    model = Beneficiaire
+    model = PersonneMorale
     template_name = "gsl_stats/beneficiaire_list.html"
     context_object_name = "beneficiaires"
     paginate_by = 50
 
     def get_queryset(self):
-        qs = Beneficiaire.objects.all()
-        qs = _filter_by_perimetre(qs, self.request.user)
+        qs = _personnes_morales_in_perimetre(self.request.user)
+        qs = qs.exclude(siren="")
 
         search = self.request.GET.get("q", "").strip()
         if search:
-            qs = qs.filter(Q(nom__icontains=search) | Q(siren__icontains=search))
-        return qs
+            qs = qs.filter(
+                Q(raison_sociale__icontains=search) | Q(siren__icontains=search)
+            )
+
+        # Une même personne (SIREN) peut avoir plusieurs établissements (SIRET) :
+        # on n'en garde qu'un, le premier par ordre de SIRET.
+        premier_siret_par_siren = qs.values("siren").annotate(siret=Min("siret"))
+        qs = qs.filter(
+            siret__in=premier_siret_par_siren.values_list("siret", flat=True)
+        ).select_related("forme_juridique")
+
+        return qs.order_by(
+            Case(When(raison_sociale="", then=Value(1)), default=Value(0)),
+            "raison_sociale",
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -30,33 +45,41 @@ class BeneficiaireListView(ListView):
 
 
 class BeneficiaireDetailView(DetailView):
-    model = Beneficiaire
-    pk_url_kwarg = "siren"
+    model = PersonneMorale
     template_name = "gsl_stats/beneficiaire_detail.html"
 
     def get_queryset(self):
-        qs = Beneficiaire.objects.all()
-        return _filter_by_perimetre(qs, self.request.user)
+        return _personnes_morales_in_perimetre(self.request.user)
+
+    def get_object(self, queryset=None):
+        queryset = queryset or self.get_queryset()
+        obj = queryset.filter(siren=self.kwargs["siren"]).first()
+        if obj is None:
+            raise Http404("Bénéficiaire introuvable")
+        return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        beneficiaire = self.object
+        personne_morale = self.object
+        siren = personne_morale.siren
 
-        subventions = beneficiaire.subventiondgcl_set.select_related(
+        subventions = SubventionDgcl.objects.filter(siren=siren).select_related(
             "departement", "commune"
-        ).order_by("-exercice", "dispositif")
+        )
+        subventions = subventions.order_by("-exercice", "dispositif")
 
-        subventions_fonds_vert = beneficiaire.subventionfondsvert_set.select_related(
-            "departement", "commune"
-        ).order_by("-annee_millesime", "demarche_title")
+        subventions_fonds_vert = SubventionFondsVert.objects.filter(
+            siren=siren
+        ).select_related("departement", "commune")
+        subventions_fonds_vert = subventions_fonds_vert.order_by(
+            "-annee_millesime", "demarche_title"
+        )
 
         if self.request.user.is_staff:
-            projets = Projet.objects.filter(
-                dossier_ds__ds_demandeur__siren=beneficiaire.siren
-            )
+            projets = Projet.objects.filter(dossier_ds__ds_demandeur__siren=siren)
         else:
             projets = Projet.objects.for_user(self.request.user).filter(
-                dossier_ds__ds_demandeur__siren=beneficiaire.siren
+                dossier_ds__ds_demandeur__siren=siren
             )
         projets = (
             projets.select_related("dossier_ds", "dossier_ds__ds_demandeur")
@@ -64,33 +87,31 @@ class BeneficiaireDetailView(DetailView):
             .order_by("-dossier_ds__ds_date_depot")
         )
 
+        beneficiaire_nom = personne_morale.raison_sociale or siren
         context.update(
             {
-                "siren": beneficiaire.siren,
-                "beneficiaire_nom": beneficiaire.nom,
+                "siren": siren,
+                "beneficiaire_nom": beneficiaire_nom,
                 "subventions": subventions,
                 "subventions_fonds_vert": subventions_fonds_vert,
                 "projets": projets,
-                "title": f"Bénéficiaire – {beneficiaire.nom}",
+                "title": f"Bénéficiaire – {beneficiaire_nom}",
             }
         )
         return context
 
 
-def _filter_by_perimetre(qs, user):
+def _personnes_morales_in_perimetre(user):
+    qs = PersonneMorale.objects.all()
     if user.is_staff:
         return qs
     perimetre: Perimetre | None = getattr(user, "perimetre", None)
     if perimetre is None:
         return qs.none()
     if perimetre.arrondissement:
-        return qs.filter(
-            subventiondgcl__commune__arrondissement=perimetre.arrondissement
-        ).distinct()
+        return qs.filter(address__commune__arrondissement=perimetre.arrondissement)
     if perimetre.departement:
-        return qs.filter(subventiondgcl__departement=perimetre.departement).distinct()
+        return qs.filter(address__commune__departement=perimetre.departement)
     if perimetre.region:
-        return qs.filter(
-            subventiondgcl__departement__region=perimetre.region
-        ).distinct()
+        return qs.filter(address__commune__departement__region=perimetre.region)
     return qs.none()
