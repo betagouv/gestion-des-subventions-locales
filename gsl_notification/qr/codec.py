@@ -23,8 +23,7 @@ import base64
 import io
 import re
 from dataclasses import dataclass
-from pathlib import Path
-from typing import BinaryIO, Iterator
+from typing import Iterator
 
 import segno
 
@@ -116,9 +115,7 @@ def parse_payload(raw: str) -> QrPayload | None:
     )
 
 
-def iter_decoded_pages(
-    pdf_source: Path | bytes | BinaryIO,
-) -> Iterator[QrHit | None]:
+def iter_decoded_pages(pdf_bytes: bytes) -> Iterator[QrHit | None]:
     """Yield one `QrHit | None` per page, in source order.
 
     Each yield = one page rasterised + QR-scanned. The caller controls
@@ -126,13 +123,6 @@ def iter_decoded_pages(
     """
     import pypdfium2 as pdfium
     import zxingcpp
-
-    if isinstance(pdf_source, Path):
-        pdf_bytes = pdf_source.read_bytes()
-    elif isinstance(pdf_source, bytes):
-        pdf_bytes = pdf_source
-    else:
-        pdf_bytes = pdf_source.read()
 
     pdf = pdfium.PdfDocument(pdf_bytes)
     try:
@@ -155,11 +145,9 @@ def iter_decoded_pages(
         pdf.close()
 
 
-def decode_per_page(
-    pdf_source: Path | bytes | BinaryIO,
-) -> list[QrHit | None]:
+def decode_per_page(pdf_bytes: bytes) -> list[QrHit | None]:
     """One entry per page (0-based index in the source PDF). None = no GSL QR found."""
-    return list(iter_decoded_pages(pdf_source))
+    return list(iter_decoded_pages(pdf_bytes))
 
 
 def _axis_aligned_bbox(position) -> tuple[float, float, float, float]:

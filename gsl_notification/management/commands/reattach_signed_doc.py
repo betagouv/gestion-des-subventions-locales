@@ -63,8 +63,9 @@ class Command(BaseCommand):
         except Collegue.DoesNotExist:
             raise CommandError(f"No Collegue with email {options['user']!r}")
 
+        pdf_bytes = pdf_path.read_bytes()
         attached, unreadable, failed_groups = self._consume_events(
-            reattach_signed_doc(pdf_path, user, name_stem=pdf_path.stem)
+            reattach_signed_doc(pdf_bytes, user, name_stem=pdf_path.stem)
         )
 
         self._print_summary(attached, unreadable, failed_groups)

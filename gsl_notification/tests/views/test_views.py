@@ -775,13 +775,8 @@ def test_document_download_includes_qr_by_default_and_respects_stored_choice(
     assert default.status_code == 200
     assert opted_out.status_code == 200
 
-    default_path = tmp_path / "default.pdf"
-    default_path.write_bytes(default.content)
-    assert any(hit is not None for hit in decode_per_page(default_path))
-
-    opted_out_path = tmp_path / "opted_out.pdf"
-    opted_out_path.write_bytes(opted_out.content)
-    assert all(hit is None for hit in decode_per_page(opted_out_path))
+    assert any(hit is not None for hit in decode_per_page(default.content))
+    assert all(hit is None for hit in decode_per_page(opted_out.content))
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))

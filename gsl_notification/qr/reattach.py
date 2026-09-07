@@ -26,8 +26,7 @@ scanned alongside them is routed independently to its own `LettreRefusSignee`.
 import io
 from collections import defaultdict
 from dataclasses import dataclass
-from pathlib import Path
-from typing import BinaryIO, Iterator
+from typing import Iterator
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
@@ -98,7 +97,7 @@ ReattachEvent = (
 
 
 def reattach_signed_doc(
-    pdf_source: Path | bytes | BinaryIO,
+    pdf_bytes: bytes,
     user: Collegue,
     name_stem: str = "signed",
     restrict_to_user_perimetre: bool = False,
@@ -109,7 +108,6 @@ def reattach_signed_doc(
     See `reattach_signed_docs` for the semantics; this entry point keeps the
     operator command and any single-PDF caller unchanged.
     """
-    pdf_bytes = _read_to_bytes(pdf_source)
     yield from reattach_signed_docs(
         [(name_stem, pdf_bytes)],
         user,
@@ -207,14 +205,6 @@ def reattach_signed_docs(
     finally:
         for src in srcs:
             src.close()
-
-
-def _read_to_bytes(pdf_source: Path | bytes | BinaryIO) -> bytes:
-    if isinstance(pdf_source, Path):
-        return pdf_source.read_bytes()
-    if isinstance(pdf_source, bytes):
-        return pdf_source
-    return pdf_source.read()
 
 
 def _attach_group(

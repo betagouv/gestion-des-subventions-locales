@@ -243,7 +243,7 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
         src.close()
 
     total_pages = valid_page_count + 1
-    events = list(reattach_signed_doc(scan, user, name_stem=scan.stem))
+    events = list(reattach_signed_doc(scan.read_bytes(), user, name_stem=scan.stem))
 
     assert events[0] == DecodeStarted(total_pages=total_pages)
 
@@ -393,7 +393,7 @@ def test_qr_mask_blends_in_with_surrounding_texture(tmp_path):
 
     # Locate the QR (in pixel space at the same scale we render at) before it
     # is masked, so we know exactly where to look in the stored PDF.
-    hits = decode_per_page(scan)
+    hits = decode_per_page(tinted)
     hit = next(h for h in hits if h is not None)
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
@@ -464,7 +464,7 @@ def test_qr_is_removed_from_stored_pdf(tmp_path):
 
 
 @pytest.mark.django_db
-def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
+def test_qr_is_kept_when_remove_qr_code_is_false():
     """With remove_qr_code=False, the stored PDF keeps its decodable QRs."""
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
@@ -480,10 +480,7 @@ def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
         "generated PDF should carry QRs before reattachment"
     )
 
-    scan = tmp_path / "scan.pdf"
-    scan.write_bytes(pdf_bytes)
-
-    list(reattach_signed_doc(scan, user, name_stem=scan.stem, remove_qr_code=False))
+    list(reattach_signed_doc(pdf_bytes, user, name_stem="scan", remove_qr_code=False))
 
     doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
     with doc.file.open("rb") as fh:
@@ -497,7 +494,7 @@ def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
 
 @pytest.mark.django_db
 def test_reimport_same_scan_filename_keeps_new_file(
-    tmp_path, django_capture_on_commit_callbacks
+    django_capture_on_commit_callbacks,
 ):
     """Re-importing the *same* scan filename (so the storage key collides) must
     keep the freshly-written file, not delete it.
@@ -518,16 +515,15 @@ def test_reimport_same_scan_filename_keeps_new_file(
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999992)
 
-    scan = tmp_path / "scan.pdf"
-    scan.write_bytes(pdf_bytes)
-
     # 1st import: QR removed.
-    list(reattach_signed_doc(scan, user, name_stem="scan", remove_qr_code=True))
+    list(reattach_signed_doc(pdf_bytes, user, name_stem="scan", remove_qr_code=True))
 
     # 2nd import: same scan stem (colliding storage key), QR kept. Forcing the
     # on_commit callbacks to run reproduces the bug on FileSystemStorage.
     with django_capture_on_commit_callbacks(execute=True):
-        list(reattach_signed_doc(scan, user, name_stem="scan", remove_qr_code=False))
+        list(
+            reattach_signed_doc(pdf_bytes, user, name_stem="scan", remove_qr_code=False)
+        )
 
     doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
     assert doc.file.storage.exists(doc.file.name), (

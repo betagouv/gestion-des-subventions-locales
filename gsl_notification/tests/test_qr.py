@@ -164,10 +164,7 @@ def test_decode_per_page_returns_bbox_in_bottom_left(tmp_path):
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         pdf_bytes = generate_pdf_for_generated_document(document)
 
-    pdf_path = tmp_path / "doc.pdf"
-    pdf_path.write_bytes(pdf_bytes)
-
-    hits = decode_per_page(pdf_path)
+    hits = decode_per_page(pdf_bytes)
     assert hits, "no pages decoded"
 
     for page_idx, hit in enumerate(hits, start=1):
@@ -220,10 +217,7 @@ def test_no_qr_when_with_qr_code_is_false(tmp_path):
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         pdf_bytes = generate_pdf_for_generated_document(document, with_qr_code=False)
 
-    pdf_path = tmp_path / "doc.pdf"
-    pdf_path.write_bytes(pdf_bytes)
-
-    hits = decode_per_page(pdf_path)
+    hits = decode_per_page(pdf_bytes)
     assert hits, "no pages decoded"
     assert all(hit is None for hit in hits), (
         "no GSL QR should be present when with_qr_code=False"
