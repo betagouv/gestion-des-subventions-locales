@@ -2,6 +2,7 @@ import io
 from unittest.mock import patch
 
 import pytest
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -9,7 +10,21 @@ from pikepdf import Page, Pdf
 
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.models import LettreEtArreteSignes, LettreRefusSignee
-from gsl_notification.qr import QrPayload, parse_payload
+from gsl_notification.qr.codec import (
+    RENDER_SCALE,
+    QrPayload,
+    decode_per_page,
+    parse_payload,
+)
+from gsl_notification.qr.reattach import (
+    DecodeStarted,
+    DocumentAttached,
+    DocumentMatched,
+    PageDecoded,
+    extract_documents,
+    reattach_signed_docs,
+    replace_documents,
+)
 from gsl_notification.tests.factories import (
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,
@@ -18,6 +33,7 @@ from gsl_notification.tests.factories import (
     ModeleLettreRefusFactory,
 )
 from gsl_notification.utils import generate_pdf_for_generated_document
+from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 
@@ -72,9 +88,6 @@ def _concatenate(pdf_bytes_list, tmp_path, name="scan.pdf", shuffle=None):
 
 @pytest.mark.django_db
 def test_happy_path_splits_two_groups(tmp_path):
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
     user = CollegueFactory(email="op@example.com")
 
     pp1, _, pdf1 = _build_pdf_for_pp(ds_number=1111111)
@@ -131,9 +144,6 @@ def _build_refus_pdf_for_pp(ds_number, dotation=None, content_blocks=200):
 def test_happy_path_attaches_lettre_refus_signee(tmp_path):
     """A scan of a signed lettre de refus (QR document_type="refus") must be
     attached as a LettreRefusSignee, not a LettreEtArreteSignes."""
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_refus_pdf_for_pp(ds_number=7777777)
 
@@ -154,8 +164,6 @@ def test_mixed_lettre_et_arrete_and_refus_pages_attach_independently(tmp_path):
     """A single scan carrying both lettre/arrêté pages and refus pages for the
     *same* (ds_number, dotation) must produce two separate documents, with no
     page ever crossing over into the wrong PDF."""
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
     user = CollegueFactory(email="op@example.com")
 
     pp, lettre_document, lettre_pdf = _build_pdf_for_pp(ds_number=8888887)
@@ -209,20 +217,9 @@ def _decode_pdf_bytes(raw: bytes) -> list[QrPayload | None]:
 
 @pytest.mark.django_db
 def test_event_stream_emits_per_page_decode_events(tmp_path):
-    """`reattach_signed_doc` should emit DecodeStarted, then a
-    PageDecoded/UnreadablePage per page, then GroupAttached/Failed
-    per group — in that order."""
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
-    from gsl_notification.reattach import (
-        DecodeStarted,
-        GroupAttached,
-        PageDecoded,
-        UnreadablePage,
-        reattach_signed_doc,
-    )
-
+    """`reattach_signed_docs` should emit DecodeStarted, then a
+    PageDecoded per page, then DocumentAttached/MatchFailed
+    per document — in that order."""
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=6666666, content_blocks=1000)
     valid_page_count = len(Pdf.open(io.BytesIO(pdf_bytes)).pages)
@@ -243,27 +240,28 @@ def test_event_stream_emits_per_page_decode_events(tmp_path):
         src.close()
 
     total_pages = valid_page_count + 1
-    events = list(reattach_signed_doc(scan, user, name_stem=scan.stem))
+    pdfs = [ContentFile(scan.read_bytes(), name=scan.name)]
+    events = list(reattach_signed_docs(pdfs, user, ProgrammationProjet.objects.all()))
 
     assert events[0] == DecodeStarted(total_pages=total_pages)
 
     per_page_events = events[1 : 1 + total_pages]
-    # Each page event carries the stem of its source file.
+    # Each page event carries the name of the file it was decoded from.
     expected_per_page = [
-        PageDecoded(scan_page=i, file=scan.stem) for i in range(1, valid_page_count + 1)
+        PageDecoded(scan_page=i, qr_found=True, file=scan.name)
+        for i in range(1, valid_page_count + 1)
     ]
-    expected_per_page.append(UnreadablePage(scan_page=total_pages, file=scan.stem))
+    expected_per_page.append(
+        PageDecoded(scan_page=total_pages, qr_found=False, file=scan.name)
+    )
     assert per_page_events == expected_per_page
 
     assert len(events) == 1 + total_pages + 1
-    assert isinstance(events[-1], GroupAttached)
+    assert isinstance(events[-1], DocumentAttached)
 
 
 @pytest.mark.django_db
 def test_unreadable_page_is_skipped(tmp_path):
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=3333333)
 
@@ -291,9 +289,6 @@ def test_unreadable_page_is_skipped(tmp_path):
 
 @pytest.mark.django_db
 def test_unknown_ds_number_is_skipped(tmp_path):
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=4444444)
     dotation = pp.dotation
@@ -316,9 +311,6 @@ def test_unknown_ds_number_is_skipped(tmp_path):
 
 @pytest.mark.django_db
 def test_replaces_existing_lettre_et_arrete_signes(tmp_path):
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=5555555)
 
@@ -374,13 +366,8 @@ def _paint_grey_background(pdf_bytes: bytes, rgb: tuple[float, float, float]) ->
 @pytest.mark.django_db
 def test_qr_mask_blends_in_with_surrounding_texture(tmp_path):
     """Patch over the QR should sample the page background, not paint white."""
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
     import pypdfium2 as pdfium
     from PIL import ImageStat
-
-    from gsl_notification.qr import RENDER_SCALE, decode_per_page
 
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999991)
@@ -393,7 +380,7 @@ def test_qr_mask_blends_in_with_surrounding_texture(tmp_path):
 
     # Locate the QR (in pixel space at the same scale we render at) before it
     # is masked, so we know exactly where to look in the stored PDF.
-    hits = decode_per_page(scan)
+    hits = decode_per_page(tinted)
     hit = next(h for h in hits if h is not None)
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
@@ -436,9 +423,6 @@ def test_qr_mask_blends_in_with_surrounding_texture(tmp_path):
 @pytest.mark.django_db
 def test_qr_is_removed_from_stored_pdf(tmp_path):
     """The command must strip QRs before storing — end-users never see them."""
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=8888888)
 
@@ -464,13 +448,8 @@ def test_qr_is_removed_from_stored_pdf(tmp_path):
 
 
 @pytest.mark.django_db
-def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
+def test_qr_is_kept_when_remove_qr_code_is_false():
     """With remove_qr_code=False, the stored PDF keeps its decodable QRs."""
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
-    from gsl_notification.reattach import reattach_signed_doc
-
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999999)
 
@@ -480,10 +459,9 @@ def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
         "generated PDF should carry QRs before reattachment"
     )
 
-    scan = tmp_path / "scan.pdf"
-    scan.write_bytes(pdf_bytes)
-
-    list(reattach_signed_doc(scan, user, name_stem=scan.stem, remove_qr_code=False))
+    pdfs = [ContentFile(pdf_bytes)]
+    all_pps = ProgrammationProjet.objects.all()
+    list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=False))
 
     doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
     with doc.file.open("rb") as fh:
@@ -497,7 +475,7 @@ def test_qr_is_kept_when_remove_qr_code_is_false(tmp_path):
 
 @pytest.mark.django_db
 def test_reimport_same_scan_filename_keeps_new_file(
-    tmp_path, django_capture_on_commit_callbacks
+    django_capture_on_commit_callbacks,
 ):
     """Re-importing the *same* scan filename (so the storage key collides) must
     keep the freshly-written file, not delete it.
@@ -510,24 +488,19 @@ def test_reimport_same_scan_filename_keeps_new_file(
     freshly-written file. This test forces `on_commit` callbacks to run so it
     fails on the old code and passes after the fix.
     """
-    pytest.importorskip("pypdfium2")
-    pytest.importorskip("zxingcpp")
-
-    from gsl_notification.reattach import reattach_signed_doc
-
     user = CollegueFactory(email="op@example.com")
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=9999992)
 
-    scan = tmp_path / "scan.pdf"
-    scan.write_bytes(pdf_bytes)
+    pdfs = [ContentFile(pdf_bytes)]
+    all_pps = ProgrammationProjet.objects.all()
 
     # 1st import: QR removed.
-    list(reattach_signed_doc(scan, user, name_stem="scan", remove_qr_code=True))
+    list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=True))
 
     # 2nd import: same scan stem (colliding storage key), QR kept. Forcing the
     # on_commit callbacks to run reproduces the bug on FileSystemStorage.
     with django_capture_on_commit_callbacks(execute=True):
-        list(reattach_signed_doc(scan, user, name_stem="scan", remove_qr_code=False))
+        list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=False))
 
     doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
     assert doc.file.storage.exists(doc.file.name), (
@@ -540,3 +513,27 @@ def test_reimport_same_scan_filename_keeps_new_file(
     assert any(p is not None for p in stored_decoded), (
         f"expected GSL QR to remain in re-imported stored PDF, found: {stored_decoded}"
     )
+
+
+@pytest.mark.django_db
+def test_extracting_writes_nothing_and_can_be_replayed():
+    user = CollegueFactory(email="op@example.com")
+    pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=7777771)
+    pdfs = [ContentFile(pdf_bytes)]
+    all_pps = ProgrammationProjet.objects.all()
+
+    def extract():
+        return [
+            event.document
+            for event in extract_documents(pdfs, all_pps)
+            if isinstance(event, DocumentMatched)
+        ]
+
+    documents = extract()
+
+    assert [document.programmation_projet_id for document in documents] == [pp.id]
+    assert extract() == documents
+    assert not LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
+
+    assert list(replace_documents(documents, pdfs, user)) == documents
+    assert LettreEtArreteSignes.objects.filter(programmation_projet=pp).count() == 1

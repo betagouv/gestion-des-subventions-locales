@@ -6,6 +6,7 @@ from pathlib import Path
 
 from celery import shared_task
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db.models import F
 from django.utils import timezone
 
@@ -18,6 +19,7 @@ from gsl_notification.models import (
     ModeleArrete,
     ModeleLettreNotification,
 )
+from gsl_programmation.models import ProgrammationProjet
 
 logger = logging.getLogger(__name__)
 
@@ -184,9 +186,9 @@ def run_document_import_job(job_id: str) -> None:
 
     Download and virus-scan every uploaded PDF first (skipping & recording
     infected ones), then drain `reattach_signed_docs` over the whole batch in a
-    single pass: it decodes the per-page GSL QR codes and merges page-groups
-    sharing a `(ds_number, dotation)` across all files into one document per
-    project. Progress and the report-only summary are stored on the job row;
+    single pass: it decodes the per-page GSL QR codes and gathers the pages of
+    each document across all files. Progress and the summary are stored on the
+    job row;
     temporary S3 objects are deleted once the job completes.
     """
     from gsl_notification.utils import get_s3_client
@@ -200,8 +202,8 @@ def run_document_import_job(job_id: str) -> None:
         s3 = get_s3_client()
         bucket = settings.AWS_STORAGE_BUCKET_NAME
 
-        files = _download_and_scan_all(job, s3, bucket, result)
-        _reattach_all_files(job, files, result)
+        pdfs = _download_and_scan_all(job, s3, bucket, result)
+        _reattach_all_files(job, pdfs, result)
 
         _delete_temp_objects(s3, bucket, job.s3_keys)
 
@@ -230,33 +232,33 @@ def run_document_import_job(job_id: str) -> None:
             )
 
 
-def _download_and_scan_all(job, s3, bucket, result) -> list[tuple[str, bytes]]:
+def _download_and_scan_all(job, s3, bucket, result) -> list[ContentFile]:
     """Download and virus-scan every uploaded file, returning the surviving
-    `(stem, pdf_bytes)` list. Infected files are skipped and recorded in
+    PDFs under their uploaded name. Infected files are skipped and recorded in
     `result` so the batch decode below sees only clean PDFs."""
-    files: list[tuple[str, bytes]] = []
+    pdfs = []
     for s3_key in job.s3_keys:
-        stem = Path(s3_key).stem
-        pdf_bytes = _download_and_scan(s3, bucket, s3_key, stem, result)
+        name = Path(s3_key).name
+        pdf_bytes = _download_and_scan(s3, bucket, s3_key, name, result)
         if pdf_bytes is not None:
-            files.append((stem, pdf_bytes))
-    return files
+            pdfs.append(ContentFile(pdf_bytes, name=name))
+    return pdfs
 
 
-def _reattach_all_files(job, files, result) -> None:
-    """Drain `reattach_signed_docs` over the whole batch, merging page-groups
-    across files. Progress is saved every few pages so the polling view
+def _reattach_all_files(job, pdfs, result) -> None:
+    """Drain `reattach_signed_docs` over the whole batch, gathering each
+    document's pages across files. Progress is saved every few pages so the polling view
     advances without one DB write per page on large scans."""
-    if not files:
+    if not pdfs:
         return
 
-    from gsl_notification.reattach import reattach_signed_docs
+    from gsl_notification.qr.reattach import reattach_signed_docs
 
     events = _consume_reattach_events(
         reattach_signed_docs(
-            files,
+            pdfs,
             job.created_by,
-            restrict_to_user_perimetre=True,
+            ProgrammationProjet.objects.visible_to_user(job.created_by),
             remove_qr_code=job.remove_qr_code,
         ),
         job,
@@ -270,10 +272,10 @@ def _reattach_all_files(job, files, result) -> None:
             pages_since_save = 0
     _bump_processed_pages(job, pages_since_save)
 
-    result["files_processed"] += len(files)
+    result["files_processed"] += len(pdfs)
 
 
-def _download_and_scan(s3, bucket, s3_key, stem, result) -> bytes | None:
+def _download_and_scan(s3, bucket, s3_key, name, result) -> bytes | None:
     """Download `s3_key` to a temp file and virus-scan it. Return the PDF bytes,
     or None (recording an error) if the file is infected."""
     tmp_path = None
@@ -289,7 +291,7 @@ def _download_and_scan(s3, bucket, s3_key, stem, result) -> bytes | None:
                 result["errors"].append(
                     {
                         "type": "infected_file",
-                        "file": stem,
+                        "file": name,
                         "message": "Fichier identifié comme infecté, ignoré.",
                     }
                 )
@@ -305,17 +307,16 @@ def _consume_reattach_events(events, job, result):
     """Update counters/report from each reattach event, yielding once per
     processed page so the caller can track progress.
 
-    Each page event carries the stem of the source file it belongs to.
-    Only page events (PageDecoded/UnreadablePage) yield; GroupAttached and
-    GroupFailed mutate `result` without yielding, so they are applied lazily
-    when the caller drives the generator to its final `next()`.
+    Each page event carries the name of the source file it belongs to.
+    Only PageDecoded yields; DocumentAttached and MatchFailed mutate `result`
+    without yielding, so they are applied lazily when the caller drives the
+    generator to its final `next()`.
     """
-    from gsl_notification.reattach import (
+    from gsl_notification.qr.reattach import (
         DecodeStarted,
-        GroupAttached,
-        GroupFailed,
+        DocumentAttached,
+        MatchFailed,
         PageDecoded,
-        UnreadablePage,
     )
 
     for event in events:
@@ -325,8 +326,8 @@ def _consume_reattach_events(events, job, result):
                 updated_at=timezone.now(),
             )
             result["pages_extracted"] += event.total_pages
-        elif isinstance(event, (PageDecoded, UnreadablePage)):
-            if isinstance(event, UnreadablePage):
+        elif isinstance(event, PageDecoded):
+            if not event.qr_found:
                 result["errors"].append(
                     {
                         "type": "unreadable_page",
@@ -335,18 +336,16 @@ def _consume_reattach_events(events, job, result):
                     }
                 )
             yield event
-        elif isinstance(event, GroupAttached):
+        elif isinstance(event, DocumentAttached):
             result["documents_attached"] += 1
-            result["pages_attached"] += sum(
-                len(pages) for pages in event.report.pages_by_doc_type.values()
-            )
-        elif isinstance(event, GroupFailed):
+            result["pages_attached"] += len(event.document.pages)
+        elif isinstance(event, MatchFailed):
             result["errors"].append(
                 {
                     "type": "group_failed",
-                    "ds_number": event.report.ds_number,
-                    "dotation": event.report.dotation,
-                    "message": event.report.error,
+                    "ds_number": event.declared.ds_number,
+                    "dotation": event.declared.dotation,
+                    "message": event.error,
                 }
             )
 

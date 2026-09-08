@@ -362,7 +362,7 @@ class UploadedDocument(VerboseNameMixin, models.Model):
     @classmethod
     def reattach_filename_prefix(cls) -> str:
         """Filename prefix used when this document is (re)created from a
-        scanned PDF's QR codes (see gsl_notification/reattach.py), derived
+        scanned PDF's QR codes (see gsl_notification/qr/reattach.py), derived
         from the class name, e.g. LettreRefusSignee -> lettre-refus-signee.
         """
         return kebab_case(cls.__name__)

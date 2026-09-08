@@ -35,7 +35,7 @@ from gsl_notification.models import (
     GeneratedDocument,
     UploadedDocument,
 )
-from gsl_notification.qr import build_payload, generate_qr_png_data_uri
+from gsl_notification.qr.codec import build_payload, generate_qr_png_data_uri
 from gsl_programmation.models import ProgrammationProjet
 
 
