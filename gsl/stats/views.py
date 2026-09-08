@@ -6,7 +6,7 @@ from gsl.projet.models import Projet
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import PersonneMorale
 
-from .models import SubventionDgcl, SubventionFondsVert
+from .models import Subvention
 
 
 class CollectiviteListView(ListView):
@@ -63,17 +63,10 @@ class CollectiviteDetailView(DetailView):
         personne_morale = self.object
         siren = personne_morale.siren
 
-        subventions = SubventionDgcl.objects.filter(siren=siren).select_related(
+        subventions = Subvention.objects.filter(siren=siren).select_related(
             "departement", "commune"
         )
         subventions = subventions.order_by("-exercice", "dispositif")
-
-        subventions_fonds_vert = SubventionFondsVert.objects.filter(
-            siren=siren
-        ).select_related("departement", "commune")
-        subventions_fonds_vert = subventions_fonds_vert.order_by(
-            "-annee_millesime", "demarche_title"
-        )
 
         if self.request.user.is_staff:
             projets = Projet.objects.filter(dossier_ds__ds_demandeur__siren=siren)
@@ -93,7 +86,6 @@ class CollectiviteDetailView(DetailView):
                 "siren": siren,
                 "collectivite_nom": collectivite_nom,
                 "subventions": subventions,
-                "subventions_fonds_vert": subventions_fonds_vert,
                 "projets": projets,
                 "title": f"Collectivité – {collectivite_nom}",
             }

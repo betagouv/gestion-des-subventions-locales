@@ -3,13 +3,31 @@ from django.db import models
 from gsl.projet.utils.utils import compute_taux
 
 
-class SubventionDgcl(models.Model):
+class Subvention(models.Model):
+    """Fusion de SubventionDgcl et SubventionFondsVert : une ligne = une aide
+    versée (ou en cours d'instruction, pour Fonds Vert) à une collectivité,
+    quelle que soit la source d'import.
+    """
+
+    SOURCE_DGCL = "dgcl"
+    SOURCE_FONDS_VERT = "fonds_vert"
+    SOURCE_CHOICES = (
+        (SOURCE_DGCL, "DGCL"),
+        (SOURCE_FONDS_VERT, "Fonds Vert"),
+    )
+
+    # --- Champs communs (DGCL et Fonds Vert) ---
+    source = models.CharField(
+        max_length=20, choices=SOURCE_CHOICES, verbose_name="Source"
+    )
     siren = models.CharField(max_length=9, db_index=True, verbose_name="SIREN")
     exercice = models.PositiveSmallIntegerField(verbose_name="Exercice")
     dispositif = models.CharField(
         max_length=80, verbose_name="Dispositif"
-    )  # DETR, DSIL, DPV, DSID
+    )  # DETR, DSIL, DPV, DSID, FONDS VERT
+    # TODO PR ignorer la DSID
     programme = models.PositiveSmallIntegerField(verbose_name="Programme")
+    intitule = models.TextField(verbose_name="Intitulé du projet")
     departement = models.ForeignKey(
         "gsl_core.Departement",
         on_delete=models.PROTECT,
@@ -23,19 +41,52 @@ class SubventionDgcl(models.Model):
         blank=True,
         verbose_name="Commune",
     )
-    intitule = models.TextField(verbose_name="Intitulé du projet")
-    cout_ht = models.DecimalField(
-        max_digits=14, decimal_places=2, verbose_name="Coût HT"
+    cout_total = models.DecimalField(
+        max_digits=14, decimal_places=2, verbose_name="Coût total"
     )
-    subvention = models.DecimalField(
-        max_digits=14, decimal_places=2, verbose_name="Subvention"
+    montant_attribue = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Montant attribué",
+    )
+
+    # --- Champs spécifiques Fonds Vert (nuls/vides pour la DGCL) ---
+
+    montant_demande = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Montant demandé",
+    )
+    statut = models.CharField(max_length=30, blank=True, verbose_name="Statut")
+    date_depot = models.DateTimeField(
+        null=True, blank=True, verbose_name="Date de dépôt"
+    )
+    # Identifiant DS du dossier, utilisé pour l'upsert idempotent depuis l'API
+    # Fonds Vert. La DGCL n'a pas d'identifiant stable : son idempotence
+    # repose sur la contrainte "unique_dgcl_subvention" ci-dessous.
+    dossier_number = models.IntegerField(
+        null=True, blank=True, unique=True, verbose_name="Numéro de dossier DS"
     )
 
     class Meta:
-        verbose_name = "Subvention DGCL"
-        verbose_name_plural = "Subventions DGCL"
-        unique_together = [("exercice", "dispositif", "siren", "intitule")]
+        verbose_name = "Subvention"
+        verbose_name_plural = "Subventions"
         ordering = ["-exercice"]
+        constraints = [
+            # Scopée à la DGCL uniquement : plusieurs dossiers Fonds Vert d'un
+            # même SIREN/exercice partagent souvent un intitulé vide, ce qui
+            # entrerait sinon en collision entre dossiers distincts (chacun
+            # déjà identifié de façon fiable par dossier_number).
+            models.UniqueConstraint(
+                fields=["exercice", "dispositif", "siren", "intitule"],
+                condition=models.Q(source="dgcl"),
+                name="unique_dgcl_subvention",
+            ),
+        ]
 
     def __str__(self):
         return (
@@ -43,8 +94,12 @@ class SubventionDgcl(models.Model):
         )
 
     @property
-    def taux(self):
-        return compute_taux(self.subvention, self.cout_ht)
+    def taux_accorde(self):
+        # Pas encore de montant attribué (dossier Fonds Vert non décidé) :
+        # pas de taux à afficher.
+        if self.montant_attribue is None:
+            return None
+        return compute_taux(self.montant_attribue, self.cout_total)
 
 
 class FondsVertImportState(models.Model):
@@ -72,59 +127,3 @@ class FondsVertImportState(models.Model):
     def load(cls) -> "FondsVertImportState":
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
-
-
-class SubventionFondsVert(models.Model):
-    dossier_number = models.IntegerField(
-        unique=True, verbose_name="Numéro de dossier DS"
-    )
-    siren = models.CharField(max_length=9, db_index=True, verbose_name="SIREN")
-    annee_millesime = models.PositiveSmallIntegerField(verbose_name="Millésime")
-    demarche_number = models.IntegerField(verbose_name="Numéro de démarche DS")
-    demarche_title = models.CharField(max_length=200, verbose_name="Démarche")
-    nom_du_projet = models.TextField(verbose_name="Intitulé du projet")
-    statut = models.CharField(max_length=30, verbose_name="Statut")
-    departement = models.ForeignKey(
-        "gsl_core.Departement",
-        on_delete=models.PROTECT,
-        null=True,
-        verbose_name="Département",
-    )
-    commune = models.ForeignKey(
-        "gsl_core.Commune",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        verbose_name="Commune",
-    )
-    montant_aide_demandee = models.DecimalField(
-        max_digits=14, decimal_places=2, verbose_name="Montant demandé"
-    )
-    montant_subvention_attribuee = models.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name="Montant attribué",
-    )
-    total_des_depenses = models.DecimalField(
-        max_digits=14, decimal_places=2, verbose_name="Coût total"
-    )
-    date_depot = models.DateTimeField(
-        null=True, blank=True, verbose_name="Date de dépôt"
-    )
-    date_notification = models.DateField(
-        null=True, blank=True, verbose_name="Date de notification"
-    )
-
-    class Meta:
-        verbose_name = "Subvention Fonds Vert"
-        verbose_name_plural = "Subventions Fonds Vert"
-        ordering = ["-annee_millesime"]
-
-    def __str__(self):
-        return f"{self.annee_millesime} Fonds Vert - {self.siren} - {self.nom_du_projet[:50]}"
-
-    @property
-    def taux(self):
-        return compute_taux(self.montant_aide_demandee, self.total_des_depenses)

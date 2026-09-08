@@ -1,7 +1,7 @@
 import csv
 import io
 import logging
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import requests
 from celery import shared_task
@@ -9,11 +9,7 @@ from django.conf import settings
 
 from gsl.celery import TASK_PRIORITY_LOW
 
-from .models import (
-    FondsVertImportState,
-    SubventionDgcl,
-    SubventionFondsVert,
-)
+from .models import FondsVertImportState, Subvention
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +17,12 @@ DGCL_DATASET_ID = "6176785207139a929a2776fe"
 DGCL_API_URL = f"https://www.data.gouv.fr/api/1/datasets/{DGCL_DATASET_ID}/"
 
 FONDS_VERT_BASE_URL = "https://api-fonds-vert.datahub.din.developpement-durable.gouv.fr"
+# Le Fonds Vert n'a pas de "dispositif"/"programme" propre côté DS : on retient
+# la nomenclature budgétaire de l'État (programme 380 - Fonds d'accélération de
+# la transition écologique dans les territoires) pour rester homogène avec les
+# lignes DGCL (DETR/DSIL/DPV/DSID, programme 119).
+FONDS_VERT_DISPOSITIF = "FONDS VERT"
+FONDS_VERT_PROGRAMME = 380
 
 
 @shared_task(priority=TASK_PRIORITY_LOW)
@@ -111,13 +113,13 @@ def _import_row(row):
     intitule = (
         row.get("intitule") or row.get("Intitulé du projet") or row.get("objet") or ""
     ).strip()
-    cout_ht_raw = (
+    cout_total_raw = (
         row.get("cout_ht")
         or row.get("Coût total HT du projet")
         or row.get("montant_total_ht")
         or "0"
     )
-    subvention_raw = (
+    montant_attribue_raw = (
         row.get("subvention")
         or row.get("Montant de la subvention accordée")
         or row.get("montant_subvention")
@@ -142,7 +144,8 @@ def _import_row(row):
     departement = _resolve_departement(dep_code)
     commune = _resolve_commune(insee_code)
 
-    _, created = SubventionDgcl.objects.update_or_create(
+    _, created = Subvention.objects.update_or_create(
+        source=Subvention.SOURCE_DGCL,
         exercice=exercice,
         dispositif=dispositif,
         siren=beneficiaire_siren,
@@ -151,8 +154,8 @@ def _import_row(row):
             "programme": programme,
             "departement": departement,
             "commune": commune,
-            "cout_ht": _parse_decimal(cout_ht_raw),
-            "subvention": _parse_decimal(subvention_raw),
+            "cout_total": _parse_decimal(cout_total_raw),
+            "montant_attribue": _parse_decimal(montant_attribue_raw),
         },
     )
     return created
@@ -277,22 +280,22 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
     departement = _resolve_departement(sc.get("code_departement", ""))
     commune = _resolve_commune(sc.get("code_commune", ""))
 
-    _, created = SubventionFondsVert.objects.update_or_create(
+    _, created = Subvention.objects.update_or_create(
         dossier_number=dossier_number,
         defaults={
+            "source": Subvention.SOURCE_FONDS_VERT,
             "siren": siret[:9],
-            "annee_millesime": sc.get("annee_millesime") or 0,
-            "demarche_number": sc.get("demarche_number") or 0,
-            "demarche_title": (sc.get("demarche_title") or "")[:200],
-            "nom_du_projet": sc.get("nom_du_projet") or "",
+            "exercice": sc.get("annee_millesime") or 0,
+            "dispositif": FONDS_VERT_DISPOSITIF,
+            "programme": FONDS_VERT_PROGRAMME,
+            "intitule": sc.get("nom_du_projet") or "",
             "statut": (sc.get("statut") or "")[:30],
             "departement": departement,
             "commune": commune,
-            "montant_aide_demandee": sc.get("montant_aide_demandee_fond_vert") or 0,
-            "montant_subvention_attribuee": sc.get("montant_subvention_attribuee"),
-            "total_des_depenses": sc.get("total_des_depenses") or 0,
+            "montant_demande": sc.get("montant_aide_demandee_fond_vert") or 0,
+            "montant_attribue": sc.get("montant_subvention_attribuee"),
+            "cout_total": sc.get("total_des_depenses") or 0,
             "date_depot": _parse_datetime(sc.get("date_depot")),
-            "date_notification": _parse_date(sc.get("date_notification")),
         },
     )
     return created
@@ -305,15 +308,6 @@ def _parse_datetime(value) -> datetime | None:
         return datetime.strptime(value[:19], "%Y-%m-%dT%H:%M:%S").replace(
             tzinfo=timezone.utc
         )
-    except (ValueError, TypeError):
-        return None
-
-
-def _parse_date(value) -> date | None:
-    if not value:
-        return None
-    try:
-        return date.fromisoformat(str(value)[:10])
     except (ValueError, TypeError):
         return None
 
