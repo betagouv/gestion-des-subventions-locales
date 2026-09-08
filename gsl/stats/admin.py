@@ -1,23 +1,20 @@
 from django.contrib import admin
 
-from .models import (
-    FondsVertImportState,
-    SubventionDgcl,
-    SubventionFondsVert,
-)
+from .models import FondsVertImportState, Subvention
 
 
-@admin.register(SubventionDgcl)
-class SubventionDgclAdmin(admin.ModelAdmin):
+@admin.register(Subvention)
+class SubventionAdmin(admin.ModelAdmin):
     list_display = (
+        "source",
         "exercice",
         "dispositif",
         "siren",
         "departement",
         "intitule",
-        "subvention",
+        "montant_attribue",
     )
-    list_filter = ("exercice", "dispositif", "departement")
+    list_filter = ("source", "exercice", "dispositif", "departement")
     search_fields = ("siren", "intitule")
 
     def has_add_permission(self, request):
@@ -37,27 +34,3 @@ class FondsVertImportStateAdmin(admin.ModelAdmin):
     Fonds Vert."""
 
     list_display = ("last_page", "updated_at")
-
-
-@admin.register(SubventionFondsVert)
-class SubventionFondsVertAdmin(admin.ModelAdmin):
-    list_display = (
-        "annee_millesime",
-        "siren",
-        "departement",
-        "demarche_title",
-        "nom_du_projet",
-        "statut",
-        "montant_subvention_attribuee",
-    )
-    list_filter = ("annee_millesime", "statut", "departement")
-    search_fields = ("siren", "nom_du_projet")
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False

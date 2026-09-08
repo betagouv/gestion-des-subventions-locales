@@ -273,9 +273,7 @@ def remove_filter_qs(context, field):
     return f"?{encoded}" if encoded else ""
 
 
-_DISPOSITIF_SHORT = {
-    "dsil exceptionnelle": "DSIL EXC.",
-}
+_DISPOSITIF_SHORT = {"dsil exceptionnelle": "DSIL EXC.", "fonds vert": "FV"}
 
 
 @register.filter
