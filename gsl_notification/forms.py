@@ -103,18 +103,30 @@ class ImportJobStartForm(forms.Form):
 
 class RadioSelect(forms.RadioSelect):
     """
-    The class name needs to be RadioSelect for DsfrBaseForm to do its magic.
+    An empty choice value renders as a disabled option carrying
+    `disabled_help_text`, so a document that cannot be picked stays visible
+    with the reason why.
+
+    The class name needs to be RadioSelect for DsfrBaseForm to do its magic
+    (it dispatches on the widget class name), hence the reason being an
+    instance attribute rather than a subclass.
     """
+
+    def __init__(
+        self,
+        *args,
+        disabled_help_text="Le document a déjà été généré pour cette dotation.",
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.disabled_help_text = disabled_help_text
 
     def create_option(
         self, name, value, label, selected, index, subindex=None, attrs=None
     ):
         if not value:
             attrs = {**(attrs or {}), "disabled": "disabled"}
-            label = {
-                "label": label,
-                "help_text": "Le document a déjà été généré pour cette dotation.",
-            }
+            label = {"label": label, "help_text": self.disabled_help_text}
 
         return super().create_option(
             name, value, label, selected if value else False, index, attrs=attrs
