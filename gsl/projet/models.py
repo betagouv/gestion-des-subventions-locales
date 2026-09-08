@@ -237,6 +237,15 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    def with_at_least_one_accepted_dotation(self):
+        return self.filter(
+            Exists(
+                DotationProjet.objects.filter(
+                    projet=OuterRef("pk"), status=PROJET_STATUS_ACCEPTED
+                )
+            )
+        )
+
     def with_missing_annotations(self):
         """Projets dont le dossier DS est accepté mais a des annotations DETR/DSIL incomplètes."""
         return self.filter(
@@ -426,6 +435,12 @@ class Projet(BaseModel):
     @property
     def has_treated_dotation(self) -> bool:
         return any(dp.is_treated for dp in self.dotationprojet_set.all())
+
+    @property
+    def has_accepted_dotation(self) -> bool:
+        return any(
+            dp.status == PROJET_STATUS_ACCEPTED for dp in self.dotationprojet_set.all()
+        )
 
     @property
     def can_display_notification_tab(self) -> bool:
