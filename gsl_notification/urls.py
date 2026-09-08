@@ -22,8 +22,6 @@ from gsl_notification.views.modele_views import (
     get_generic_modele,
 )
 from gsl_notification.views.uploaded_document_views import (
-    ChooseDocumentTypeForUploadView,
-    create_uploaded_document_view,
     download_uploaded_document,
     view_uploaded_document,
 )
@@ -115,17 +113,6 @@ urlpatterns = [
         "import/<uuid:pk>/progress/",
         ImportJobProgressView.as_view(),
         name="import-progress",
-    ),
-    # Uploaded files
-    path(
-        "<int:projet_id>/televersement/choix-du-type/",
-        ChooseDocumentTypeForUploadView.as_view(),
-        name="choose-uploaded-document-type",
-    ),
-    path(
-        "<int:projet_id>/televersement/<str:dotation>/<str:document_type>/creer/",
-        create_uploaded_document_view,
-        name="upload-a-document",
     ),
     path(
         "document-televerse/<str:document_type>/<int:document_id>/download/",

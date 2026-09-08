@@ -1,0 +1,44 @@
+{% extends "gsl_notification/modal/step_base.html" %}
+{% block before_content %}
+    <div class="fr-modal__header">
+        <button aria-controls="{{ modal_id }}"
+                title="Fermer"
+                type="button"
+                class="fr-btn--close fr-btn">
+            Fermer
+        </button>
+    </div>
+{% endblock before_content %}
+{% block form_open %}
+    {# djlint:off H041 #}
+    <form hx-post="{% url 'fragment:gsl_notification:manual_document_attach' projet.id %}"
+          hx-target="#{{ modal_id }}-step"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button">
+        {% csrf_token %}
+{% endblock form_open %}
+{% block content %}
+    <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-3w">
+        <p>
+            Aucun QR code de suivi n'a été trouvé dans ce document. Indiquez à
+            quelle dotation il se rattache et de quel type de document il s'agit.
+        </p>
+    </div>
+    {{ form }}
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <button type="submit" class="fr-btn" id="{{ modal_id }}-submit-button">Importer</button>
+    </li>
+    <li>
+        <button class="fr-btn fr-btn--secondary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Annuler
+        </button>
+    </li>
+{% endblock footer_buttons %}
+{% block form_close %}
+    </form>
+    {# djlint:on #}
+{% endblock form_close %}
