@@ -137,7 +137,7 @@ def _template_names(response):
     return {t.name for t in response.templates}
 
 
-TEMPLATE_BASE = "gsl_notification/generated_document/multiple_wizard/"
+TEMPLATE_BASE = "gsl_notification/modal/bulk_generation/"
 
 
 ## Launch step (PRG entry) and wizard GET (dialog rendering)
@@ -165,7 +165,7 @@ def test_launch_with_valid_ids_renders_step_modele_dialog(
     ids = ",".join([str(pp.id) for pp in programmation_projets])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_modele_selection.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
     assert "HX-Location" not in response.headers
 
 
@@ -178,14 +178,14 @@ def test_launch_skips_type_selection_and_sets_document_type_lettre_refus(
     ids = ",".join([str(pp.id) for pp in programmation_projets])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_modele_selection.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
     assert response.context["form"].document_type == LETTRE_REFUS
 
 
 def test_launch_no_projects_renders_error_body(client):
     response = _post_launch(client, ids="")
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_launch.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "launch.html"
     form = response.context["form"]
     assert "Aucun projet à notifier." in " ".join(form.errors.get("ids", []))
 
@@ -199,7 +199,7 @@ def test_launch_wrong_perimetre_renders_error_body(client):
     )
     response = _post_launch(client, ids=str(wrong_pp.id))
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_launch.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "launch.html"
     form = response.context["form"]
     assert "choix valide" in " ".join(form.errors.get("ids", []))
 
@@ -218,7 +218,7 @@ def test_launch_ignores_ineligible_ids_silently(client, programmation_projets):
     ids = ",".join([str(pp.id) for pp in programmation_projets] + [str(accepted_pp.id)])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_modele_selection.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
     assert "form" not in response.context or not response.context["form"].errors
 
 
@@ -241,7 +241,7 @@ def test_wizard_step_modele_missing_modele_re_renders_step(
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_modele_selection.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
     form = response.context["form"]
     assert form.errors["modele_refus_id"] == ["Veuillez sélectionner un modèle."]
 
@@ -258,7 +258,7 @@ def test_wizard_step_modele_to_step_format(
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_form_step.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "form_step.html"
 
 
 def test_wizard_step_format_invalid_export_format_re_renders_step(
@@ -278,7 +278,7 @@ def test_wizard_step_format_invalid_export_format_re_renders_step(
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_form_step.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "form_step.html"
     form = response.context["form"]
     assert "Veuillez sélectionner un format d'export." in " ".join(
         form["export_format"].errors
@@ -351,7 +351,7 @@ def test_wizard_step_format_renders_loading_body(
         client, programmation_projets, modele_id=detr_refus_modele.id
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_loading.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "loading.html"
     assert response.context["doc_count"] == 3
     assert b"generate_lettre_refus_wizard_DETR-current_step" in response.content
     assert b'value="create"' in response.content
@@ -365,7 +365,7 @@ def test_wizard_step_create_returns_polling_template(
     )
     response = _post_step_create_raw(client)
     assert response.status_code == 200
-    assert TEMPLATE_BASE + "modal_export_progress.html" in _template_names(response)
+    assert TEMPLATE_BASE + "export_progress.html" in _template_names(response)
     assert "job_id" in response.context
     assert "job" in response.context
 
@@ -378,7 +378,7 @@ def test_wizard_step_create_creates_documents_and_returns_success(
     )
     response = _post_step_create(client)
     assert response.status_code == 200
-    assert TEMPLATE_BASE + "modal_success.html" in _template_names(response)
+    assert TEMPLATE_BASE + "success.html" in _template_names(response)
     assert response.context["doc_count"] == 3
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:
@@ -427,7 +427,7 @@ def test_wizard_step_modele_conserver_when_all_covered_advances_to_step_format(
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
-    assert response.templates[0].name == TEMPLATE_BASE + "modal_form_step.html"
+    assert response.templates[0].name == TEMPLATE_BASE + "form_step.html"
     form = response.context["form"]
     assert "overwrite_strategy" not in form.errors
     # No new lettre created yet: only the original 3 fixtures remain.
@@ -448,7 +448,7 @@ def test_wizard_step_create_conserver_creates_only_missing_documents(
     )
     response = _post_step_create(client)
     assert response.status_code == 200
-    assert TEMPLATE_BASE + "modal_success.html" in _template_names(response)
+    assert TEMPLATE_BASE + "success.html" in _template_names(response)
 
     pp_with_existing.refresh_from_db()
     assert pp_with_existing.refus.id == old_refus.id
@@ -473,7 +473,7 @@ def test_wizard_step_create_remplacer_when_all_covered_replaces_all(
     )
     response = _post_step_create(client)
     assert response.status_code == 200
-    assert TEMPLATE_BASE + "modal_success.html" in _template_names(response)
+    assert TEMPLATE_BASE + "success.html" in _template_names(response)
     for pp, old_id in zip(programmation_projets, old_ids, strict=True):
         pp.refresh_from_db()
         assert pp.refus.id != old_id

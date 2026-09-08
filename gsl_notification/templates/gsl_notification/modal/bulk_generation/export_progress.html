@@ -1,4 +1,4 @@
-{% extends "gsl_notification/generated_document/multiple_wizard/modal_step_base.html" %}
+{% extends "gsl_notification/modal/step_base.html" %}
 {% load dsfr_tags %}
 {% block step_div_attrs %}
     hx-get="{% url status_url_name dotation job_id %}"

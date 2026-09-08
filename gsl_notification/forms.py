@@ -779,7 +779,7 @@ class ModeleSelectionEntry:
     One row of GenerateDocumentsModeleSelectionForm's modele-selection step:
     the modele field for a single document type, its available modeles, and
     how many of the selected projets already have that document. The form
-    (and the modal_modele_selection.html template) loop over one entry per
+    (and the modele_selection.html template) loop over one entry per
     document type in `selected_types` instead of repeating a has_X/modeles_X/
     existing_X_count trio per type.
     """
