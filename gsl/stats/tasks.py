@@ -20,7 +20,7 @@ FONDS_VERT_BASE_URL = "https://api-fonds-vert.datahub.din.developpement-durable.
 # Le Fonds Vert n'a pas de "dispositif"/"programme" propre côté DS : on retient
 # la nomenclature budgétaire de l'État (programme 380 - Fonds d'accélération de
 # la transition écologique dans les territoires) pour rester homogène avec les
-# lignes DGCL (DETR/DSIL/DPV/DSID, programme 119).
+# lignes DGCL (DETR/DSIL/DPV, programme 119).
 FONDS_VERT_DISPOSITIF = "FONDS VERT"
 FONDS_VERT_PROGRAMME = 380
 
@@ -139,6 +139,11 @@ def _import_row(row):
     ).strip()
 
     if not exercice or not dispositif or not beneficiaire_siren or not intitule:
+        return False
+
+    # La DSID (Dotation de soutien à l'investissement des départements) ne
+    # concerne pas les communes/EPCI suivis par Turgot : on l'ignore.
+    if dispositif == "DSID":
         return False
 
     departement = _resolve_departement(dep_code)

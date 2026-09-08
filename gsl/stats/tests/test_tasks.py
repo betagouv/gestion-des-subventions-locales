@@ -80,6 +80,19 @@ class TestImportRowDgcl:
         assert _import_row(row) is False
         assert not Subvention.objects.exists()
 
+    def test_skips_dsid_rows(self):
+        row = {
+            "exercice": "2024",
+            "dispositif": "dsid",
+            "beneficiaire_siren": "123456789",
+            "intitule": "Rénovation route départementale",
+            "cout_ht": "1000",
+            "subvention": "500",
+        }
+
+        assert _import_row(row) is False
+        assert not Subvention.objects.exists()
+
 
 class TestImportFondsVertDossier:
     def _item(self, **socle_commun_overrides):
