@@ -1,4 +1,3 @@
-import uuid
 from datetime import timedelta
 
 from django.conf import settings
@@ -74,7 +73,7 @@ class PresignedUploadView(FormView):
     def form_valid(self, form):
         sanitized = form.cleaned_data["filename"]
 
-        key = f"{DocumentImportJob.TEMP_S3_PREFIX}{uuid.uuid4()}/{sanitized}"
+        key = DocumentImportJob.temp_s3_key(sanitized)
         # Per-file S3 cap is intentionally the cumulative cap: bulk scans are the
         # feature's purpose and a single multi-dossier PDF can be large. The
         # browser-side cumulative check bounds a whole batch; the bucket

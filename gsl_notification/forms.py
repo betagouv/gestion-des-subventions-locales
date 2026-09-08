@@ -77,11 +77,7 @@ class S3KeysField(forms.Field):
         if not isinstance(raw, list):
             raise forms.ValidationError(self.error_messages["invalid"], code="invalid")
         # Never trust the client with an arbitrary bucket key.
-        return [
-            key
-            for key in raw
-            if isinstance(key, str) and key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
-        ]
+        return [key for key in raw if DocumentImportJob.is_temp_s3_key(key)]
 
 
 class ImportJobStartForm(forms.Form):
