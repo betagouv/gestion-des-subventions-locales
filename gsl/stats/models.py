@@ -24,8 +24,7 @@ class Subvention(models.Model):
     exercice = models.PositiveSmallIntegerField(verbose_name="Exercice")
     dispositif = models.CharField(
         max_length=80, verbose_name="Dispositif"
-    )  # DETR, DSIL, DPV, DSID, FONDS VERT
-    # TODO PR ignorer la DSID
+    )  # DETR, DSIL, DPV, FONDS VERT (la DSID est ignorée à l'import)
     programme = models.PositiveSmallIntegerField(verbose_name="Programme")
     intitule = models.TextField(verbose_name="Intitulé du projet")
     departement = models.ForeignKey(
