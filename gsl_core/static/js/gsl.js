@@ -14,7 +14,10 @@ document.addEventListener(
 )
 
 // Pin status menus to their trigger with `position: fixed` so they escape
-// the table container's overflow:auto.
+// the table container's overflow:auto. Flip the menu above its trigger when
+// there isn't enough room below in the viewport — otherwise, being
+// position:fixed, it would render past the bottom edge with no way to
+// scroll down to it.
 new window.MutationObserver((mutations) => {
   for (const mutation of mutations) {
     const menu = mutation.target
@@ -24,12 +27,29 @@ new window.MutationObserver((mutations) => {
       const trigger = document.querySelector(`[aria-controls="${menu.id}"]`)
       if (!trigger) continue
       const rect = trigger.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
       menu.style.position = 'fixed'
-      menu.style.top = `${rect.bottom}px`
       menu.style.left = `${rect.left}px`
+      // `.fr-menu` sets `top: 100%` in the DSFR stylesheet — pin both edges
+      // explicitly so the leftover value never fights with `bottom` below
+      // (having both non-auto stretches/collapses the box instead of
+      // flipping it).
+      menu.style.bottom = 'auto'
+      menu.style.top = `${rect.bottom}px`
+
+      const menuHeight = menu.getBoundingClientRect().height
+      if (menuHeight > spaceBelow && menuHeight < spaceAbove) {
+        // Flip above the trigger: the menu's bottom edge lands exactly on
+        // the trigger's top, i.e. `bottom` = the space between the
+        // trigger's top and the viewport's bottom edge.
+        menu.style.top = 'auto'
+        menu.style.bottom = `${window.innerHeight - rect.top}px`
+      }
     } else {
       menu.style.position = ''
       menu.style.top = ''
+      menu.style.bottom = ''
       menu.style.left = ''
     }
   }
