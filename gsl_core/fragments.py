@@ -78,13 +78,14 @@ class Fragment:
             context["form"] = form
         return render_to_string(self.template_name, context, request=self.request)
 
-    def render_valid(self, **extra):
-        html = self.render(**extra)
-        html += "".join(
+    def render_oob(self):
+        return "".join(
             fragment(self.request, self.object).render(oob=True)
             for fragment in self.oob_fragments
         )
-        return HttpResponse(html)
+
+    def render_valid(self, **extra):
+        return HttpResponse(self.render(**extra) + self.render_oob())
 
     def render_invalid(self):
         return HttpResponse(self.render())
