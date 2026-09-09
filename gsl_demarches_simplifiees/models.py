@@ -119,6 +119,20 @@ class Naf(models.Model):
         return f"{self.code} — {self.libelle}"
 
 
+class PersonneMoraleQuerySet(models.QuerySet):
+    def distinct_by_siren(self):
+        """
+        Une même personne (SIREN) peut avoir plusieurs établissements (SIRET) :
+        on n'en garde qu'un seul par SIREN, peu importe lequel.
+
+        NB : on ne peut pas utiliser `.distinct("siren")` (DISTINCT ON), non
+        supporté par SQLite (utilisé en test) — d'où ce filtre par sous-requête,
+        qui s'appuie sur `Min` juste pour désigner un SIRET représentant.
+        """
+        un_siret_par_siren = self.values("siren").annotate(siret=models.Min("siret"))
+        return self.filter(siret__in=un_siret_par_siren.values_list("siret", flat=True))
+
+
 class PersonneMorale(models.Model):
     """
     see https://www.demarches-simplifiees.fr/graphql/schema/types/PersonneMorale
@@ -144,6 +158,8 @@ class PersonneMorale(models.Model):
         FormeJuridique, on_delete=models.PROTECT, null=True
     )
 
+    objects = PersonneMoraleQuerySet.as_manager()
+
     class Meta:
         verbose_name = "Personne morale"
         verbose_name_plural = "Personnes morales"
@@ -155,6 +171,10 @@ class PersonneMorale(models.Model):
         if self.siret:
             self.siren = self.siret[:9]
         super().save(*args, **kwargs)
+
+    @property
+    def nom_affichage(self):
+        return self.raison_sociale or self.siren
 
     def update_from_raw_ds_data(self, ds_data):
         self.siret = ds_data.get("siret")
