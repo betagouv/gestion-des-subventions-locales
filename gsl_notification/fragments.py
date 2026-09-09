@@ -280,14 +280,11 @@ class UploadedDocumentAnalyzeFragment(BaseImportStepFragment):
             # down rather than half of it stored under this projet.
             return [], [self._describe(elsewhere[0].declared)], unreadable_pages
 
-        stored = replace_documents(
-            documents, [uploaded_file], self.request.user, remove_qr_code
-        )
         attached = [
-            document.declared.target_model.objects.get(
-                programmation_projet_id=document.programmation_projet_id
+            event.stored
+            for event in replace_documents(
+                documents, [uploaded_file], self.request.user, remove_qr_code
             )
-            for document in stored
         ]
         for document in attached:
             self._log_import(document)
