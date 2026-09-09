@@ -1,6 +1,8 @@
 from django.db.models import Case, Q, Value, When
 from django.http import Http404
-from django.views.generic import DetailView, ListView
+from django.shortcuts import render
+from django.views import View
+from django.views.generic import ListView
 
 from gsl.projet.models import Projet
 from gsl_core.models import Perimetre
@@ -39,34 +41,25 @@ class CollectiviteListView(ListView):
         return context
 
 
-class CollectiviteDetailView(DetailView):
-    model = PersonneMorale
+class CollectiviteDetailView(View):
     template_name = "gsl_stats/collectivite_detail.html"
 
-    def get_queryset(self):
-        return _personnes_morales_in_perimetre(self.request.user)
-
-    def get_object(self, queryset=None):
-        queryset = queryset or self.get_queryset()
-        obj = queryset.filter(siren=self.kwargs["siren"]).first()
-        if obj is None:
+    def get(self, request, siren):
+        personne_morale = (
+            _personnes_morales_in_perimetre(request.user).filter(siren=siren).first()
+        )
+        if personne_morale is None:
             raise Http404("Collectivité introuvable")
-        return obj
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        personne_morale = self.object
-        siren = personne_morale.siren
 
         subventions = Subvention.objects.filter(siren=siren).select_related(
             "departement", "commune"
         )
         subventions = subventions.order_by("-exercice", "dispositif")
 
-        if self.request.user.is_staff:
+        if request.user.is_staff:
             projets = Projet.objects.filter(dossier_ds__ds_demandeur__siren=siren)
         else:
-            projets = Projet.objects.for_user(self.request.user).filter(
+            projets = Projet.objects.for_user(request.user).filter(
                 dossier_ds__ds_demandeur__siren=siren
             )
         projets = (
@@ -76,16 +69,14 @@ class CollectiviteDetailView(DetailView):
         )
 
         collectivite_nom = personne_morale.nom_affichage
-        context.update(
-            {
-                "siren": siren,
-                "collectivite_nom": collectivite_nom,
-                "subventions": subventions,
-                "projets": projets,
-                "title": f"Collectivité – {collectivite_nom}",
-            }
-        )
-        return context
+        context = {
+            "siren": siren,
+            "collectivite_nom": collectivite_nom,
+            "subventions": subventions,
+            "projets": projets,
+            "title": f"Collectivité – {collectivite_nom}",
+        }
+        return render(request, self.template_name, context)
 
 
 def _personnes_morales_in_perimetre(user):
