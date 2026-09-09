@@ -1,4 +1,4 @@
-from django.db.models import Case, Min, Q, Value, When
+from django.db.models import Case, Q, Value, When
 from django.http import Http404
 from django.views.generic import DetailView, ListView
 
@@ -25,12 +25,7 @@ class CollectiviteListView(ListView):
                 Q(raison_sociale__icontains=search) | Q(siren__icontains=search)
             )
 
-        # Une même personne (SIREN) peut avoir plusieurs établissements (SIRET) :
-        # on n'en garde qu'un, le premier par ordre de SIRET.
-        premier_siret_par_siren = qs.values("siren").annotate(siret=Min("siret"))
-        qs = qs.filter(
-            siret__in=premier_siret_par_siren.values_list("siret", flat=True)
-        ).select_related("forme_juridique")
+        qs = qs.distinct_by_siren().select_related("forme_juridique")
 
         return qs.order_by(
             Case(When(raison_sociale="", then=Value(1)), default=Value(0)),
@@ -80,7 +75,7 @@ class CollectiviteDetailView(DetailView):
             .order_by("-dossier_ds__ds_date_depot")
         )
 
-        collectivite_nom = personne_morale.raison_sociale or siren
+        collectivite_nom = personne_morale.nom_affichage
         context.update(
             {
                 "siren": siren,
