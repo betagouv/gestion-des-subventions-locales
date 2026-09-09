@@ -48,7 +48,7 @@ class Command(BaseCommand):
         self.stdout.write("Token obtenu.")
 
         state = FondsVertImportState.load()
-        start_page = 1 if restart else state.last_page + 1
+        start_page = 1 if restart else state.data.get("last_page", 0) + 1
         if start_page > 1:
             self.stdout.write(f"Reprise à la page {start_page}.")
 
@@ -67,12 +67,12 @@ class Command(BaseCommand):
                         f"  Erreur dossier #{err['dossier_number']}: {err['error']}"
                     )
                 )
-            state.last_page = page
-            state.save(update_fields=["last_page", "updated_at"])
+            state.data["last_page"] = page
+            state.save(update_fields=["data", "updated_at"])
 
         # Synchronisation complète : on repartira de la page 1 au prochain lancement.
-        state.last_page = 0
-        state.save(update_fields=["last_page", "updated_at"])
+        state.data["last_page"] = 0
+        state.save(update_fields=["data", "updated_at"])
 
         self.stdout.write(
             self.style.SUCCESS(

@@ -125,9 +125,11 @@ class PersonneMoraleQuerySet(models.QuerySet):
         Une même personne (SIREN) peut avoir plusieurs établissements (SIRET) :
         on n'en garde qu'un seul par SIREN, peu importe lequel.
 
-        NB : on ne peut pas utiliser `.distinct("siren")` (DISTINCT ON), non
-        supporté par SQLite (utilisé en test) — d'où ce filtre par sous-requête,
-        qui s'appuie sur `Min` juste pour désigner un SIRET représentant.
+        NB : on ne peut pas utiliser `.distinct("siren")` (DISTINCT ON) ici :
+        sur PostgreSQL ça imposerait que l'ORDER BY commence par `siren`,
+        ce qui empêcherait de trier ensuite le résultat par `raison_sociale`.
+        D'où ce filtre par sous-requête, qui s'appuie sur `Min` juste pour
+        désigner un SIRET représentant.
         """
         un_siret_par_siren = self.values("siren").annotate(siret=models.Min("siret"))
         return self.filter(siret__in=un_siret_par_siren.values_list("siret", flat=True))

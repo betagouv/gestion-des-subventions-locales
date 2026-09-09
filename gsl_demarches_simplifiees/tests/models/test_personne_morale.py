@@ -10,6 +10,8 @@ from gsl_demarches_simplifiees.models import (
     PersonneMorale,
 )
 
+from ..factories import PersonneMoraleFactory
+
 pytestmark = pytest.mark.django_db
 
 
@@ -42,7 +44,14 @@ def test_siren_is_computed_from_siret_on_save():
 
 
 def test_siren_is_recomputed_when_siret_changes():
-    personne = PersonneMorale.objects.create(siret="12345678900012")
+    personne = PersonneMoraleFactory(siret="12345678900012")
     personne.siret = "98765432100045"
     personne.save()
     assert personne.siren == "987654321"
+
+
+def test_distinct_by_siren():
+    PersonneMoraleFactory(siret="12345678900012")
+    PersonneMoraleFactory(siret="12345678900013")
+
+    assert PersonneMorale.objects.distinct_by_siren().count() == 1

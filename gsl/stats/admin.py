@@ -30,7 +30,8 @@ class SubventionAdmin(admin.ModelAdmin):
 @admin.register(FondsVertImportState)
 class FondsVertImportStateAdmin(admin.ModelAdmin):
     """Réservé aux super-utilisateurs (voir AGENTS.md § Admin Permissions) : permet
-    de consulter, et au besoin de remettre à zéro, le curseur de reprise de l'import
-    Fonds Vert."""
+    de consulter, et au besoin de corriger (ex: remettre à zéro le curseur de
+    reprise), l'état de l'import Fonds Vert — stocké en JSON libre dans `data`
+    (modèle générique `gsl_core.ImportState`, cf. sa docstring)."""
 
-    list_display = ("last_page", "updated_at")
+    list_display = ("key", "data", "updated_at")
