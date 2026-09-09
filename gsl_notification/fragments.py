@@ -310,10 +310,15 @@ class ManualDocumentAttachFragment(BaseImportStepFragment):
 
     def __init__(self, request, obj, key=None):
         super().__init__(request, obj)
-        self.key = key
+        # key can come from the analysed step directly, or from the POST when we are in
+        # the manual step.
+        self.key = key or request.POST.get("key", "")
+
+    def get_context(self):
+        return {**super().get_context(), "key": self.key}
 
     def get_form(self, data=None):
-        return self.form_class(data=data, projet=self.object, initial={"key": self.key})
+        return self.form_class(data=data, projet=self.object)
 
     def on_valid(self):
         document = self.form.save(self.request.user)

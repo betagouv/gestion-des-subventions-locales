@@ -117,7 +117,7 @@ def test_analyze_form_valid():
 def test_analyze_form_requires_a_file():
     form = UploadedDocumentAnalyzeForm(data={}, files={})
     assert not form.is_valid()
-    assert form.errors["file"] == ["Sélectionnez un document à importer."]
+    assert form.errors["file"] == ["Sélectionnez un document à traiter."]
 
 
 @pytest.mark.parametrize(
@@ -247,7 +247,7 @@ def test_attach_form_refuses_a_key_outside_the_temporary_prefix():
     )
 
     assert not form.is_valid()
-    assert form.errors["key"] == ["Requête invalide."]
+    assert form.non_field_errors() == ["Aucun document à importer."]
 
 
 # Test modele arrêté step 2 (form upload)

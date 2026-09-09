@@ -152,9 +152,10 @@ def test_analyze_without_qr_code_asks_for_the_document_type(
     assert not form.errors
     assert not programmation_projet.annexes.exists()
 
-    key = form.initial["key"]
+    key = response.context["key"]
     assert key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
     assert default_storage.open(key).read() == b"dummy"
+    assert f'name="key" value="{key}"' in response.content.decode()
 
 
 def test_analyze_of_an_image_skips_qr_detection(
@@ -387,15 +388,18 @@ def test_attach_refuses_a_type_the_dotation_status_forbids(
     projet = programmation_projet.dotation_projet.projet
     dotation = programmation_projet.dotation
 
+    key = _parked_pdf()
     response = correct_perimetre_client_with_user_logged.post(
         _attach_url(projet),
-        {"key": _parked_pdf(), "document": f"{LETTRE_ET_ARRETE_SIGNES}-{dotation}"},
+        {"key": key, "document": f"{LETTRE_ET_ARRETE_SIGNES}-{dotation}"},
         headers=HTMX,
     )
 
     assert response.status_code == 200
     assert "document" in response.context["form"].errors
     assert not LettreEtArreteSignes.objects.exists()
+    # The agent fixes his choice on the document he already uploaded.
+    assert f'name="key" value="{key}"' in response.content.decode()
 
 
 def test_attach_imports_a_lettre_refus_signee(

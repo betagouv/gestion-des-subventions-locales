@@ -84,17 +84,6 @@ class S3KeysField(forms.Field):
         return [key for key in raw if DocumentImportJob.is_temp_s3_key(key)]
 
 
-class TempS3KeyField(forms.CharField):
-    """A single key under the temporary import prefix. `S3KeysField` filters a
-    posted batch on the same rule; here a rejected key must be reportable."""
-
-    def validate(self, value):
-        super().validate(value)
-        # Never trust the client with an arbitrary bucket key.
-        if value and not DocumentImportJob.is_temp_s3_key(value):
-            raise forms.ValidationError("Requête invalide.", code="invalid")
-
-
 class ImportJobStartForm(forms.Form):
     s3_keys = S3KeysField()
     remove_qr_code = forms.BooleanField(required=False)
@@ -236,10 +225,6 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
     neither can be aimed at another projet from the client side.
     """
 
-    key = TempS3KeyField(
-        widget=forms.HiddenInput,
-        error_messages={"required": "Sélectionnez un document à importer."},
-    )
     document = forms.ChoiceField(
         widget=RadioSelect(
             disabled_help_text="Ce document a déjà été importé pour cette dotation."
@@ -257,6 +242,14 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         super().__init__(*args, **kwargs)
         self.projet = projet
         self.fields["document"].choices = uploadable_document_choices(projet)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        key = self.data.get("key", "")
+        if not DocumentImportJob.is_temp_s3_key(key):
+            raise forms.ValidationError("Aucun document à traiter.")
+        cleaned_data["key"] = key
+        return cleaned_data
 
     @cached_property
     def programmation_projet(self) -> ProgrammationProjet:

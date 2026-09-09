@@ -16,6 +16,7 @@
           hx-swap="outerHTML"
           hx-disabled-elt="#{{ modal_id }}-submit-button">
         {% csrf_token %}
+        <input type="hidden" name="key" value="{{ key }}">
 {% endblock form_open %}
 {% block content %}
     <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-3w">
