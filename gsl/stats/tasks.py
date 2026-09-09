@@ -149,13 +149,21 @@ def _import_row(row):
     departement = _resolve_departement(dep_code)
     commune = _resolve_commune(insee_code)
 
-    _, created = Subvention.objects.update_or_create(
-        source=Subvention.SOURCE_DGCL,
+    unique_key = Subvention.compute_unique_key(
+        Subvention.SOURCE_DGCL,
         exercice=exercice,
         dispositif=dispositif,
         siren=beneficiaire_siren,
         intitule=intitule,
+    )
+    _, created = Subvention.objects.update_or_create(
+        unique_key=unique_key,
         defaults={
+            "source": Subvention.SOURCE_DGCL,
+            "exercice": exercice,
+            "dispositif": dispositif,
+            "siren": beneficiaire_siren,
+            "intitule": intitule,
             "programme": programme,
             "departement": departement,
             "commune": commune,
@@ -178,13 +186,14 @@ def fetch_subventions_fonds_vert():
 
     token = _fonds_vert_login(username, password)
     state = FondsVertImportState.load()
-    if state.last_page:
-        logger.info("Fonds Vert: reprise à la page %d", state.last_page + 1)
+    last_page = state.data.get("last_page", 0)
+    if last_page:
+        logger.info("Fonds Vert: reprise à la page %d", last_page + 1)
 
     nb_created = nb_updated = nb_errors = 0
 
     for page, created, updated, errors in _iter_fonds_vert_pages(
-        token, start_page=state.last_page + 1
+        token, start_page=last_page + 1
     ):
         nb_created += created
         nb_updated += updated
@@ -197,12 +206,12 @@ def fetch_subventions_fonds_vert():
             )
         # Une page est entièrement traitée : on avance le curseur pour pouvoir
         # reprendre ici si la tâche est interrompue avant la fin.
-        state.last_page = page
-        state.save(update_fields=["last_page", "updated_at"])
+        state.data["last_page"] = page
+        state.save(update_fields=["data", "updated_at"])
 
     # Synchronisation complète : on repartira de la page 1 au prochain lancement.
-    state.last_page = 0
-    state.save(update_fields=["last_page", "updated_at"])
+    state.data["last_page"] = 0
+    state.save(update_fields=["data", "updated_at"])
 
     logger.info(
         "Fonds Vert: %d créés, %d mis à jour, %d erreurs",
@@ -285,10 +294,14 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
     departement = _resolve_departement(sc.get("code_departement", ""))
     commune = _resolve_commune(sc.get("code_commune", ""))
 
+    unique_key = Subvention.compute_unique_key(
+        Subvention.SOURCE_FONDS_VERT, dossier_number=dossier_number
+    )
     _, created = Subvention.objects.update_or_create(
-        dossier_number=dossier_number,
+        unique_key=unique_key,
         defaults={
             "source": Subvention.SOURCE_FONDS_VERT,
+            "dossier_number": dossier_number,
             "siren": siret[:9],
             "exercice": sc.get("annee_millesime") or 0,
             "dispositif": FONDS_VERT_DISPOSITIF,

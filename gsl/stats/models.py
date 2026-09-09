@@ -1,6 +1,7 @@
 from django.db import models
 
 from gsl.projet.utils.utils import compute_taux
+from gsl_core.models import ImportState
 
 
 class Subvention(models.Model):
@@ -14,6 +15,10 @@ class Subvention(models.Model):
     SOURCE_CHOICES = (
         (SOURCE_DGCL, "DGCL"),
         (SOURCE_FONDS_VERT, "Fonds Vert"),
+    )
+
+    unique_key = models.CharField(
+        max_length=255, unique=True, editable=False, verbose_name="Clé unique"
     )
 
     # --- Champs communs (DGCL et Fonds Vert) ---
@@ -51,8 +56,6 @@ class Subvention(models.Model):
         verbose_name="Montant attribué",
     )
 
-    # --- Champs spécifiques Fonds Vert (nuls/vides pour la DGCL) ---
-
     montant_demande = models.DecimalField(
         max_digits=14,
         decimal_places=2,
@@ -64,33 +67,46 @@ class Subvention(models.Model):
     date_depot = models.DateTimeField(
         null=True, blank=True, verbose_name="Date de dépôt"
     )
-    # Identifiant DS du dossier, utilisé pour l'upsert idempotent depuis l'API
-    # Fonds Vert. La DGCL n'a pas d'identifiant stable : son idempotence
-    # repose sur la contrainte "unique_dgcl_subvention" ci-dessous.
+    # Identifiant DS du dossier (Fonds Vert uniquement), conservé à titre
+    # informatif pour retrouver le dossier d'origine. Ce n'est plus lui qui
+    # porte l'unicité : c'est `unique_key`, cf. plus bas.
     dossier_number = models.IntegerField(
-        null=True, blank=True, unique=True, verbose_name="Numéro de dossier DS"
+        null=True, blank=True, verbose_name="Numéro de dossier DS"
     )
 
     class Meta:
         verbose_name = "Subvention"
         verbose_name_plural = "Subventions"
         ordering = ["-exercice"]
-        constraints = [
-            # Scopée à la DGCL uniquement : plusieurs dossiers Fonds Vert d'un
-            # même SIREN/exercice partagent souvent un intitulé vide, ce qui
-            # entrerait sinon en collision entre dossiers distincts (chacun
-            # déjà identifié de façon fiable par dossier_number).
-            models.UniqueConstraint(
-                fields=["exercice", "dispositif", "siren", "intitule"],
-                condition=models.Q(source="dgcl"),
-                name="unique_dgcl_subvention",
-            ),
-        ]
 
     def __str__(self):
         return (
             f"{self.exercice} {self.dispositif} - {self.siren} - {self.intitule[:50]}"
         )
+
+    def save(self, *args, **kwargs):
+        self.unique_key = self.compute_unique_key(
+            self.source,
+            dossier_number=self.dossier_number,
+            exercice=self.exercice,
+            dispositif=self.dispositif,
+            siren=self.siren,
+            intitule=self.intitule,
+        )
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def compute_unique_key(
+        source,
+        dossier_number=None,
+        exercice=None,
+        dispositif=None,
+        siren=None,
+        intitule=None,
+    ):
+        if source == Subvention.SOURCE_FONDS_VERT:
+            return f"{source}:{dossier_number}"
+        return f"{source}:{exercice}:{dispositif}:{siren}:{intitule}"
 
     @property
     def taux_accorde(self):
@@ -101,28 +117,29 @@ class Subvention(models.Model):
         return compute_taux(self.montant_attribue, self.cout_total)
 
 
-class FondsVertImportState(models.Model):
-    """État de la synchronisation Fonds Vert (ligne unique).
+class FondsVertImportState(ImportState):
+    """Proxy vers `gsl_core.ImportState` (ligne `key="fonds_vert"`), qui garde
+    l'état de la synchronisation Fonds Vert visible dans l'admin "Suivi
+    financier" alors que le modèle générique vit dans gsl_core, réutilisable
+    par d'autres imports.
 
-    Retient la dernière page importée avec succès pour reprendre l'import à cet
-    endroit après une interruption (erreur réseau, expiration du token, tâche
-    relancée) plutôt que de tout refaire depuis la page 1. Remise à 0 une fois
-    une synchronisation complète terminée avec succès.
+    Retient dans `data` la dernière page importée avec succès (clé
+    "last_page") pour reprendre l'import à cet endroit après une interruption
+    (erreur réseau, expiration du token, tâche relancée) plutôt que de tout
+    refaire depuis la page 1. Remise à 0 une fois une synchronisation complète
+    terminée avec succès.
     """
 
-    last_page = models.PositiveIntegerField(
-        default=0, verbose_name="Dernière page importée"
-    )
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Mis à jour le")
+    KEY = "fonds_vert"
 
     class Meta:
+        proxy = True
         verbose_name = "État de l'import Fonds Vert"
         verbose_name_plural = "État de l'import Fonds Vert"
 
     def __str__(self):
-        return f"Fonds Vert — reprise à la page {self.last_page}"
+        return f"Fonds Vert — reprise à la page {self.data.get('last_page', 0)}"
 
     @classmethod
     def load(cls) -> "FondsVertImportState":
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        return super().load(cls.KEY)
