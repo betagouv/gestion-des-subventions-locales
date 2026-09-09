@@ -13,7 +13,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.fragments import ProjetActionsFragment, ProjetFragment
+from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
 from gsl.projet.models import Projet
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
@@ -51,7 +51,7 @@ UPLOAD_MODAL_ID = "upload-document-modal"
 IMPORT_TEMPLATE_BASE = "gsl_notification/modal/projet_import/"
 
 
-class NotifiedFragment(ProjetFragment):
+class NotifiedFragment(BaseProjetFragment):
     name = "notified"
     template_name = (
         "gsl_notification/tab_simulation_projet/tab_notifications.html#notified"
@@ -68,7 +68,7 @@ class NotifiedFragment(ProjetFragment):
         }
 
 
-class GenerateDocumentsFragment(ProjetFragment):
+class GenerateDocumentsFragment(BaseProjetFragment):
     name = "generate_documents"
     route_params = "<int:pk>"
     template_name = "includes/_generate_documents_form.html"
@@ -91,7 +91,7 @@ class GenerateDocumentsFragment(ProjetFragment):
         return HttpResponseClientRefresh()
 
 
-class NotificationMessageFragment(ProjetFragment):
+class NotificationMessageFragment(BaseProjetFragment):
     name = "notification_message"
     route_params = "<int:pk>"
     template_name = "includes/_notification_message_form.html"
@@ -130,7 +130,7 @@ class NotificationMessageFragment(ProjetFragment):
         return self.render_valid()
 
 
-class ImportedDocumentsFragment(ProjetFragment):
+class ImportedDocumentsFragment(BaseProjetFragment):
     name = "imported_documents"
     template_name = (
         "gsl_notification/tab_simulation_projet/"
@@ -144,7 +144,7 @@ class ImportedDocumentsFragment(ProjetFragment):
         }
 
 
-class ImportStepFragment(ProjetFragment):
+class BaseImportStepFragment(BaseProjetFragment):
     """Base fragment of the per-projet import modal.
 
     Steps render one another — the file decides which comes next — so a step
@@ -203,7 +203,7 @@ class ImportStepFragment(ProjetFragment):
         )
 
 
-class UploadedDocumentAnalyzeFragment(ImportStepFragment):
+class UploadedDocumentAnalyzeFragment(BaseImportStepFragment):
     """The file itself. A scan of a generated document carries a GSL QR code on
     every page, naming the dossier, the dotation and the document type — enough
     to attach it without asking anything. Only when that fails is the type
@@ -302,7 +302,7 @@ class UploadedDocumentAnalyzeFragment(ImportStepFragment):
         return fallback
 
 
-class ManualDocumentAttachFragment(ImportStepFragment):
+class ManualDocumentAttachFragment(BaseImportStepFragment):
     """The file carried no usable QR code: the agent names the dotation and the
     document type, and the browser posts back the key it is parked under."""
 

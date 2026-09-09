@@ -9,11 +9,11 @@ from .forms import (
 from .models import DotationProjet, Projet
 
 
-class ProjetFragment(Fragment):
+class BaseProjetFragment(Fragment):
     context_object_name = "projet"
 
 
-class ProjetActionsFragment(ProjetFragment):
+class ProjetActionsFragment(BaseProjetFragment):
     name = "projet_actions"
     template_name = "includes/projet_detail/_projet_actions.html"
 
