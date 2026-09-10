@@ -1,22 +1,28 @@
 import pytest
+import responses
 
 from gsl_core.tests.factories import CommuneFactory, DepartementFactory
 
 from ..models import Subvention
 from ..tasks import (
+    DGCL_API_URL,
     FONDS_VERT_DISPOSITIF,
     FONDS_VERT_PROGRAMME,
+    _build_dgcl_subvention,
     _import_fonds_vert_dossier,
-    _import_row,
     _parse_decimal,
     _parse_int,
+    fetch_subventions_dgcl,
 )
 
 pytestmark = pytest.mark.django_db
 
 
-class TestImportRowDgcl:
-    def test_creates_a_dgcl_subvention(self):
+class TestBuildDgclSubvention:
+    """`_build_dgcl_subvention` ne fait qu'un `Subvention(...)` non
+    enregistré (cf. `fetch_subventions_dgcl` pour le `bulk_create`)."""
+
+    def test_builds_an_unsaved_dgcl_subvention(self):
         DepartementFactory(insee_code="75")
         CommuneFactory(insee_code="75056")
 
@@ -31,10 +37,9 @@ class TestImportRowDgcl:
             "code_insee": "75056",
         }
 
-        created = _import_row(row)
+        subvention = _build_dgcl_subvention(row)
 
-        assert created is True
-        subvention = Subvention.objects.get(siren="123456789")
+        assert subvention.pk is None
         assert subvention.source == Subvention.SOURCE_DGCL
         assert subvention.exercice == 2024
         assert subvention.dispositif == "DETR"
@@ -43,8 +48,12 @@ class TestImportRowDgcl:
         assert subvention.montant_attribue == 500
         assert subvention.departement.insee_code == "75"
         assert subvention.commune.insee_code == "75056"
+        assert subvention.unique_key
 
-    def test_upserts_an_existing_row_instead_of_duplicating(self):
+    def test_two_identical_rows_get_distinct_unique_keys(self):
+        # Les doublons sont désormais conservés tels quels (cf.
+        # Subvention.__doc__) : le hash ne doit donc jamais entrer en
+        # collision entre deux lignes de contenu identique.
         row = {
             "exercice": "2024",
             "dispositif": "DETR",
@@ -53,14 +62,11 @@ class TestImportRowDgcl:
             "cout_ht": "1000",
             "subvention": "500",
         }
-        assert _import_row(row) is True
 
-        row["subvention"] = "700"
-        created = _import_row(row)
+        first = _build_dgcl_subvention(row)
+        second = _build_dgcl_subvention(row)
 
-        assert created is False
-        assert Subvention.objects.filter(siren="123456789").count() == 1
-        assert Subvention.objects.get(siren="123456789").montant_attribue == 700
+        assert first.unique_key != second.unique_key
 
     @pytest.mark.parametrize(
         "missing_field",
@@ -77,8 +83,7 @@ class TestImportRowDgcl:
         }
         row[missing_field] = ""
 
-        assert _import_row(row) is False
-        assert not Subvention.objects.exists()
+        assert _build_dgcl_subvention(row) is None
 
     def test_skips_dsid_rows(self):
         row = {
@@ -90,8 +95,88 @@ class TestImportRowDgcl:
             "subvention": "500",
         }
 
-        assert _import_row(row) is False
-        assert not Subvention.objects.exists()
+        assert _build_dgcl_subvention(row) is None
+
+
+class TestFetchSubventionsDgcl:
+    """Nouveau paradigme DGCL : pas d'upsert, tout est reconstruit à chaque
+    import (cf. Subvention.__doc__ et fetch_subventions_dgcl)."""
+
+    CSV_URL = "https://example.com/dgcl.csv"
+
+    def _mock_dataset_and_csv(self, csv_text):
+        responses.add(
+            responses.GET,
+            DGCL_API_URL,
+            json={
+                "resources": [
+                    {"title": "DGCL 2024", "url": self.CSV_URL, "format": "csv"}
+                ]
+            },
+        )
+        responses.add(
+            responses.GET,
+            self.CSV_URL,
+            body=csv_text.encode("utf-8-sig"),
+        )
+
+    @responses.activate
+    def test_wipes_existing_dgcl_rows_and_recreates_from_csv(self):
+        Subvention.objects.create(
+            source=Subvention.SOURCE_DGCL,
+            siren="000000000",
+            exercice=2020,
+            dispositif="DETR",
+            programme=119,
+            intitule="Ancienne ligne",
+            cout_total=1,
+        )
+        csv_text = (
+            "exercice;dispositif;beneficiaire_siren;intitule;cout_ht;subvention\n"
+            "2024;DETR;123456789;Rénovation école;1000;500\n"
+        )
+        self._mock_dataset_and_csv(csv_text)
+
+        fetch_subventions_dgcl()
+
+        dgcl_rows = Subvention.objects.filter(source=Subvention.SOURCE_DGCL)
+        assert dgcl_rows.count() == 1
+        assert dgcl_rows.get().siren == "123456789"
+
+    @responses.activate
+    def test_keeps_duplicate_rows(self):
+        csv_text = (
+            "exercice;dispositif;beneficiaire_siren;intitule;cout_ht;subvention\n"
+            "2024;DETR;123456789;Rénovation école;1000;500\n"
+            "2024;DETR;123456789;Rénovation école;1000;500\n"
+        )
+        self._mock_dataset_and_csv(csv_text)
+
+        fetch_subventions_dgcl()
+
+        assert Subvention.objects.filter(siren="123456789").count() == 2
+
+    @responses.activate
+    def test_does_not_touch_fonds_vert_rows(self):
+        Subvention.objects.create(
+            source=Subvention.SOURCE_FONDS_VERT,
+            siren="217500569",
+            exercice=2026,
+            dispositif=FONDS_VERT_DISPOSITIF,
+            programme=380,
+            intitule="Isolation mairie",
+            cout_total=400,
+            dossier_number=42,
+        )
+        self._mock_dataset_and_csv(
+            "exercice;dispositif;beneficiaire_siren;intitule;cout_ht;subvention\n"
+        )
+
+        fetch_subventions_dgcl()
+
+        assert (
+            Subvention.objects.filter(source=Subvention.SOURCE_FONDS_VERT).count() == 1
+        )
 
 
 class TestImportFondsVertDossier:

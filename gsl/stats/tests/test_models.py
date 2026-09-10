@@ -17,18 +17,18 @@ def test_taux_accorde_is_computed_from_montant_attribue():
     assert subvention.taux_accorde == 50
 
 
-def test_dgcl_duplicate_key_is_rejected():
-    SubventionFactory(
-        siren="123456789", exercice=2024, dispositif="DETR", intitule="Même projet"
-    )
-    with transaction.atomic():
-        with pytest.raises(IntegrityError):
-            SubventionFactory(
-                siren="123456789",
-                exercice=2024,
-                dispositif="DETR",
-                intitule="Même projet",
-            )
+def test_dgcl_duplicate_rows_are_allowed():
+    kwargs = {
+        "siren": "123456789",
+        "exercice": 2024,
+        "dispositif": "DETR",
+        "intitule": "Même projet",
+    }
+    first = SubventionFactory(**kwargs)
+    second = SubventionFactory(**kwargs)
+
+    assert first.unique_key != second.unique_key
+    assert Subvention.objects.filter(siren="123456789").count() == 2
 
 
 def test_fonds_vert_rows_sharing_the_dgcl_key_are_allowed():

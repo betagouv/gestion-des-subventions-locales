@@ -42,21 +42,22 @@ def fetch_subventions_dgcl():
     ]
     logger.info(f"Trouvé {len(resources)} ressources CSV dans le jeu de données DGCL")
 
+    # La DGCL republie l'intégralité du jeu de données à chaque mise à jour,
+    # sans identifiant stable par ligne : pas de déduplication ni d'upsert
+    # possible, on vide et on reconstruit entièrement ces lignes à chaque
+    # import (cf. Subvention.__doc__).
+    nb_deleted, _ = Subvention.objects.filter(source=Subvention.SOURCE_DGCL).delete()
+    logger.info(f"{nb_deleted} lignes DGCL existantes supprimées avant réimport")
+
     bilan = {}
     for resource in resources:
         url = resource.get("url")
         if not url:
             continue
-        nb_created, nb_updated, errors = _import_csv_resource(url)
+        nb_imported, errors = _import_csv_resource(url)
         title = resource.get("title", url)
-        bilan[title] = {
-            "created": nb_created,
-            "updated": nb_updated,
-            "errors": len(errors),
-        }
-        logger.info(
-            f"{title}: {nb_created} créés, {nb_updated} mis à jour, {len(errors)} erreurs"
-        )
+        bilan[title] = {"imported": nb_imported, "errors": len(errors)}
+        logger.info(f"{title}: {nb_imported} lignes importées, {len(errors)} erreurs")
         for err in errors:
             logger.error(
                 f"  Erreur import ligne {err['line']}: {err['error']} — {err['row']}"
@@ -66,6 +67,9 @@ def fetch_subventions_dgcl():
 
 
 def _import_csv_resource(url):
+    """Importe une ressource CSV DGCL : chaque ligne valide devient une
+    `Subvention`, insérées en une fois par `bulk_create` (pas d'upsert, cf.
+    `fetch_subventions_dgcl`)."""
     response = requests.get(url, timeout=120, stream=True)
     response.raise_for_status()
 
@@ -75,13 +79,12 @@ def _import_csv_resource(url):
     text = content.decode("utf-8-sig", errors="replace")
     reader = csv.DictReader(io.StringIO(text), delimiter=";")
 
-    nb_created = 0
-    nb_updated = 0
+    subventions = []
     errors = []
 
     for line_num, row in enumerate(reader, start=2):
         try:
-            created = _import_row(row)
+            subvention = _build_dgcl_subvention(row)
         except Exception as e:
             errors.append(
                 {
@@ -96,15 +99,14 @@ def _import_csv_resource(url):
                 }
             )
             continue
-        if created:
-            nb_created += 1
-        else:
-            nb_updated += 1
+        if subvention is not None:
+            subventions.append(subvention)
 
-    return nb_created, nb_updated, errors
+    Subvention.objects.bulk_create(subventions)
+    return len(subventions), errors
 
 
-def _import_row(row):
+def _build_dgcl_subvention(row) -> Subvention | None:
     exercice = _parse_int(
         row.get("exercice") or row.get("annee") or row.get("Exercice")
     )
@@ -145,16 +147,18 @@ def _import_row(row):
     ).strip()
 
     if not exercice or not dispositif or not beneficiaire_siren or not intitule:
-        return False
+        return None
 
     # La DSID (Dotation de soutien à l'investissement des départements) ne
     # concerne pas les communes/EPCI suivis par Turgot : on l'ignore.
     if dispositif == "DSID":
-        return False
+        return None
 
     departement = _resolve_departement(dep_code)
     commune = _resolve_commune(insee_code)
 
+    # bulk_create (cf. _import_csv_resource) contourne Subvention.save(), donc
+    # on renseigne unique_key ici.
     unique_key = Subvention.compute_unique_key(
         Subvention.SOURCE_DGCL,
         exercice=exercice,
@@ -162,22 +166,19 @@ def _import_row(row):
         siren=beneficiaire_siren,
         intitule=intitule,
     )
-    _, created = Subvention.objects.update_or_create(
+    return Subvention(
         unique_key=unique_key,
-        defaults={
-            "source": Subvention.SOURCE_DGCL,
-            "exercice": exercice,
-            "dispositif": dispositif,
-            "siren": beneficiaire_siren,
-            "intitule": intitule,
-            "programme": programme,
-            "departement": departement,
-            "commune": commune,
-            "cout_total": _parse_decimal(cout_total_raw),
-            "montant_attribue": _parse_decimal(montant_attribue_raw),
-        },
+        source=Subvention.SOURCE_DGCL,
+        exercice=exercice,
+        dispositif=dispositif,
+        siren=beneficiaire_siren,
+        intitule=intitule,
+        programme=programme,
+        departement=departement,
+        commune=commune,
+        cout_total=_parse_decimal(cout_total_raw),
+        montant_attribue=_parse_decimal(montant_attribue_raw),
     )
-    return created
 
 
 @shared_task(priority=TASK_PRIORITY_LOW)
