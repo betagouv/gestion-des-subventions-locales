@@ -1,5 +1,6 @@
 from django.db import models
 
+from gsl.projet.constants import DS_STATE_VALUES
 from gsl.projet.utils.utils import compute_taux
 from gsl_core.models import ImportState
 
@@ -63,7 +64,9 @@ class Subvention(models.Model):
         blank=True,
         verbose_name="Montant demandé",
     )
-    statut = models.CharField(max_length=30, blank=True, verbose_name="Statut")
+    status = models.CharField(
+        max_length=30, blank=True, choices=DS_STATE_VALUES, verbose_name="Statut"
+    )
     date_depot = models.DateTimeField(
         null=True, blank=True, verbose_name="Date de dépôt"
     )
@@ -110,8 +113,6 @@ class Subvention(models.Model):
 
     @property
     def taux_accorde(self):
-        # Pas encore de montant attribué (dossier Fonds Vert non décidé) :
-        # pas de taux à afficher.
         if self.montant_attribue is None:
             return None
         return compute_taux(self.montant_attribue, self.cout_total)

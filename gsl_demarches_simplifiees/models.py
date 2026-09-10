@@ -9,6 +9,12 @@ from gsl.projet.constants import (
     ANNUAIRE_ENTREPRISE_URL,
     DOTATION_DETR,
     DOTATION_DSIL,
+    DS_STATE_ACCEPTE,
+    DS_STATE_EN_CONSTRUCTION,
+    DS_STATE_EN_INSTRUCTION,
+    DS_STATE_REFUSE,
+    DS_STATE_SANS_SUITE,
+    DS_STATE_VALUES,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
 )
@@ -257,19 +263,12 @@ class Dossier(BaseModel):
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
 
-    STATE_ACCEPTE = "accepte"
-    STATE_EN_CONSTRUCTION = "en_construction"
-    STATE_EN_INSTRUCTION = "en_instruction"
-    STATE_REFUSE = "refuse"
-    STATE_SANS_SUITE = "sans_suite"
-
-    DS_STATE_VALUES = (
-        (STATE_ACCEPTE, "Accepté"),
-        (STATE_EN_CONSTRUCTION, "En construction"),
-        (STATE_EN_INSTRUCTION, "En instruction"),
-        (STATE_REFUSE, "Refusé"),
-        (STATE_SANS_SUITE, "Classé sans suite"),
-    )
+    # TODO, now use values in constants.py
+    STATE_ACCEPTE = DS_STATE_ACCEPTE
+    STATE_EN_CONSTRUCTION = DS_STATE_EN_CONSTRUCTION
+    STATE_EN_INSTRUCTION = DS_STATE_EN_INSTRUCTION
+    STATE_REFUSE = DS_STATE_REFUSE
+    STATE_SANS_SUITE = DS_STATE_SANS_SUITE
 
     RAISON_DESACTIVATION_ARCHIVE = "archive"
     RAISON_DESACTIVATION_CORBEILLE = "corbeille"

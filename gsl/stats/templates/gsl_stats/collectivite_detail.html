@@ -54,9 +54,9 @@
                                         <td title="{{ s.dispositif }}">{% dsfr_tag label=s.dispositif|dispositif_short %}</td>
                                         <td class="cell-wrap" title="{{ s.intitule }}">{{ s.intitule }}</td>
                                         <td>
-                                            {% if s.statut and s.statut != "Accepté" %}
-                                                <span class="fr-badge badge-projet-status badge-projet-status__{{ s.statut|fonds_vert_statut_class }}">
-                                                    {{ s.statut }}
+                                            {% if s.status and s.status != "accepte" %}
+                                                <span class="fr-badge badge-projet-status badge-projet-status__{{ s.status|fonds_vert_statut_class }}">
+                                                    {{ s.get_status_display }}
                                                 </span>
                                             {% else %}
                                                 –
