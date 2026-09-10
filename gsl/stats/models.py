@@ -1,3 +1,6 @@
+import hashlib
+import uuid
+
 from django.db import models
 
 from gsl.projet.constants import DS_STATE_VALUES
@@ -6,8 +9,7 @@ from gsl_core.models import ImportState
 
 
 class Subvention(models.Model):
-    """Fusion de SubventionDgcl et SubventionFondsVert : une ligne = une aide
-    versée (ou en cours d'instruction, pour Fonds Vert) à une collectivité,
+    """Une ligne = une aide versée (ou en cours d'instruction, pour Fonds Vert) à une collectivité,
     quelle que soit la source d'import.
     """
 
@@ -88,14 +90,15 @@ class Subvention(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        self.unique_key = self.compute_unique_key(
-            self.source,
-            dossier_number=self.dossier_number,
-            exercice=self.exercice,
-            dispositif=self.dispositif,
-            siren=self.siren,
-            intitule=self.intitule,
-        )
+        if not self.unique_key:
+            self.unique_key = self.compute_unique_key(
+                self.source,
+                dossier_number=self.dossier_number,
+                exercice=self.exercice,
+                dispositif=self.dispositif,
+                siren=self.siren,
+                intitule=self.intitule,
+            )
         super().save(*args, **kwargs)
 
     @staticmethod
@@ -109,7 +112,12 @@ class Subvention(models.Model):
     ):
         if source == Subvention.SOURCE_FONDS_VERT:
             return f"{source}:{dossier_number}"
-        return f"{source}:{exercice}:{dispositif}:{siren}:{intitule}"
+        # DGCL : pas d'identifiant stable par ligne, et les doublons de
+        # contenu sont autorisés (cf. Subvention.__doc__) — un
+        # aléa est mêlé au hash pour que deux lignes identiques ne violent
+        # jamais la contrainte unique=True du champ.
+        raw = f"{source}:{exercice}:{dispositif}:{siren}:{intitule}:{uuid.uuid4()}"
+        return hashlib.sha256(raw.encode()).hexdigest()
 
     @property
     def taux_accorde(self):
