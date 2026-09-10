@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from gsl.projet.constants import DS_STATE_ACCEPTE, DS_STATE_EN_INSTRUCTION
 from gsl.stats.models import Subvention
 from gsl_core.tests.factories import (
     AdresseFactory,
@@ -111,7 +112,7 @@ class TestCollectiviteDetailView:
             dispositif="FONDS VERT",
             programme=380,
             intitule="Isolation mairie",
-            statut="En instruction",
+            status=DS_STATE_EN_INSTRUCTION,
             montant_demande=200,
             cout_total=400,
             dossier_number=42,
@@ -142,7 +143,7 @@ class TestCollectiviteDetailView:
             dispositif="FONDS VERT",
             programme=380,
             intitule="Isolation mairie",
-            statut="Accepté",
+            status=DS_STATE_ACCEPTE,
             montant_demande=200,
             montant_attribue=200,
             cout_total=400,

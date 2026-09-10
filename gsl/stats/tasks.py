@@ -8,6 +8,7 @@ from celery import shared_task
 from django.conf import settings
 
 from gsl.celery import TASK_PRIORITY_LOW
+from gsl.projet.constants import DS_STATE_VALUES
 
 from .models import FondsVertImportState, Subvention
 
@@ -23,6 +24,11 @@ FONDS_VERT_BASE_URL = "https://api-fonds-vert.datahub.din.developpement-durable.
 # lignes DGCL (DETR/DSIL/DPV, programme 119).
 FONDS_VERT_DISPOSITIF = "FONDS VERT"
 FONDS_VERT_PROGRAMME = 380
+
+# L'API Fonds Vert renvoie le statut du dossier sous forme de libellé DS
+# ("Accepté", "En instruction", ...) : on le fait correspondre au code
+# Subvention.status (choices=DS_STATE_VALUES) attendu.
+_FONDS_VERT_STATUS_LABEL_TO_CODE = {label: code for code, label in DS_STATE_VALUES}
 
 
 @shared_task(priority=TASK_PRIORITY_LOW)
@@ -307,7 +313,7 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
             "dispositif": FONDS_VERT_DISPOSITIF,
             "programme": FONDS_VERT_PROGRAMME,
             "intitule": sc.get("nom_du_projet") or "",
-            "statut": (sc.get("statut") or "")[:30],
+            "status": _resolve_fonds_vert_status(sc.get("statut")),
             "departement": departement,
             "commune": commune,
             "montant_demande": sc.get("montant_aide_demandee_fond_vert") or 0,
@@ -317,6 +323,10 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
         },
     )
     return created
+
+
+def _resolve_fonds_vert_status(raw_statut) -> str:
+    return _FONDS_VERT_STATUS_LABEL_TO_CODE.get((raw_statut or "").strip(), "")
 
 
 def _parse_datetime(value) -> datetime | None:

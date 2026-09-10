@@ -120,7 +120,7 @@ class TestImportFondsVertDossier:
         assert subvention.dispositif == FONDS_VERT_DISPOSITIF
         assert subvention.programme == FONDS_VERT_PROGRAMME
         assert subvention.intitule == "Isolation mairie"
-        assert subvention.statut == "En instruction"
+        assert subvention.status == "en_instruction"
         assert subvention.montant_demande == 200
         assert subvention.montant_attribue is None
         assert subvention.cout_total == 400
@@ -136,7 +136,7 @@ class TestImportFondsVertDossier:
         assert Subvention.objects.filter(dossier_number=42).count() == 1
         subvention = Subvention.objects.get(dossier_number=42)
         assert subvention.montant_attribue == 150
-        assert subvention.statut == "Accepté"
+        assert subvention.status == "accepte"
 
     def test_two_distinct_dossiers_with_same_siren_and_blank_intitule_are_both_kept(
         self,
