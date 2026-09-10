@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass, field
 
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
@@ -49,6 +50,13 @@ NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
 
 UPLOAD_MODAL_ID = "upload-document-modal"
 IMPORT_TEMPLATE_BASE = "gsl_notification/modal/projet_import/"
+
+
+@dataclass
+class ImportReport:
+    attached: list = field(default_factory=list)
+    rejected: list = field(default_factory=list)
+    unreadable_pages: list = field(default_factory=list)
 
 
 class NotifiedFragment(BaseProjetFragment):
@@ -171,16 +179,13 @@ class BaseImportStepFragment(BaseProjetFragment):
             "modal_title": "Importer un document",
         }
 
-    def render_summary(self, documents, unreadable_pages=()):
+    def render_summary(self, report: ImportReport):
         """The end of the flow: a plain template, since it answers another
         step's URL and nothing ever renders it on its own."""
+        report.unreadable_pages.sort()
         html = render_to_string(
             IMPORT_TEMPLATE_BASE + "summary_step.html",
-            {
-                **self.get_context(),
-                "documents": documents,
-                "unreadable_pages": sorted(unreadable_pages),
-            },
+            {**self.get_context(), "report": report},
             request=self.request,
         )
         return HttpResponse(html + self.render_oob())
@@ -229,13 +234,13 @@ class UploadedDocumentAnalyzeFragment(BaseImportStepFragment):
             # Only PDFs can carry a QR code; images go straight to the choice.
             return self._ask_for_the_type(uploaded_file)
 
-        attached, failures, unreadable_pages = self._reattach(
+        report = self._reattach(
             uploaded_file, remove_qr_code=self.form.cleaned_data["remove_qr_code"]
         )
-        if attached:
-            return self.render_summary(attached, unreadable_pages)
-        if failures:
-            self.form.add_error("file", failures[0])
+        if report.attached:
+            return self.render_summary(report)
+        if report.rejected:
+            self.form.add_error("file", report.rejected[0])
             return self.render_invalid()
         return self._ask_for_the_type(uploaded_file)
 
@@ -250,53 +255,41 @@ class UploadedDocumentAnalyzeFragment(BaseImportStepFragment):
         )
         return self.respond_with(ManualDocumentAttachFragment, key=key)
 
-    def _reattach(self, uploaded_file, remove_qr_code: bool):
-        documents, failures, unreadable_pages = [], [], []
+    def _reattach(self, uploaded_file, remove_qr_code: bool) -> ImportReport:
+        report = ImportReport()
+        documents = []
+        files = [uploaded_file]
+        queryset = ProgrammationProjet.objects.visible_to_user(self.request.user)
         try:
-            for event in extract_documents(
-                [uploaded_file],
-                ProgrammationProjet.objects.visible_to_user(self.request.user),
-            ):
+            for event in extract_documents(files, queryset):
                 if isinstance(event, DocumentMatched):
-                    documents.append(event.document)
+                    declared = event.document.declared
+                    if declared.ds_number != self.object.dossier_ds.ds_number:
+                        report.rejected.append(
+                            f"Mauvais numéro de dossier : {declared.ds_number}"
+                        )
+                    else:
+                        documents.append(event.document)
                 elif isinstance(event, MatchFailed):
-                    failures.append(self._describe(event.declared, event.error))
+                    report.rejected.append(event.error)
                 elif isinstance(event, PageDecoded) and not event.qr_found:
-                    unreadable_pages.append(event.scan_page)
+                    report.unreadable_pages.append(event.scan_page)
         except (PdfError, PdfiumError):
             # A PDF we cannot even parse carries no readable QR either: fall
             # through to the choice step rather than fail the whole import.
             # The file itself is still storable, as it was before this modal.
             logger.info("Import : PDF illisible, bascule sur le choix manuel")
-            return [], [], []
+            return ImportReport()
 
-        elsewhere = [
-            document
-            for document in documents
-            if document.declared.ds_number != self.object.dossier_ds.ds_number
-        ]
-        if elsewhere:
-            # Nothing has been written yet, so the whole file can be turned
-            # down rather than half of it stored under this projet.
-            return [], [self._describe(elsewhere[0].declared)], unreadable_pages
-
-        attached = [
+        report.attached = [
             event.stored
             for event in replace_documents(
                 documents, [uploaded_file], self.request.user, remove_qr_code
             )
         ]
-        for document in attached:
+        for document in report.attached:
             self._log_import(document)
-        return attached, failures, unreadable_pages
-
-    def _describe(self, declared, fallback=None):
-        if declared.ds_number != self.object.dossier_ds.ds_number:
-            return (
-                f"Ce document porte le QR code du dossier n° {declared.ds_number}, "
-                "il ne correspond pas à ce projet."
-            )
-        return fallback
+        return report
 
 
 class ManualDocumentAttachFragment(BaseImportStepFragment):
@@ -323,4 +316,4 @@ class ManualDocumentAttachFragment(BaseImportStepFragment):
     def on_valid(self):
         document = self.form.save(self.request.user)
         self._log_import(document)
-        return self.render_summary([document])
+        return self.render_summary(ImportReport(attached=[document]))

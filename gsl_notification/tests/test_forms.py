@@ -117,7 +117,7 @@ def test_analyze_form_valid():
 def test_analyze_form_requires_a_file():
     form = UploadedDocumentAnalyzeForm(data={}, files={})
     assert not form.is_valid()
-    assert form.errors["file"] == ["Sélectionnez un document à traiter."]
+    assert form.errors["file"] == ["Sélectionnez un document à importer."]
 
 
 @pytest.mark.parametrize(

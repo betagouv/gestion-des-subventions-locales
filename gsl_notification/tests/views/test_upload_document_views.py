@@ -1,3 +1,4 @@
+import io
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -5,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from pikepdf import Pdf
 
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
@@ -212,6 +214,17 @@ def _mock_logo():
         yield
 
 
+def _merged_pdf(*pdf_bytes_list) -> bytes:
+    """One scan holding several documents, as a feeder produces it."""
+    merged = Pdf.new()
+    for pdf_bytes in pdf_bytes_list:
+        with Pdf.open(io.BytesIO(pdf_bytes)) as src:
+            merged.pages.extend(src.pages)
+    buf = io.BytesIO()
+    merged.save(buf)
+    return buf.getvalue()
+
+
 def _signed_scan_for(programmation_projet):
     """The PDF of a generated lettre de notification, QR codes included — what
     the user gets back after printing, signing and scanning it."""
@@ -300,6 +313,52 @@ def test_analyze_refuses_a_scan_belonging_to_another_projet(
     assert not LettreEtArreteSignes.objects.filter(
         programmation_projet=other_pp
     ).exists()
+
+
+def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
+    perimetre, correct_perimetre_client_with_user_logged, _mock_logo
+):
+    """A page of another dossier left in the feeder costs the agent nothing:
+    his own document is attached, the stray one is named in the summary."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    target_pp = ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        dotation_projet__projet__dossier_ds__ds_number=1111111,
+        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    other_pp = ProgrammationProjetFactory(
+        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        dotation_projet__projet__dossier_ds__ds_number=9999999,
+        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+        status=ProgrammationProjet.STATUS_ACCEPTED,
+    )
+    scan = SimpleUploadedFile(
+        "scan.pdf",
+        _merged_pdf(_signed_scan_for(target_pp), _signed_scan_for(other_pp)),
+        content_type="application/pdf",
+    )
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _analyze_url(target_pp.dotation_projet.projet), {"file": scan}, headers=HTMX
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/modal/projet_import/summary_step.html"
+    )
+    assert LettreEtArreteSignes.objects.filter(programmation_projet=target_pp).exists()
+    assert not LettreEtArreteSignes.objects.filter(
+        programmation_projet=other_pp
+    ).exists()
+
+    report = response.context["report"]
+    assert len(report.attached) == 1
+    assert "9999999" in report.rejected[0]
+    assert "9999999" in response.content.decode()
 
 
 ### upload-document-attach -----------------------------

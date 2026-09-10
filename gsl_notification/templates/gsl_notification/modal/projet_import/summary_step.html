@@ -13,32 +13,42 @@
 {% block content %}
     <div class="fr-alert fr-alert--success">
         <p>
-            {{ documents|length }} document{{ documents|length|custom_pluralize }}
-            importé{{ documents|length|custom_pluralize }}.
+            {{ report.attached|length }} document{{ report.attached|length|custom_pluralize }}
+            importé{{ report.attached|length|custom_pluralize }}.
         </p>
     </div>
     <ul class="fr-mt-2w">
-        {% for document in documents %}
+        {% for document in report.attached %}
             <li>
                 {{ document.programmation_projet.dotation }} —
                 {{ document.verbose_name }} : {{ document.name }}
             </li>
         {% endfor %}
     </ul>
-    {% if unreadable_pages %}
+    {% if report.rejected %}
         <div class="fr-alert fr-alert--warning fr-mt-2w" role="alert">
             <h3 class="fr-alert__title">
-                {{ unreadable_pages|length }} page{{ unreadable_pages|length|custom_pluralize }}
-                non rattachée{{ unreadable_pages|length|custom_pluralize }}
+                {{ report.rejected|length }} document{{ report.rejected|length|custom_pluralize }}
+                écarté{{ report.rejected|length|custom_pluralize }}
+            </h3>
+            <ul>
+                {% for reason in report.rejected %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    {% if report.unreadable_pages %}
+        <div class="fr-alert fr-alert--warning fr-mt-2w" role="alert">
+            <h3 class="fr-alert__title">
+                {{ report.unreadable_pages|length }} page{{ report.unreadable_pages|length|custom_pluralize }}
+                non rattachée{{ report.unreadable_pages|length|custom_pluralize }}
             </h3>
             <p>
                 Aucun QR code lisible sur
-                {% if unreadable_pages|length == 1 %}
-                    la page {{ unreadable_pages.0 }}, absente du document importé.
+                {% if report.unreadable_pages|length == 1 %}
+                    la page {{ report.unreadable_pages.0 }}.
                 {% else %}
-                    les pages {{ unreadable_pages|join:", " }}, absentes du document importé.
+                    les pages {{ report.unreadable_pages|join:", " }}.
                 {% endif %}
-                Vérifiez la qualité du scan et réimportez si nécessaire.
             </p>
         </div>
     {% endif %}

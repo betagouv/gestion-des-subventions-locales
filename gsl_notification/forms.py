@@ -247,7 +247,7 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         cleaned_data = super().clean()
         key = self.data.get("key", "")
         if not DocumentImportJob.is_temp_s3_key(key):
-            raise forms.ValidationError("Aucun document à traiter.")
+            raise forms.ValidationError("Aucun document à importer.")
         cleaned_data["key"] = key
         return cleaned_data
 
