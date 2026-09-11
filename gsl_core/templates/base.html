@@ -51,6 +51,7 @@
                     "tiptapEditor": "{% static 'ui/controllers/tiptapEditor.js' %}",
                     "modal": "{% static 'ui/controllers/modal.js' %}",
                     "documentImport": "{% static 'ui/controllers/document_import_controller.js' %}",
+                    "fileDropzone": "{% static 'ui/controllers/file_dropzone_controller.js' %}",
                     "doubleDotation": "{% static 'js/controllers/doubleDotation.js' %}",
                     "modeleArreteForm": "{% static 'js/modeleArreteForm.js' %}",
                     "deleteNotificationDocumentModal": "{% static 'js/deleteNotificationDocumentModal.js' %}",
@@ -143,6 +144,7 @@
             import { HtmxError } from "htmxError"
             import { Modal } from "modal"
             import { EnableOnChange } from "enableOnChange"
+            import { FileDropzone } from "fileDropzone"
             import { ModeleArreteForm } from "modeleArreteForm"
             import { ProjetNoteCard } from "projetNoteCard"
             import { ProjetNotes } from "projetNotes"
@@ -155,6 +157,7 @@
             Stimulus.register("double-dotation", DoubleDotation)
             Stimulus.register("modal", Modal)
             Stimulus.register("document-import", DocumentImport)
+            Stimulus.register("file-dropzone", FileDropzone)
             Stimulus.register("tiptap-editor", TipTapEditor)
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
             Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)

@@ -152,6 +152,12 @@ class ChooseDocumentTypeForMultipleGenerationForm(BaseChooseDocumentTypeForm):
     pass
 
 
+class DragNDropFileField(forms.FileField):
+    """A file field that also takes a drop."""
+
+    template_name = "includes/_dropzone_field.html"
+
+
 class UploadedDocumentAnalyzeForm(DsfrBaseForm, forms.Form):
     """
     First step of the per-projet import modal. The document type is not asked
@@ -159,7 +165,7 @@ class UploadedDocumentAnalyzeForm(DsfrBaseForm, forms.Form):
     asked for (`ManualDocumentAttachForm`) when the file has none.
     """
 
-    file = forms.FileField(
+    file = DragNDropFileField(
         label="Document à importer",
         validators=[document_file_validator],
         error_messages={"required": "Sélectionnez un document à importer."},

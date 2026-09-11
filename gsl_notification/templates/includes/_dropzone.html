@@ -1,0 +1,32 @@
+<div class="gsl-dropzone fr-p-4w fr-mt-3w"
+     data-controller="file-dropzone"
+     data-file-dropzone-target="dropzone"
+     data-action="dragover->file-dropzone#onDragOver dragleave->file-dropzone#onDragLeave drop->file-dropzone#onDrop">
+    <p class="fr-mb-2w">
+        Déposez vos fichiers
+        <br>
+        ou
+    </p>
+    <div class="fr-btns-group--center">
+        <button type="button"
+                class="fr-btn fr-btn--secondary"
+                aria-describedby="{{ id }}-hint"
+                data-action="file-dropzone#openPicker">
+            Sélectionner
+        </button>
+    </div>
+    <p id="{{ id }}-hint" class="fr-mt-2w fr-mb-0">{{ hint }}</p>
+    {% if show_filename %}
+        <p class="fr-mt-2w fr-mb-0 fr-text--bold"
+           aria-live="polite"
+           data-file-dropzone-target="filename"></p>
+    {% endif %}
+    <input type="file"
+           id="{{ id }}"
+           {% if name %}name="{{ name }}"{% endif %}
+           accept="{{ accept }}"
+           {% if multiple %}multiple{% endif %}
+           hidden
+           data-file-dropzone-target="input"
+           data-action="change->file-dropzone#showSelection{% if input_action %} {{ input_action }}{% endif %}">
+</div>

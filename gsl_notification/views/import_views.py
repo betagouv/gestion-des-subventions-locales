@@ -57,6 +57,10 @@ class ImportDocumentsModalView(OpenHtmxModalMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context["dotation"] = self.kwargs["dotation"]
         context["max_import_size_in_mo"] = settings.MAX_IMPORT_TOTAL_SIZE_IN_MO
+        context["dropzone_hint"] = (
+            "Fichier PDF uniquement, maximum "
+            f"{settings.MAX_IMPORT_TOTAL_SIZE_IN_MO} Mo au total."
+        )
         return context
 
 

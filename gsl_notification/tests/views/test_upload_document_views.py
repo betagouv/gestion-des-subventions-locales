@@ -122,6 +122,11 @@ def test_opening_the_modal_serves_a_fresh_upload_step(
     )
     assert not response.context["form"].is_bound
 
+    content = response.content.decode()
+    assert 'data-controller="file-dropzone"' in content
+    assert 'accept=".pdf,.png,.jpg,.jpeg"' in content
+    assert 'name="file"' in content
+
 
 def test_analyze_is_htmx_only(
     programmation_projet, correct_perimetre_client_with_user_logged
