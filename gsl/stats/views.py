@@ -1,62 +1,66 @@
-from django.db.models import Q
-from django.views.generic import DetailView, ListView
+from django.db.models import Case, Q, Value, When
+from django.http import Http404
+from django.shortcuts import render
+from django.views import View
+from django.views.generic import ListView
 
 from gsl.projet.models import Projet
 from gsl_core.models import Perimetre
+from gsl_demarches_simplifiees.models import PersonneMorale
 
-from .models import Beneficiaire
+from .models import Subvention
 
 
-class BeneficiaireListView(ListView):
-    model = Beneficiaire
-    template_name = "gsl_stats/beneficiaire_list.html"
-    context_object_name = "beneficiaires"
+class CollectiviteListView(ListView):
+    model = PersonneMorale
+    template_name = "gsl_stats/collectivite_list.html"
+    context_object_name = "collectivites"
     paginate_by = 50
 
     def get_queryset(self):
-        qs = Beneficiaire.objects.all()
-        qs = _filter_by_perimetre(qs, self.request.user)
+        qs = _personnes_morales_in_perimetre(self.request.user)
+        qs = qs.exclude(siren="")
 
         search = self.request.GET.get("q", "").strip()
         if search:
-            qs = qs.filter(Q(nom__icontains=search) | Q(siren__icontains=search))
-        return qs
+            qs = qs.filter(
+                Q(raison_sociale__icontains=search) | Q(siren__icontains=search)
+            )
+
+        qs = qs.distinct_by_siren().select_related("forme_juridique")
+
+        return qs.order_by(
+            Case(When(raison_sociale="", then=Value(1)), default=Value(0)),
+            "raison_sociale",
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["search_query"] = self.request.GET.get("q", "")
-        context["title"] = "Bénéficiaires"
+        context["title"] = "Collectivités"
         return context
 
 
-class BeneficiaireDetailView(DetailView):
-    model = Beneficiaire
-    pk_url_kwarg = "siren"
-    template_name = "gsl_stats/beneficiaire_detail.html"
+class CollectiviteDetailView(View):
+    template_name = "gsl_stats/collectivite_detail.html"
 
-    def get_queryset(self):
-        qs = Beneficiaire.objects.all()
-        return _filter_by_perimetre(qs, self.request.user)
+    def get(self, request, siren):
+        personne_morale = (
+            _personnes_morales_in_perimetre(request.user).filter(siren=siren).first()
+        )
+        if personne_morale is None:
+            raise Http404("Collectivité introuvable")
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        beneficiaire = self.object
-
-        subventions = beneficiaire.subventiondgcl_set.select_related(
+        subventions = Subvention.objects.filter(siren=siren).select_related(
             "departement", "commune"
-        ).order_by("-exercice", "dispositif")
+        )
+        subventions = subventions.order_by("-exercice", "dispositif")
 
-        subventions_fonds_vert = beneficiaire.subventionfondsvert_set.select_related(
-            "departement", "commune"
-        ).order_by("-annee_millesime", "demarche_title")
-
-        if self.request.user.is_staff:
-            projets = Projet.objects.filter(
-                dossier_ds__ds_demandeur__siren=beneficiaire.siren
-            )
+        if request.user.is_staff:
+            projets = Projet.objects.filter(dossier_ds__ds_demandeur__siren=siren)
         else:
-            projets = Projet.objects.for_user(self.request.user).filter(
-                dossier_ds__ds_demandeur__siren=beneficiaire.siren
+            projets = Projet.objects.for_user(request.user).filter(
+                dossier_ds__ds_demandeur__siren=siren
             )
         projets = (
             projets.select_related("dossier_ds", "dossier_ds__ds_demandeur")
@@ -64,33 +68,28 @@ class BeneficiaireDetailView(DetailView):
             .order_by("-dossier_ds__ds_date_depot")
         )
 
-        context.update(
-            {
-                "siren": beneficiaire.siren,
-                "beneficiaire_nom": beneficiaire.nom,
-                "subventions": subventions,
-                "subventions_fonds_vert": subventions_fonds_vert,
-                "projets": projets,
-                "title": f"Bénéficiaire – {beneficiaire.nom}",
-            }
-        )
-        return context
+        collectivite_nom = personne_morale.nom_affichage
+        context = {
+            "siren": siren,
+            "collectivite_nom": collectivite_nom,
+            "subventions": subventions,
+            "projets": projets,
+            "title": f"Collectivité – {collectivite_nom}",
+        }
+        return render(request, self.template_name, context)
 
 
-def _filter_by_perimetre(qs, user):
+def _personnes_morales_in_perimetre(user):
+    qs = PersonneMorale.objects.all()
     if user.is_staff:
         return qs
     perimetre: Perimetre | None = getattr(user, "perimetre", None)
     if perimetre is None:
         return qs.none()
     if perimetre.arrondissement:
-        return qs.filter(
-            subventiondgcl__commune__arrondissement=perimetre.arrondissement
-        ).distinct()
+        return qs.filter(address__commune__arrondissement=perimetre.arrondissement)
     if perimetre.departement:
-        return qs.filter(subventiondgcl__departement=perimetre.departement).distinct()
+        return qs.filter(address__commune__departement=perimetre.departement)
     if perimetre.region:
-        return qs.filter(
-            subventiondgcl__departement__region=perimetre.region
-        ).distinct()
+        return qs.filter(address__commune__departement__region=perimetre.region)
     return qs.none()

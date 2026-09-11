@@ -5,7 +5,7 @@
     <h1>{{ title }}</h1>
 
     <form method="get" role="search" class="fr-mb-4w">
-        <div class="fr-search-bar" id="search-beneficiaire">
+        <div class="fr-search-bar" id="search-collectivite">
             <label class="fr-label" for="q">Rechercher par nom ou SIREN</label>
             <input type="search"
                    class="fr-input"
@@ -17,13 +17,13 @@
         </div>
     </form>
 
-    {% if beneficiaires %}
+    {% if collectivites %}
         <div class="fr-table fr-table--no-caption">
             <div class="fr-table__wrapper">
                 <div class="fr-table__container">
                     <div class="fr-table__content">
                         <table>
-                            <caption>Liste des bénéficiaires</caption>
+                            <caption>Liste des collectivités</caption>
                             <thead>
                                 <tr>
                                     <th scope="col">Nom</th>
@@ -32,13 +32,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for b in beneficiaires %}
+                                {% for c in collectivites %}
                                     <tr>
                                         <td>
-                                            <a href="{% url 'suivi_financier:beneficiaire-detail' b.siren %}">{{ b.nom }}</a>
+                                            <a href="{% url 'suivi_financier:collectivite-detail' c.siren %}">{{ c.raison_sociale }}</a>
                                         </td>
-                                        <td>{{ b.siren }}</td>
-                                        <td>{{ b.type }}</td>
+                                        <td>{{ c.siren }}</td>
+                                        <td>{{ c.forme_juridique.libelle }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -51,9 +51,9 @@
     {% else %}
         <p class="fr-text--lg">
             {% if search_query %}
-                Aucun bénéficiaire ne correspond à la recherche « {{ search_query }} ».
+                Aucune collectivité ne correspond à la recherche « {{ search_query }} ».
             {% else %}
-                Aucun bénéficiaire trouvé dans votre périmètre.
+                Aucune collectivité trouvée dans votre périmètre.
             {% endif %}
         </p>
     {% endif %}

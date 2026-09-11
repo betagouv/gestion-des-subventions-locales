@@ -250,6 +250,7 @@ class DemarcheAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 class PersonneMoraleAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("address",)
     list_display = ("__str__", "siret")
+    readonly_fields = ("siren",)
     fieldsets = (
         (
             "Informations",

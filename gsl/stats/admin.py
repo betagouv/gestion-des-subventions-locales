@@ -1,40 +1,21 @@
 from django.contrib import admin
 
-from .models import (
-    Beneficiaire,
-    FondsVertImportState,
-    SubventionDgcl,
-    SubventionFondsVert,
-)
+from .models import FondsVertImportState, Subvention
 
 
-@admin.register(Beneficiaire)
-class BeneficiaireAdmin(admin.ModelAdmin):
-    list_display = ("siren", "nom", "type")
-    search_fields = ("siren", "nom")
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-
-@admin.register(SubventionDgcl)
-class SubventionDgclAdmin(admin.ModelAdmin):
+@admin.register(Subvention)
+class SubventionAdmin(admin.ModelAdmin):
     list_display = (
+        "source",
         "exercice",
         "dispositif",
-        "beneficiaire",
+        "siren",
         "departement",
         "intitule",
-        "subvention",
+        "montant_attribue",
     )
-    list_filter = ("exercice", "dispositif", "departement")
-    search_fields = ("beneficiaire__nom", "beneficiaire__siren", "intitule")
+    list_filter = ("source", "exercice", "dispositif", "departement")
+    search_fields = ("siren", "intitule")
 
     def has_add_permission(self, request):
         return False
@@ -49,31 +30,8 @@ class SubventionDgclAdmin(admin.ModelAdmin):
 @admin.register(FondsVertImportState)
 class FondsVertImportStateAdmin(admin.ModelAdmin):
     """Réservé aux super-utilisateurs (voir AGENTS.md § Admin Permissions) : permet
-    de consulter, et au besoin de remettre à zéro, le curseur de reprise de l'import
-    Fonds Vert."""
+    de consulter, et au besoin de corriger (ex: remettre à zéro le curseur de
+    reprise), l'état de l'import Fonds Vert — stocké en JSON libre dans `data`
+    (modèle générique `gsl_core.ImportState`, cf. sa docstring)."""
 
-    list_display = ("last_page", "updated_at")
-
-
-@admin.register(SubventionFondsVert)
-class SubventionFondsVertAdmin(admin.ModelAdmin):
-    list_display = (
-        "annee_millesime",
-        "beneficiaire",
-        "departement",
-        "demarche_title",
-        "nom_du_projet",
-        "statut",
-        "montant_subvention_attribuee",
-    )
-    list_filter = ("annee_millesime", "statut", "departement")
-    search_fields = ("beneficiaire__nom", "beneficiaire__siren", "nom_du_projet")
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
+    list_display = ("key", "data", "updated_at")

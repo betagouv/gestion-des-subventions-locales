@@ -1,20 +1,16 @@
 import csv
 import io
 import logging
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import requests
 from celery import shared_task
 from django.conf import settings
 
 from gsl.celery import TASK_PRIORITY_LOW
+from gsl.projet.constants import DS_STATE_VALUES
 
-from .models import (
-    Beneficiaire,
-    FondsVertImportState,
-    SubventionDgcl,
-    SubventionFondsVert,
-)
+from .models import FondsVertImportState, Subvention
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +18,17 @@ DGCL_DATASET_ID = "6176785207139a929a2776fe"
 DGCL_API_URL = f"https://www.data.gouv.fr/api/1/datasets/{DGCL_DATASET_ID}/"
 
 FONDS_VERT_BASE_URL = "https://api-fonds-vert.datahub.din.developpement-durable.gouv.fr"
+# Le Fonds Vert n'a pas de "dispositif"/"programme" propre côté DS : on retient
+# la nomenclature budgétaire de l'État (programme 380 - Fonds d'accélération de
+# la transition écologique dans les territoires) pour rester homogène avec les
+# lignes DGCL (DETR/DSIL/DPV, programme 119).
+FONDS_VERT_DISPOSITIF = "FONDS VERT"
+FONDS_VERT_PROGRAMME = 380
+
+# L'API Fonds Vert renvoie le statut du dossier sous forme de libellé DS
+# ("Accepté", "En instruction", ...) : on le fait correspondre au code
+# Subvention.status (choices=DS_STATE_VALUES) attendu.
+_FONDS_VERT_STATUS_LABEL_TO_CODE = {label: code for code, label in DS_STATE_VALUES}
 
 
 @shared_task(priority=TASK_PRIORITY_LOW)
@@ -103,34 +110,22 @@ def _import_row(row):
     )
     dispositif = (row.get("dispositif") or row.get("Dispositif") or "").strip().upper()
     programme = _parse_int(row.get("programme") or row.get("Programme") or "0") or 0
-    beneficiaire_type = (
-        row.get("beneficiaire_type")
-        or row.get("Bénéficiaire - Type")
-        or row.get("type_beneficiaire")
-        or ""
-    ).strip()
     beneficiaire_siren = (
         row.get("beneficiaire_siren")
         or row.get("Bénéficiaire - SIREN")
         or row.get("siret_beneficiaire")
         or ""
     ).strip()[:9]
-    beneficiaire_nom = (
-        row.get("beneficiaire_nom")
-        or row.get("Bénéficiaire - Nom")
-        or row.get("nom_beneficiaire")
-        or ""
-    ).strip()[:200]
     intitule = (
         row.get("intitule") or row.get("Intitulé du projet") or row.get("objet") or ""
     ).strip()
-    cout_ht_raw = (
+    cout_total_raw = (
         row.get("cout_ht")
         or row.get("Coût total HT du projet")
         or row.get("montant_total_ht")
         or "0"
     )
-    subvention_raw = (
+    montant_attribue_raw = (
         row.get("subvention")
         or row.get("Montant de la subvention accordée")
         or row.get("montant_subvention")
@@ -152,26 +147,34 @@ def _import_row(row):
     if not exercice or not dispositif or not beneficiaire_siren or not intitule:
         return False
 
+    # La DSID (Dotation de soutien à l'investissement des départements) ne
+    # concerne pas les communes/EPCI suivis par Turgot : on l'ignore.
+    if dispositif == "DSID":
+        return False
+
     departement = _resolve_departement(dep_code)
     commune = _resolve_commune(insee_code)
 
-    # Upsert le bénéficiaire — le nom/type reflète toujours la dernière donnée importée.
-    beneficiaire, _ = Beneficiaire.objects.update_or_create(
-        siren=beneficiaire_siren,
-        defaults={"nom": beneficiaire_nom, "type": beneficiaire_type},
-    )
-
-    _, created = SubventionDgcl.objects.update_or_create(
+    unique_key = Subvention.compute_unique_key(
+        Subvention.SOURCE_DGCL,
         exercice=exercice,
         dispositif=dispositif,
-        beneficiaire=beneficiaire,
+        siren=beneficiaire_siren,
         intitule=intitule,
+    )
+    _, created = Subvention.objects.update_or_create(
+        unique_key=unique_key,
         defaults={
+            "source": Subvention.SOURCE_DGCL,
+            "exercice": exercice,
+            "dispositif": dispositif,
+            "siren": beneficiaire_siren,
+            "intitule": intitule,
             "programme": programme,
             "departement": departement,
             "commune": commune,
-            "cout_ht": _parse_decimal(cout_ht_raw),
-            "subvention": _parse_decimal(subvention_raw),
+            "cout_total": _parse_decimal(cout_total_raw),
+            "montant_attribue": _parse_decimal(montant_attribue_raw),
         },
     )
     return created
@@ -189,13 +192,14 @@ def fetch_subventions_fonds_vert():
 
     token = _fonds_vert_login(username, password)
     state = FondsVertImportState.load()
-    if state.last_page:
-        logger.info("Fonds Vert: reprise à la page %d", state.last_page + 1)
+    last_page = state.data.get("last_page", 0)
+    if last_page:
+        logger.info("Fonds Vert: reprise à la page %d", last_page + 1)
 
     nb_created = nb_updated = nb_errors = 0
 
     for page, created, updated, errors in _iter_fonds_vert_pages(
-        token, start_page=state.last_page + 1
+        token, start_page=last_page + 1
     ):
         nb_created += created
         nb_updated += updated
@@ -208,12 +212,12 @@ def fetch_subventions_fonds_vert():
             )
         # Une page est entièrement traitée : on avance le curseur pour pouvoir
         # reprendre ici si la tâche est interrompue avant la fin.
-        state.last_page = page
-        state.save(update_fields=["last_page", "updated_at"])
+        state.data["last_page"] = page
+        state.save(update_fields=["data", "updated_at"])
 
     # Synchronisation complète : on repartira de la page 1 au prochain lancement.
-    state.last_page = 0
-    state.save(update_fields=["last_page", "updated_at"])
+    state.data["last_page"] = 0
+    state.save(update_fields=["data", "updated_at"])
 
     logger.info(
         "Fonds Vert: %d créés, %d mis à jour, %d erreurs",
@@ -289,40 +293,40 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
 
     dossier_number = sc.get("dossier_number")
     siret = (sc.get("siret") or "").strip()
-    nom = (sc.get("entreprise_raison_sociale") or "").strip()[:200]
-    entreprise_type = (sc.get("entreprise_forme_juridique") or "").strip()[:50]
 
     if not dossier_number or not siret:
         return False
 
-    siren = siret[:9]
-    beneficiaire, _ = Beneficiaire.objects.update_or_create(
-        siren=siren,
-        defaults={"nom": nom, "type": entreprise_type},
-    )
-
     departement = _resolve_departement(sc.get("code_departement", ""))
     commune = _resolve_commune(sc.get("code_commune", ""))
 
-    _, created = SubventionFondsVert.objects.update_or_create(
-        dossier_number=dossier_number,
+    unique_key = Subvention.compute_unique_key(
+        Subvention.SOURCE_FONDS_VERT, dossier_number=dossier_number
+    )
+    _, created = Subvention.objects.update_or_create(
+        unique_key=unique_key,
         defaults={
-            "beneficiaire": beneficiaire,
-            "annee_millesime": sc.get("annee_millesime") or 0,
-            "demarche_number": sc.get("demarche_number") or 0,
-            "demarche_title": (sc.get("demarche_title") or "")[:200],
-            "nom_du_projet": sc.get("nom_du_projet") or "",
-            "statut": (sc.get("statut") or "")[:30],
+            "source": Subvention.SOURCE_FONDS_VERT,
+            "dossier_number": dossier_number,
+            "siren": siret[:9],
+            "exercice": sc.get("annee_millesime") or 0,
+            "dispositif": FONDS_VERT_DISPOSITIF,
+            "programme": FONDS_VERT_PROGRAMME,
+            "intitule": sc.get("nom_du_projet") or "",
+            "status": _resolve_fonds_vert_status(sc.get("statut")),
             "departement": departement,
             "commune": commune,
-            "montant_aide_demandee": sc.get("montant_aide_demandee_fond_vert") or 0,
-            "montant_subvention_attribuee": sc.get("montant_subvention_attribuee"),
-            "total_des_depenses": sc.get("total_des_depenses") or 0,
+            "montant_demande": sc.get("montant_aide_demandee_fond_vert") or 0,
+            "montant_attribue": sc.get("montant_subvention_attribuee"),
+            "cout_total": sc.get("total_des_depenses") or 0,
             "date_depot": _parse_datetime(sc.get("date_depot")),
-            "date_notification": _parse_date(sc.get("date_notification")),
         },
     )
     return created
+
+
+def _resolve_fonds_vert_status(raw_statut) -> str:
+    return _FONDS_VERT_STATUS_LABEL_TO_CODE.get((raw_statut or "").strip(), "")
 
 
 def _parse_datetime(value) -> datetime | None:
@@ -332,15 +336,6 @@ def _parse_datetime(value) -> datetime | None:
         return datetime.strptime(value[:19], "%Y-%m-%dT%H:%M:%S").replace(
             tzinfo=timezone.utc
         )
-    except (ValueError, TypeError):
-        return None
-
-
-def _parse_date(value) -> date | None:
-    if not value:
-        return None
-    try:
-        return date.fromisoformat(str(value)[:10])
     except (ValueError, TypeError):
         return None
 

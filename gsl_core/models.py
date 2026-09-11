@@ -300,6 +300,33 @@ class Perimetre(BaseModel):
         return Perimetre.objects.none()
 
 
+class ImportState(models.Model):
+    """État générique d'une synchronisation d'import externe (une ligne par
+    import, identifiée par `key`).
+
+    Le modèle ne connaît aucune structure métier : c'est le service qui pilote
+    l'import qui décide de ce qu'il stocke dans `data` (curseur de pagination,
+    dernier identifiant importé, etc.) pour pouvoir reprendre après une
+    interruption plutôt que de tout refaire depuis le début.
+    """
+
+    key = models.SlugField(max_length=100, unique=True, verbose_name="Import")
+    data = models.JSONField(default=dict, blank=True, verbose_name="État")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Mis à jour le")
+
+    class Meta:
+        verbose_name = "État d'import"
+        verbose_name_plural = "États d'import"
+
+    def __str__(self):
+        return f"Import {self.key}"
+
+    @classmethod
+    def load(cls, key: str) -> "ImportState":
+        obj, _ = cls.objects.get_or_create(key=key)
+        return obj
+
+
 class Collegue(AbstractUser):
     is_staff = models.BooleanField(
         _("staff status"),
