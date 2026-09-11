@@ -66,6 +66,14 @@ class Commune(BaseModel):
     arrondissement = models.ForeignKey(
         Arrondissement, on_delete=models.PROTECT, null=True
     )
+    siren = models.CharField(
+        "SIREN",
+        max_length=9,
+        blank=True,
+        help_text=(
+            "Identifiant SIREN de la commune (cf. la commande import_commune_siren)."
+        ),
+    )
 
     def __str__(self):
         return f"Commune {self.insee_code} - {self.name}"
