@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import BeneficiaireDetailView, BeneficiaireListView
 
-app_name = "gsl_suivi_financier"
+app_name = "gsl_stats"
 
 urlpatterns = [
     path("", BeneficiaireListView.as_view(), name="beneficiaire-list"),
