@@ -48,12 +48,9 @@ class TestBuildDgclSubvention:
         assert subvention.montant_attribue == 500
         assert subvention.departement.insee_code == "75"
         assert subvention.commune.insee_code == "75056"
-        assert subvention.unique_key
+        assert subvention.importer_key
 
-    def test_two_identical_rows_get_distinct_unique_keys(self):
-        # Les doublons sont désormais conservés tels quels (cf.
-        # Subvention.__doc__) : le hash ne doit donc jamais entrer en
-        # collision entre deux lignes de contenu identique.
+    def test_two_identical_rows_get_the_same_importer_key(self):
         row = {
             "exercice": "2024",
             "dispositif": "DETR",
@@ -66,7 +63,8 @@ class TestBuildDgclSubvention:
         first = _build_dgcl_subvention(row)
         second = _build_dgcl_subvention(row)
 
-        assert first.unique_key != second.unique_key
+        assert first.importer_key == second.importer_key
+        assert first.importer_key == ""
 
     @pytest.mark.parametrize(
         "missing_field",

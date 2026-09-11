@@ -157,17 +157,7 @@ def _build_dgcl_subvention(row) -> Subvention | None:
     departement = _resolve_departement(dep_code)
     commune = _resolve_commune(insee_code)
 
-    # bulk_create (cf. _import_csv_resource) contourne Subvention.save(), donc
-    # on renseigne unique_key ici.
-    unique_key = Subvention.compute_unique_key(
-        Subvention.SOURCE_DGCL,
-        exercice=exercice,
-        dispositif=dispositif,
-        siren=beneficiaire_siren,
-        intitule=intitule,
-    )
     return Subvention(
-        unique_key=unique_key,
         source=Subvention.SOURCE_DGCL,
         exercice=exercice,
         dispositif=dispositif,
@@ -301,11 +291,8 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
     departement = _resolve_departement(sc.get("code_departement", ""))
     commune = _resolve_commune(sc.get("code_commune", ""))
 
-    unique_key = Subvention.compute_unique_key(
-        Subvention.SOURCE_FONDS_VERT, dossier_number=dossier_number
-    )
     _, created = Subvention.objects.update_or_create(
-        unique_key=unique_key,
+        importer_key=_compute_fonds_vert_importer_key(dossier_number),
         defaults={
             "source": Subvention.SOURCE_FONDS_VERT,
             "dossier_number": dossier_number,
@@ -324,6 +311,10 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
         },
     )
     return created
+
+
+def _compute_fonds_vert_importer_key(dossier_number):
+    return f"{Subvention.SOURCE_FONDS_VERT}:{dossier_number}"
 
 
 def _resolve_fonds_vert_status(raw_statut) -> str:
