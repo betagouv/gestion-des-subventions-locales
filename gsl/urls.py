@@ -47,6 +47,10 @@ urlpatterns = [
         "ds-proxy/",
         include(("gsl_ds_proxy.urls", "gsl_ds_proxy"), "ds-proxy"),
     ),
+    path(
+        "beneficiaires/",
+        include(("gsl_suivi_financier.urls", "gsl_suivi_financier"), "suivi_financier"),
+    ),
     fragment_urlpatterns(),
 ]
 
