@@ -295,6 +295,85 @@ def test_dismiss_in_ds():
         )
 
 
+@pytest.mark.parametrize(
+    "method_name, mutator_method, mutation_key",
+    [
+        ("accept_in_ds", "dossier_accepter", "dossierAccepter"),
+        ("dismiss_in_ds", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
+        ("refuser_in_ds", "dossier_refuser", "dossierRefuser"),
+    ],
+)
+def test_in_ds_updates_ds_date_traitement(
+    user, dossier, method_name, mutator_method, mutation_key
+):
+    """accept_in_ds/dismiss_in_ds/refuser_in_ds should update dossier.ds_date_traitement
+    from DN's own response, so a Turgot-triggered notification and the following DN
+    resync agree on the exact same date."""
+    ds_service = DsService()
+    expected_date_str = "2025-06-25T11:46:30+02:00"
+    expected_date = datetime.fromisoformat(expected_date_str)
+
+    mock_results = {
+        "data": {mutation_key: {"dossier": {"dateTraitement": expected_date_str}}}
+    }
+
+    with (
+        patch(
+            f"gsl_demarches_simplifiees.ds_client.DsMutator.{mutator_method}"
+        ) as mock_mutator_method,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
+        ) as mock_get_instructeur_id,
+    ):
+        mock_get_instructeur_id.return_value = "instructeur_id"
+        mock_mutator_method.return_value = mock_results
+
+        dossier.ds_date_traitement = None
+        dossier.save()
+
+        result = getattr(ds_service, method_name)(
+            dossier, user, document=None, motivation="motivation"
+        )
+
+        dossier.refresh_from_db()
+        assert dossier.ds_date_traitement is not None
+        assert (
+            abs(
+                (
+                    dossier.ds_date_traitement
+                    - expected_date.astimezone(dt_timezone.utc)
+                ).total_seconds()
+            )
+            < 1
+        )
+        assert result == mock_results
+
+
+def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, dossier):
+    """A response missing dateTraitement (unexpected shape) must not crash and must
+    not erase a previously known date."""
+    ds_service = DsService()
+    original_date = dossier.ds_date_traitement
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter"
+        ) as mock_dossier_accepter,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
+        ) as mock_get_instructeur_id,
+    ):
+        mock_get_instructeur_id.return_value = "instructeur_id"
+        mock_dossier_accepter.return_value = {"data": {"dossierAccepter": {}}}
+
+        ds_service.accept_in_ds(dossier, user, document=None, motivation="motivation")
+
+        dossier.refresh_from_db()
+        assert dossier.ds_date_traitement == original_date
+
+
 def test_passer_en_instruction(user, dossier):
     """Test that passer_en_instruction updates dossier state and date correctly"""
     ds_service = DsService()

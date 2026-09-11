@@ -500,9 +500,6 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         motivation = self.cleaned_data.get("message", "")
 
         with transaction.atomic():
-            self.instance.notified_at = timezone.now()
-            self.instance.save()
-
             ds_service = DsService()
 
             if status == PROJET_STATUS_ACCEPTED:
@@ -527,6 +524,14 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                     document=justificatif_file,
                 )
 
+            # DsService.*_in_ds() just refreshed dossier_ds.ds_date_traitement from
+            # DN's own response, so reuse that exact timestamp: the DN sync will read
+            # the same date back from `traitements` and rely on it to avoid logging
+            # this notification a second time (see DotationProjetService).
+            notified_at = self.instance.dossier_ds.ds_date_traitement or timezone.now()
+            self.instance.notified_at = notified_at
+            self.instance.save()
+
             action = ProjetAction(
                 projet=self.instance,
                 action_type=ProjetAction.TYPE_NOTIFIED,
@@ -534,6 +539,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                 source=ProjetAction.SOURCE_TURGOT,
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
                 details=motivation,
+                created_at=notified_at,
             )
             if justificatif_file:
                 justificatif_file.seek(0)
