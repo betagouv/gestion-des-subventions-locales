@@ -6,8 +6,7 @@ from gsl_core.models import ImportState
 
 
 class Subvention(models.Model):
-    """Fusion de SubventionDgcl et SubventionFondsVert : une ligne = une aide
-    versée (ou en cours d'instruction, pour Fonds Vert) à une collectivité,
+    """Une ligne = une aide versée (ou en cours d'instruction, pour Fonds Vert) à une collectivité,
     quelle que soit la source d'import.
     """
 
@@ -18,8 +17,9 @@ class Subvention(models.Model):
         (SOURCE_FONDS_VERT, "Fonds Vert"),
     )
 
-    unique_key = models.CharField(
-        max_length=255, unique=True, editable=False, verbose_name="Clé unique"
+    # Utile pour les importeurs pour l'upsert
+    importer_key = models.CharField(
+        max_length=255, editable=False, verbose_name="Clé d'import"
     )
 
     # --- Champs communs (DGCL et Fonds Vert) ---
@@ -71,8 +71,7 @@ class Subvention(models.Model):
         null=True, blank=True, verbose_name="Date de dépôt"
     )
     # Identifiant DS du dossier (Fonds Vert uniquement), conservé à titre
-    # informatif pour retrouver le dossier d'origine. Ce n'est plus lui qui
-    # porte l'unicité : c'est `unique_key`, cf. plus bas.
+    # informatif pour retrouver le dossier d'origine.
     dossier_number = models.IntegerField(
         null=True, blank=True, verbose_name="Numéro de dossier DS"
     )
@@ -86,30 +85,6 @@ class Subvention(models.Model):
         return (
             f"{self.exercice} {self.dispositif} - {self.siren} - {self.intitule[:50]}"
         )
-
-    def save(self, *args, **kwargs):
-        self.unique_key = self.compute_unique_key(
-            self.source,
-            dossier_number=self.dossier_number,
-            exercice=self.exercice,
-            dispositif=self.dispositif,
-            siren=self.siren,
-            intitule=self.intitule,
-        )
-        super().save(*args, **kwargs)
-
-    @staticmethod
-    def compute_unique_key(
-        source,
-        dossier_number=None,
-        exercice=None,
-        dispositif=None,
-        siren=None,
-        intitule=None,
-    ):
-        if source == Subvention.SOURCE_FONDS_VERT:
-            return f"{source}:{dossier_number}"
-        return f"{source}:{exercice}:{dispositif}:{siren}:{intitule}"
 
     @property
     def taux_accorde(self):
