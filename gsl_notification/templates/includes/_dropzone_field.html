@@ -1,0 +1,5 @@
+<div class="fr-upload-group{% if field.errors %} fr-input-group--error{% endif %}">
+    <label class="fr-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% include "includes/_dropzone.html" with id=field.id_for_label name=field.html_name accept=field.field.widget.attrs.accept hint=field.help_text show_filename=True %}
+    {{ field.errors }}
+</div>

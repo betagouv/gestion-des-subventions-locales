@@ -1,4 +1,3 @@
-import uuid
 from datetime import timedelta
 
 from django.conf import settings
@@ -23,7 +22,7 @@ from gsl_notification.utils import get_s3_client
 
 IMPORT_MODAL_ID = "import-modal"
 
-TEMPLATE_BASE = "gsl_notification/import/"
+TEMPLATE_BASE = "gsl_notification/modal/bulk_import/"
 
 # A hard worker kill (OOM/SIGKILL) bypasses the task's `finally` and leaves the
 # job RUNNING forever, so the browser would poll indefinitely. Past this cutoff
@@ -46,7 +45,7 @@ class ImportDocumentsModalView(OpenHtmxModalMixin, TemplateView):
     side-effect-free and carries no project selection (QR matching is global).
     """
 
-    template_name = TEMPLATE_BASE + "modal_open.html"
+    template_name = TEMPLATE_BASE + "open.html"
     modal_id = IMPORT_MODAL_ID
 
     def dispatch(self, request, *args, **kwargs):
@@ -58,6 +57,10 @@ class ImportDocumentsModalView(OpenHtmxModalMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context["dotation"] = self.kwargs["dotation"]
         context["max_import_size_in_mo"] = settings.MAX_IMPORT_TOTAL_SIZE_IN_MO
+        context["dropzone_hint"] = (
+            "Fichier PDF uniquement, maximum "
+            f"{settings.MAX_IMPORT_TOTAL_SIZE_IN_MO} Mo au total."
+        )
         return context
 
 
@@ -74,7 +77,7 @@ class PresignedUploadView(FormView):
     def form_valid(self, form):
         sanitized = form.cleaned_data["filename"]
 
-        key = f"{DocumentImportJob.TEMP_S3_PREFIX}{uuid.uuid4()}/{sanitized}"
+        key = DocumentImportJob.temp_s3_key(sanitized)
         # Per-file S3 cap is intentionally the cumulative cap: bulk scans are the
         # feature's purpose and a single multi-dossier PDF can be large. The
         # browser-side cumulative check bounds a whole batch; the bucket
@@ -120,7 +123,7 @@ class ImportJobStartView(FormView):
         )
         return render(
             self.request,
-            TEMPLATE_BASE + "_import_progress_partial.html",
+            TEMPLATE_BASE + "_progress_partial.html",
             {"job": job, "modal_id": IMPORT_MODAL_ID},
         )
 
@@ -152,8 +155,8 @@ class ImportJobProgressView(DetailView):
 
     def get_template_names(self):
         if self.object.is_running and not self._is_stale():
-            return [TEMPLATE_BASE + "_import_progress_partial.html"]
-        return [TEMPLATE_BASE + "modal_summary_body.html"]
+            return [TEMPLATE_BASE + "_progress_partial.html"]
+        return [TEMPLATE_BASE + "summary_body.html"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

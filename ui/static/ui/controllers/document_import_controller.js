@@ -16,8 +16,6 @@ export class DocumentImport extends Controller {
   }
 
   static targets = [
-    'dropzone',
-    'fileInput',
     'fileList',
     'progress',
     'error',
@@ -62,32 +60,10 @@ export class DocumentImport extends Controller {
     }
   }
 
-  openPicker () {
-    this.fileInputTarget.click()
-  }
-
   onFileChange (event) {
     this.addFiles(event.target.files)
     // Allow re-selecting the same file after a removal.
     event.target.value = ''
-  }
-
-  onDragOver (event) {
-    event.preventDefault()
-    this.dropzoneTarget.classList.add('gsl-dropzone--over')
-  }
-
-  onDragLeave (event) {
-    event.preventDefault()
-    this.dropzoneTarget.classList.remove('gsl-dropzone--over')
-  }
-
-  onDrop (event) {
-    event.preventDefault()
-    this.dropzoneTarget.classList.remove('gsl-dropzone--over')
-    if (event.dataTransfer && event.dataTransfer.files) {
-      this.addFiles(event.dataTransfer.files)
-    }
   }
 
   addFiles (fileList) {

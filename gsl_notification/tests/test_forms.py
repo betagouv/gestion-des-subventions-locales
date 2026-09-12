@@ -1,16 +1,19 @@
 from unittest.mock import patch
 
 import pytest
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 
 from gsl.projet.constants import (
+    ANNEXE,
     ARRETE,
     DOTATION_DETR,
     DOTATION_DSIL,
     LETTRE,
+    LETTRE_ET_ARRETE_SIGNES,
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
@@ -18,22 +21,26 @@ from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
-    UPLOADED_DOCUMENT_FORMS,
     ArreteForm,
     GenerateDocumentsCreateForm,
     GenerateDocumentsFormatForm,
     GenerateDocumentsModeleSelectionForm,
     GenerateDotationsDocumentsForm,
     LettreNotificationForm,
+    ManualDocumentAttachForm,
     ModeleDocumentStepTwoForm,
+    UploadedDocumentAnalyzeForm,
 )
 from gsl_notification.models import (
     Arrete,
+    DocumentImportJob,
+    LettreEtArreteSignes,
     LettreNotification,
     ModeleArrete,
 )
 from gsl_notification.tests.factories import (
     ArreteFactory,
+    LettreEtArreteSignesFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
@@ -89,51 +96,30 @@ def test_arrete_form_invalid_missing_fields(form_class):
     assert "modele" in form.errors
 
 
-# UploadedDocumentForm
+# Import modal forms
 
 
-@pytest.mark.parametrize(
-    "form_class",
-    list(UPLOADED_DOCUMENT_FORMS.values()),
-)
-@pytest.mark.django_db
-def test_arrete_et_lettre_signe_form_valid(form_class):
-    collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory(
-        status=form_class._meta.model.required_programmation_projet_statuses[0]
-    )
-    data = {
-        "created_by": collegue.id,
-        "programmation_projet": programmation_projet.id,
-    }
-    form = form_class(
-        data,
-        files={
-            "file": SimpleUploadedFile(
-                "test.pdf", b"dummy content", content_type="application/pdf"
-            )
-        },
-    )
-    assert form.is_valid()
+def _pdf(name="test.pdf"):
+    return SimpleUploadedFile(name, b"dummy content", content_type="application/pdf")
 
 
-@pytest.mark.parametrize(
-    "form_class",
-    list(UPLOADED_DOCUMENT_FORMS.values()),
-)
-@pytest.mark.django_db
-def test_arrete_et_lettre_signe_form_invalid_missing_fields(form_class):
-    form = form_class({})
+def _parked_pdf(name="test.pdf"):
+    """A file waiting under the temporary prefix, where the analyse step leaves
+    one it could not identify."""
+    return default_storage.save(DocumentImportJob.temp_s3_key(name), _pdf(name))
+
+
+def test_analyze_form_valid():
+    form = UploadedDocumentAnalyzeForm(data={}, files={"file": _pdf()})
+    assert form.is_valid(), form.errors
+
+
+def test_analyze_form_requires_a_file():
+    form = UploadedDocumentAnalyzeForm(data={}, files={})
     assert not form.is_valid()
-    assert "file" in form.errors
-    assert "created_by" in form.errors
-    assert "programmation_projet" in form.errors
+    assert form.errors["file"] == ["Sélectionnez un document à importer."]
 
 
-@pytest.mark.parametrize(
-    "form_class",
-    list(UPLOADED_DOCUMENT_FORMS.values()),
-)
 @pytest.mark.parametrize(
     "file_name, content_type, is_valid",
     [
@@ -145,22 +131,10 @@ def test_arrete_et_lettre_signe_form_invalid_missing_fields(form_class):
         ("test.pdf", "text/plain", False),
     ],
 )
-@pytest.mark.django_db
-def test_arrete_et_lettre_signe_form_accepts_valid_pdf(
-    form_class, file_name, content_type, is_valid
-):
-    collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory(
-        status=form_class._meta.model.required_programmation_projet_statuses[0]
-    )
+def test_analyze_form_accepted_file_types(file_name, content_type, is_valid):
     file = SimpleUploadedFile(file_name, b"dummy content", content_type=content_type)
-    form = form_class(
-        files={"file": file},
-        data={
-            "created_by": collegue.id,
-            "programmation_projet": programmation_projet.id,
-        },
-    )
+    form = UploadedDocumentAnalyzeForm(data={}, files={"file": file})
+
     assert form.is_valid() == is_valid
     if not is_valid:
         assert (
@@ -170,35 +144,110 @@ def test_arrete_et_lettre_signe_form_accepts_valid_pdf(
 
 
 @pytest.mark.parametrize(
-    "form_class",
-    list(UPLOADED_DOCUMENT_FORMS.values()),
-)
-@pytest.mark.parametrize(
     "file_size, is_valid", [(20 * 1024 * 1024, True), (21 * 1024 * 1024, False)]
 )
-@pytest.mark.django_db
-def test_arrete_et_lettre_signe_form_rejects_large_file(
-    form_class, file_size, is_valid
-):
-    collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory(
-        status=form_class._meta.model.required_programmation_projet_statuses[0]
-    )
+def test_analyze_form_rejects_large_file(file_size, is_valid):
     file = SimpleUploadedFile(
         "test.pdf", b"x" * file_size, content_type="application/pdf"
     )
-    form = form_class(
-        files={"file": file},
-        data={
-            "created_by": collegue,
-            "programmation_projet": programmation_projet,
-        },
-    )
+    form = UploadedDocumentAnalyzeForm(data={}, files={"file": file})
+
     assert form.is_valid() == is_valid
     if not is_valid:
         assert (
             "La taille du fichier ne doit pas dépasser 20 Mo." in form.errors["file"][0]
         )
+
+
+@pytest.mark.django_db
+def test_attach_form_only_offers_documents_importable_on_the_projet():
+    projet = ProjetFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+
+    form = ManualDocumentAttachForm(projet=projet)
+
+    assert dict(form.fields["document"].choices) == {
+        f"{LETTRE_ET_ARRETE_SIGNES}-DETR": "Lettre et arrêté signés DETR",
+        f"{ANNEXE}-DETR": "Annexe DETR",
+    }
+
+
+@pytest.mark.django_db
+def test_attach_form_saves_the_document_on_the_chosen_dotation():
+    user = CollegueFactory()
+    projet = ProjetFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+
+    key = _parked_pdf()
+    form = ManualDocumentAttachForm(
+        projet=projet,
+        data={"document": f"{LETTRE_ET_ARRETE_SIGNES}-DETR", "key": key},
+    )
+    assert form.is_valid(), form.errors
+    document = form.save(user)
+
+    assert isinstance(document, LettreEtArreteSignes)
+    assert document.programmation_projet == programmation_projet
+    assert document.created_by == user
+    assert document.file.name.startswith(
+        f"{LETTRE_ET_ARRETE_SIGNES}/programmation_projet_{programmation_projet.id}/"
+    )
+    assert document.file.read() == b"dummy content"
+    assert not default_storage.exists(key)
+
+
+@pytest.mark.django_db
+def test_attach_form_refuses_a_document_already_imported():
+    """An already-imported document is offered as a disabled (empty-value)
+    choice, so picking it cannot validate."""
+    projet = ProjetFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    programmation_projet = ProgrammationProjetFactory(
+        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+    LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
+
+    form = ManualDocumentAttachForm(
+        projet=projet,
+        data={"document": f"{LETTRE_ET_ARRETE_SIGNES}-DETR", "key": _parked_pdf()},
+    )
+
+    assert not form.is_valid()
+    assert "document" in form.errors
+
+
+@pytest.mark.django_db
+def test_attach_form_refuses_a_key_outside_the_temporary_prefix():
+    projet = ProjetFactory()
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+    )
+
+    form = ManualDocumentAttachForm(
+        projet=projet,
+        data={
+            "document": f"{LETTRE_ET_ARRETE_SIGNES}-DETR",
+            "key": f"{LETTRE_ET_ARRETE_SIGNES}/programmation_projet_1/secret.pdf",
+        },
+    )
+
+    assert not form.is_valid()
+    assert form.non_field_errors() == ["Aucun document à importer."]
 
 
 # Test modele arrêté step 2 (form upload)

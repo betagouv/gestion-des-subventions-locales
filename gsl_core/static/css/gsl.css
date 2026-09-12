@@ -793,3 +793,27 @@ ul.no-list-style li {
     transition: none;
 }
 
+/* Zone de dépôt de fichiers */
+.gsl-dropzone {
+    border: 2px dashed var(--border-default-grey);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.gsl-dropzone--over {
+    border-color: var(--border-active-blue-france);
+    background: var(--background-alt-blue-france);
+}
+
+/* htmx toggles .htmx-request on the element issuing the request, but the CSP
+   forbids the indicator styles it would inject (includeIndicatorStyles in
+   base.html), so hx-indicator relies on these. */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    display: block;
+}
+

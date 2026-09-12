@@ -3,6 +3,9 @@ import os
 from functools import cached_property
 
 from django import forms
+from django.conf import settings
+from django.core.files import File
+from django.core.files.storage import default_storage
 from django.db import transaction
 from django.template.defaultfilters import pluralize
 from django.utils import timezone
@@ -43,6 +46,7 @@ from gsl_notification.utils import (
     merge_documents_into_pdf,
     replace_mentions_in_html,
 )
+from gsl_notification.validators import document_file_validator
 from gsl_programmation.models import ProgrammationProjet, ProgrammationProjetQuerySet
 from gsl_programmation.utils.programmation_projet_filters import (
     ProgrammationProjetFilters,
@@ -77,11 +81,7 @@ class S3KeysField(forms.Field):
         if not isinstance(raw, list):
             raise forms.ValidationError(self.error_messages["invalid"], code="invalid")
         # Never trust the client with an arbitrary bucket key.
-        return [
-            key
-            for key in raw
-            if isinstance(key, str) and key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
-        ]
+        return [key for key in raw if DocumentImportJob.is_temp_s3_key(key)]
 
 
 class ImportJobStartForm(forms.Form):
@@ -103,18 +103,30 @@ class ImportJobStartForm(forms.Form):
 
 class RadioSelect(forms.RadioSelect):
     """
-    The class name needs to be RadioSelect for DsfrBaseForm to do its magic.
+    An empty choice value renders as a disabled option carrying
+    `disabled_help_text`, so a document that cannot be picked stays visible
+    with the reason why.
+
+    The class name needs to be RadioSelect for DsfrBaseForm to do its magic
+    (it dispatches on the widget class name), hence the reason being an
+    instance attribute rather than a subclass.
     """
+
+    def __init__(
+        self,
+        *args,
+        disabled_help_text="Le document a déjà été généré pour cette dotation.",
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.disabled_help_text = disabled_help_text
 
     def create_option(
         self, name, value, label, selected, index, subindex=None, attrs=None
     ):
         if not value:
             attrs = {**(attrs or {}), "disabled": "disabled"}
-            label = {
-                "label": label,
-                "help_text": "Le document a déjà été généré pour cette dotation.",
-            }
+            label = {"label": label, "help_text": self.disabled_help_text}
 
         return super().create_option(
             name, value, label, selected if value else False, index, attrs=attrs
@@ -140,36 +152,134 @@ class ChooseDocumentTypeForMultipleGenerationForm(BaseChooseDocumentTypeForm):
     pass
 
 
-class ChooseDocumentTypeForUploadForm(BaseChooseDocumentTypeForm):
-    def __init__(self, *args, instance, **kwargs):
-        # Not a ModelForm, but we get instance from the view which is an UpdateView.
+class DragNDropFileField(forms.FileField):
+    """A file field that also takes a drop."""
+
+    template_name = "includes/_dropzone_field.html"
+
+
+class UploadedDocumentAnalyzeForm(DsfrBaseForm, forms.Form):
+    """
+    First step of the per-projet import modal. The document type is not asked
+    here — it is read from the QR codes a generated document carries, and only
+    asked for (`ManualDocumentAttachForm`) when the file has none.
+    """
+
+    file = DragNDropFileField(
+        label="Document à importer",
+        validators=[document_file_validator],
+        error_messages={"required": "Sélectionnez un document à importer."},
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.png,.jpg,.jpeg"}),
+    )
+    remove_qr_code = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Retirer le QR code de suivi du document importé",
+        help_text=(
+            "Décochez cette case pour conserver le QR code apparent lors de "
+            "la notification."
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.instance = instance
-        choices = []
-        for dp in instance.dotationprojet_set.filter(status__in=PROJET_FINAL_STATUSES):
-            try:
-                prog_projet = dp.programmation_projet
-            except ProgrammationProjet.DoesNotExist:
+        self.fields["file"].help_text = (
+            f"Taille maximale : {settings.MAX_POST_FILE_SIZE_IN_MO} Mo. "
+            "Formats acceptés : jpg, png, pdf."
+        )
+
+
+def uploadable_document_choices(projet) -> list[tuple[str, str]]:
+    """`(f"{document_type}-{dotation}", label)` for every document importable
+    on `projet`. A document already imported keeps its label but gets an empty
+    value, which `RadioSelect` renders as a disabled option.
+
+    Eligibility is read from the ProgrammationProjet status, the field
+    `required_programmation_projet_statuses` is named for and the one
+    `UploadedDocument.clean()` validates against — not from the DotationProjet
+    status, which duplicates it and can disagree.
+    """
+    choices = []
+    programmation_projets = ProgrammationProjet.objects.filter(
+        dotation_projet__projet=projet, status__in=PROJET_FINAL_STATUSES
+    ).order_by("dotation_projet__dotation")
+    for programmation_projet in programmation_projets:
+        dotation = programmation_projet.dotation
+        for model in UPLOADED_DOCUMENTS.values():
+            if (
+                programmation_projet.status
+                not in model.required_programmation_projet_statuses
+            ):
                 continue
-            for model in UPLOADED_DOCUMENTS.values():
-                if dp.status not in model.required_programmation_projet_statuses:
-                    continue
-                can_upload = model.can_upload(prog_projet)
-                choices.append(
-                    (
-                        (f"{model.document_type}-{dp.dotation}" if can_upload else ""),
-                        f"{model.verbose_name()} {dp.dotation.upper()}",
-                    )
+            can_upload = model.can_upload(programmation_projet)
+            choices.append(
+                (
+                    (f"{model.document_type}-{dotation}" if can_upload else ""),
+                    f"{model.verbose_name()} {dotation.upper()}",
                 )
+            )
+    return choices
 
-        self.fields["document"].choices = choices
 
-    def clean_document(self):
-        doc_type, dotation = self.cleaned_data["document"].split("-")
-        return {
-            "type": doc_type,
-            "dotation": dotation,
-        }
+class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
+    """
+    Fallback step of the import modal, when no QR code told us what the file
+    is: the analyse step parked it under the temporary prefix, and the agent
+    names here the dotation and the document type it belongs to.
+
+    The projet comes from the URL and the uploader from the session, so
+    neither can be aimed at another projet from the client side.
+    """
+
+    document = forms.ChoiceField(
+        widget=RadioSelect(
+            disabled_help_text="Ce document a déjà été importé pour cette dotation."
+        ),
+        required=True,
+        label="Type de document",
+        error_messages={
+            "required": "Sélectionnez un type de document.",
+            "invalid_choice": "Ce type de document ne peut pas être importé "
+            "pour ce projet.",
+        },
+    )
+
+    def __init__(self, *args, projet, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.projet = projet
+        self.fields["document"].choices = uploadable_document_choices(projet)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        key = self.data.get("key", "")
+        if not DocumentImportJob.is_temp_s3_key(key):
+            raise forms.ValidationError("Aucun document à importer.")
+        cleaned_data["key"] = key
+        return cleaned_data
+
+    @cached_property
+    def programmation_projet(self) -> ProgrammationProjet:
+        document_type, dotation = self.cleaned_data["document"].split("-")
+        return ProgrammationProjet.objects.get(
+            dotation_projet__projet=self.projet,
+            dotation_projet__dotation=dotation,
+        )
+
+    @cached_property
+    def document_class(self):
+        document_type, _ = self.cleaned_data["document"].split("-")
+        return UPLOADED_DOCUMENTS[document_type]
+
+    def save(self, user):
+        key = self.cleaned_data["key"]
+        with default_storage.open(key) as parked:
+            document = self.document_class.objects.create(
+                programmation_projet=self.programmation_projet,
+                created_by=user,
+                file=File(parked, name=os.path.basename(key)),
+            )
+        default_storage.delete(key)
+        return document
 
 
 class DotationDocumentFields:
@@ -407,19 +517,6 @@ GENERATED_DOCUMENT_TO_FORM = {
     LETTRE: LettreNotificationForm,
     ARRETE: ArreteForm,
     LETTRE_REFUS: LettreRefusForm,
-}
-
-
-class UploadedDocumentForm(forms.ModelForm, DsfrBaseForm):
-    class Meta:
-        fields = ("file", "created_by", "programmation_projet")
-
-
-UPLOADED_DOCUMENT_FORMS = {
-    document_type: forms.modelform_factory(
-        model, form=UploadedDocumentForm, fields=UploadedDocumentForm.Meta.fields
-    )
-    for document_type, model in UPLOADED_DOCUMENTS.items()
 }
 
 
@@ -779,7 +876,7 @@ class ModeleSelectionEntry:
     One row of GenerateDocumentsModeleSelectionForm's modele-selection step:
     the modele field for a single document type, its available modeles, and
     how many of the selected projets already have that document. The form
-    (and the modal_modele_selection.html template) loop over one entry per
+    (and the modele_selection.html template) loop over one entry per
     document type in `selected_types` instead of repeating a has_X/modeles_X/
     existing_X_count trio per type.
     """

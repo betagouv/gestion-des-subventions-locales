@@ -1,0 +1,39 @@
+{% extends "gsl_notification/modal/step_base.html" %}
+{% block before_content %}
+    <div class="fr-modal__header">
+        <button aria-controls="{{ modal_id }}"
+                title="Fermer"
+                type="button"
+                class="fr-btn--close fr-btn">
+            Fermer
+        </button>
+    </div>
+{% endblock before_content %}
+{% block form_open %}
+    {# djlint:off H041 #}
+    <form hx-post="{% url 'fragment:gsl_notification:upload_document_analyze' projet.id %}"
+          hx-target="#{{ modal_id }}-step"
+          hx-swap="outerHTML"
+          hx-encoding="multipart/form-data"
+          hx-disabled-elt="#{{ modal_id }}-submit-button"
+          hx-indicator="#{{ modal_id }}-analysing">
+        {% csrf_token %}
+{% endblock form_open %}
+{% block content %}
+    <p class="fr-hint-text fr-mb-2w">
+        Le type du document est reconnu automatiquement s'il porte le QR code
+        de suivi ; sinon il vous sera demandé à l'étape suivante.
+    </p>
+    {{ form }}
+    <p id="{{ modal_id }}-analysing"
+       class="htmx-indicator fr-mt-2w"
+       role="status"
+       aria-live="polite">
+        Analyse du document en cours…
+    </p>
+{% endblock content %}
+{% block continue_button_extra_attrs %}id="{{ modal_id }}-submit-button"{% endblock continue_button_extra_attrs %}
+{% block form_close %}
+    </form>
+    {# djlint:on #}
+{% endblock form_close %}

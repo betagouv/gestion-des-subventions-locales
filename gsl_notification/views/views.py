@@ -48,10 +48,7 @@ class NotificationDocumentsView(BaseProjetDetailView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(
-            **{
-                "generated_documents": self.object.generated_documents,
-                "imported_documents": self.object.imported_documents,
-            }
+            **{"generated_documents": self.object.generated_documents}
         )
 
 

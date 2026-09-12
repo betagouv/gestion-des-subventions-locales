@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import get_valid_filename
 
 from gsl.projet.constants import (
     ARRETE,
@@ -536,6 +537,14 @@ class DocumentImportJob(BaseModel):
         verbose_name = "Import de documents signés"
         verbose_name_plural = "Imports de documents signés"
         ordering = ("-created_at",)
+
+    @classmethod
+    def temp_s3_key(cls, filename: str) -> str:
+        return f"{cls.TEMP_S3_PREFIX}{uuid.uuid4()}/{get_valid_filename(filename)}"
+
+    @classmethod
+    def is_temp_s3_key(cls, key) -> bool:
+        return isinstance(key, str) and key.startswith(cls.TEMP_S3_PREFIX)
 
     @property
     def file_count(self) -> int:

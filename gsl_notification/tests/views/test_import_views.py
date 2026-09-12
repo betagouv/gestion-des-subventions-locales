@@ -89,6 +89,24 @@ def _split_pdf(pdf_bytes: bytes, at: int) -> tuple[bytes, bytes]:
         src.close()
 
 
+# ImportDocumentsModalView ----------------------------------------------------
+
+
+def test_modal_opens_on_the_drop_step(client):
+    url = reverse(
+        "gsl_notification:import-documents-modal", kwargs={"dotation": DOTATION_DETR}
+    )
+
+    response = client.get(url, **HTMX_HEADERS)
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'data-controller="file-dropzone"' in content
+    assert 'accept="application/pdf"' in content
+    # The files go straight to S3, so the input posts nothing to Django.
+    assert 'name="file"' not in content
+
+
 # PresignedUploadView ---------------------------------------------------------
 
 
