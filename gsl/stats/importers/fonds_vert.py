@@ -24,10 +24,7 @@ FONDS_VERT_PROGRAMME = 380
 _FONDS_VERT_STATUS_LABEL_TO_CODE = {label: code for code, label in DS_STATE_VALUES}
 
 
-def import_fonds_vert_subventions(restart=False):
-    """`restart` : ignore le curseur de reprise et repart de la page 1
-    (utilisé par la management command `import_subventions_fonds_vert
-    --restart`)."""
+def import_fonds_vert_subventions(restart=False) -> None:
     try:
         client = FondsVertClient()
     except FondsVertCredentialsMissing as e:
@@ -42,15 +39,19 @@ def import_fonds_vert_subventions(restart=False):
 
     for page, items in client.iter_dossiers_pages(start_page=start_page):
         created, updated, errors = _import_fonds_vert_page(items)
-        nb_created += created
-        nb_updated += updated
-        nb_errors += len(errors)
+
+        logger.info(f"Page {page} — {created} créés, {updated} mis à jour…")
+
         for err in errors:
             logger.error(
                 "Erreur import dossier Fonds Vert #%s: %s",
                 err["dossier_number"],
                 err["error"],
             )
+
+        nb_created += created
+        nb_updated += updated
+        nb_errors += len(errors)
         # Une page est entièrement traitée : on avance le curseur pour pouvoir
         # reprendre ici si la tâche est interrompue avant la fin.
         state.data["last_page"] = page
@@ -66,7 +67,6 @@ def import_fonds_vert_subventions(restart=False):
         nb_updated,
         nb_errors,
     )
-    return {"created": nb_created, "updated": nb_updated, "errors": nb_errors}
 
 
 def _import_fonds_vert_page(items):
@@ -102,7 +102,7 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
     commune = resolve_commune(sc.get("code_commune", ""))
 
     _, created = Subvention.objects.update_or_create(
-        importer_key=_compute_fonds_vert_importer_key(dossier_number),
+        importer_key=dossier_number,
         source=Subvention.SOURCE_FONDS_VERT,
         defaults={
             "dossier_number": dossier_number,
@@ -121,10 +121,6 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
         },
     )
     return created
-
-
-def _compute_fonds_vert_importer_key(dossier_number):
-    return f"{dossier_number}"
 
 
 def _resolve_fonds_vert_status(raw_statut) -> str:
