@@ -7,14 +7,13 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from gsl.projet.utils.utils import compute_taux
+from gsl_core.data_gouv import get_dataset_api_url, get_latest_resource_url
 from gsl_core.models import Commune
 
 logger = logging.getLogger(__name__)
 
 SIREN_INSEE_DATASET_ID = "630f5173873064dd369479b4"
-SIREN_INSEE_DATASET_API_URL = (
-    f"https://www.data.gouv.fr/api/1/datasets/{SIREN_INSEE_DATASET_ID}/"
-)
+SIREN_INSEE_DATASET_API_URL = get_dataset_api_url(SIREN_INSEE_DATASET_ID)
 
 
 class Command(BaseCommand):
@@ -26,15 +25,14 @@ class Command(BaseCommand):
     correspondance SIREN/INSEE publiée par la DGCL/Banatic sur data.gouv.fr :
     https://www.data.gouv.fr/datasets/table-de-correspondance-entre-ndeg-siren-et-code-insee-des-communes
 
-    Le jeu de données est interrogé via l'API data.gouv.fr (comme
-    `gsl/stats/importers/dgcl.py`) pour toujours récupérer la ressource CSV
-    la plus récente plutôt qu'une URL figée. Ne crée jamais de Commune : les
-    codes INSEE absents de la base sont simplement ignorés.
+    Le jeu de données est interrogé via l'API data.gouv.fr
+    (`gsl_core.data_gouv.get_latest_resource_url`) pour toujours récupérer la
+    ressource CSV la plus récente plutôt qu'une URL figée. Ne crée jamais de
+    Commune : les codes INSEE absents de la base sont simplement ignorés.
     """
 
     help = "Associe le SIREN de chaque commune depuis la table de correspondance SIREN/INSEE (Banatic)"
 
-    @transaction.atomic
     def handle(self, *args, **options):
         siren_by_insee_code = self.parse_csv_rows(self.fetch_csv_rows())
         updated = self.apply_siren(siren_by_insee_code)
@@ -49,24 +47,10 @@ class Command(BaseCommand):
         )
 
     def fetch_csv_rows(self):
-        response = requests.get(SIREN_INSEE_DATASET_API_URL, timeout=30)
-        response.raise_for_status()
-        dataset = response.json()
-
-        csv_resources = [
-            r
-            for r in dataset.get("resources", [])
-            if r.get("format", "").lower() == "csv"
-        ]
-        if not csv_resources:
-            raise CommandError(
-                f"Aucune ressource CSV trouvée sur {SIREN_INSEE_DATASET_API_URL}"
-            )
-        # Une seule ressource CSV est publiée en temps normal ; on prend la
-        # plus récemment mise à jour par prudence si jamais il y en avait
-        # plusieurs (nouveau millésime ajouté sans retrait de l'ancien).
-        resource = max(csv_resources, key=lambda r: r.get("last_modified") or "")
-        url = resource["url"]
+        try:
+            url = get_latest_resource_url(SIREN_INSEE_DATASET_ID, "csv")
+        except ValueError as e:
+            raise CommandError(str(e)) from e
 
         self.stdout.write(f"Téléchargement de {url}…")
         csv_response = requests.get(url, timeout=60)
@@ -84,6 +68,7 @@ class Command(BaseCommand):
                 siren_by_insee_code[insee_code] = siren
         return siren_by_insee_code
 
+    @transaction.atomic
     def apply_siren(self, siren_by_insee_code):
         communes = list(
             Commune.objects.filter(insee_code__in=siren_by_insee_code.keys())
