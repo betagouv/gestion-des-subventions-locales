@@ -1,5 +1,7 @@
 import requests
 
+# TODO move it in api folder
+
 DATA_GOUV_API_URL = "https://www.data.gouv.fr/api/1"
 
 

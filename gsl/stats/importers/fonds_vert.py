@@ -1,18 +1,16 @@
 import logging
 from datetime import timezone
 
-import requests
-from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 from gsl.projet.constants import DS_STATE_VALUES
+from gsl_core.api.fonds_vert import FondsVertClient, FondsVertCredentialsMissing
 
 from ..models import FondsVertImportState, Subvention
 from .utils import resolve_commune, resolve_departement
 
 logger = logging.getLogger(__name__)
 
-FONDS_VERT_BASE_URL = "https://api-fonds-vert.datahub.din.developpement-durable.gouv.fr"
 # Le Fonds Vert n'a pas de "dispositif"/"programme" propre côté DS : on retient
 # la nomenclature budgétaire de l'État (programme 380 - Fonds d'accélération de
 # la transition écologique dans les territoires) pour rester homogène avec les
@@ -26,26 +24,24 @@ FONDS_VERT_PROGRAMME = 380
 _FONDS_VERT_STATUS_LABEL_TO_CODE = {label: code for code, label in DS_STATE_VALUES}
 
 
-def import_fonds_vert_subventions():
-    username = settings.FONDS_VERT_USERNAME
-    password = settings.FONDS_VERT_PASSWORD
-    if not username or not password:
-        logger.error(
-            "FONDS_VERT_USERNAME / FONDS_VERT_PASSWORD non définis — import annulé"
-        )
+def import_fonds_vert_subventions(restart=False):
+    """`restart` : ignore le curseur de reprise et repart de la page 1
+    (utilisé par la management command `import_subventions_fonds_vert
+    --restart`)."""
+    try:
+        client = FondsVertClient()
+    except FondsVertCredentialsMissing as e:
+        logger.error(str(e))
         return {}
-
-    token = _fonds_vert_login(username, password)
     state = FondsVertImportState.load()
-    last_page = state.data.get("last_page", 0)
-    if last_page:
-        logger.info("Fonds Vert: reprise à la page %d", last_page + 1)
+    start_page = 1 if restart else state.data.get("last_page", 0) + 1
+    if start_page > 1:
+        logger.info("Fonds Vert: reprise à la page %d", start_page)
 
     nb_created = nb_updated = nb_errors = 0
 
-    for page, created, updated, errors in _iter_fonds_vert_pages(
-        token, start_page=last_page + 1
-    ):
+    for page, items in client.iter_dossiers_pages(start_page=start_page):
+        created, updated, errors = _import_fonds_vert_page(items)
         nb_created += created
         nb_updated += updated
         nb_errors += len(errors)
@@ -73,64 +69,24 @@ def import_fonds_vert_subventions():
     return {"created": nb_created, "updated": nb_updated, "errors": nb_errors}
 
 
-def _iter_fonds_vert_pages(token: str, start_page: int = 1, per_page: int = 500):
-    """Parcourt `/fonds_vert/v2/dossiers` à partir de `start_page` et importe chaque
-    dossier. Cède `(page, nb_created, nb_updated, errors)` après chaque page complète,
-    pour permettre aux appelants de persister un curseur de reprise et de reporter la
-    progression au fil de l'eau plutôt qu'en fin d'import complet.
-    """
-    page = start_page
-    while True:
-        data = _fonds_vert_get(
-            token, "/fonds_vert/v2/dossiers", page=page, per_page=per_page
-        )
-        items = data.get("data", [])
-        if not items:
-            return
-
-        nb_created = nb_updated = 0
-        errors = []
-        for item in items:
-            try:
-                created = _import_fonds_vert_dossier(item)
-            except Exception as e:
-                sc = item.get("socle_commun", {})
-                errors.append(
-                    {"dossier_number": sc.get("dossier_number"), "error": str(e)}
-                )
-                continue
-            if created:
-                nb_created += 1
-            else:
-                nb_updated += 1
-
-        yield page, nb_created, nb_updated, errors
-
-        if data.get("next_page") is None:
-            return
-        page += 1
-
-
-def _fonds_vert_login(username: str, password: str) -> str:
-    resp = requests.post(
-        f"{FONDS_VERT_BASE_URL}/fonds_vert/login",
-        headers={"Accept": "application/json"},
-        data={"username": username, "password": password},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()["access_token"]
-
-
-def _fonds_vert_get(token: str, path: str, **params) -> dict:
-    resp = requests.get(
-        f"{FONDS_VERT_BASE_URL}{path}",
-        headers={"Authorization": f"Bearer {token}"},
-        params=params,
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json()
+def _import_fonds_vert_page(items):
+    """Importe chaque dossier Fonds Vert d'une page (cf.
+    `gsl_core.api.fonds_vert.iter_dossiers_pages`). Retourne
+    `(nb_created, nb_updated, errors)`."""
+    nb_created = nb_updated = 0
+    errors = []
+    for item in items:
+        try:
+            created = _import_fonds_vert_dossier(item)
+        except Exception as e:
+            sc = item.get("socle_commun", {})
+            errors.append({"dossier_number": sc.get("dossier_number"), "error": str(e)})
+            continue
+        if created:
+            nb_created += 1
+        else:
+            nb_updated += 1
+    return nb_created, nb_updated, errors
 
 
 def _import_fonds_vert_dossier(item: dict) -> bool:
@@ -147,8 +103,8 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
 
     _, created = Subvention.objects.update_or_create(
         importer_key=_compute_fonds_vert_importer_key(dossier_number),
+        source=Subvention.SOURCE_FONDS_VERT,
         defaults={
-            "source": Subvention.SOURCE_FONDS_VERT,
             "dossier_number": dossier_number,
             "siren": siret[:9],
             "exercice": sc.get("annee_millesime") or 0,
@@ -168,7 +124,7 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
 
 
 def _compute_fonds_vert_importer_key(dossier_number):
-    return f"{Subvention.SOURCE_FONDS_VERT}:{dossier_number}"
+    return f"{dossier_number}"
 
 
 def _resolve_fonds_vert_status(raw_statut) -> str:

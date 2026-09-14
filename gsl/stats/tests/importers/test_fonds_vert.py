@@ -1,29 +1,41 @@
 import pytest
+import responses
+
+from gsl_core.api.fonds_vert import FONDS_VERT_BASE_URL
 
 from ...importers.fonds_vert import (
     FONDS_VERT_DISPOSITIF,
     FONDS_VERT_PROGRAMME,
     _import_fonds_vert_dossier,
+    _import_fonds_vert_page,
+    import_fonds_vert_subventions,
 )
-from ...models import Subvention
+from ...models import FondsVertImportState, Subvention
 
 pytestmark = pytest.mark.django_db
+
+LOGIN_URL = f"{FONDS_VERT_BASE_URL}/fonds_vert/login"
+DOSSIERS_URL = f"{FONDS_VERT_BASE_URL}/fonds_vert/v2/dossiers"
+
+
+def _fonds_vert_item(**socle_commun_overrides):
+    socle_commun = {
+        "dossier_number": 42,
+        "siret": "21750056900011",
+        "annee_millesime": 2026,
+        "nom_du_projet": "Isolation mairie",
+        "statut": "En instruction",
+        "montant_aide_demandee_fond_vert": 200,
+        "montant_subvention_attribuee": None,
+        "total_des_depenses": 400,
+    }
+    socle_commun.update(socle_commun_overrides)
+    return {"socle_commun": socle_commun}
 
 
 class TestImportFondsVertDossier:
     def _item(self, **socle_commun_overrides):
-        socle_commun = {
-            "dossier_number": 42,
-            "siret": "21750056900011",
-            "annee_millesime": 2026,
-            "nom_du_projet": "Isolation mairie",
-            "statut": "En instruction",
-            "montant_aide_demandee_fond_vert": 200,
-            "montant_subvention_attribuee": None,
-            "total_des_depenses": 400,
-        }
-        socle_commun.update(socle_commun_overrides)
-        return {"socle_commun": socle_commun}
+        return _fonds_vert_item(**socle_commun_overrides)
 
     def test_creates_a_fonds_vert_subvention(self):
         created = _import_fonds_vert_dossier(self._item())
@@ -73,3 +85,98 @@ class TestImportFondsVertDossier:
 
         assert _import_fonds_vert_dossier(item) is False
         assert not Subvention.objects.exists()
+
+
+class TestImportFondsVertPage:
+    """`_import_fonds_vert_page` traite une page brute (cf.
+    `gsl_core.api.fonds_vert.iter_dossiers_pages`)."""
+
+    def test_reports_created_and_updated_counts(self):
+        first = _fonds_vert_item(dossier_number=1)
+        second = _fonds_vert_item(dossier_number=2)
+
+        created, updated, errors = _import_fonds_vert_page([first, second])
+
+        assert created == 2
+        assert updated == 0
+        assert errors == []
+        assert Subvention.objects.count() == 2
+
+        # Réimporter la même page : les deux dossiers sont mis à jour, pas dupliqués.
+        created, updated, errors = _import_fonds_vert_page([first, second])
+
+        assert created == 0
+        assert updated == 2
+        assert Subvention.objects.count() == 2
+
+    def test_reports_errors_without_stopping_the_page(self):
+        good = _fonds_vert_item(dossier_number=1)
+        # siret non-string : fait planter le `.strip()` dans _import_fonds_vert_dossier.
+        bad = _fonds_vert_item(dossier_number=99, siret=12345678901234)
+
+        created, updated, errors = _import_fonds_vert_page([bad, good])
+
+        assert created == 1
+        assert updated == 0
+        assert len(errors) == 1
+        assert errors[0]["dossier_number"] == 99
+        assert Subvention.objects.filter(dossier_number=1).exists()
+        assert not Subvention.objects.filter(dossier_number=99).exists()
+
+
+class TestImportFondsVertSubventions:
+    """`import_fonds_vert_subventions` : connexion (cf.
+    `gsl_core.api.fonds_vert`) + curseur de reprise (`FondsVertImportState`)."""
+
+    @pytest.fixture(autouse=True)
+    def fonds_vert_credentials(self, settings):
+        settings.FONDS_VERT_USERNAME = "user"
+        settings.FONDS_VERT_PASSWORD = "pass"
+
+    def _mock_login(self):
+        responses.add(responses.POST, LOGIN_URL, json={"access_token": "tok"})
+
+    def _mock_one_page(self):
+        responses.add(
+            responses.GET,
+            DOSSIERS_URL,
+            json={"data": [_fonds_vert_item(dossier_number=1)], "next_page": None},
+        )
+
+    @responses.activate
+    def test_resumes_from_the_saved_cursor_by_default(self):
+        state = FondsVertImportState.load()
+        state.data["last_page"] = 3
+        state.save(update_fields=["data", "updated_at"])
+        self._mock_login()
+        self._mock_one_page()
+
+        import_fonds_vert_subventions()
+
+        assert responses.calls[1].request.params["page"] == "4"
+
+    @responses.activate
+    def test_restart_ignores_the_saved_cursor(self):
+        state = FondsVertImportState.load()
+        state.data["last_page"] = 3
+        state.save(update_fields=["data", "updated_at"])
+        self._mock_login()
+        self._mock_one_page()
+
+        import_fonds_vert_subventions(restart=True)
+
+        assert responses.calls[1].request.params["page"] == "1"
+
+    @responses.activate
+    def test_resets_the_cursor_once_the_sync_is_complete(self):
+        self._mock_login()
+        self._mock_one_page()
+
+        import_fonds_vert_subventions()
+
+        assert FondsVertImportState.load().data["last_page"] == 0
+
+    def test_returns_an_empty_bilan_when_credentials_are_missing(self, settings):
+        settings.FONDS_VERT_USERNAME = ""
+
+        assert import_fonds_vert_subventions() == {}
