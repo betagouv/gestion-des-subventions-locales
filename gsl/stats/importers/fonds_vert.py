@@ -1,8 +1,9 @@
 import logging
-from datetime import datetime, timezone
+from datetime import timezone
 
 import requests
 from django.conf import settings
+from django.utils.dateparse import parse_datetime
 
 from gsl.projet.constants import DS_STATE_VALUES
 
@@ -174,12 +175,10 @@ def _resolve_fonds_vert_status(raw_statut) -> str:
     return _FONDS_VERT_STATUS_LABEL_TO_CODE.get((raw_statut or "").strip(), "")
 
 
-def _parse_datetime(value) -> datetime | None:
+def _parse_datetime(value):
     if not value:
         return None
-    try:
-        return datetime.strptime(value[:19], "%Y-%m-%dT%H:%M:%S").replace(
-            tzinfo=timezone.utc
-        )
-    except (ValueError, TypeError):
+    parsed = parse_datetime(value)
+    if parsed is None:
         return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)

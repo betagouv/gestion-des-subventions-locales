@@ -5,6 +5,7 @@ from gsl_core.tests.factories import CommuneFactory, DepartementFactory
 
 from ...importers.dgcl import (
     DGCL_API_URL,
+    DgclRowSkipped,
     _build_dgcl_subvention,
     _parse_decimal,
     _parse_int,
@@ -78,7 +79,9 @@ class TestBuildDgclSubvention:
         }
         row[missing_field] = ""
 
-        assert _build_dgcl_subvention(row) is None
+        with pytest.raises(DgclRowSkipped, match="champ obligatoire manquant") as exc:
+            _build_dgcl_subvention(row)
+        assert exc.value.field == missing_field
 
     def test_skips_dsid_rows(self):
         row = {
@@ -90,7 +93,8 @@ class TestBuildDgclSubvention:
             "subvention": "500",
         }
 
-        assert _build_dgcl_subvention(row) is None
+        with pytest.raises(DgclRowSkipped, match="DSID"):
+            _build_dgcl_subvention(row)
 
 
 class TestImportDgclSubventions:
@@ -172,6 +176,56 @@ class TestImportDgclSubventions:
         assert (
             Subvention.objects.filter(source=Subvention.SOURCE_FONDS_VERT).count() == 1
         )
+
+    @responses.activate
+    def test_logs_invalid_rows_grouped_by_reason_and_field(self, caplog):
+        csv_text = (
+            "exercice;dispositif;beneficiaire_siren;intitule;cout_ht;subvention\n"
+            "2024;DETR;123456789;Rénovation école;1000;500\n"
+            ";DETR;123456789;Sans exercice 1;1000;500\n"
+            ";DETR;123456789;Sans exercice 2;1000;500\n"
+            "2024;DETR;123456789;;1000;500\n"
+        )
+        self._mock_dataset_and_csv(csv_text)
+
+        with caplog.at_level("INFO"):
+            import_dgcl_subventions()
+
+        assert "DGCL 2024: 1 lignes validées, 3 lignes invalidées" in caplog.text
+        assert (
+            "champ obligatoire manquant - exercice : 2 ligne(s) — lignes [3, 4]"
+            in caplog.text
+        )
+        assert (
+            "champ obligatoire manquant - intitule : 1 ligne(s) — lignes [5]"
+            in caplog.text
+        )
+
+    @responses.activate
+    def test_hides_dsid_from_logs_by_default(self, caplog):
+        csv_text = (
+            "exercice;dispositif;beneficiaire_siren;intitule;cout_ht;subvention\n"
+            "2024;DSID;123456789;Route départementale;1000;500\n"
+        )
+        self._mock_dataset_and_csv(csv_text)
+
+        with caplog.at_level("INFO"):
+            import_dgcl_subventions()
+
+        assert "DSID" not in caplog.text
+
+    @responses.activate
+    def test_shows_dsid_in_logs_with_show_dsid(self, caplog):
+        csv_text = (
+            "exercice;dispositif;beneficiaire_siren;intitule;cout_ht;subvention\n"
+            "2024;DSID;123456789;Route départementale;1000;500\n"
+        )
+        self._mock_dataset_and_csv(csv_text)
+
+        with caplog.at_level("INFO"):
+            import_dgcl_subventions(show_dsid=True)
+
+        assert "dispositif DSID (hors périmètre Turgot) : 1 ligne(s)" in caplog.text
 
 
 @pytest.mark.parametrize(

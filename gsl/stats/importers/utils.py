@@ -1,6 +1,7 @@
-def resolve_departement(code):
-    from gsl_core.models import Departement
+from gsl_core.models import Commune, Departement
 
+
+def resolve_departement(code):
     if not code:
         return None
     # DGCL CSVs zero-pad to 3 chars (e.g. "001") but Departement.insee_code uses
@@ -16,8 +17,6 @@ def resolve_departement(code):
 
 
 def resolve_commune(code_insee):
-    from gsl_core.models import Commune
-
     if not code_insee:
         return None
     try:
