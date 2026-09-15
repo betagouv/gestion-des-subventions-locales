@@ -278,10 +278,6 @@ class ProgrammationProjet(models.Model):
         decimal_places=2, max_digits=14, verbose_name="Montant"
     )
 
-    justification = models.TextField(
-        verbose_name="Justification", blank=True, null=False, default=""
-    )
-
     created_at = models.DateTimeField(
         verbose_name="Date de création", auto_now_add=True
     )
