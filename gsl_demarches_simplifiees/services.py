@@ -16,6 +16,7 @@ from gsl_demarches_simplifiees.exceptions import (
     UserRightsError,
 )
 from gsl_demarches_simplifiees.models import Dossier, FieldMapping
+from gsl_demarches_simplifiees.utils import most_recent_traitement
 
 logger = getLogger(__name__)
 
@@ -88,14 +89,15 @@ class DsService:
         user: Collegue,
         document: UploadedFile,
         motivation: str = "",
-    ):
+    ) -> str | None:
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_accepter(
             dossier.ds_id, instructeur_id, motivation=motivation, document=document
         )
         self._check_results(results, dossier, user, "accept", value=motivation)
-        self._update_ds_date_traitement(dossier, results, "accept")
-        return results
+        return self._update_ds_date_traitement_and_get_traitement_id(
+            dossier, results, "accept"
+        )
 
     def dismiss_in_ds(
         self,
@@ -103,14 +105,15 @@ class DsService:
         user: Collegue,
         motivation: str,
         document: UploadedFile | None = None,
-    ):
+    ) -> str | None:
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_classer_sans_suite(
             dossier.ds_id, instructeur_id, motivation, document=document
         )
         self._check_results(results, dossier, user, "dismiss", value=motivation)
-        self._update_ds_date_traitement(dossier, results, "dismiss")
-        return results
+        return self._update_ds_date_traitement_and_get_traitement_id(
+            dossier, results, "dismiss"
+        )
 
     def refuser_in_ds(
         self,
@@ -118,28 +121,31 @@ class DsService:
         user: Collegue,
         motivation: str,
         document: UploadedFile | None = None,
-    ):
+    ) -> str | None:
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_refuser(
             dossier, instructeur_id, motivation=motivation, document=document
         )
         self._check_results(results, dossier, user, "refuser", value=motivation)
-        self._update_ds_date_traitement(dossier, results, "refuser")
-        return results
-
-    def _update_ds_date_traitement(
-        self, dossier: Dossier, results: dict, mutation_type: MUTATION_TYPES
-    ) -> None:
-        mutation_key = self.MUTATION_KEYS[mutation_type]
-        date_traitement = (
-            results.get("data", {})
-            .get(mutation_key, {})
-            .get("dossier", {})
-            .get("dateTraitement")
+        return self._update_ds_date_traitement_and_get_traitement_id(
+            dossier, results, "refuser"
         )
+
+    def _update_ds_date_traitement_and_get_traitement_id(
+        self, dossier: Dossier, results: dict, mutation_type: MUTATION_TYPES
+    ) -> str | None:
+        mutation_key = self.MUTATION_KEYS[mutation_type]
+        dossier_data = (
+            results.get("data", {}).get(mutation_key, {}).get("dossier") or {}
+        )
+        date_traitement = dossier_data.get("dateTraitement")
         if date_traitement:
             dossier.ds_date_traitement = datetime.fromisoformat(date_traitement)
             dossier.save()
+
+        traitements = dossier_data.get("traitements") or []
+        traitement = most_recent_traitement(traitements)
+        return traitement["id"] if traitement else None
 
     # Annotations
 

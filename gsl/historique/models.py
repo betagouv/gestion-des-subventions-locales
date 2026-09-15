@@ -74,6 +74,16 @@ class ProjetAction(models.Model):
         on_delete=models.SET_NULL,
     )
     source = models.CharField(max_length=20, choices=SOURCES)
+    source_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        verbose_name="Identifiant externe",
+        help_text=(
+            "Identifiant de l'événement source (ex : id du Traitement DN), "
+            "pour éviter les doublons lors d'une resynchronisation."
+        ),
+    )
     dotation = models.CharField(
         max_length=10, choices=DOTATION_CHOICES, blank=True, default=""
     )

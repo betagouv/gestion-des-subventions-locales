@@ -601,21 +601,21 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             ds_service = DsService()
 
             if status == PROJET_STATUS_ACCEPTED:
-                ds_service.accept_in_ds(
+                traitement_id = ds_service.accept_in_ds(
                     self.instance.dossier_ds,
                     user,
                     document=justificatif_file,
                     motivation=motivation,
                 )
             elif status == PROJET_STATUS_DISMISSED:
-                ds_service.dismiss_in_ds(
+                traitement_id = ds_service.dismiss_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
                     document=justificatif_file,
                 )
             else:
-                ds_service.refuser_in_ds(
+                traitement_id = ds_service.refuser_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
@@ -623,9 +623,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                 )
 
             # DsService.*_in_ds() just refreshed dossier_ds.ds_date_traitement from
-            # DN's own response, so reuse that exact timestamp: the DN sync will read
-            # the same date back from `traitements` and rely on it to avoid logging
-            # this notification a second time (see DotationProjetService).
+            # DN's own response, so reuse that exact timestamp as created_at.
             notified_at = self.instance.dossier_ds.ds_date_traitement or timezone.now()
             self.instance.notified_at = notified_at
             self.instance.save()
@@ -635,6 +633,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
                 action_type=ProjetAction.TYPE_NOTIFIED,
                 actor=user,
                 source=ProjetAction.SOURCE_TURGOT,
+                source_id=traitement_id or "",
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
                 details=motivation,
                 created_at=notified_at,

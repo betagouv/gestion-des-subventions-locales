@@ -290,12 +290,14 @@ def test_initialize_dotation_projets_from_projet_creates_notified_action(perimet
         raw_data={
             "traitements": [
                 {
+                    "id": "traitement-depose",
                     "event": "depose",
                     "dateTraitement": "2024-12-01T10:00:00+01:00",
                     "emailAgentTraitant": None,
                     "motivation": None,
                 },
                 {
+                    "id": "traitement-accepte",
                     "event": "accepte",
                     "dateTraitement": "2025-01-15T00:00:00+00:00",
                     "emailAgentTraitant": "agent@example.fr",
@@ -311,6 +313,7 @@ def test_initialize_dotation_projets_from_projet_creates_notified_action(perimet
         projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
     )
     assert action.source == ProjetAction.SOURCE_DN
+    assert action.source_id == "traitement-accepte"
     assert action.details == "Dossier complet"
     assert action.created_at == ds_date_traitement
     assert action.actor == collegue

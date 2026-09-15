@@ -400,38 +400,28 @@ class DotationProjetService:
         if dossier.ds_date_traitement is None:
             return
 
-        traitement = cls._get_traitement_matching_dossier_state(dossier)
+        traitement = dossier.get_last_traitement_matching_dossier_state()
+        source_id = (traitement or {}).get("id")
+        if not source_id:
+            return
+
         actor = cls._get_or_create_collegue_from_traitement_email(traitement)
-        # created_at is keyed on ds_date_traitement so that a notification
-        # triggered from Turgot (which now reuses this exact same DN date, cf.
-        # NotificationMessageForm.save) doesn't get logged a second time here.
+        # source_id est la clé de dédup : une notification déjà logguée avec
+        # cet id (que ce soit par ce sync ou par NotificationMessageForm.save,
+        # qui renseigne aussi source_id depuis la réponse de la mutation DN)
+        # n'est pas recréée, et ses champs (source, actor…) ne sont pas
+        # écrasés.
         ProjetAction.objects.get_or_create(
             projet=projet,
             action_type=ProjetAction.TYPE_NOTIFIED,
-            created_at=dossier.ds_date_traitement,
+            source_id=source_id,
             defaults={
                 "source": ProjetAction.SOURCE_DN,
                 "details": (traitement or {}).get("motivation") or "",
                 "actor": actor,
+                "created_at": dossier.ds_date_traitement,
             },
         )
-
-    @classmethod
-    def _get_traitement_matching_dossier_state(cls, dossier: Dossier) -> dict | None:
-        event_by_dossier_state = {
-            Dossier.STATE_ACCEPTE: "accepte",
-            Dossier.STATE_REFUSE: "refuse",
-            Dossier.STATE_SANS_SUITE: "classe_sans_suite",
-        }
-        ds_data = getattr(dossier, "ds_data", None)
-        traitements = ((ds_data.raw_data if ds_data else None) or {}).get(
-            "traitements"
-        ) or []
-        event = event_by_dossier_state.get(dossier.ds_state)
-        for traitement in reversed(traitements):
-            if traitement.get("event") == event:
-                return traitement
-        return traitements[-1] if traitements else None
 
     @classmethod
     def _get_or_create_collegue_from_traitement_email(
