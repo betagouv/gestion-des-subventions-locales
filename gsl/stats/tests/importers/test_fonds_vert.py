@@ -37,8 +37,11 @@ class TestImportFondsVertDossier:
     def _item(self, **socle_commun_overrides):
         return _fonds_vert_item(**socle_commun_overrides)
 
+    def _import(self, item):
+        return _import_fonds_vert_dossier(item)
+
     def test_creates_a_fonds_vert_subvention(self):
-        created = _import_fonds_vert_dossier(self._item())
+        created = self._import(self._item())
 
         assert created is True
         subvention = Subvention.objects.get(dossier_number=42)
@@ -54,9 +57,9 @@ class TestImportFondsVertDossier:
         assert subvention.cout_total == 400
 
     def test_upserts_by_dossier_number_instead_of_duplicating(self):
-        assert _import_fonds_vert_dossier(self._item()) is True
+        assert self._import(self._item()) is True
 
-        updated = _import_fonds_vert_dossier(
+        updated = self._import(
             self._item(montant_subvention_attribuee=150, statut="Accepté")
         )
 
@@ -75,15 +78,15 @@ class TestImportFondsVertDossier:
         first = self._item(dossier_number=1, nom_du_projet="")
         second = self._item(dossier_number=2, nom_du_projet="")
 
-        assert _import_fonds_vert_dossier(first) is True
-        assert _import_fonds_vert_dossier(second) is True
+        assert self._import(first) is True
+        assert self._import(second) is True
         assert Subvention.objects.filter(siren="217500569").count() == 2
 
     @pytest.mark.parametrize("missing_field", ["dossier_number", "siret"])
     def test_skips_dossier_missing_a_required_field(self, missing_field):
         item = self._item(**{missing_field: None})
 
-        assert _import_fonds_vert_dossier(item) is False
+        assert self._import(item) is False
         assert not Subvention.objects.exists()
 
 
