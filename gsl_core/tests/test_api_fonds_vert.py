@@ -94,3 +94,28 @@ def test_iter_dossiers_pages_starts_at_the_given_page():
 
     assert pages == [(3, [{"id": 3}])]
     assert responses.calls[1].request.params["page"] == "3"
+
+
+@responses.activate
+def test_iter_dossiers_pages_omits_the_date_filter_by_default():
+    _mock_login()
+    responses.add(responses.GET, DOSSIERS_URL, json={"data": [], "next_page": None})
+
+    client = FondsVertClient()
+    list(client.iter_dossiers_pages())
+
+    assert "date_derniere_modification__gte" not in responses.calls[1].request.params
+
+
+@responses.activate
+def test_iter_dossiers_pages_sends_the_date_filter_as_given():
+    _mock_login()
+    responses.add(responses.GET, DOSSIERS_URL, json={"data": [], "next_page": None})
+
+    client = FondsVertClient()
+    list(client.iter_dossiers_pages(since="2026-09-14T00:00:00.000Z"))
+
+    assert (
+        responses.calls[1].request.params["date_derniere_modification__gte"]
+        == "2026-09-14T00:00:00.000Z"
+    )

@@ -45,15 +45,28 @@ class FondsVertClient:
         resp.raise_for_status()
         return resp.json()
 
-    def iter_dossiers_pages(self, start_page: int = 1, per_page: int = 500):
+    def iter_dossiers_pages(
+        self,
+        start_page: int = 1,
+        per_page: int = 500,
+        since: str | None = None,
+    ):
         """Parcourt `/fonds_vert/v2/dossiers` à partir de `start_page`. Cède
         `(page, items)` pour chaque page non vide, jusqu'à ce que l'API
         n'indique plus de `next_page`. Ne fait qu'appeler l'API : le
         traitement des `items` (import en base) est à la charge de
-        l'appelant."""
+        l'appelant.
+
+        `date_derniere_modification__gte` restreint aux dossiers modifiés
+        depuis cette date (omis si `None`, pour un import complet) ; transmis
+        tel quel à l'API, au format qu'elle attend."""
+        params = {"per_page": per_page}
+        if since:
+            params["date_derniere_modification__gte"] = since
+
         page = start_page
         while True:
-            data = self.get("/fonds_vert/v2/dossiers", page=page, per_page=per_page)
+            data = self.get("/fonds_vert/v2/dossiers", page=page, **params)
             items = data.get("data", [])
             if not items:
                 return

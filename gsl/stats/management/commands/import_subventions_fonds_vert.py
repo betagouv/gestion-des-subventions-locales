@@ -11,9 +11,11 @@ class Command(BaseCommand):
     """
     python manage.py import_subventions_fonds_vert [--restart]
 
-    Reprend automatiquement après la dernière page importée avec succès (curseur
-    partagé avec la tâche Celery `fetch_subventions_fonds_vert`). Utiliser --restart
-    pour forcer une reprise depuis la page 1.
+    Ne récupère par défaut que les dossiers modifiés depuis la dernière
+    synchronisation complète réussie (état partagé avec la tâche Celery
+    `fetch_subventions_fonds_vert`, via `date_derniere_modification__gte`).
+    Utiliser --restart pour ignorer cette date et forcer un réimport complet
+    de l'historique.
     """
 
     help = "Importe les subventions Fonds Vert depuis l'API datahub"
@@ -22,7 +24,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--restart",
             action="store_true",
-            help="Ignore le curseur de reprise et repart de la page 1.",
+            help=(
+                "Ignore la date de dernière synchronisation stockée et "
+                "réimporte tout l'historique depuis la page 1."
+            ),
         )
 
     def handle(self, *args, restart, **kwargs):

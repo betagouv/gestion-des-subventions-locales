@@ -1,5 +1,7 @@
 import logging
 
+from django.utils import timezone
+
 from gsl.projet.constants import DS_STATE_VALUES
 from gsl_core.api.fonds_vert import FondsVertClient, FondsVertCredentialsMissing
 
@@ -28,13 +30,26 @@ def import_fonds_vert_subventions(restart=False) -> None:
         logger.error(str(e))
         return {}
     state = FondsVertImportState.load()
-    start_page = 1 if restart else state.data.get("last_page", 0) + 1
-    if start_page > 1:
-        logger.info("Fonds Vert: reprise à la page %d", start_page)
+    state.data["last_page"] = 0
+    if restart:
+        state.data.pop("date_derniere_modification", None)
+        state.save(update_fields=["data", "updated_at"])
+    date_derniere_modification = state.data.get("date_derniere_modification")
+    if date_derniere_modification:
+        # Minuit plutôt que l'heure de l'appel, pour qu'un appel quotidien ne
+        # laisse jamais passer un dossier modifié plus tôt dans la journée du
+        # dernier import réussi.
+        date_derniere_modification_at_midnight = (
+            f"{date_derniere_modification}T00:00:00.000Z"
+        )
+    else:
+        date_derniere_modification_at_midnight = None
 
     nb_created = nb_updated = nb_errors = 0
 
-    for page, items in client.iter_dossiers_pages(start_page=start_page):
+    for page, items in client.iter_dossiers_pages(
+        since=date_derniere_modification_at_midnight
+    ):
         created, updated, errors = _import_fonds_vert_page(items)
 
         logger.info(f"Page {page} — {created} créés, {updated} mis à jour…")
@@ -49,13 +64,16 @@ def import_fonds_vert_subventions(restart=False) -> None:
         nb_created += created
         nb_updated += updated
         nb_errors += len(errors)
-        # Une page est entièrement traitée : on avance le curseur pour pouvoir
-        # reprendre ici si la tâche est interrompue avant la fin.
+        # Une page est entièrement traitée : on note sa progression, utile
+        # pour diagnostiquer où l'appel s'est arrêté en cas d'interruption
+        # (le prochain appel repartira malgré tout de la page 1).
         state.data["last_page"] = page
         state.save(update_fields=["data", "updated_at"])
 
-    # Synchronisation complète : on repartira de la page 1 au prochain lancement.
+    # Synchronisation complète : le prochain appel ne récupérera que les
+    # dossiers modifiés depuis aujourd'hui.
     state.data["last_page"] = 0
+    state.data["date_derniere_modification"] = timezone.localdate().isoformat()
     state.save(update_fields=["data", "updated_at"])
 
     logger.info(
