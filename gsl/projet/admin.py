@@ -11,19 +11,13 @@ from gsl_core.models import Arrondissement
 from gsl_programmation.models import ProgrammationProjet
 
 from .constants import PROJET_STATUS_CHOICES
-from .models import CategorieDetr, DotationProjet, Projet, ProjetQuerySet
+from .models import DotationProjet, Projet, ProjetQuerySet
 
 
 class DotationProjetInline(admin.TabularInline):
     model = DotationProjet
     extra = 0
     show_change_link = True
-
-
-@admin.register(CategorieDetr)
-class CategorieDetrAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("departement_id", "annee", "rang", "libelle")
-    list_filter = ("departement", "annee")
 
 
 class ProjetStatusFilter(admin.SimpleListFilter):
