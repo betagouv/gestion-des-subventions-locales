@@ -307,14 +307,31 @@ def test_in_ds_updates_ds_date_traitement(
     user, dossier, method_name, mutator_method, mutation_key
 ):
     """accept_in_ds/dismiss_in_ds/refuser_in_ds should update dossier.ds_date_traitement
-    from DN's own response, so a Turgot-triggered notification and the following DN
-    resync agree on the exact same date."""
+    from DN's own response, and return the id of the Traitement DN just created (the
+    one with the most recent dateTraitement in `dossier.traitements` — not necessarily
+    the list's last entry), so the caller can store it as ProjetAction.source_id."""
     ds_service = DsService()
     expected_date_str = "2025-06-25T11:46:30+02:00"
     expected_date = datetime.fromisoformat(expected_date_str)
 
     mock_results = {
-        "data": {mutation_key: {"dossier": {"dateTraitement": expected_date_str}}}
+        "data": {
+            mutation_key: {
+                "dossier": {
+                    "dateTraitement": expected_date_str,
+                    "traitements": [
+                        {
+                            "id": "traitement-2",
+                            "dateTraitement": "2025-06-25T11:46:30+02:00",
+                        },
+                        {
+                            "id": "traitement-1",
+                            "dateTraitement": "2025-06-20T09:00:00+02:00",
+                        },
+                    ],
+                }
+            }
+        }
     }
 
     with (
@@ -347,7 +364,7 @@ def test_in_ds_updates_ds_date_traitement(
             )
             < 1
         )
-        assert result == mock_results
+        assert result == "traitement-2"
 
 
 def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, dossier):

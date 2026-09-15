@@ -37,6 +37,7 @@ fragment DossierFragment on Dossier {
 }
 
 fragment TraitementFragment on Traitement {
+  id
   event
   emailAgentTraitant
   dateTraitement

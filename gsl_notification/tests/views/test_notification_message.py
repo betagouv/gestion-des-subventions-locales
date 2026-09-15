@@ -135,7 +135,10 @@ class TestForm:
     def test_save_sets_notified_at_and_creates_projet_action(self, perimetre, collegue):
         projet = _accepted_projet(perimetre)
         with (
-            mock.patch("gsl_notification.forms.DsService.accept_in_ds") as ds,
+            mock.patch(
+                "gsl_notification.forms.DsService.accept_in_ds",
+                return_value="traitement-1",
+            ) as ds,
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
@@ -153,6 +156,7 @@ class TestForm:
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         )
         assert action.details == "Bravo"
+        assert action.source_id == "traitement-1"
         assert action.document.name.endswith("/notification.pdf")
 
     def test_save_uses_dn_date_traitement_for_notified_at_and_action(
@@ -202,7 +206,9 @@ class TestForm:
         dsil_annexe = AnnexeFactory(enveloppe_projet=dsil_enveloppe_projet)
 
         with (
-            mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
+            mock.patch(
+                "gsl_notification.forms.DsService.accept_in_ds", return_value=None
+            ),
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
@@ -242,9 +248,15 @@ class TestForm:
     def test_save_calls_refuser_in_ds_for_refused(self, perimetre, collegue):
         projet = _refused_projet(perimetre, with_signed_document=True)
         with (
-            mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
-            mock.patch("gsl_notification.forms.DsService.dismiss_in_ds") as dismiss,
-            mock.patch("gsl_notification.forms.DsService.accept_in_ds") as accepter,
+            mock.patch(
+                "gsl_notification.forms.DsService.refuser_in_ds", return_value=None
+            ) as refuser,
+            mock.patch(
+                "gsl_notification.forms.DsService.dismiss_in_ds", return_value=None
+            ) as dismiss,
+            mock.patch(
+                "gsl_notification.forms.DsService.accept_in_ds", return_value=None
+            ) as accepter,
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
@@ -262,9 +274,15 @@ class TestForm:
     def test_save_calls_dismiss_in_ds_for_dismissed(self, perimetre, collegue):
         projet = _dismissed_projet(perimetre, with_signed_document=True)
         with (
-            mock.patch("gsl_notification.forms.DsService.dismiss_in_ds") as dismiss,
-            mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
-            mock.patch("gsl_notification.forms.DsService.accept_in_ds") as accepter,
+            mock.patch(
+                "gsl_notification.forms.DsService.dismiss_in_ds", return_value=None
+            ) as dismiss,
+            mock.patch(
+                "gsl_notification.forms.DsService.refuser_in_ds", return_value=None
+            ) as refuser,
+            mock.patch(
+                "gsl_notification.forms.DsService.accept_in_ds", return_value=None
+            ) as accepter,
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
@@ -284,7 +302,9 @@ class TestForm:
     ):
         projet = _refused_projet(perimetre, with_signed_document=False)
         with (
-            mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
+            mock.patch(
+                "gsl_notification.forms.DsService.refuser_in_ds", return_value=None
+            ) as refuser,
             mock.patch("gsl_notification.forms.merge_documents_into_pdf") as merge_mock,
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
@@ -312,7 +332,9 @@ class TestForm:
         annexe = AnnexeFactory(enveloppe_projet=enveloppe_projet)
 
         with (
-            mock.patch("gsl_notification.forms.DsService.refuser_in_ds"),
+            mock.patch(
+                "gsl_notification.forms.DsService.refuser_in_ds", return_value=None
+            ),
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
@@ -368,8 +390,12 @@ class TestForm:
         _treated_dotation(perimetre, projet, DOTATION_DSIL, PROJET_STATUS_DISMISSED)
 
         with (
-            mock.patch("gsl_notification.forms.DsService.dismiss_in_ds") as dismiss,
-            mock.patch("gsl_notification.forms.DsService.refuser_in_ds") as refuser,
+            mock.patch(
+                "gsl_notification.forms.DsService.dismiss_in_ds", return_value=None
+            ) as dismiss,
+            mock.patch(
+                "gsl_notification.forms.DsService.refuser_in_ds", return_value=None
+            ) as refuser,
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
@@ -387,7 +413,9 @@ class TestView:
             kwargs={"pk": projet.id},
         )
         with (
-            mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
+            mock.patch(
+                "gsl_notification.forms.DsService.accept_in_ds", return_value=None
+            ),
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
@@ -428,7 +456,9 @@ class TestView:
             kwargs={"pk": projet.id},
         )
         with (
-            mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
+            mock.patch(
+                "gsl_notification.forms.DsService.accept_in_ds", return_value=None
+            ),
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
@@ -479,7 +509,9 @@ class TestView:
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
-        with mock.patch("gsl_notification.forms.DsService.refuser_in_ds"):
+        with mock.patch(
+            "gsl_notification.forms.DsService.refuser_in_ds", return_value=None
+        ):
             response = client_with_user_logged.post(
                 url, {"message": "Motif"}, headers={"HX-Request": "true"}
             )
@@ -501,7 +533,9 @@ class TestView:
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
-        with mock.patch("gsl_notification.forms.DsService.dismiss_in_ds"):
+        with mock.patch(
+            "gsl_notification.forms.DsService.dismiss_in_ds", return_value=None
+        ):
             response = client_with_user_logged.post(
                 url, {"message": "Motif"}, headers={"HX-Request": "true"}
             )

@@ -26,6 +26,7 @@ from gsl_core.models import (
     Departement,
     Perimetre,
 )
+from gsl_demarches_simplifiees.utils import most_recent_traitement
 
 logger = getLogger(__name__)
 
@@ -269,6 +270,14 @@ class Dossier(BaseModel):
     STATE_EN_INSTRUCTION = DS_STATE_EN_INSTRUCTION
     STATE_REFUSE = DS_STATE_REFUSE
     STATE_SANS_SUITE = DS_STATE_SANS_SUITE
+
+    # Événement DN (`traitements[].event`) correspondant à l'état final d'un
+    # dossier, utilisé par `get_last_traitement_matching_dossier_state`.
+    EVENT_BY_STATE = {
+        STATE_ACCEPTE: "accepte",
+        STATE_REFUSE: "refuse",
+        STATE_SANS_SUITE: "classe_sans_suite",
+    }
 
     RAISON_DESACTIVATION_ARCHIVE = "archive"
     RAISON_DESACTIVATION_CORBEILLE = "corbeille"
@@ -769,6 +778,16 @@ class Dossier(BaseModel):
 
     def is_instructeur(self, user) -> bool:
         return self.ds_instructeurs.filter(ds_id=user.ds_id).exists()
+
+    def get_last_traitement_matching_dossier_state(self) -> dict | None:
+        event = self.EVENT_BY_STATE.get(self.ds_state)
+
+        ds_data = getattr(self, "ds_data", None)
+        traitements = ((ds_data.raw_data if ds_data else None) or {}).get(
+            "traitements"
+        ) or []
+        matching_traitements = [t for t in traitements if t.get("event") == event]
+        return most_recent_traitement(matching_traitements)
 
     @property
     def dotations_demande(self) -> list[POSSIBLE_DOTATIONS]:
