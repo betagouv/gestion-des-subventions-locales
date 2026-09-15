@@ -1,7 +1,4 @@
 import logging
-from datetime import timezone
-
-from django.utils.dateparse import parse_datetime
 
 from gsl.projet.constants import DS_STATE_VALUES
 from gsl_core.api.fonds_vert import FondsVertClient, FondsVertCredentialsMissing
@@ -117,7 +114,6 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
             "montant_demande": sc.get("montant_aide_demandee_fond_vert") or 0,
             "montant_attribue": sc.get("montant_subvention_attribuee"),
             "cout_total": sc.get("total_des_depenses") or 0,
-            "date_depot": _parse_datetime(sc.get("date_depot")),
         },
     )
     return created
@@ -125,12 +121,3 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
 
 def _resolve_fonds_vert_status(raw_statut) -> str:
     return _FONDS_VERT_STATUS_LABEL_TO_CODE.get((raw_statut or "").strip(), "")
-
-
-def _parse_datetime(value):
-    if not value:
-        return None
-    parsed = parse_datetime(value)
-    if parsed is None:
-        return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)

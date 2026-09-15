@@ -67,9 +67,6 @@ class Subvention(models.Model):
     status = models.CharField(
         max_length=30, blank=True, choices=DS_STATE_VALUES, verbose_name="Statut"
     )
-    date_depot = models.DateTimeField(
-        null=True, blank=True, verbose_name="Date de dépôt"
-    )
     # Identifiant DS du dossier (Fonds Vert uniquement), conservé à titre
     # informatif pour retrouver le dossier d'origine.
     dossier_number = models.IntegerField(
