@@ -77,6 +77,9 @@ class Subvention(models.Model):
         verbose_name = "Subvention"
         verbose_name_plural = "Subventions"
         ordering = ["-exercice"]
+        indexes = [
+            models.Index(fields=["source", "importer_key"]),
+        ]
 
     def __str__(self):
         return (
