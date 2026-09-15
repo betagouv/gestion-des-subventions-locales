@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Sum
-from typing_extensions import deprecated
 
 from gsl.projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
 from gsl.projet.models import DotationProjet, Projet
@@ -313,11 +312,6 @@ class ProgrammationProjet(models.Model):
     @property
     def taux(self):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
-
-    @property
-    @deprecated("Use `Projet.to_notify` instead.")
-    def to_notify(self):
-        return self.projet.to_notify
 
     @property
     def can_generate_accepted_documents(self):
