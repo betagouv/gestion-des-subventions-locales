@@ -1,5 +1,6 @@
 import pytest
 import responses
+from freezegun import freeze_time
 
 from gsl_core.api.fonds_vert import FONDS_VERT_BASE_URL
 
@@ -129,7 +130,7 @@ class TestImportFondsVertPage:
 
 class TestImportFondsVertSubventions:
     """`import_fonds_vert_subventions` : connexion (cf.
-    `gsl_core.api.fonds_vert`) + curseur de reprise (`FondsVertImportState`)."""
+    `gsl_core.api.fonds_vert`) + filtre de date (`FondsVertImportState`)."""
 
     @pytest.fixture(autouse=True)
     def fonds_vert_credentials(self, settings):
@@ -147,7 +148,7 @@ class TestImportFondsVertSubventions:
         )
 
     @responses.activate
-    def test_resumes_from_the_saved_cursor_by_default(self):
+    def test_always_starts_from_page_one_even_after_a_previous_run(self):
         state = FondsVertImportState.load()
         state.data["last_page"] = 3
         state.save(update_fields=["data", "updated_at"])
@@ -156,28 +157,69 @@ class TestImportFondsVertSubventions:
 
         import_fonds_vert_subventions()
 
-        assert responses.calls[1].request.params["page"] == "4"
+        assert responses.calls[1].request.params["page"] == "1"
 
     @responses.activate
-    def test_restart_ignores_the_saved_cursor(self):
+    def test_sends_the_saved_date_as_a_filter_at_midnight_utc(self):
         state = FondsVertImportState.load()
-        state.data["last_page"] = 3
+        state.data["date_derniere_modification"] = "2026-09-01"
+        state.save(update_fields=["data", "updated_at"])
+        self._mock_login()
+        self._mock_one_page()
+
+        import_fonds_vert_subventions()
+
+        assert (
+            responses.calls[1].request.params["date_derniere_modification__gte"]
+            == "2026-09-01T00:00:00.000Z"
+        )
+
+    @responses.activate
+    def test_omits_the_date_filter_on_the_very_first_import(self):
+        self._mock_login()
+        self._mock_one_page()
+
+        import_fonds_vert_subventions()
+
+        assert (
+            "date_derniere_modification__gte" not in responses.calls[1].request.params
+        )
+
+    @responses.activate
+    def test_restart_clears_the_saved_date_filter(self):
+        state = FondsVertImportState.load()
+        state.data["date_derniere_modification"] = "2026-09-01"
         state.save(update_fields=["data", "updated_at"])
         self._mock_login()
         self._mock_one_page()
 
         import_fonds_vert_subventions(restart=True)
 
-        assert responses.calls[1].request.params["page"] == "1"
+        assert (
+            "date_derniere_modification__gte" not in responses.calls[1].request.params
+        )
 
     @responses.activate
-    def test_resets_the_cursor_once_the_sync_is_complete(self):
+    def test_resets_the_page_once_the_sync_is_complete(self):
         self._mock_login()
         self._mock_one_page()
 
         import_fonds_vert_subventions()
 
         assert FondsVertImportState.load().data["last_page"] == 0
+
+    @responses.activate
+    @freeze_time("2026-09-15")
+    def test_saves_today_as_the_new_date_filter_once_the_sync_is_complete(self):
+        self._mock_login()
+        self._mock_one_page()
+
+        import_fonds_vert_subventions()
+
+        assert (
+            FondsVertImportState.load().data["date_derniere_modification"]
+            == "2026-09-15"
+        )
 
     def test_returns_an_empty_bilan_when_credentials_are_missing(self, settings):
         settings.FONDS_VERT_USERNAME = ""

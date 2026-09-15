@@ -21,8 +21,6 @@ class Subvention(models.Model):
     importer_key = models.CharField(
         max_length=255, editable=False, verbose_name="Clé d'import"
     )
-
-    # --- Champs communs (DGCL et Fonds Vert) ---
     source = models.CharField(
         max_length=20, choices=SOURCE_CHOICES, verbose_name="Source"
     )
@@ -99,11 +97,17 @@ class FondsVertImportState(ImportState):
     financier" alors que le modèle générique vit dans gsl_core, réutilisable
     par d'autres imports.
 
-    Retient dans `data` la dernière page importée avec succès (clé
-    "last_page") pour reprendre l'import à cet endroit après une interruption
-    (erreur réseau, expiration du token, tâche relancée) plutôt que de tout
-    refaire depuis la page 1. Remise à 0 une fois une synchronisation complète
-    terminée avec succès.
+    Retient dans `data` :
+    - "last_page" : la progression de l'appel en cours (utile pour
+      diagnostiquer où il s'est arrêté en cas d'interruption réseau ou
+      d'expiration du token) ; chaque appel repart néanmoins de la page 1,
+      remise à 0 dès le début de l'appel et une fois la synchronisation
+      terminée.
+    - "date_derniere_modification" : la date de la dernière synchronisation
+      complète réussie, envoyée à l'API (`date_derniere_modification__gte`)
+      pour ne récupérer que les dossiers modifiés depuis lors. Absente au
+      premier import (import complet), et effacée par `--restart` pour en
+      forcer un nouveau.
     """
 
     KEY = "fonds_vert"
@@ -114,7 +118,10 @@ class FondsVertImportState(ImportState):
         verbose_name_plural = "État de l'import Fonds Vert"
 
     def __str__(self):
-        return f"Fonds Vert — reprise à la page {self.data.get('last_page', 0)}"
+        date_derniere_modification = self.data.get("date_derniere_modification")
+        if date_derniere_modification:
+            return f"Fonds Vert — dossiers modifiés jusqu'au {date_derniere_modification} (exclu)"
+        return "Fonds Vert — aucune synchronisation complète encore réalisée"
 
     @classmethod
     def load(cls) -> "FondsVertImportState":
