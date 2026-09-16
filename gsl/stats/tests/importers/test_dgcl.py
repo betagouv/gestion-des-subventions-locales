@@ -1,10 +1,11 @@
 import pytest
 import responses
 
+from gsl_core.api.data_gouv import get_dataset_api_url
 from gsl_core.tests.factories import CommuneFactory, DepartementFactory
 
 from ...importers.dgcl import (
-    DGCL_API_URL,
+    DGCL_DATASET_ID,
     DgclRowSkipped,
     _build_dgcl_subvention,
     _parse_decimal,
@@ -12,6 +13,8 @@ from ...importers.dgcl import (
     import_dgcl_subventions,
 )
 from ...models import Subvention
+
+DGCL_API_URL = get_dataset_api_url(DGCL_DATASET_ID)
 
 pytestmark = pytest.mark.django_db
 
@@ -242,9 +245,9 @@ def test_parse_int(raw, expected):
         ("1000,50", 1000.50),
         ("1 000,50", 1000.50),
         ("1000.50", 1000.50),
-        ("", 0),
-        (None, 0),
-        ("abc", 0),
+        ("", None),
+        (None, None),
+        ("abc", None),
     ],
 )
 def test_parse_decimal(raw, expected):

@@ -45,7 +45,11 @@ class Subvention(models.Model):
         verbose_name="Commune",
     )
     cout_total = models.DecimalField(
-        max_digits=14, decimal_places=2, verbose_name="Coût total"
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Coût total",
     )
     montant_attribue = models.DecimalField(
         max_digits=14,
@@ -86,7 +90,7 @@ class Subvention(models.Model):
 
     @property
     def taux_accorde(self):
-        if self.montant_attribue is None:
+        if self.montant_attribue is None or self.cout_total is None:
             return None
         return compute_taux(self.montant_attribue, self.cout_total)
 

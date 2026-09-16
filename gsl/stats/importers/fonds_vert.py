@@ -129,9 +129,9 @@ def _import_fonds_vert_dossier(item: dict) -> bool:
             "status": _resolve_fonds_vert_status(sc.get("statut")),
             "departement": departement,
             "commune": commune,
-            "montant_demande": sc.get("montant_aide_demandee_fond_vert") or 0,
+            "montant_demande": sc.get("montant_aide_demandee_fond_vert"),
             "montant_attribue": sc.get("montant_subvention_attribuee"),
-            "cout_total": sc.get("total_des_depenses") or 0,
+            "cout_total": sc.get("total_des_depenses"),
         },
     )
     return created

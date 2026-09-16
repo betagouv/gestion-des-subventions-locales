@@ -134,13 +134,11 @@ def _build_dgcl_subvention(row) -> Subvention:
         row.get("cout_ht")
         or row.get("Coût total HT du projet")
         or row.get("montant_total_ht")
-        or "0"
     )
     montant_attribue_raw = (
         row.get("subvention")
         or row.get("Montant de la subvention accordée")
         or row.get("montant_subvention")
-        or "0"
     )
     dep_code = (
         row.get("beneficiaire_dep")
@@ -192,12 +190,12 @@ def _parse_int(value):
 
 def _parse_decimal(value):
     if not value:
-        return Decimal(0)
+        return None
     cleaned = str(value).strip().replace(",", ".").replace(" ", "").replace("\xa0", "")
     try:
         return Decimal(cleaned)
     except InvalidOperation:
-        return Decimal(0)
+        return None
 
 
 def _log_invalidated_lines(invalid_rows: list[InvalidRow], show_dsid=False) -> None:
