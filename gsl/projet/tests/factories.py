@@ -14,7 +14,7 @@ from ..constants import (
     DOTATIONS,
     PROJET_STATUS_CHOICES,
 )
-from ..models import CategorieDetr, DotationProjet, Projet, ProjetNote
+from ..models import DotationProjet, Projet, ProjetNote
 
 
 class ProjetFactory(factory.django.DjangoModelFactory):
@@ -61,18 +61,6 @@ class DetrProjetFactory(DotationProjetFactory):
 
 class DsilProjetFactory(DotationProjetFactory):
     dotation = DOTATION_DSIL
-
-
-class CategorieDetrFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = CategorieDetr
-        django_get_or_create = ("departement", "annee", "rang")
-
-    departement = factory.SubFactory(DepartementFactory)
-    annee = factory.Faker("random_int", min=2024, max=2027)
-    rang = factory.Sequence(lambda n: n)
-    libelle = factory.Faker("sentence", locale="fr_FR")
-    is_current = True
 
 
 class ProjetNoteFactory(factory.django.DjangoModelFactory):

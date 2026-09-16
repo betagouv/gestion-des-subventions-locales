@@ -236,43 +236,8 @@ def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_
 
 # -- create_simulation_projets_from_dotation_projet --
 
+
 # TODO category : useless now. Remove it if we don't allow to set DETR category.
-# @pytest.mark.django_db
-# @pytest.mark.parametrize(
-#     "dotation",
-#     (DOTATION_DETR, DOTATION_DSIL),
-# )
-# def test_create_or_update_dotation_projet_add_detr_categories(dotation):
-#     projet = ProjetFactory(
-#         dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
-#     )
-#     dotation_projet = DotationProjetFactory(
-#         projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
-#     )
-#     categorie_detr = CategorieDetrFactory()
-#     projet.dossier_ds.demande_eligibilite_detr.add(
-#         CritereEligibiliteDetrFactory(detr_category=categorie_detr)
-#     )
-
-#     # ------
-
-#     dps.create_or_update_dotation_projet_from_projet(projet)
-
-#     # ------
-
-#     assert DotationProjet.objects.count() == 1
-
-#     dotation_projet = DotationProjet.objects.first()
-#     assert dotation_projet.projet == projet
-#     assert dotation_projet.dotation == dotation
-#     assert dotation_projet.status == PROJET_STATUS_PROCESSING
-
-#     if dotation_projet.dotation == DOTATION_DSIL:
-#         assert dotation_projet.detr_categories.count() == 0
-#     else:
-#         assert categorie_detr in dotation_projet.detr_categories.all()
-
-
 @pytest.fixture
 def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_and_dotation(
     perimetres,

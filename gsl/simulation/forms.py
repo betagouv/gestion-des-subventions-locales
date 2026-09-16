@@ -196,7 +196,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
                 cleaned_data["montant"] = computed_montant
 
         dotation_projet.assiette = cleaned_data.get("assiette")
-        dotation_projet.full_clean(exclude=["detr_avis_commission", "detr_categories"])
+        dotation_projet.full_clean(exclude=["detr_avis_commission"])
 
         return cleaned_data
 

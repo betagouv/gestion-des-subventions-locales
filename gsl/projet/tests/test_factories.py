@@ -1,10 +1,7 @@
 import pytest
 
-from gsl_core.tests.factories import DepartementFactory
-
-from ..models import CategorieDetr, DotationProjet, Projet, ProjetNote
+from ..models import DotationProjet, Projet, ProjetNote
 from .factories import (
-    CategorieDetrFactory,
     DotationProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
@@ -19,7 +16,6 @@ test_data = (
     (SubmittedProjetFactory, Projet),
     (ProcessedProjetFactory, Projet),
     (DotationProjetFactory, DotationProjet),
-    (CategorieDetrFactory, CategorieDetr),
     (ProjetNoteFactory, ProjetNote),
 )
 
@@ -29,19 +25,3 @@ def test_every_factory_can_be_called_twice(factory, expected_class):
     for _ in range(2):
         obj = factory()
         assert isinstance(obj, expected_class)
-
-
-def test_category_detr_factory_can_be_called_twice_with_same_parameters():
-    annee = 2025
-    rang = 7
-    departement = DepartementFactory()
-    assert CategorieDetr.objects.count() == 0
-
-    for _ in range(2):
-        category = CategorieDetrFactory(rang=rang, annee=annee, departement=departement)
-
-    assert category.rang == rang
-    assert category.annee == 2025
-    assert category.departement == departement
-
-    assert CategorieDetr.objects.count() == 1

@@ -13,7 +13,6 @@ from django.db.models import (
     OuterRef,
     Q,
     Sum,
-    UniqueConstraint,
     Value,
     When,
 )
@@ -52,47 +51,6 @@ if TYPE_CHECKING:
     from gsl.simulation.models import SimulationProjet
     from gsl_demarches_simplifiees.models import Dossier
     from gsl_programmation.models import Enveloppe
-
-
-class CategorieDetrQueryset(models.QuerySet):
-    def current_for_departement(self, departement: Departement):
-        return self.filter(departement=departement, is_current=True)
-
-
-# TODO : useless now. Remove it if we don't allow to set DETR category
-class CategorieDetr(models.Model):
-    libelle = models.CharField("Libellé")
-    rang = models.IntegerField("Rang", default=0)
-    annee = models.IntegerField("Année")
-    departement = models.ForeignKey(
-        Departement, verbose_name="Département", on_delete=models.PROTECT
-    )
-    is_current = models.BooleanField(
-        "Actuelle",
-        help_text="Indique si cette catégorie est utilisable sur la campagne actuelle ou non",
-        default=False,
-    )
-
-    objects = CategorieDetrQueryset.as_manager()
-
-    class Meta:
-        verbose_name = "Catégorie DETR"
-        verbose_name_plural = "Catégories DETR"
-        constraints = (
-            UniqueConstraint(
-                fields=("departement", "annee", "rang"),
-                name="unique_by_departement_rang_annee",
-            ),
-        )
-
-    def __str__(self):
-        return f"Catégorie DETR {self.id} - {self.libelle}"
-
-    @property
-    def label(self):
-        if self.libelle[0].isdigit():
-            return self.libelle
-        return f"{self.rang} - {self.libelle}"
 
 
 class ProjetQuerySet(models.QuerySet):
@@ -609,11 +567,6 @@ class DotationProjet(BaseModel):
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
     )
-    # TODO : useless now. Remove it if we don't allow to set DETR category
-    detr_categories = models.ManyToManyField(
-        CategorieDetr, verbose_name="Catégories d’opération DETR"
-    )
-
     objects = DotationProjetManager()
 
     class Meta:
@@ -645,9 +598,6 @@ class DotationProjet(BaseModel):
                     "L'assiette doit être inférieure ou égale au coût total du projet."
                 )
 
-        if "detr_categories" not in exclude:
-            self._validate_detr_categories(errors)
-
         if errors:
             raise ValidationError(errors)
 
@@ -667,25 +617,6 @@ class DotationProjet(BaseModel):
             errors["detr_avis_commission"] = (
                 f"L'avis de la commission DETR ne doit être renseigné que pour les projets DETR dont le montant demandé est supérieur ou égal à {MIN_DEMANDE_MONTANT_FOR_AVIS_DETR}."
             )
-
-    def _validate_detr_categories(self, errors):
-        if self.dotation != DOTATION_DETR:
-            if self.detr_categories.exists():
-                errors["detr_categories"] = (
-                    "Les catégories DETR ne doivent être renseignées que pour les projets DETR."
-                )
-            return
-
-        projet_departement = (
-            self.projet.perimetre.departement
-            if self.projet and self.projet.perimetre
-            else None
-        )
-        for categorie in self.detr_categories.all():
-            if categorie.departement != projet_departement:
-                errors["detr_categories"] = (
-                    f"La catégorie DETR « {categorie.libelle} » n'appartient pas au même département que le projet."
-                )
 
     def save(self, *args, **kwargs):
         if self._state.adding and self.assiette is None:

@@ -12,8 +12,6 @@ from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import (
     CollegueFactory,
-    DepartementFactory,
-    PerimetreFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import ProgrammationProjet
@@ -36,9 +34,7 @@ from ...models import (
     DotationProjet,
 )
 from ..factories import (
-    CategorieDetrFactory,
     DotationProjetFactory,
-    DsilProjetFactory,
     ProjetFactory,
 )
 
@@ -173,7 +169,7 @@ def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
 ):
     dotation_projet = DotationProjetFactory(dotation=dotation)
     dotation_projet.detr_avis_commission = avis_commission
-    exclude = ["assiette", "detr_categories"]
+    exclude = ["assiette"]
 
     if must_raise_error:
         with pytest.raises(ValidationError) as exc_info:
@@ -203,7 +199,7 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
         assiette=assiette,
         projet__dossier_ds__finance_cout_total=cout_total,
     )
-    exclude = ["detr_avis_commission", "detr_categories"]
+    exclude = ["detr_avis_commission"]
 
     if must_raise_error:
         with pytest.raises(ValidationError) as exc_info:
@@ -791,49 +787,6 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
     dotation_projet.save()
 
     mock_repasser_en_instruction.assert_not_called()
-
-
-@pytest.mark.django_db
-def test_categorie_detr_departement_constraint():
-    dep1 = DepartementFactory()
-    dep2 = DepartementFactory()
-
-    perimetre = PerimetreFactory(departement=dep1)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-
-    cat_ok = CategorieDetrFactory(
-        libelle="Cat OK", rang=1, annee=2024, departement=dep1
-    )
-    cat_bad = CategorieDetrFactory(
-        libelle="Cat BAD", rang=2, annee=2024, departement=dep2
-    )
-
-    dotation_projet = DotationProjetFactory(projet=projet, dotation="DETR")
-    exclude = ["assiette", "detr_avis_commission"]
-
-    dotation_projet.detr_categories.set([cat_ok])
-    dotation_projet.clean_fields(exclude=exclude)
-
-    dotation_projet.detr_categories.set([cat_bad])
-    with pytest.raises(ValidationError) as excinfo:
-        dotation_projet.clean_fields(exclude=exclude)
-    assert "n'appartient pas au même département que le projet" in str(excinfo.value)
-
-
-@pytest.mark.django_db
-def test_categorie_detr_dotation_constraint():
-    category = CategorieDetrFactory()
-    dsil_dotation_projet = DsilProjetFactory()
-    exclude = ["assiette", "detr_avis_commission"]
-
-    dsil_dotation_projet.detr_categories.set([category])
-
-    with pytest.raises(ValidationError) as excinfo:
-        dsil_dotation_projet.clean_fields(exclude=exclude)
-    assert (
-        "Les catégories DETR ne doivent être renseignées que pour les projets DETR"
-        in str(excinfo.value)
-    )
 
 
 # -- save() default assiette --
