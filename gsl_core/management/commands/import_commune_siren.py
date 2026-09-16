@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from gsl.projet.utils.utils import compute_taux
-from gsl_core.data_gouv import get_dataset_api_url, get_latest_resource_url
+from gsl_core.api.data_gouv import get_dataset_api_url, get_latest_resource_url
 from gsl_core.models import Commune
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 import requests
 from django.db import transaction
 
-from gsl_core.data_gouv import get_dataset_api_url, get_dataset_resources
+from gsl_core.api.data_gouv import get_dataset_resources
 
 from ..models import Subvention
 from .utils import resolve_commune, resolve_departement
@@ -15,7 +15,6 @@ from .utils import resolve_commune, resolve_departement
 logger = logging.getLogger(__name__)
 
 DGCL_DATASET_ID = "6176785207139a929a2776fe"
-DGCL_API_URL = get_dataset_api_url(DGCL_DATASET_ID)
 
 
 @transaction.atomic
