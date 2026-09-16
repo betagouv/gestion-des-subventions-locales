@@ -166,7 +166,7 @@ def test_attach_form_only_offers_documents_importable_on_the_projet():
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
     ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
 
     form = ManualDocumentAttachForm(projet=projet)
@@ -185,7 +185,7 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
     ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
 
     key = _parked_pdf()
@@ -215,7 +215,7 @@ def test_attach_form_refuses_a_document_already_imported():
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
     ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
     LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
@@ -235,7 +235,7 @@ def test_attach_form_refuses_a_key_outside_the_temporary_prefix():
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
     ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
+        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
 
     form = ManualDocumentAttachForm(

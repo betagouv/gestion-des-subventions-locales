@@ -5,7 +5,14 @@ from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Sum
 
-from gsl.projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import (
+    DOTATION_CHOICES,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl.projet.models import DotationProjet, Projet
 from gsl.projet.utils.utils import compute_taux
 from gsl_core.models import BaseModel, Perimetre
@@ -131,7 +138,7 @@ class Enveloppe(BaseModel):
     def accepted_montant(self):
         return (
             self.enveloppe_projets_processed.filter(
-                status=ProgrammationProjet.STATUS_ACCEPTED
+                dotation_projet__status=PROJET_STATUS_ACCEPTED
             ).aggregate(Sum("montant"))["montant__sum"]
             or 0
         )
@@ -143,13 +150,13 @@ class Enveloppe(BaseModel):
     @property
     def validated_projets_count(self):
         return self.enveloppe_projets_processed.filter(
-            status=ProgrammationProjet.STATUS_ACCEPTED
+            dotation_projet__status=PROJET_STATUS_ACCEPTED
         ).count()
 
     @property
     def refused_projets_count(self):
         return self.enveloppe_projets_processed.filter(
-            status=ProgrammationProjet.STATUS_REFUSED
+            dotation_projet__status=PROJET_STATUS_REFUSED
         ).count()
 
     @property
@@ -213,15 +220,15 @@ class ProgrammationProjetQuerySet(models.QuerySet):
 
     def can_generate_accepted_documents(self):
         return self.filter(
-            status=ProgrammationProjet.STATUS_ACCEPTED,
+            dotation_projet__status=PROJET_STATUS_ACCEPTED,
             dotation_projet__projet__notified_at__isnull=True,
         )
 
     def can_generate_refus_documents(self):
         return self.filter(
-            status__in=(
-                ProgrammationProjet.STATUS_REFUSED,
-                ProgrammationProjet.STATUS_DISMISSED,
+            dotation_projet__status__in=(
+                PROJET_STATUS_REFUSED,
+                PROJET_STATUS_DISMISSED,
             ),
             dotation_projet__projet__notified_at__isnull=True,
         )
@@ -252,15 +259,6 @@ class ProgrammationProjet(models.Model):
     definitely accepted or refused on a given Enveloppe.
     """
 
-    STATUS_ACCEPTED = "accepted"
-    STATUS_REFUSED = "refused"
-    STATUS_DISMISSED = "dismissed"
-    STATUS_CHOICES = (
-        (STATUS_ACCEPTED, "✅ Accepté"),
-        (STATUS_REFUSED, "❌ Refusé"),
-        (STATUS_DISMISSED, "⛔️ Classé sans suite"),
-    )
-
     dotation_projet = models.OneToOneField(
         DotationProjet,
         on_delete=models.CASCADE,
@@ -269,9 +267,6 @@ class ProgrammationProjet(models.Model):
     )
     enveloppe = models.ForeignKey(
         Enveloppe, on_delete=models.CASCADE, verbose_name="Enveloppe"
-    )
-    status = models.CharField(
-        verbose_name="État", choices=STATUS_CHOICES, default=STATUS_ACCEPTED
     )
     montant = models.DecimalField(
         decimal_places=2, max_digits=14, verbose_name="Montant"
@@ -314,15 +309,8 @@ class ProgrammationProjet(models.Model):
         return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
 
     @property
-    def can_generate_accepted_documents(self):
-        return self.status == self.STATUS_ACCEPTED and self.projet.notified_at is None
-
-    @property
-    def can_generate_refus_documents(self):
-        return (
-            self.status in (self.STATUS_REFUSED, self.STATUS_DISMISSED)
-            and self.projet.notified_at is None
-        )
+    def status(self):
+        return self.dotation_projet.status
 
     @property
     def dotation(self):
@@ -374,6 +362,6 @@ class ProgrammationProjet(models.Model):
             }
 
     def _validate_for_refused_status(self, errors):
-        if self.status == self.STATUS_REFUSED:
+        if self.status == PROJET_STATUS_REFUSED:
             if self.montant != 0:
                 errors["montant"] = {"Un projet refusé doit avoir un montant nul."}

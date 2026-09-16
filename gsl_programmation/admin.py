@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from import_export.admin import ImportExportMixin
 
+from gsl.projet.constants import PROJET_STATUS_ACCEPTED
 from gsl.simulation.models import SimulationProjet
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -116,7 +117,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     search_fields = ("dotation_projet__projet__dossier_ds__ds_number",)
     list_filter = (
         "dotation_projet__projet__dossier_ds__is_active",
-        "status",
+        "dotation_projet__status",
         "enveloppe__dotation",
         "enveloppe__annee",
         "enveloppe__perimetre__region__name",
@@ -141,7 +142,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     @transaction.atomic
     def associer_enveloppe_2025(self, request, queryset):
         invalid = queryset.exclude(
-            status=ProgrammationProjet.STATUS_ACCEPTED, enveloppe__annee=2026
+            dotation_projet__status=PROJET_STATUS_ACCEPTED, enveloppe__annee=2026
         )
         if invalid.exists():
             self.message_user(
@@ -151,7 +152,7 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             )
 
         valid_qs = queryset.filter(
-            status=ProgrammationProjet.STATUS_ACCEPTED, enveloppe__annee=2026
+            dotation_projet__status=PROJET_STATUS_ACCEPTED, enveloppe__annee=2026
         )
         dotation_projet_ids = list(
             valid_qs.values_list("dotation_projet_id", flat=True)

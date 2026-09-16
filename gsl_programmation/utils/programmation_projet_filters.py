@@ -9,6 +9,8 @@ from django_filters import (
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
+    PROJET_FINAL_STATUSES,
+    PROJET_STATUS_CHOICES,
 )
 from gsl.projet.models import DotationProjet
 from gsl.projet.utils.django_filters_custom_widget import (
@@ -76,8 +78,12 @@ class ProgrammationProjetFilters(CommonFiltersFields):
 
     status = MultipleChoiceFilter(
         label="Statut",
-        field_name="status",
-        choices=(ProgrammationProjet.STATUS_CHOICES),
+        field_name="dotation_projet__status",
+        choices=tuple(
+            choice
+            for choice in PROJET_STATUS_CHOICES
+            if choice[0] in PROJET_FINAL_STATUSES
+        ),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 

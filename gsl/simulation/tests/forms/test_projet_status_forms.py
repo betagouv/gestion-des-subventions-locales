@@ -155,9 +155,9 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
     "initial_programmation_status, new_projet_status, programmation_status_expected",
     (
         (
-            ProgrammationProjet.STATUS_REFUSED,
+            PROJET_STATUS_REFUSED,
             SimulationProjet.STATUS_ACCEPTED,
-            ProgrammationProjet.STATUS_ACCEPTED,
+            PROJET_STATUS_ACCEPTED,
         ),
     ),
 )

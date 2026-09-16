@@ -111,7 +111,7 @@ def test_assiette_or_cout_total():
 
 def test_montant_retenu_with_accepted_programmation_projet():
     programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED, montant=10_000
+        status=PROJET_STATUS_ACCEPTED, montant=10_000
     )
     assert programmation_projet.dotation_projet.montant_retenu == 10_000
 
@@ -122,7 +122,7 @@ def test_montant_retenu_with_refused_programmation_projet():
 
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         montant=0,
     )
     assert dotation_projet.montant_retenu == 0
@@ -130,7 +130,7 @@ def test_montant_retenu_with_refused_programmation_projet():
 
 def test_taux_retenu_with_accepted_programmation_projet():
     programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=100,
         dotation_projet__assiette=1_000,
     )
@@ -143,7 +143,7 @@ def test_taux_retenu_with_refused_programmation_projet():
 
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         montant=0,
     )
     assert dotation_projet.taux_retenu == 0
@@ -269,7 +269,7 @@ def test_accept_dotation_projet_without_simulation_projet():
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 5_000
     assert programmation_projet.taux == 50
-    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
 
 
 def test_accept_dotation_projet():
@@ -319,7 +319,7 @@ def test_accept_dotation_projet():
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 5_000
     assert programmation_projet.taux == 50
-    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
 
 
 def test_accept_dotation_projet_update_programmation_projet():
@@ -332,7 +332,7 @@ def test_accept_dotation_projet_update_programmation_projet():
         dotation_projet=dotation_projet,
         enveloppe=enveloppe,
         montant=0,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
     )
 
     # --
@@ -352,7 +352,7 @@ def test_accept_dotation_projet_update_programmation_projet():
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 5_000
     assert round(programmation_projet.taux, 4) == Decimal("55.5556")
-    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
 
 
 def test_accept_dotation_projet_select_parent_enveloppe():
@@ -417,7 +417,7 @@ def test_accept_does_not_create_status_change_action_when_already_accepted_and_s
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         enveloppe=enveloppe,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
 
     dotation_projet.accept_without_ds_update(montant=6_000, enveloppe=enveloppe)
@@ -440,7 +440,7 @@ def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
         enveloppe=old_enveloppe,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
 
     dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=new_enveloppe)
@@ -479,7 +479,7 @@ def test_refusing_a_dotation_projet_creates_one_programmation_projet():
     programmation_projet = programmation_projets.first()
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
-    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.status == PROJET_STATUS_REFUSED
 
 
 def test_refusing_a_projet_updates_all_simulation_projet():
@@ -553,9 +553,9 @@ def test_dismiss(status, montant):
         dotation_projet=dotation_projet,
         enveloppe=enveloppe,
         status=(
-            ProgrammationProjet.STATUS_REFUSED
+            PROJET_STATUS_REFUSED
             if dotation_projet.status == PROJET_STATUS_REFUSED
-            else ProgrammationProjet.STATUS_ACCEPTED
+            else PROJET_STATUS_ACCEPTED
         ),
     )
 
@@ -581,7 +581,7 @@ def test_dismiss(status, montant):
         ProgrammationProjet.objects.filter(dotation_projet=dotation_projet).count() == 1
     )
     programmation_projet = ProgrammationProjet.objects.get()
-    assert programmation_projet.status == ProgrammationProjet.STATUS_DISMISSED
+    assert programmation_projet.status == PROJET_STATUS_DISMISSED
     simulation_projets = SimulationProjet.objects.filter(
         dotation_projet=dotation_projet
     )
@@ -633,7 +633,7 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=10_000,
     )
     SimulationProjetFactory.create_batch(
@@ -672,12 +672,12 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
     [
         (
             PROJET_STATUS_REFUSED,
-            ProgrammationProjet.STATUS_REFUSED,
+            PROJET_STATUS_REFUSED,
             SimulationProjet.STATUS_REFUSED,
         ),
         (
             PROJET_STATUS_DISMISSED,
-            ProgrammationProjet.STATUS_DISMISSED,
+            PROJET_STATUS_DISMISSED,
             SimulationProjet.STATUS_DISMISSED,
         ),
     ],

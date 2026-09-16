@@ -32,7 +32,6 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl_notification.utils import generate_pdf_for_generated_document
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 LETTRE_REFUS_SIGNEE = LettreRefusSignee.document_type
@@ -60,7 +59,7 @@ def refused_programmation_projet(perimetre):
     return ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__status=PROJET_STATUS_REFUSED,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
     )
 
 
@@ -256,7 +255,7 @@ def test_analyze_attaches_the_document_read_from_its_qr_code(
     programmation_projet = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__status=PROJET_STATUS_ACCEPTED,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
     projet = programmation_projet.dotation_projet.projet
     scan = SimpleUploadedFile(
@@ -292,13 +291,13 @@ def test_analyze_refuses_a_scan_belonging_to_another_projet(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__projet__dossier_ds__ds_number=9999999,
         dotation_projet__status=PROJET_STATUS_ACCEPTED,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
     target_pp = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__projet__dossier_ds__ds_number=1111111,
         dotation_projet__status=PROJET_STATUS_ACCEPTED,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
     scan = SimpleUploadedFile(
         "scan.pdf", _signed_scan_for(other_pp), content_type="application/pdf"
@@ -332,13 +331,13 @@ def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__projet__dossier_ds__ds_number=1111111,
         dotation_projet__status=PROJET_STATUS_ACCEPTED,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
     other_pp = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__projet__dossier_ds__ds_number=9999999,
         dotation_projet__status=PROJET_STATUS_ACCEPTED,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
     scan = SimpleUploadedFile(
         "scan.pdf",

@@ -11,7 +11,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
@@ -114,7 +113,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=400,
         dotation_projet__projet__notified_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
@@ -144,7 +143,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
         assert simulation_projet.taux == 10
 
     programmation_projet = dotation_projet.programmation_projet  # always exists
-    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
     assert programmation_projet.montant == 400
     assert programmation_projet.taux == 10
 
@@ -177,7 +176,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=400,
         dotation_projet__projet__notified_at=None,
     )
@@ -203,7 +202,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         assert simulation_projet.taux == 10
 
     programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
 
 
 @pytest.mark.django_db
@@ -233,7 +232,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=400,
         dotation_projet__projet__notified_at=None,
     )
@@ -262,7 +261,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         assert simulation_projet.taux == 10
 
     programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
     assert programmation_projet.montant == 400
     assert programmation_projet.taux == 10
 
@@ -294,7 +293,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         enveloppe=detr_enveloppe,
     )
     assert projet.status == PROJET_STATUS_REFUSED
@@ -317,7 +316,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
         assert simulation_projet.taux == 10
 
     programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == ProgrammationProjet.STATUS_ACCEPTED
+    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
     assert programmation_projet.montant == 5_000
     assert programmation_projet.taux == 10
 
@@ -344,7 +343,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
     )
@@ -371,7 +370,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
         assert simulation_projet.taux == 0
 
     programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == ProgrammationProjet.STATUS_REFUSED
+    assert programmation_projet.status == PROJET_STATUS_REFUSED
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
 
@@ -398,7 +397,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
     )
@@ -425,7 +424,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
         assert simulation_projet.taux == 0
 
     programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == ProgrammationProjet.STATUS_DISMISSED
+    assert programmation_projet.status == PROJET_STATUS_DISMISSED
     assert programmation_projet.montant == 0
     assert programmation_projet.taux == 0
 
@@ -459,7 +458,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
     )

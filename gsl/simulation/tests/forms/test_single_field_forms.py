@@ -7,7 +7,6 @@ from gsl.projet.constants import PROJET_STATUS_ACCEPTED
 from gsl.projet.tests.factories import DetrProjetFactory, DotationProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...forms import (
@@ -81,7 +80,7 @@ def test_assiette_form_save_accepted_triggers_accept(mock_ds_update, user):
     ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe.delegation_root,
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=40_000,
     )
 
@@ -163,7 +162,7 @@ def test_montant_form_save_accepted_triggers_accept(mock_ds_update, user):
     ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe.delegation_root,
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=1_000,
     )
 
@@ -263,7 +262,7 @@ def test_taux_form_save_accepted_triggers_accept(mock_ds_update, user):
     ProgrammationProjetFactory(
         enveloppe=simulation_projet.enveloppe.delegation_root,
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
 
     form = TauxSingleFieldForm(

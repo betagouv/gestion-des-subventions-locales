@@ -3,7 +3,6 @@ from django.utils.safestring import mark_safe
 from django_filters.widgets import SuffixedMultiWidget
 
 from gsl.simulation.models import SimulationProjet
-from gsl_programmation.models import ProgrammationProjet
 
 from ..constants import (
     PROJET_STATUS_ACCEPTED,
@@ -33,8 +32,6 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
             PROJET_STATUS_PROCESSING: "",
             PROJET_STATUS_REFUSED: "red",
             PROJET_STATUS_DISMISSED: "",
-            ProgrammationProjet.STATUS_ACCEPTED: "green",
-            ProgrammationProjet.STATUS_REFUSED: "red",
         }.get(option_value, "")
 
     def render(self, name, value, attrs=None, renderer=None):

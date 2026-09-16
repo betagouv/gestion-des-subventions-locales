@@ -4,7 +4,11 @@ import factory
 from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+)
 from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
@@ -38,12 +42,7 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     class Meta:
         model = ProgrammationProjet
 
-    status = ProgrammationProjet.STATUS_ACCEPTED
-    # The two models carry the same status in production; keep fixtures coherent
-    # so a document's validation sees the status the test asked for.
-    dotation_projet = SubFactory(
-        DotationProjetFactory, status=factory.SelfAttribute("..status")
-    )
+    dotation_projet = SubFactory(DotationProjetFactory, status=PROJET_STATUS_ACCEPTED)
     enveloppe = factory.LazyAttribute(
         lambda obj: DetrEnveloppeFactory(
             perimetre=PerimetreDepartementalFactory(
@@ -54,6 +53,15 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     )
 
     montant = Faker("random_number", digits=5)
+
+    @factory.post_generation
+    def status(obj, create, extracted, **kwargs):
+        """The status lives on the DotationProjet, whether the caller lets this
+        factory build it or passes its own."""
+        if extracted is None or obj.dotation_projet.status == extracted:
+            return
+        obj.dotation_projet.status = extracted
+        obj.dotation_projet.save(update_fields=["status"])
 
     @factory.post_generation
     def save_projet(obj, create, extracted, **kwargs):

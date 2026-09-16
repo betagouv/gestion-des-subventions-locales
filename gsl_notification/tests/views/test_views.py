@@ -31,7 +31,6 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 ## FIXTURES
@@ -333,7 +332,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
 
     programmation_projet = ProgrammationProjetFactory(
         dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         dotation_projet__projet__dossier_ds__perimetre=departement_1,
     )
 

@@ -166,7 +166,9 @@ COLUMN_DOCUMENTS = Column(
 COLUMN_STATUT = Column(
     key="statut",
     label="Statut",
-    getter=lambda ctx: _wrap_emoji(ctx["programmation_projet"].get_status_display()),
+    getter=lambda ctx: _wrap_emoji(
+        ctx["programmation_projet"].dotation_projet.get_status_display()
+    ),
     other_dotation_getter=_get_other_dotation_statut,
     sticky=StickyPosition.RIGHT_1,
     text_align=TextAlign.CENTER,

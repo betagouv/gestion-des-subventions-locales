@@ -9,7 +9,12 @@ from django.core.files.storage import default_storage
 from django.test import override_settings
 from freezegun import freeze_time
 
-from gsl.projet.constants import DOTATION_DETR, LETTRE_REFUS
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    LETTRE_REFUS,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -25,7 +30,6 @@ from gsl_notification.tests.factories import (
     LettreRefusFactory,
     ModeleLettreRefusFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -45,7 +49,7 @@ def programmation_projets(perimetre):
         3,
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         montant=0,
         dotation_projet__projet__notified_at=None,
     )
@@ -193,7 +197,7 @@ def test_launch_no_projects_renders_error_body(client):
 def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_pp = ProgrammationProjetFactory(
         dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         montant=0,
         dotation_projet__projet__notified_at=None,
     )
@@ -212,7 +216,7 @@ def test_launch_ignores_ineligible_ids_silently(client, programmation_projets):
             0
         ].dossier.perimetre,
         dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         dotation_projet__projet__notified_at=None,
     )
     ids = ",".join([str(pp.id) for pp in programmation_projets] + [str(accepted_pp.id)])

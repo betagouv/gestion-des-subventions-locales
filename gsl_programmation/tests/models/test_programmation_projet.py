@@ -5,7 +5,12 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl.projet.models import DotationProjet, Projet
 from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.models import Perimetre
@@ -63,7 +68,9 @@ def test_two_programmation_projets_cant_have_the_same_dotation_projet():
 @pytest.mark.django_db
 def test_programmation_projet_cant_have_a_montant_higher_than_projet_assiette():
     dotation_projet = DotationProjetFactory(
-        assiette=100, projet__dossier_ds__finance_cout_total=200
+        assiette=100,
+        projet__dossier_ds__finance_cout_total=200,
+        status=PROJET_STATUS_ACCEPTED,
     )
     with pytest.raises(ValidationError) as exc_info:
         pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=101)
@@ -76,7 +83,9 @@ def test_programmation_projet_cant_have_a_montant_higher_than_projet_assiette():
 
 @pytest.mark.django_db
 def test_programmation_projet_cant_have_a_montant_higher_than_projet_cout_total():
-    dotation_projet = DotationProjetFactory(projet__dossier_ds__finance_cout_total=100)
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__finance_cout_total=100, status=PROJET_STATUS_ACCEPTED
+    )
     with pytest.raises(ValidationError) as exc_info:
         pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=101)
         pp.full_clean()
@@ -94,13 +103,13 @@ def test_i_can_accept_a_project_on_two_different_enveloppes():
     )
     first_prog_projet = ProgrammationProjetFactory(
         dotation_projet=projet_detr,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         enveloppe=DetrEnveloppeFactory(),
     )
     ProgrammationProjetFactory(
         dotation_projet=projet_dsil,
         enveloppe=DsilEnveloppeFactory(annee=first_prog_projet.enveloppe.annee),
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
 
 
@@ -117,7 +126,10 @@ def projet(arrondisement_perimetre) -> Projet:
 @pytest.fixture
 def dotation_projet(projet) -> DotationProjet:
     return DotationProjetFactory(
-        projet=projet, assiette=Decimal("1234.00"), dotation=DOTATION_DSIL
+        projet=projet,
+        assiette=Decimal("1234.00"),
+        dotation=DOTATION_DSIL,
+        status=PROJET_STATUS_ACCEPTED,
     )
 
 
@@ -178,7 +190,7 @@ def test_clean_programmation_with_refused_status(dotation_projet, enveloppe):
         dotation_projet=dotation_projet,
         enveloppe=enveloppe,
         montant=Decimal("100.00"),
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
     )
     with pytest.raises(ValidationError) as exc_info:
         programmation.clean()
@@ -225,7 +237,9 @@ def test_programmation_projet_with_a_projet_in_enveloppe_perimetre_must_be_okay(
     projet_perimetre = PerimetreArrondissementFactory()
     enveloppe_perimetre = PerimetreRegionalFactory(region=projet_perimetre.region)
     dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__perimetre=projet_perimetre, dotation=DOTATION_DSIL
+        projet__dossier_ds__perimetre=projet_perimetre,
+        dotation=DOTATION_DSIL,
+        status=PROJET_STATUS_ACCEPTED,
     )
     enveloppe = DsilEnveloppeFactory(perimetre=enveloppe_perimetre)
 
@@ -240,19 +254,19 @@ def test_programmation_projet_with_a_projet_in_enveloppe_perimetre_must_be_okay(
 class TestProgrammationProjetQuerySet:
     def test_to_notify(self):
         accepted_and_no_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_ACCEPTED,
+            status=PROJET_STATUS_ACCEPTED,
             dotation_projet__projet__notified_at=None,
         )
         _accepted_and_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_ACCEPTED,
+            status=PROJET_STATUS_ACCEPTED,
             dotation_projet__projet__notified_at=datetime.now(UTC),
         )
         _refused_and_no_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_REFUSED,
+            status=PROJET_STATUS_REFUSED,
             dotation_projet__projet__notified_at=None,
         )
         _refused_and_notified_at = ProgrammationProjetFactory(
-            status=ProgrammationProjet.STATUS_REFUSED,
+            status=PROJET_STATUS_REFUSED,
             dotation_projet__projet__notified_at=datetime.now(UTC),
         )
 
@@ -270,10 +284,7 @@ def test_programmation_projet_enveloppe_is_always_delegation_root(
     programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
         dotation_projet=dotation_projet,
         enveloppe=enveloppe_deleguee,
-        defaults={
-            "montant": Decimal("10.00"),
-            "status": ProgrammationProjet.STATUS_ACCEPTED,
-        },
+        defaults={"montant": Decimal("10.00")},
     )
     assert programmation_projet.enveloppe.pk != enveloppe_deleguee.pk
     assert programmation_projet.enveloppe.pk == enveloppe_deleguee.delegation_root.pk

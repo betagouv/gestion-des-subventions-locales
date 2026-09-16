@@ -4,7 +4,12 @@ from decimal import Decimal
 import pytest
 from django.test import RequestFactory
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl.projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
@@ -22,7 +27,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     NaturePorteurProjetFactory,
     PersonneMoraleFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     ProgrammationProjetFactory,
@@ -301,17 +305,17 @@ class TestProgrammationProjetFilters:
         prog_accepted = ProgrammationProjetFactory(
             dotation_projet=dotation1,
             enveloppe=enveloppe,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
+            status=PROJET_STATUS_ACCEPTED,
         )
         prog_refused = ProgrammationProjetFactory(
             dotation_projet=dotation2,
             enveloppe=enveloppe,
-            status=ProgrammationProjet.STATUS_REFUSED,
+            status=PROJET_STATUS_REFUSED,
         )
 
         # Test filtre pour acceptés uniquement
         filterset = ProgrammationProjetFilters(
-            data={"status": [ProgrammationProjet.STATUS_ACCEPTED]}, request=mock_request
+            data={"status": [PROJET_STATUS_ACCEPTED]}, request=mock_request
         )
         result = list(filterset.qs)
         assert prog_accepted in result
@@ -319,7 +323,7 @@ class TestProgrammationProjetFilters:
 
         # Test filtre pour refusés uniquement
         filterset = ProgrammationProjetFilters(
-            data={"status": [ProgrammationProjet.STATUS_REFUSED]}, request=mock_request
+            data={"status": [PROJET_STATUS_REFUSED]}, request=mock_request
         )
         result = list(filterset.qs)
         assert prog_accepted not in result
@@ -624,7 +628,7 @@ class TestProgrammationProjetFilters:
             dotation_projet=dotation,
             enveloppe=enveloppe,
             montant=Decimal("60000.00"),
-            status=ProgrammationProjet.STATUS_ACCEPTED,
+            status=PROJET_STATUS_ACCEPTED,
         )
 
         # Créer une programmation qui ne match pas tous les critères
@@ -640,7 +644,7 @@ class TestProgrammationProjetFilters:
         prog_no_match = ProgrammationProjetFactory(
             dotation_projet=autre_dotation,
             enveloppe=enveloppe,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
+            status=PROJET_STATUS_ACCEPTED,
         )
 
         # Test combinaison de filtres
@@ -649,7 +653,7 @@ class TestProgrammationProjetFilters:
                 "porteur": [NaturePorteurProjet.COMMUNES],
                 "cout_min": "100000",
                 "montant_retenu_min": "50000",
-                "status": [ProgrammationProjet.STATUS_ACCEPTED],
+                "status": [PROJET_STATUS_ACCEPTED],
             },
             request=mock_request,
         )

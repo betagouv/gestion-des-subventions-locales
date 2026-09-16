@@ -191,7 +191,7 @@ class ProjetQuerySet(models.QuerySet):
             Exists(
                 ProgrammationProjet.objects.filter(
                     dotation_projet__projet=OuterRef("pk"),
-                    status__in=PROJET_FINAL_STATUSES,
+                    dotation_projet__status__in=PROJET_FINAL_STATUSES,
                 )
             )
         )
@@ -230,7 +230,6 @@ class ProjetQuerySet(models.QuerySet):
         )
 
     def totals(self):
-        from gsl_programmation.models import ProgrammationProjet
 
         if getattr(self, "_totals", None) is None:
             self._totals = self.aggregate(
@@ -238,9 +237,7 @@ class ProjetQuerySet(models.QuerySet):
                 total_amount_asked=Sum("dossier_ds__demande_montant"),
                 total_amount_granted=Sum(
                     "dotationprojet__programmation_projet__montant",
-                    filter=Q(
-                        dotationprojet__programmation_projet__status=ProgrammationProjet.STATUS_ACCEPTED
-                    ),
+                    filter=Q(dotationprojet__status=PROJET_STATUS_ACCEPTED),
                 ),
             )
 
@@ -774,7 +771,6 @@ class DotationProjet(BaseModel):
             defaults={
                 "enveloppe": enveloppe.delegation_root,
                 "montant": montant,
-                "status": ProgrammationProjet.STATUS_ACCEPTED,
             },
         )
         self.programmation_projet = programmation_projet
@@ -846,7 +842,6 @@ class DotationProjet(BaseModel):
             defaults={
                 "enveloppe": enveloppe.delegation_root,
                 "montant": 0,
-                "status": ProgrammationProjet.STATUS_REFUSED,
             },
         )
 
@@ -881,7 +876,6 @@ class DotationProjet(BaseModel):
             defaults={
                 "enveloppe": enveloppe.delegation_root,
                 "montant": 0,
-                "status": ProgrammationProjet.STATUS_DISMISSED,
             },
         )
 

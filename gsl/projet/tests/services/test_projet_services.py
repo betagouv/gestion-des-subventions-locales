@@ -8,9 +8,9 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
+from ...constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED
 from ...models import Projet
 from ...services.projet_services import ProjetService as ps
 from ..factories import DotationProjetFactory, ProjetFactory
@@ -91,17 +91,17 @@ def test_totals_amount_granted():
 
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet_1,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=10_000,
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet_2,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=20_000,
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet_3,
-        status=ProgrammationProjet.STATUS_REFUSED,
+        status=PROJET_STATUS_REFUSED,
         montant=0,
     )
 
