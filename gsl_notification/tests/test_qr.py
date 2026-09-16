@@ -105,7 +105,7 @@ def test_qr_roundtrip_through_generated_pdf():
         perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )
@@ -156,7 +156,7 @@ def test_decode_per_page_returns_bbox_in_bottom_left(tmp_path):
         perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )
@@ -209,7 +209,7 @@ def test_no_qr_when_with_qr_code_is_false(tmp_path):
         perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )

@@ -191,7 +191,7 @@ class BaseImportStepFragment(BaseProjetFragment):
         return HttpResponse(html + self.render_oob())
 
     def _log_import(self, document):
-        dotation = document.programmation_projet.dotation
+        dotation = document.dotation_projet.dotation
         queue_matomo_event(
             self.request,
             MATOMO_CATEGORY_DOCUMENT,

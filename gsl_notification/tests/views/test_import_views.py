@@ -67,7 +67,7 @@ def _build_pdf_for_pp(ds_number, content_blocks=200, perimetre=None):
         perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * content_blocks) + "</p>",
     )
@@ -230,8 +230,8 @@ def test_start_view_e2e_attaches_signed_document(client, user, perimetre):
     # Temp object cleaned up after processing.
     fake_s3.delete_object.assert_called_once()
 
-    attached = LettreEtArreteSignes.objects.get(programmation_projet=pp)
-    assert f"programmation_projet_{pp.id}/" in attached.file.name
+    attached = LettreEtArreteSignes.objects.get(dotation_projet=pp.dotation_projet)
+    assert f"dotation_projet_{pp.dotation_projet_id}/" in attached.file.name
 
 
 def test_start_view_merges_pages_of_same_project_across_files(client, user, perimetre):
@@ -269,7 +269,7 @@ def test_start_view_merges_pages_of_same_project_across_files(client, user, peri
     assert job.result["errors"] == []
 
     # One combined document holding every page from both files.
-    docs = LettreEtArreteSignes.objects.filter(programmation_projet=pp)
+    docs = LettreEtArreteSignes.objects.filter(dotation_projet=pp.dotation_projet)
     assert docs.count() == 1
     with docs.get().file.open("rb") as fh:
         assert len(Pdf.open(io.BytesIO(fh.read())).pages) == total_pages
@@ -297,7 +297,9 @@ def test_start_view_does_not_attach_out_of_perimetre(client, user):
     assert job.status == DocumentImportJob.STATUS_DONE
     assert job.result["documents_attached"] == 0
     assert any(e["type"] == "group_failed" for e in job.result["errors"])
-    assert not LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
+    assert not LettreEtArreteSignes.objects.filter(
+        dotation_projet=pp.dotation_projet
+    ).exists()
 
 
 def test_start_view_reports_unreadable_pages(client, user):

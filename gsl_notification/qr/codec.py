@@ -3,7 +3,7 @@ QR code utilities for the signed-document round-trip POC.
 
 A small QR code is rendered at the bottom-left of every page of generated
 documents (arrêté, lettre de notification). It encodes enough information
-to reattach a scanned signed document to the right ProgrammationProjet.
+to reattach a scanned signed document to the right DotationProjet.
 
 Payload format (alphanumeric-mode compatible, colon-separated):
 

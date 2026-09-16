@@ -277,7 +277,7 @@ def test_wizard_modele_selection_field_order_matches_figma(
 ):
     """Figma: Conserver/Remplacer first, then lettres, then arrêtés."""
     for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
+        LettreNotificationFactory(dotation_projet=pp.dotation_projet)
 
     _open_wizard_at_type_selection_step(client, programmation_projets)
     response = client.post(
@@ -537,9 +537,9 @@ def test_wizard_create_step_creates_documents_and_returns_success(
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
-        assert hasattr(pp, "lettre")
-        assert pp.lettre.modele == detr_lettre_modele
-        assert pp.lettre.created_by == client.user
+        assert hasattr(pp.dotation_projet, "lettre")
+        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
+        assert pp.dotation_projet.lettrenotification.created_by == client.user
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (3 docs)
@@ -549,7 +549,7 @@ def test_wizard_create_step_replaces_existing_doc(
     client, programmation_projets, detr_lettre_modele
 ):
     pp = programmation_projets[0]
-    old_lettre = LettreNotificationFactory(programmation_projet=pp)
+    old_lettre = LettreNotificationFactory(dotation_projet=pp.dotation_projet)
 
     _drive_through_format_step(
         client,
@@ -561,7 +561,7 @@ def test_wizard_create_step_replaces_existing_doc(
     )
     response = _post_create_step(client)
     pp.refresh_from_db()
-    assert pp.lettre.id != old_lettre.id
+    assert pp.dotation_projet.lettrenotification.id != old_lettre.id
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -571,7 +571,7 @@ def test_wizard_modele_selection_conserver_when_all_covered_advances_to_format_s
     client, programmation_projets, detr_lettre_modele
 ):
     for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
+        LettreNotificationFactory(dotation_projet=pp.dotation_projet)
 
     _open_wizard_at_type_selection_step(client, programmation_projets)
     client.post(
@@ -604,7 +604,9 @@ def test_wizard_create_step_conserver_creates_only_missing_documents(
     client, programmation_projets, detr_lettre_modele
 ):
     pp_with_existing, *pps_without = programmation_projets
-    old_lettre = LettreNotificationFactory(programmation_projet=pp_with_existing)
+    old_lettre = LettreNotificationFactory(
+        dotation_projet=pp_with_existing.dotation_projet
+    )
 
     _drive_through_format_step(
         client,
@@ -621,11 +623,11 @@ def test_wizard_create_step_conserver_creates_only_missing_documents(
     )
 
     pp_with_existing.refresh_from_db()
-    assert pp_with_existing.lettre.id == old_lettre.id
+    assert pp_with_existing.dotation_projet.lettrenotification.id == old_lettre.id
     for pp in pps_without:
         pp.refresh_from_db()
-        assert hasattr(pp, "lettre")
-        assert pp.lettre.modele == detr_lettre_modele
+        assert hasattr(pp.dotation_projet, "lettre")
+        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -636,7 +638,7 @@ def test_wizard_create_step_remplacer_when_all_covered_replaces_all(
 ):
     old_ids = []
     for pp in programmation_projets:
-        old_ids.append(LettreNotificationFactory(programmation_projet=pp).id)
+        old_ids.append(LettreNotificationFactory(dotation_projet=pp.dotation_projet).id)
 
     _drive_through_format_step(
         client,
@@ -653,8 +655,8 @@ def test_wizard_create_step_remplacer_when_all_covered_replaces_all(
     )
     for pp, old_id in zip(programmation_projets, old_ids, strict=True):
         pp.refresh_from_db()
-        assert pp.lettre.id != old_id
-        assert pp.lettre.modele == detr_lettre_modele
+        assert pp.dotation_projet.lettrenotification.id != old_id
+        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -668,7 +670,7 @@ def test_wizard_create_step_conserver_full_coverage_with_empty_ids_reaches_succe
     still reach the create step's success when CONSERVER is chosen and every projet is
     already covered."""
     for pp in programmation_projets:
-        LettreNotificationFactory(programmation_projet=pp)
+        LettreNotificationFactory(dotation_projet=pp.dotation_projet)
 
     _post_launch(client, ids="")
     client.post(
@@ -725,10 +727,10 @@ def test_wizard_create_step_both_creates_arrete_and_lettre(
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
-        assert hasattr(pp, "arrete")
-        assert pp.arrete.modele == detr_arrete_modele
-        assert hasattr(pp, "lettre")
-        assert pp.lettre.modele == detr_lettre_modele
+        assert hasattr(pp.dotation_projet, "arrete")
+        assert pp.dotation_projet.arrete.modele == detr_arrete_modele
+        assert hasattr(pp.dotation_projet, "lettre")
+        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
 
     key, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (6 docs)
@@ -763,7 +765,7 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
 
     key, body = _read_storage_body(response.context["download_url"])
     filename = os.path.basename(key)
-    assert filename == pps[0].lettre.name
+    assert filename == pps[0].dotation_projet.lettrenotification.name
     assert body[:4] == b"%PDF"
 
 

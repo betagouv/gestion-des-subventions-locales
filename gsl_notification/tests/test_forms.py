@@ -72,7 +72,7 @@ def test_arrete_form_valid(form_class, modele_factory, dotation):
     data = {
         "content": {"foo": "bar"},
         "created_by": collegue.id,
-        "programmation_projet": programmation_projet.id,
+        "dotation_projet": programmation_projet.dotation_projet.id,
         "modele": modele.id,
     }
     form = form_class(data)
@@ -92,7 +92,7 @@ def test_arrete_form_invalid_missing_fields(form_class):
     assert not form.is_valid()
     assert "content" in form.errors
     assert "created_by" in form.errors
-    assert "programmation_projet" in form.errors
+    assert "dotation_projet" in form.errors
     assert "modele" in form.errors
 
 
@@ -184,7 +184,7 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    programmation_projet = ProgrammationProjetFactory(
+    ProgrammationProjetFactory(
         dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
     )
 
@@ -197,10 +197,10 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
     document = form.save(user)
 
     assert isinstance(document, LettreEtArreteSignes)
-    assert document.programmation_projet == programmation_projet
+    assert document.dotation_projet == dotation_projet
     assert document.created_by == user
     assert document.file.name.startswith(
-        f"{LETTRE_ET_ARRETE_SIGNES}/programmation_projet_{programmation_projet.id}/"
+        f"{LETTRE_ET_ARRETE_SIGNES}/dotation_projet_{dotation_projet.id}/"
     )
     assert document.file.read() == b"dummy content"
     assert not default_storage.exists(key)
@@ -214,10 +214,10 @@ def test_attach_form_refuses_a_document_already_imported():
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    programmation_projet = ProgrammationProjetFactory(
+    ProgrammationProjetFactory(
         dotation_projet=dotation_projet, status=ProgrammationProjet.STATUS_ACCEPTED
     )
-    LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
+    LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
     form = ManualDocumentAttachForm(
         projet=projet,
@@ -443,9 +443,9 @@ def test_generate_accepted_dotations_documents_form_creates_documents():
 
     assert len(documents) == 2
     pp.refresh_from_db()
-    assert pp.arrete.modele == modele_arrete
-    assert pp.arrete.created_by == user
-    assert pp.lettre.modele == modele_lettre
+    assert pp.dotation_projet.arrete.modele == modele_arrete
+    assert pp.dotation_projet.arrete.created_by == user
+    assert pp.dotation_projet.lettrenotification.modele == modele_lettre
 
 
 @pytest.mark.django_db
@@ -465,8 +465,10 @@ def test_generate_accepted_dotations_documents_form_skip_prevents_creation():
     assert form.is_valid(), form.errors
     form.save()
 
-    assert Arrete.objects.filter(programmation_projet=pp).exists()
-    assert not LettreNotification.objects.filter(programmation_projet=pp).exists()
+    assert Arrete.objects.filter(dotation_projet=pp.dotation_projet).exists()
+    assert not LettreNotification.objects.filter(
+        dotation_projet=pp.dotation_projet
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -474,7 +476,7 @@ def test_generate_accepted_dotations_documents_form_overwrites_existing_document
     user = CollegueFactory()
     pp = _make_accepted_dotation_projet(DOTATION_DETR)
     old_modele = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
-    existing = ArreteFactory(programmation_projet=pp, modele=old_modele)
+    existing = ArreteFactory(dotation_projet=pp.dotation_projet, modele=old_modele)
     projet = pp.dotation_projet.projet
     new_modele = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
     modele_lettre = ModeleLettreNotificationFactory(
@@ -489,10 +491,10 @@ def test_generate_accepted_dotations_documents_form_overwrites_existing_document
     assert form.is_valid(), form.errors
     form.save()
 
-    assert Arrete.objects.filter(programmation_projet=pp).count() == 1
+    assert Arrete.objects.filter(dotation_projet=pp.dotation_projet).count() == 1
     pp.refresh_from_db()
-    assert pp.arrete.pk != existing.pk
-    assert pp.arrete.modele == new_modele
+    assert pp.dotation_projet.arrete.pk != existing.pk
+    assert pp.dotation_projet.arrete.modele == new_modele
 
 
 @pytest.mark.django_db

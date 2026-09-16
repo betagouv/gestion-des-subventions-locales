@@ -461,7 +461,7 @@ def test_generate_pdf_for_generated_document(programmation_projet):
         perimetre=programmation_projet.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        programmation_projet=programmation_projet,
+        dotation_projet=programmation_projet.dotation_projet,
         modele=modele,
         content="<p>Test PDF</p>",
     )

@@ -45,7 +45,7 @@ def generated_document_properties(type, modele_factory, factory):
     file_content = {"key": "value"}
     arrete = factory(
         created_by=collegue,
-        programmation_projet=programmation_projet,
+        dotation_projet=programmation_projet.dotation_projet,
         content=file_content,
         modele=modele,
     )
@@ -59,7 +59,7 @@ def generated_document_properties(type, modele_factory, factory):
     assert arrete.created_by == collegue
     assert arrete.created_at is not None
     assert arrete.updated_at is not None
-    assert arrete.programmation_projet == programmation_projet
+    assert arrete.dotation_projet == programmation_projet.dotation_projet
     assert arrete.modele == modele
 
 
@@ -84,7 +84,7 @@ def test_generated_document_save_calculates_size(modele_factory, factory):
     # Mock the logo base64 to avoid external requests
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(
-            programmation_projet=programmation_projet,
+            dotation_projet=programmation_projet.dotation_projet,
             content="<p>Test content</p>",
             modele=modele,
         )
@@ -127,7 +127,7 @@ def test_generated_document_save_updates_size_on_content_change(
     # Mock the logo base64 to avoid external requests - keep it active for both saves
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(
-            programmation_projet=programmation_projet,
+            dotation_projet=programmation_projet.dotation_projet,
             content="<p>Short content</p>",
             modele=modele,
         )
@@ -180,7 +180,7 @@ def test_generated_document_save_with_different_content_sizes(
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         # Create document with minimal content
         document1 = factory(
-            programmation_projet=programmation_projet1,
+            dotation_projet=programmation_projet1.dotation_projet,
             content="<p>Minimal</p>",
             modele=modele,
         )
@@ -188,7 +188,7 @@ def test_generated_document_save_with_different_content_sizes(
 
         # Create another document with more content
         document2 = factory(
-            programmation_projet=programmation_projet2,
+            dotation_projet=programmation_projet2.dotation_projet,
             content="<p>" + "Long content " * 1000 + "</p>",
             modele=modele,
         )
@@ -224,7 +224,7 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
     modele = modele_factory(dotation=DOTATION_DETR)
     # Mock the logo base64 to avoid external requests during save()
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = factory(programmation_projet=pp, modele=modele)
+        document = factory(dotation_projet=pp.dotation_projet, modele=modele)
     with pytest.raises(ValidationError) as exc_info:
         document.clean()
 
@@ -256,7 +256,7 @@ def test_generated_document_validation_error_when_pp_status_mismatch(
     pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
     modele = modele_factory(dotation=pp.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = factory(programmation_projet=pp, modele=modele)
+        document = factory(dotation_projet=pp.dotation_projet, modele=modele)
     with pytest.raises(ValidationError) as exc_info:
         document.clean()
 
@@ -268,7 +268,7 @@ def test_lettre_refus_validation_error_when_pp_status_mismatch():
     pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
     modele = ModeleLettreRefusFactory(dotation=pp.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = LettreRefusFactory(programmation_projet=pp, modele=modele)
+        document = LettreRefusFactory(dotation_projet=pp.dotation_projet, modele=modele)
     with pytest.raises(ValidationError) as exc_info:
         document.clean()
 
@@ -290,7 +290,7 @@ def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
     pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
     modele = modele_factory(dotation=pp.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = factory(programmation_projet=pp, modele=modele)
+        document = factory(dotation_projet=pp.dotation_projet, modele=modele)
     document.clean()  # should not raise
 
 
@@ -303,7 +303,7 @@ def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
     pp = ProgrammationProjetFactory(status=status)
     modele = ModeleLettreRefusFactory(dotation=pp.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = LettreRefusFactory(programmation_projet=pp, modele=modele)
+        document = LettreRefusFactory(dotation_projet=pp.dotation_projet, modele=modele)
     document.clean()  # should not raise
 
 
@@ -321,7 +321,9 @@ def test_lettre_et_arrete_signes_properties(factory):
     )
 
     doc = factory(
-        file=file, created_by=collegue, programmation_projet=programmation_projet
+        file=file,
+        created_by=collegue,
+        dotation_projet=programmation_projet.dotation_projet,
     )
 
     if factory == LettreEtArreteSignesFactory:
@@ -336,7 +338,7 @@ def test_lettre_et_arrete_signes_properties(factory):
     assert doc.size == len(file_content)
     assert doc.created_at is not None
     assert doc.created_by is collegue
-    assert doc.programmation_projet == programmation_projet
+    assert doc.dotation_projet == programmation_projet.dotation_projet
 
 
 @pytest.mark.parametrize(
@@ -389,7 +391,7 @@ def test_two_models_have_different_logos():
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
     pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
-    doc = LettreEtArreteSignesFactory(programmation_projet=pp)
+    doc = LettreEtArreteSignesFactory(dotation_projet=pp.dotation_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
 
@@ -402,7 +404,7 @@ def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
 @pytest.mark.django_db
 def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
     pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
-    doc = LettreRefusSigneeFactory(programmation_projet=pp)
+    doc = LettreRefusSigneeFactory(dotation_projet=pp.dotation_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
 
@@ -423,14 +425,14 @@ def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
 @pytest.mark.django_db
 def test_annexe_no_error_regardless_of_pp_status(status):
     pp = ProgrammationProjetFactory(status=status)
-    doc = AnnexeFactory(programmation_projet=pp)
+    doc = AnnexeFactory(dotation_projet=pp.dotation_projet)
     doc.clean()  # should not raise
 
 
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
     pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
-    doc = LettreEtArreteSignesFactory(programmation_projet=pp)
+    doc = LettreEtArreteSignesFactory(dotation_projet=pp.dotation_projet)
     doc.clean()  # should not raise
 
 
@@ -441,25 +443,32 @@ def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
 )
 def test_lettre_refus_signee_no_error_when_pp_refused_or_dismissed(status):
     pp = ProgrammationProjetFactory(status=status)
-    doc = LettreRefusSigneeFactory(programmation_projet=pp)
+    doc = LettreRefusSigneeFactory(dotation_projet=pp.dotation_projet)
     doc.clean()  # should not raise
 
 
 @pytest.mark.django_db
-def test_uploaded_document_is_stored_in_its_programmation_projet_folder():
+def test_uploaded_document_is_stored_in_its_dotation_projet_folder():
     pp = ProgrammationProjetFactory()
 
-    annexe = AnnexeFactory(programmation_projet=pp, file__filename="rangement.pdf")
+    annexe = AnnexeFactory(
+        dotation_projet=pp.dotation_projet, file__filename="rangement.pdf"
+    )
 
-    assert annexe.file.name == f"annexe/programmation_projet_{pp.id}/rangement.pdf"
+    assert (
+        annexe.file.name
+        == f"annexe/dotation_projet_{pp.dotation_projet_id}/rangement.pdf"
+    )
 
 
 @pytest.mark.django_db
 def test_second_annexe_with_the_same_name_is_suffixed():
     pp = ProgrammationProjetFactory()
-    AnnexeFactory(programmation_projet=pp, file__filename="doublon.pdf")
+    AnnexeFactory(dotation_projet=pp.dotation_projet, file__filename="doublon.pdf")
 
-    annexe = AnnexeFactory(programmation_projet=pp, file__filename="doublon.pdf")
+    annexe = AnnexeFactory(
+        dotation_projet=pp.dotation_projet, file__filename="doublon.pdf"
+    )
 
     assert annexe.name == "doublon_2.pdf"
 
@@ -470,11 +479,11 @@ def test_replacing_a_single_document_keeps_its_name():
     one frees its stored file, so a replacement is not suffixed."""
     pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
     LettreEtArreteSignesFactory(
-        programmation_projet=pp, file__filename="remplacement.pdf"
+        dotation_projet=pp.dotation_projet, file__filename="remplacement.pdf"
     ).delete()
 
     document = LettreEtArreteSignesFactory(
-        programmation_projet=pp, file__filename="remplacement.pdf"
+        dotation_projet=pp.dotation_projet, file__filename="remplacement.pdf"
     )
 
     assert document.name == "remplacement.pdf"

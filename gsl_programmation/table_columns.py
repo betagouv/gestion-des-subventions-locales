@@ -109,10 +109,7 @@ def _get_other_dotation_taux(context):
 
 
 def _get_other_dotation_documents(context):
-    dp = context["other_dotation"]
-    if not hasattr(dp, "programmation_projet"):
-        return ""
-    documents = dp.programmation_projet.documents_summary
+    documents = context["other_dotation"].documents_summary
     if not documents:
         return ""
     items = format_html_join("", "<li>{}</li>", ((doc,) for doc in documents))

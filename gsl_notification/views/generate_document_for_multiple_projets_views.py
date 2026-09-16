@@ -412,8 +412,12 @@ class GenerateAcceptedDocumentsStatusView(BaseGenerateDocumentsStatusView):
         return (
             super()
             .get_programmation_projets(pp_ids)
-            .select_related("arrete", "lettrenotification", "lettre_et_arrete_signes")
-            .prefetch_related("annexes")
+            .select_related(
+                "dotation_projet__arrete",
+                "dotation_projet__lettrenotification",
+                "dotation_projet__lettre_et_arrete_signes",
+            )
+            .prefetch_related("dotation_projet__annexes")
         )
 
 
@@ -421,4 +425,8 @@ class GenerateLettreRefusStatusView(BaseGenerateDocumentsStatusView):
     WIZARD_CLASS = GenerateLettreRefusWizard
 
     def get_programmation_projets(self, pp_ids):
-        return super().get_programmation_projets(pp_ids).select_related("lettrerefus")
+        return (
+            super()
+            .get_programmation_projets(pp_ids)
+            .select_related("dotation_projet__lettrerefus")
+        )

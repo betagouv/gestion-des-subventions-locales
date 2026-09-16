@@ -24,7 +24,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import Projet
+from gsl.projet.models import DotationProjet, Projet
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
@@ -194,25 +194,17 @@ def uploadable_document_choices(projet) -> list[tuple[str, str]]:
     """`(f"{document_type}-{dotation}", label)` for every document importable
     on `projet`. A document already imported keeps its label but gets an empty
     value, which `RadioSelect` renders as a disabled option.
-
-    Eligibility is read from the ProgrammationProjet status, the field
-    `required_programmation_projet_statuses` is named for and the one
-    `UploadedDocument.clean()` validates against — not from the DotationProjet
-    status, which duplicates it and can disagree.
     """
     choices = []
-    programmation_projets = ProgrammationProjet.objects.filter(
-        dotation_projet__projet=projet, status__in=PROJET_FINAL_STATUSES
-    ).order_by("dotation_projet__dotation")
-    for programmation_projet in programmation_projets:
-        dotation = programmation_projet.dotation
+    dotation_projets = projet.dotationprojet_set.filter(
+        status__in=PROJET_FINAL_STATUSES
+    ).order_by("dotation")
+    for dotation_projet in dotation_projets:
+        dotation = dotation_projet.dotation
         for model in UPLOADED_DOCUMENTS.values():
-            if (
-                programmation_projet.status
-                not in model.required_programmation_projet_statuses
-            ):
+            if dotation_projet.status not in model.required_dotation_projet_statuses:
                 continue
-            can_upload = model.can_upload(programmation_projet)
+            can_upload = model.can_upload(dotation_projet)
             choices.append(
                 (
                     (f"{model.document_type}-{dotation}" if can_upload else ""),
@@ -259,12 +251,9 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         return cleaned_data
 
     @cached_property
-    def programmation_projet(self) -> ProgrammationProjet:
-        document_type, dotation = self.cleaned_data["document"].split("-")
-        return ProgrammationProjet.objects.get(
-            dotation_projet__projet=self.projet,
-            dotation_projet__dotation=dotation,
-        )
+    def dotation_projet(self) -> DotationProjet:
+        _, dotation = self.cleaned_data["document"].split("-")
+        return DotationProjet.objects.get(projet=self.projet, dotation=dotation)
 
     @cached_property
     def document_class(self):
@@ -275,7 +264,7 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         key = self.cleaned_data["key"]
         with default_storage.open(key) as parked:
             document = self.document_class.objects.create(
-                programmation_projet=self.programmation_projet,
+                dotation_projet=self.dotation_projet,
                 created_by=user,
                 file=File(parked, name=os.path.basename(key)),
             )
@@ -324,9 +313,7 @@ class DotationDocumentFields:
 
     def _add_modele_field(self, modele_class, perimetres):
         name = f"modele_{modele_class.type}_{self.dotation}"
-        existing_document = getattr(
-            self.dotation_projet.programmation_projet, modele_class.type, None
-        )
+        existing_document = getattr(self.dotation_projet, modele_class.type, None)
         self.form.fields[name] = forms.ModelChoiceField(
             queryset=modele_class.objects.filter(
                 dotation=self.dotation, perimetre__in=perimetres
@@ -445,12 +432,13 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
         self, modele_class, programmation_projet, modele, with_qr_code
     ):
         document_class = modele_class.generated_document_class
-        is_creating = not hasattr(programmation_projet, modele_class.type)
+        dotation_projet = programmation_projet.dotation_projet
+        is_creating = not hasattr(dotation_projet, modele_class.type)
         if not is_creating:
-            getattr(programmation_projet, modele_class.type).delete()
+            getattr(dotation_projet, modele_class.type).delete()
 
         document = document_class(
-            programmation_projet=programmation_projet,
+            dotation_projet=dotation_projet,
             modele=modele,
             created_by=self.user,
             content=replace_mentions_in_html(modele.content, programmation_projet),
@@ -474,7 +462,7 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
         fields = (
             "content",
             "created_by",
-            "programmation_projet",
+            "dotation_projet",
             "modele",
             "with_qr_code",
         )
@@ -645,7 +633,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
     def _notification_filename(self, documents):
         if len(documents) <= 1:
             return os.path.splitext(documents[0].name)[0] + ".pdf"
-        dotations = {doc.programmation_projet.dotation for doc in documents}
+        dotations = {doc.dotation_projet.dotation for doc in documents}
         ordered = [d for d in DOTATIONS if d in dotations]
         ds_number = self.instance.dossier_ds.ds_number
         return f"Notification {ds_number} {'-'.join(ordered)}.pdf"
@@ -898,7 +886,7 @@ class ModeleSelectionEntry:
     def existing_count(self) -> int:
         generated_document_class = MODELES[self.document_type].generated_document_class
         return generated_document_class.objects.filter(
-            programmation_projet__in=self.form.programmation_projets
+            dotation_projet__programmation_projet__in=self.form.programmation_projets
         ).count()
 
     @cached_property
@@ -1026,7 +1014,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             == GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER
         ):
             document_class.objects.filter(
-                programmation_projet__in=self.programmation_projets
+                dotation_projet__programmation_projet__in=self.programmation_projets
             ).delete()
             pps_to_create = self.programmation_projets.select_related(
                 *self.PPS_TO_CREATE_SELECT_RELATED
@@ -1036,14 +1024,16 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
                 ProgrammationProjet.objects.active()
                 .filter(pk__in=self.programmation_projets)
                 .exclude(
-                    pk__in=document_class.objects.values("programmation_projet_id")
+                    dotation_projet_id__in=document_class.objects.values(
+                        "dotation_projet_id"
+                    )
                 )
                 .select_related(*self.PPS_TO_CREATE_SELECT_RELATED)
             )
 
         for pp in pps_to_create:
             document_class(
-                programmation_projet=pp,
+                dotation_projet=pp.dotation_projet,
                 modele=modele,
                 created_by=self.user,
                 content=replace_mentions_in_html(modele.content, pp),

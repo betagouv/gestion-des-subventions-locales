@@ -492,10 +492,10 @@ def test_generated_documents_sorted_by_dotation_then_type():
     dsil_pp = ProgrammationProjetFactory(dotation_projet=dsil_dp)
 
     # Created in a deliberately mixed order to prove the sort, not the creation order.
-    lettre_dsil = LettreNotificationFactory(programmation_projet=dsil_pp)
-    arrete_dsil = ArreteFactory(programmation_projet=dsil_pp)
-    lettre_detr = LettreNotificationFactory(programmation_projet=detr_pp)
-    arrete_detr = ArreteFactory(programmation_projet=detr_pp)
+    lettre_dsil = LettreNotificationFactory(dotation_projet=dsil_pp.dotation_projet)
+    arrete_dsil = ArreteFactory(dotation_projet=dsil_pp.dotation_projet)
+    lettre_detr = LettreNotificationFactory(dotation_projet=detr_pp.dotation_projet)
+    arrete_detr = ArreteFactory(dotation_projet=detr_pp.dotation_projet)
 
     assert projet.generated_documents == [
         arrete_detr,
@@ -517,13 +517,13 @@ def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
     dsil_pp = ProgrammationProjetFactory(dotation_projet=dsil_dp)
 
     # Created in a deliberately mixed order to prove the sort, not the creation order.
-    annexe_dsil = AnnexeFactory(programmation_projet=dsil_pp)
+    annexe_dsil = AnnexeFactory(dotation_projet=dsil_pp.dotation_projet)
     lettre_et_arrete_signes_dsil = LettreEtArreteSignesFactory(
-        programmation_projet=dsil_pp
+        dotation_projet=dsil_pp.dotation_projet
     )
-    annexe_detr = AnnexeFactory(programmation_projet=detr_pp)
+    annexe_detr = AnnexeFactory(dotation_projet=detr_pp.dotation_projet)
     lettre_et_arrete_signes_detr = LettreEtArreteSignesFactory(
-        programmation_projet=detr_pp
+        dotation_projet=detr_pp.dotation_projet
     )
 
     assert projet.imported_documents == [
@@ -549,9 +549,11 @@ def test_imported_documents_includes_signed_refusal_letter():
     )
 
     lettre_et_arrete_signes = LettreEtArreteSignesFactory(
-        programmation_projet=accepted_pp
+        dotation_projet=accepted_pp.dotation_projet
     )
-    lettre_refus_signee = LettreRefusSigneeFactory(programmation_projet=refused_pp)
+    lettre_refus_signee = LettreRefusSigneeFactory(
+        dotation_projet=refused_pp.dotation_projet
+    )
 
     assert projet.imported_documents == [
         lettre_et_arrete_signes,

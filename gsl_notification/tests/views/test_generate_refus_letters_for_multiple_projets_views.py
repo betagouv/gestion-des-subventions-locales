@@ -383,9 +383,9 @@ def test_wizard_step_create_creates_documents_and_returns_success(
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
     for pp in programmation_projets:
         pp.refresh_from_db()
-        assert hasattr(pp, "refus")
-        assert pp.refus.modele == detr_refus_modele
-        assert pp.refus.created_by == client.user
+        assert hasattr(pp.dotation_projet, "refus")
+        assert pp.dotation_projet.lettrerefus.modele == detr_refus_modele
+        assert pp.dotation_projet.lettrerefus.created_by == client.user
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (3 docs)
@@ -395,7 +395,7 @@ def test_wizard_step_create_replaces_existing_doc(
     client, programmation_projets, detr_refus_modele
 ):
     pp = programmation_projets[0]
-    old_refus = LettreRefusFactory(programmation_projet=pp)
+    old_refus = LettreRefusFactory(dotation_projet=pp.dotation_projet)
 
     _drive_through_step_format(
         client,
@@ -405,14 +405,14 @@ def test_wizard_step_create_replaces_existing_doc(
     )
     _post_step_create(client)
     pp.refresh_from_db()
-    assert pp.refus.id != old_refus.id
+    assert pp.dotation_projet.lettrerefus.id != old_refus.id
 
 
 def test_wizard_step_modele_conserver_when_all_covered_advances_to_step_format(
     client, programmation_projets, detr_refus_modele
 ):
     for pp in programmation_projets:
-        LettreRefusFactory(programmation_projet=pp)
+        LettreRefusFactory(dotation_projet=pp.dotation_projet)
 
     _open_wizard_at_step_modele(client, programmation_projets)
     response = client.post(
@@ -438,7 +438,7 @@ def test_wizard_step_create_conserver_creates_only_missing_documents(
     client, programmation_projets, detr_refus_modele
 ):
     pp_with_existing, *pps_without = programmation_projets
-    old_refus = LettreRefusFactory(programmation_projet=pp_with_existing)
+    old_refus = LettreRefusFactory(dotation_projet=pp_with_existing.dotation_projet)
 
     _drive_through_step_format(
         client,
@@ -451,11 +451,11 @@ def test_wizard_step_create_conserver_creates_only_missing_documents(
     assert TEMPLATE_BASE + "success.html" in _template_names(response)
 
     pp_with_existing.refresh_from_db()
-    assert pp_with_existing.refus.id == old_refus.id
+    assert pp_with_existing.dotation_projet.lettrerefus.id == old_refus.id
     for pp in pps_without:
         pp.refresh_from_db()
-        assert hasattr(pp, "refus")
-        assert pp.refus.modele == detr_refus_modele
+        assert hasattr(pp.dotation_projet, "refus")
+        assert pp.dotation_projet.lettrerefus.modele == detr_refus_modele
 
 
 def test_wizard_step_create_remplacer_when_all_covered_replaces_all(
@@ -463,7 +463,7 @@ def test_wizard_step_create_remplacer_when_all_covered_replaces_all(
 ):
     old_ids = []
     for pp in programmation_projets:
-        old_ids.append(LettreRefusFactory(programmation_projet=pp).id)
+        old_ids.append(LettreRefusFactory(dotation_projet=pp.dotation_projet).id)
 
     _drive_through_step_format(
         client,
@@ -476,8 +476,8 @@ def test_wizard_step_create_remplacer_when_all_covered_replaces_all(
     assert TEMPLATE_BASE + "success.html" in _template_names(response)
     for pp, old_id in zip(programmation_projets, old_ids, strict=True):
         pp.refresh_from_db()
-        assert pp.refus.id != old_id
-        assert pp.refus.modele == detr_refus_modele
+        assert pp.dotation_projet.lettrerefus.id != old_id
+        assert pp.dotation_projet.lettrerefus.modele == detr_refus_modele
 
 
 def test_export_job_attr_names_and_document_type(

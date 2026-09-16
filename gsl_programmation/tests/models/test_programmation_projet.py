@@ -13,14 +13,6 @@ from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreRegionalFactory,
 )
-from gsl_notification.tests.factories import (
-    AnnexeFactory,
-    ArreteFactory,
-    LettreEtArreteSignesFactory,
-    LettreNotificationFactory,
-    LettreRefusFactory,
-    LettreRefusSigneeFactory,
-)
 from gsl_programmation.models import Enveloppe, ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -269,64 +261,6 @@ class TestProgrammationProjetQuerySet:
         assert accepted_and_no_notified_at in result
         assert _refused_and_no_notified_at in result
         assert result.count() == 2
-
-
-@pytest.mark.django_db
-def test_documents_summary_no_document():
-    programmation_projet = ProgrammationProjetFactory()
-    assert programmation_projet.documents_summary == []
-
-
-@pytest.mark.django_db
-def test_documents_summary_arrete_genere():
-    programmation_projet = ProgrammationProjetFactory()
-    ArreteFactory(programmation_projet=programmation_projet)
-    LettreNotificationFactory(programmation_projet=programmation_projet)
-
-    summary = programmation_projet.documents_summary
-    assert summary == ["1 arrêté", "1 lettre"]
-
-
-@pytest.mark.parametrize(
-    "annexes_count, expected_summary", ((0, []), (1, ["1 annexe"]), (2, ["2 annexes"]))
-)
-@pytest.mark.django_db
-def test_documents_summary_annexes(annexes_count, expected_summary):
-    programmation_projet = ProgrammationProjetFactory()
-    AnnexeFactory.create_batch(annexes_count, programmation_projet=programmation_projet)
-
-    summary = programmation_projet.documents_summary
-    assert summary == expected_summary
-
-
-@pytest.mark.django_db
-def test_documents_summary_lettre_et_arrete_signes_hides_arrete_and_lettre_generes():
-    programmation_projet = ProgrammationProjetFactory()
-    LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
-    ArreteFactory(programmation_projet=programmation_projet)
-    LettreNotificationFactory(programmation_projet=programmation_projet)
-
-    summary = programmation_projet.documents_summary
-    assert summary == ["1 lettre et arrêté signés"]
-
-
-@pytest.mark.django_db
-def test_documents_summary_lettre_refus_generee():
-    programmation_projet = ProgrammationProjetFactory()
-    LettreRefusFactory(programmation_projet=programmation_projet)
-
-    summary = programmation_projet.documents_summary
-    assert summary == ["1 lettre de refus"]
-
-
-@pytest.mark.django_db
-def test_documents_summary_lettre_refus_signee_hides_lettre_refus_generee():
-    programmation_projet = ProgrammationProjetFactory()
-    LettreRefusSigneeFactory(programmation_projet=programmation_projet)
-    LettreRefusFactory(programmation_projet=programmation_projet)
-
-    summary = programmation_projet.documents_summary
-    assert summary == ["1 lettre de refus signée"]
 
 
 @pytest.mark.django_db

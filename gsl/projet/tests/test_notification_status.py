@@ -61,8 +61,8 @@ def test_dotation_projet_with_programmation_but_no_document_is_to_generate():
 def test_accepted_dotation_projet_with_both_documents_is_to_sign():
     dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     programmation_projet = ProgrammationProjetFactory(dotation_projet=dotation_projet)
-    ArreteFactory(programmation_projet=programmation_projet)
-    LettreNotificationFactory(programmation_projet=programmation_projet)
+    ArreteFactory(dotation_projet=programmation_projet.dotation_projet)
+    LettreNotificationFactory(dotation_projet=programmation_projet.dotation_projet)
 
     assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_SIGN
     _assert_property_matches_annotation(dotation_projet)
@@ -71,7 +71,7 @@ def test_accepted_dotation_projet_with_both_documents_is_to_sign():
 def test_accepted_dotation_projet_with_only_one_document_is_to_generate():
     dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     programmation_projet = ProgrammationProjetFactory(dotation_projet=dotation_projet)
-    ArreteFactory(programmation_projet=programmation_projet)
+    ArreteFactory(dotation_projet=programmation_projet.dotation_projet)
 
     assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
     _assert_property_matches_annotation(dotation_projet)
@@ -80,7 +80,7 @@ def test_accepted_dotation_projet_with_only_one_document_is_to_generate():
 def test_dotation_projet_with_signed_documents_is_to_notify():
     dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     programmation_projet = ProgrammationProjetFactory(dotation_projet=dotation_projet)
-    LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
+    LettreEtArreteSignesFactory(dotation_projet=programmation_projet.dotation_projet)
 
     assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_NOTIFY
     _assert_property_matches_annotation(dotation_projet)
@@ -109,7 +109,7 @@ def test_refused_or_dismissed_dotation_projet_with_programmation_is_to_generate(
 def test_refused_or_dismissed_dotation_projet_with_lettre_refus_is_to_sign(status):
     dotation_projet = DotationProjetFactory(status=status)
     programmation_projet = ProgrammationProjetFactory(dotation_projet=dotation_projet)
-    LettreRefusFactory(programmation_projet=programmation_projet)
+    LettreRefusFactory(dotation_projet=programmation_projet.dotation_projet)
 
     assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_SIGN
     _assert_property_matches_annotation(dotation_projet)
@@ -121,7 +121,7 @@ def test_refused_or_dismissed_dotation_projet_with_signed_lettre_refus_is_to_not
 ):
     dotation_projet = DotationProjetFactory(status=status)
     programmation_projet = ProgrammationProjetFactory(dotation_projet=dotation_projet)
-    LettreRefusSigneeFactory(programmation_projet=programmation_projet)
+    LettreRefusSigneeFactory(dotation_projet=programmation_projet.dotation_projet)
 
     assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_NOTIFY
     _assert_property_matches_annotation(dotation_projet)

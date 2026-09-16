@@ -79,11 +79,10 @@ class SelectModeleView(FormView):
         kwargs["queryset"] = self.modele_class.objects.filter(
             dotation=dotation, perimetre__in=perimetres
         )
-        if hasattr(self.programmation_projet, self.document_type):
+        dotation_projet = self.programmation_projet.dotation_projet
+        if hasattr(dotation_projet, self.document_type):
             kwargs["initial"] = {
-                "modele": getattr(
-                    self.programmation_projet, self.document_type
-                ).modele_id
+                "modele": getattr(dotation_projet, self.document_type).modele_id
             }
         return kwargs
 
@@ -138,9 +137,10 @@ class ChangeDocumentView(UpdateView):
             dotation_projet__projet_id=self.kwargs["projet_id"],
             enveloppe__dotation=self.kwargs["dotation"],
         )
-        if not hasattr(self.programmation_projet, self.document_type):
+        dotation_projet = self.programmation_projet.dotation_projet
+        if not hasattr(dotation_projet, self.document_type):
             raise Http404(user_message="Il n'y a pas de document à modifier.")
-        document = getattr(self.programmation_projet, self.document_type)
+        document = getattr(dotation_projet, self.document_type)
         self.modele = document.modele
 
         modele_id = self.request.GET.get("modele_id")
@@ -221,13 +221,13 @@ class DeleteDocumentView(DeleteView):
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
         return document_class.objects.filter(
-            programmation_projet__dotation_projet__projet__in=Projet.objects.active().for_user(
+            dotation_projet__projet__in=Projet.objects.active().for_user(
                 self.request.user
             )
         )
 
     def form_valid(self, form):
-        pp = self.object.programmation_projet
+        dotation_projet = self.object.dotation_projet
         doc_class_name = self.object.__class__._meta.verbose_name
         action_type = (
             ProjetAction.TYPE_DOC_UPLOAD_DELETED
@@ -235,11 +235,11 @@ class DeleteDocumentView(DeleteView):
             else ProjetAction.TYPE_DOC_DELETED
         )
         ProjetAction.objects.create(
-            projet=pp.dotation_projet.projet,
+            projet=dotation_projet.projet,
             action_type=action_type,
             actor=self.request.user,
             source=ProjetAction.SOURCE_TURGOT,
-            dotation=pp.dotation_projet.dotation,
+            dotation=dotation_projet.dotation,
             document_name=doc_class_name,
         )
         messages.success(self.request, "Le document a bien été supprimé.")
@@ -248,7 +248,7 @@ class DeleteDocumentView(DeleteView):
     def get_success_url(self):
         return reverse(
             "gsl_notification:documents",
-            kwargs={"projet_id": self.object.programmation_projet.projet.id},
+            kwargs={"projet_id": self.object.dotation_projet.projet.id},
         )
 
 
@@ -272,7 +272,7 @@ class PrintDocumentView(DetailView):
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
         return document_class.objects.filter(
-            programmation_projet__dotation_projet__projet__in=Projet.objects.active().for_user(
+            dotation_projet__projet__in=Projet.objects.active().for_user(
                 self.request.user
             )
         )
