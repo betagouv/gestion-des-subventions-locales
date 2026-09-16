@@ -94,6 +94,13 @@
                             </div>
                         {% endif %}
                     </li>
+                    <li class="fr-nav__item">
+                        {% url 'suivi_financier:collectivite-list' as collectivites_url %}
+                        <a class="fr-nav__link"
+                           href="{{ collectivites_url }}"
+                           target="_self"
+                           {% if "/collectivites/" in request.path %}aria-current="true"{% endif %}>Fiches collectivités <span class="fr-badge fr-badge--sm fr-badge--green-emeraude fr-ml-1w">BETA</span></a>
+                    </li>
                 {% endif %}
                 {% if request.user.is_staff %}
                     <li class="fr-nav__item">

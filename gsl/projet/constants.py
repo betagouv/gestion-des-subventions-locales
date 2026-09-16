@@ -1,5 +1,7 @@
 from typing import Literal
 
+# TODO move this file in gsl/core
+
 DOTATION_DETR = "DETR"
 DOTATION_DSIL = "DSIL"
 DOTATIONS = (DOTATION_DETR, DOTATION_DSIL)
@@ -45,3 +47,17 @@ ANNEXE = "annexe"
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
 
 ANNUAIRE_ENTREPRISE_URL = "https://annuaire-entreprises.data.gouv.fr/entreprise/"
+
+DS_STATE_ACCEPTE = "accepte"
+DS_STATE_EN_CONSTRUCTION = "en_construction"
+DS_STATE_EN_INSTRUCTION = "en_instruction"
+DS_STATE_REFUSE = "refuse"
+DS_STATE_SANS_SUITE = "sans_suite"
+
+DS_STATE_VALUES = (
+    (DS_STATE_ACCEPTE, "Accepté"),
+    (DS_STATE_EN_CONSTRUCTION, "En construction"),
+    (DS_STATE_EN_INSTRUCTION, "En instruction"),
+    (DS_STATE_REFUSE, "Refusé"),
+    (DS_STATE_SANS_SUITE, "Classé sans suite"),
+)

@@ -7,6 +7,13 @@ from django import template
 from django.template.defaultfilters import floatformat
 from django.utils.safestring import mark_safe
 
+from gsl.projet.constants import (
+    DS_STATE_ACCEPTE,
+    DS_STATE_EN_CONSTRUCTION,
+    DS_STATE_EN_INSTRUCTION,
+    DS_STATE_REFUSE,
+    DS_STATE_SANS_SUITE,
+)
 from gsl.simulation.models import SimulationProjet
 
 register = template.Library()
@@ -271,3 +278,25 @@ def remove_filter_qs(context, field):
         qd.pop(key, None)
     encoded = qd.urlencode()
     return f"?{encoded}" if encoded else ""
+
+
+_DISPOSITIF_SHORT = {"dsil exceptionnelle": "DSIL EXC.", "fonds vert": "FV"}
+
+
+@register.filter
+def dispositif_short(label):
+    return _DISPOSITIF_SHORT.get(label.lower(), label)
+
+
+_FONDS_VERT_STATUT_TO_CSS = {
+    DS_STATE_ACCEPTE: "accepted",
+    DS_STATE_REFUSE: "refused",
+    DS_STATE_SANS_SUITE: "dismissed",
+    DS_STATE_EN_INSTRUCTION: "processing",
+    DS_STATE_EN_CONSTRUCTION: "processing",
+}
+
+
+@register.filter
+def fonds_vert_statut_class(statut):
+    return _FONDS_VERT_STATUT_TO_CSS.get(statut, "processing")
