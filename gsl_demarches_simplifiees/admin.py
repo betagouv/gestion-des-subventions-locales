@@ -451,10 +451,12 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def refresh_from_ds(self, request, queryset):
         if queryset.count() == 1:
             try:
-                level, message = save_one_dossier_from_ds(
-                    queryset.get(), refresh_only_if_dossier_has_been_updated=False
+                save_one_dossier_from_ds(queryset.get())
+                self.message_user(
+                    request,
+                    "Le dossier a bien été mis à jour depuis Démarche Numérique.",
+                    messages.SUCCESS,
                 )
-                self.message_user(request, message, level)
             except DsServiceException:
                 self.message_user(
                     request,

@@ -25,7 +25,6 @@ def test_refresh_one_dossier_nominal_case():
 
     with patch(
         "gsl_demarches_simplifiees.views.save_one_dossier_from_ds",
-        return_value=(messages.SUCCESS, "This is fine"),
     ) as mock_api_call:
         response = client.post(url, {"next": "/next-url"}, follow=False)
 
@@ -34,7 +33,7 @@ def test_refresh_one_dossier_nominal_case():
     response_messages = messages.get_messages(response.wsgi_request)
     assert len(response_messages)
     first_message = tuple(response_messages)[0]
-    assert "This is fine" == first_message.message
+    assert "Le dossier a bien été mis à jour" in first_message.message
     assert first_message.level == messages.SUCCESS
     mock_api_call.assert_called_once()
 
@@ -49,7 +48,6 @@ def test_refresh_one_dossier_non_existing_dossier_gives_404():
     )
     with patch(
         "gsl_demarches_simplifiees.views.save_one_dossier_from_ds",
-        return_value=(messages.SUCCESS, "This is fine"),
     ) as mock_api_call:
         response = client.post(url, {"next": "/next-url"}, follow=False)
 
@@ -68,7 +66,6 @@ def test_refresh_one_dossier_invalid_perimeter_gives_404():
 
     with patch(
         "gsl_demarches_simplifiees.views.save_one_dossier_from_ds",
-        return_value=(messages.SUCCESS, "This is fine"),
     ) as mock_api_call:
         response = client.post(url, {"next": "/next-url"}, follow=False)
 
