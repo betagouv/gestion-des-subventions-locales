@@ -782,11 +782,7 @@ class Dossier(BaseModel):
     def get_last_traitement_matching_dossier_state(self) -> dict | None:
         event = self.EVENT_BY_STATE.get(self.ds_state)
 
-        ds_data = getattr(self, "ds_data", None)
-        traitements = ((ds_data.raw_data if ds_data else None) or {}).get(
-            "traitements"
-        ) or []
-        matching_traitements = [t for t in traitements if t.get("event") == event]
+        matching_traitements = [t for t in self.traitements if t.get("event") == event]
         return most_recent_traitement(matching_traitements)
 
     @property
@@ -922,6 +918,16 @@ class Dossier(BaseModel):
     @property
     def name_for_document(self):
         return f"{self.ds_number} - {slugify(self.ds_demandeur.raison_sociale)}"
+
+    @property
+    def data(self) -> DossierData | None:
+        return getattr(self, "ds_data", None)
+
+    @property
+    def traitements(self) -> list:
+        if self.data is None:
+            return []
+        return self.data.raw_data.get("traitements") or []
 
 
 class DsChoiceLibelle(BaseModel):
