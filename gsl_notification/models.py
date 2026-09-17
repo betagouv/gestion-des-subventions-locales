@@ -593,7 +593,7 @@ class ExportJob(BaseModel):
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
     # Task parameters — stored so the task only needs job_id
-    pp_ids = models.JSONField(default=list)
+    dotation_projet_ids = models.JSONField(default=list)
     attr_names = models.JSONField(default=list)
     export_format = models.CharField(max_length=64, choices=EXPORT_FORMAT_CHOICES)
     document_type = models.CharField(max_length=32, choices=DOCUMENT_TYPE_CHOICES)

@@ -24,7 +24,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.models import DotationProjet, DotationProjetQuerySet, Projet
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
@@ -47,10 +47,7 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_notification.validators import document_file_validator
-from gsl_programmation.models import ProgrammationProjet, ProgrammationProjetQuerySet
-from gsl_programmation.utils.programmation_projet_filters import (
-    ProgrammationProjetFilters,
-)
+from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
 class PresignedUploadForm(forms.Form):
@@ -421,18 +418,15 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
                     documents.append(
                         self._generate_document(
                             fields["modele_class"],
-                            dp.programmation_projet,
+                            dp,
                             self.cleaned_data[fields["modele"].name],
                             with_qr_code,
                         )
                     )
         return documents
 
-    def _generate_document(
-        self, modele_class, programmation_projet, modele, with_qr_code
-    ):
+    def _generate_document(self, modele_class, dotation_projet, modele, with_qr_code):
         document_class = modele_class.generated_document_class
-        dotation_projet = programmation_projet.dotation_projet
         is_creating = not hasattr(dotation_projet, modele_class.type)
         if not is_creating:
             getattr(dotation_projet, modele_class.type).delete()
@@ -441,12 +435,12 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
             dotation_projet=dotation_projet,
             modele=modele,
             created_by=self.user,
-            content=replace_mentions_in_html(modele.content, programmation_projet),
+            content=replace_mentions_in_html(modele.content, dotation_projet),
             with_qr_code=with_qr_code,
         )
         document.save()
         log_generated_document_action(
-            self.user, programmation_projet, document_class, is_creating
+            self.user, dotation_projet, document_class, is_creating
         )
         return document
 
@@ -649,8 +643,8 @@ EXPORT_FORMAT_ONE_PDF_PER_PROJECT = ExportJob.EXPORT_FORMAT_ONE_PDF_PER_PROJECT
 EXPORT_FORMAT_ONE_PDF_ALL_GROUPED = ExportJob.EXPORT_FORMAT_ONE_PDF_ALL_GROUPED
 
 
-class ProgrammationProjetMultipleChoiceField(forms.ModelMultipleChoiceField):
-    """Hidden, CSV-encoded ModelMultipleChoiceField for ProgrammationProjet."""
+class DotationProjetMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """Hidden, CSV-encoded ModelMultipleChoiceField for DotationProjet."""
 
     widget = forms.HiddenInput
 
@@ -715,48 +709,47 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     Subclasses restrict them to the projets they can generate documents for.
     """
 
-    ids = ProgrammationProjetMultipleChoiceField(
-        queryset=ProgrammationProjet.objects.none(),
+    ids = DotationProjetMultipleChoiceField(
+        queryset=DotationProjet.objects.none(),
         required=False,
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["ids"].queryset = (
-            ProgrammationProjet.objects.active()
+            DotationProjet.objects.programmees()
+            .active()
             .visible_to_user(self.user)
-            .filter(dotation_projet__dotation=self.dotation)
-            .select_related("dotation_projet__projet")
+            .filter(dotation=self.dotation)
+            .select_related("projet")
         )
 
     def clean_ids(self):
         checked = self.cleaned_data.get("ids") or []
         if checked:
-            queryset = ProgrammationProjet.objects.filter(
-                pk__in=[pp.pk for pp in checked]
-            )
+            queryset = DotationProjet.objects.filter(pk__in=[dp.pk for dp in checked])
         else:
-            queryset = ProgrammationProjetFilters(
+            queryset = ProgrammationFilters(
                 data=self.request.GET, request=self.request
             ).qs
-        ids = self.eligible_programmation_projets(queryset)
+        ids = self.eligible_dotation_projets(queryset)
         if not ids:
             raise forms.ValidationError("Aucun projet à notifier.", code="no_projects")
         return ids
 
-    def eligible_programmation_projets(
-        self, queryset: ProgrammationProjetQuerySet
-    ) -> ProgrammationProjetQuerySet:
+    def eligible_dotation_projets(
+        self, queryset: DotationProjetQuerySet
+    ) -> DotationProjetQuerySet:
         raise NotImplementedError
 
 
 class GenerateAcceptedDocumentsLaunchForm(BaseGenerateDocumentsLaunchForm):
-    def eligible_programmation_projets(self, queryset):
+    def eligible_dotation_projets(self, queryset):
         return queryset.can_generate_accepted_documents()
 
 
 class GenerateRefusLettersLaunchForm(BaseGenerateDocumentsLaunchForm):
-    def eligible_programmation_projets(self, queryset):
+    def eligible_dotation_projets(self, queryset):
         return queryset.can_generate_refus_documents()
 
 
@@ -785,9 +778,9 @@ class GenerateDocumentsModeleSelectionForm(
     STRATEGY_CONSERVER = "conserver"
     STRATEGY_REMPLACER = "remplacer"
 
-    def __init__(self, *args, programmation_projets, **kwargs):
+    def __init__(self, *args, dotation_projets, **kwargs):
         super().__init__(*args, **kwargs)
-        self.programmation_projets = programmation_projets
+        self.dotation_projets = dotation_projets
 
         self.modele_entries = [
             ModeleSelectionEntry(self, t)
@@ -886,7 +879,7 @@ class ModeleSelectionEntry:
     def existing_count(self) -> int:
         generated_document_class = MODELES[self.document_type].generated_document_class
         return generated_document_class.objects.filter(
-            dotation_projet__programmation_projet__in=self.form.programmation_projets
+            dotation_projet__in=self.form.dotation_projets
         ).count()
 
     @cached_property
@@ -967,19 +960,19 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
     document creation.
     """
 
-    def __init__(self, *args, programmation_projets, **kwargs):
+    def __init__(self, *args, dotation_projets, **kwargs):
         super().__init__(*args, **kwargs)
-        self.programmation_projets = programmation_projets
+        self.dotation_projets = dotation_projets
         self._pending_doc_actions = []
 
-    def _log_doc_action(self, pp, document_class):
+    def _log_doc_action(self, dotation_projet, document_class):
         self._pending_doc_actions.append(
             ProjetAction(
-                projet=pp.dotation_projet.projet,
+                projet=dotation_projet.projet,
                 action_type=ProjetAction.TYPE_DOC_GENERATED,
                 actor=self.user,
                 source=ProjetAction.SOURCE_TURGOT,
-                dotation=pp.dotation_projet.dotation,
+                dotation=dotation_projet.dotation,
                 document_name=document_class._meta.verbose_name.lower(),
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
@@ -993,17 +986,15 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         ProjetAction.objects.bulk_create(self._pending_doc_actions)
 
         return list(
-            ProgrammationProjet.objects.active().filter(
-                pk__in=self.programmation_projets
-            )
+            DotationProjet.objects.active().filter(pk__in=self.dotation_projets)
         )
 
     # replace_mentions_in_html() (every Mention in gsl_notification.utils.MENTIONS)
     # and _log_doc_action() walk these chains for every projet; without them
     # each hop is an extra N+1 query per document.
-    PPS_TO_CREATE_SELECT_RELATED = (
-        "dotation_projet__projet__dossier_ds__ds_demandeur__address__commune",
-        "dotation_projet__projet__dossier_ds__perimetre__departement",
+    DOTATION_PROJETS_SELECT_RELATED = (
+        "projet__dossier_ds__ds_demandeur__address__commune",
+        "projet__dossier_ds__perimetre__departement",
     )
 
     def _create_documents_of_type(self, modele, overwrite_strategy):
@@ -1014,28 +1005,24 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             == GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER
         ):
             document_class.objects.filter(
-                dotation_projet__programmation_projet__in=self.programmation_projets
+                dotation_projet__in=self.dotation_projets
             ).delete()
-            pps_to_create = self.programmation_projets.select_related(
-                *self.PPS_TO_CREATE_SELECT_RELATED
+            to_create = self.dotation_projets.select_related(
+                *self.DOTATION_PROJETS_SELECT_RELATED
             )
         else:
-            pps_to_create = (
-                ProgrammationProjet.objects.active()
-                .filter(pk__in=self.programmation_projets)
-                .exclude(
-                    dotation_projet_id__in=document_class.objects.values(
-                        "dotation_projet_id"
-                    )
-                )
-                .select_related(*self.PPS_TO_CREATE_SELECT_RELATED)
+            to_create = (
+                DotationProjet.objects.active()
+                .filter(pk__in=self.dotation_projets)
+                .exclude(pk__in=document_class.objects.values("dotation_projet_id"))
+                .select_related(*self.DOTATION_PROJETS_SELECT_RELATED)
             )
 
-        for pp in pps_to_create:
+        for dotation_projet in to_create:
             document_class(
-                dotation_projet=pp.dotation_projet,
+                dotation_projet=dotation_projet,
                 modele=modele,
                 created_by=self.user,
-                content=replace_mentions_in_html(modele.content, pp),
+                content=replace_mentions_in_html(modele.content, dotation_projet),
             ).save()
-            self._log_doc_action(pp, document_class)
+            self._log_doc_action(dotation_projet, document_class)

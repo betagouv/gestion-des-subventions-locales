@@ -79,9 +79,10 @@ def detr_projets(
     departement_perimetre, arrondissement_perimetre
 ) -> list[DotationProjetFactory]:
     detr_projets = []
-    for montant, assiette, state, date_traitement in (
+    for montant_demande, montant_accorde, assiette, state, date_traitement in (
         (
             1_000,
+            None,
             3_000,
             Dossier.STATE_EN_CONSTRUCTION,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
@@ -89,31 +90,48 @@ def detr_projets(
         (
             600,
             None,
+            None,
             Dossier.STATE_EN_INSTRUCTION,
             datetime(CURRENT_YEAR - 2, 1, 1, tzinfo=UTC),
         ),
         (
             2_000,
+            2_000,
             3_000,
             Dossier.STATE_ACCEPTE,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
         ),
-        (2_000, 4_000, Dossier.STATE_ACCEPTE, datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC)),
+        (
+            2_000,
+            2_000,
+            4_000,
+            Dossier.STATE_ACCEPTE,
+            datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+        ),
         (
             1_500,
+            0,
             None,
             Dossier.STATE_REFUSE,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
         ),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC)),
+        (
+            1_500,
+            0,
+            None,
+            Dossier.STATE_REFUSE,
+            datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+        ),
         (
             6_500,
+            0,
             None,
             Dossier.STATE_SANS_SUITE,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
         ),
         (
             2_500,
+            0,
             None,
             Dossier.STATE_SANS_SUITE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
@@ -122,14 +140,16 @@ def detr_projets(
         status = DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[state]
         projet = ProjetFactory(
             dossier_ds=DossierFactory(
-                demande_montant=montant,
+                demande_montant=montant_demande,
                 demande_dispositif_sollicite=DOTATION_DETR,
                 ds_state=state,
                 ds_date_traitement=date_traitement,
                 perimetre=arrondissement_perimetre,
             ),
         )
-        detr_projet = DetrProjetFactory(projet=projet, status=status, assiette=assiette)
+        detr_projet = DetrProjetFactory(
+            projet=projet, status=status, assiette=assiette, montant=montant_accorde
+        )
         detr_projets.append(detr_projet)
     return detr_projets
 
@@ -139,9 +159,10 @@ def dsil_projets(
     departement_perimetre, arrondissement_perimetre
 ) -> list[DotationProjetFactory]:
     dotation_projets = []
-    for montant, assiette, state, date_traitement in (
+    for montant_demande, montant_accorde, assiette, state, date_traitement in (
         (
             1_000,
+            None,
             4_000,
             Dossier.STATE_EN_CONSTRUCTION,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
@@ -149,10 +170,12 @@ def dsil_projets(
         (
             600,
             None,
+            None,
             Dossier.STATE_EN_INSTRUCTION,
             datetime(CURRENT_YEAR - 2, 1, 1, tzinfo=UTC),
         ),
         (
+            2_000,
             2_000,
             4_000,
             Dossier.STATE_ACCEPTE,
@@ -160,25 +183,35 @@ def dsil_projets(
         ),
         (
             5_000,
+            5_000,
             10_000,
             Dossier.STATE_ACCEPTE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
         ),
         (
             3_500,
+            0,
             None,
             Dossier.STATE_REFUSE,
             datetime(CURRENT_YEAR - 1, 12, 31, tzinfo=UTC),
         ),
-        (1_500, None, Dossier.STATE_REFUSE, datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC)),
+        (
+            1_500,
+            0,
+            None,
+            Dossier.STATE_REFUSE,
+            datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+        ),
         (
             2_500,
+            0,
             None,
             Dossier.STATE_SANS_SUITE,
             datetime(CURRENT_YEAR - 1, 12, 13, tzinfo=UTC),
         ),
         (
             2_500,
+            0,
             None,
             Dossier.STATE_SANS_SUITE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
@@ -187,14 +220,16 @@ def dsil_projets(
         status = DOSSIER_DS_STATUS_TO_DOTATION_PROJET_STATUS[state]
         projet = ProjetFactory(
             dossier_ds=DossierFactory(
-                demande_montant=montant,
+                demande_montant=montant_demande,
                 demande_dispositif_sollicite="DSIL",
                 ds_state=state,
                 ds_date_traitement=date_traitement,
                 perimetre=arrondissement_perimetre,
             ),
         )
-        dsil_projet = DsilProjetFactory(projet=projet, status=status, assiette=assiette)
+        dsil_projet = DsilProjetFactory(
+            projet=projet, status=status, assiette=assiette, montant=montant_accorde
+        )
         dotation_projets.append(dsil_projet)
     return dotation_projets
 

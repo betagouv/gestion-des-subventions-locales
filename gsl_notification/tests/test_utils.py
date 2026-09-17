@@ -7,7 +7,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
-from gsl.projet.constants import DOTATION_DETR
+from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
@@ -33,11 +34,10 @@ from gsl_notification.utils import (
     merge_generated_documents_into_pdf,
     replace_mentions_in_html,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 
 @pytest.fixture
-def programmation_projet():
+def dotation_projet():
     perimetre = PerimetreDepartementalFactory(
         departement__name="Haute-Garonne",
     )
@@ -47,27 +47,28 @@ def programmation_projet():
         postal_code="75001",
         commune__name="Paris",
     )
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+    return DotationProjetFactory(
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             raison_sociale="Commune de Bagnères-de-Luchon",
             siret="12345678901234",
             address=adresse,
         ),
-        dotation_projet__projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__projet__dossier_ds__date_debut=datetime.date(1998, 7, 12),
-        dotation_projet__projet__dossier_ds__date_achevement=datetime.date(2024, 7, 31),
-        dotation_projet__projet__dossier_ds__ds_date_depot=datetime.datetime(
+        projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__date_debut=datetime.date(1998, 7, 12),
+        projet__dossier_ds__date_achevement=datetime.date(2024, 7, 31),
+        projet__dossier_ds__ds_date_depot=datetime.datetime(
             2023, 3, 15, tzinfo=datetime.timezone.utc
         ),
-        dotation_projet__projet__dossier_ds__ds_number=1234567,
-        dotation_projet__projet__dossier_ds__finance_cout_total=50_000,
-        dotation_projet__projet__dossier_ds__porteur_de_projet_fonction="Maire",
-        dotation_projet__projet__dossier_ds__porteur_de_projet_prenom="Jean",
-        dotation_projet__projet__dossier_ds__porteur_de_projet_nom="Dupont",
-        dotation_projet__projet__comment_1="<p>Commentaire <strong>important</strong></p>",
+        projet__dossier_ds__ds_number=1234567,
+        projet__dossier_ds__finance_cout_total=50_000,
+        projet__dossier_ds__porteur_de_projet_fonction="Maire",
+        projet__dossier_ds__porteur_de_projet_prenom="Jean",
+        projet__dossier_ds__porteur_de_projet_nom="Dupont",
+        projet__comment_1="<p>Commentaire <strong>important</strong></p>",
         montant=2_000.50,
-        dotation_projet__assiette=20_000,
+        assiette=20_000,
     )
 
 
@@ -103,11 +104,11 @@ def programmation_projet():
     ),
 )
 @pytest.mark.django_db
-def test_replace_mentions_in_html(key, label, expected_value, programmation_projet):
+def test_replace_mentions_in_html(key, label, expected_value, dotation_projet):
     html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{key}" data-label="{label}" data-mention-suggestion-char="@">@{label}</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
     expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
 
-    assert expected_text == replace_mentions_in_html(html_content, programmation_projet)
+    assert expected_text == replace_mentions_in_html(html_content, dotation_projet)
 
 
 @pytest.mark.django_db
@@ -119,14 +120,15 @@ def test_replace_mentions_in_html_multiline_address():
         postal_code="75008",
         commune__name="PARIS",
     )
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             address=adresse,
         ),
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__perimetre=perimetre,
     )
     html_content = '<p><span class="mention" data-type="mention" data-id="adresse-demandeur" data-label="Adresse du demandeur" data-mention-suggestion-char="@">@Adresse du demandeur</span></p>'
-    result = replace_mentions_in_html(html_content, pp)
+    result = replace_mentions_in_html(html_content, dotation_projet)
     assert result == "<p>2 PLACE DES SAUSSAIES<br/>75008 PARIS</p>"
 
 
@@ -138,24 +140,25 @@ def test_replace_mentions_in_html_uses_address_two_lines():
         postal_code="75001",
         commune__name="Paris",
     )
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+    dotation_projet = DotationProjetFactory(
+        status=PROJET_STATUS_ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             address=adresse,
         ),
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__perimetre=perimetre,
     )
     html_content = '<p><span class="mention" data-type="mention" data-id="adresse-demandeur" data-label="Adresse du demandeur" data-mention-suggestion-char="@">@Adresse du demandeur</span></p>'
 
-    result = replace_mentions_in_html(html_content, pp)
+    result = replace_mentions_in_html(html_content, dotation_projet)
 
     assert result == "<p>1 rue de la Paix<br/>75001 Paris</p>"
 
 
 @pytest.mark.django_db
-def test_replace_mention_date_arrete_uses_current_date(programmation_projet):
+def test_replace_mention_date_arrete_uses_current_date(dotation_projet):
     html_content = '<span class="mention" data-type="mention" data-id="date-arrete" data-label="Date d\'édition de l\'arrêté" data-mention-suggestion-char="@">@Date d\'édition de l\'arrêté</span>'
     expected_date = timezone.now().strftime("%d/%m/%Y")
-    assert expected_date == replace_mentions_in_html(html_content, programmation_projet)
+    assert expected_date == replace_mentions_in_html(html_content, dotation_projet)
 
 
 @pytest.mark.django_db
@@ -455,13 +458,13 @@ class TestMergeGeneratedDocumentsIntoPdf:
 
 
 @pytest.mark.django_db
-def test_generate_pdf_for_generated_document(programmation_projet):
+def test_generate_pdf_for_generated_document(dotation_projet):
     modele = ModeleLettreNotificationFactory(
         dotation=DOTATION_DETR,
-        perimetre=programmation_projet.dotation_projet.projet.dossier_ds.perimetre,
+        perimetre=dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         modele=modele,
         content="<p>Test PDF</p>",
     )

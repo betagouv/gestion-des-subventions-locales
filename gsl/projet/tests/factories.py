@@ -1,4 +1,8 @@
+from decimal import Decimal
+from random import randint
+
 import factory
+from django.utils import timezone
 
 from gsl_core.tests.factories import (
     AdresseFactory,
@@ -7,12 +11,18 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
 
 from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     DOTATIONS,
+    PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_CHOICES,
+    PROJET_STATUS_PROCESSING,
 )
 from ..models import DotationProjet, Projet, ProjetNote
 
@@ -44,6 +54,29 @@ class ProcessedProjetFactory(ProjetFactory):
     )
 
 
+def _default_enveloppe(obj):
+    """The enveloppe a treated dotation must carry. On the projet's own
+    perimetre, the one spelling that always satisfies `contains_or_equal`
+    whatever level that perimetre sits at."""
+    if obj.status == PROJET_STATUS_PROCESSING:
+        return None
+    perimetre = obj.projet.dossier_ds.perimetre
+    if obj.dotation == DOTATION_DETR:
+        enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
+    else:
+        enveloppe = DsilEnveloppeFactory(perimetre=perimetre)
+    return enveloppe.delegation_root
+
+
+def _default_montant(obj):
+    if obj.status == PROJET_STATUS_PROCESSING:
+        return None
+    if obj.status != PROJET_STATUS_ACCEPTED:
+        return Decimal(0)
+    ceiling = obj.assiette or obj.projet.dossier_ds.finance_cout_total
+    return Decimal(randint(0, int(ceiling))) if ceiling else Decimal(randint(1, 99_999))
+
+
 class DotationProjetFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = DotationProjet
@@ -53,6 +86,15 @@ class DotationProjetFactory(factory.django.DjangoModelFactory):
     dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
     status = factory.fuzzy.FuzzyChoice(choice[0] for choice in PROJET_STATUS_CHOICES)
     detr_avis_commission = factory.Faker("boolean")
+    assiette = None
+
+    # The three below travel together: a treated dotation is a programmed one,
+    # a dotation still being processed carries none of them.
+    enveloppe = factory.LazyAttribute(_default_enveloppe)
+    montant = factory.LazyAttribute(_default_montant)
+    date_programmation = factory.LazyAttribute(
+        lambda o: None if o.status == PROJET_STATUS_PROCESSING else timezone.now()
+    )
 
 
 class DetrProjetFactory(DotationProjetFactory):

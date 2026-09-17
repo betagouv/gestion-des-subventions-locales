@@ -287,9 +287,9 @@ class FixedFilterFieldsMixin:
 
 class CommonFiltersFields(FixedFilterFieldsMixin, FilterSet):
     """Shared fields for ProjetFilters, SimulationProjetFilters (both
-    Meta.model = Projet) and ProgrammationProjetFilters (Meta.model =
-    ProgrammationProjet). `field_name`s below are declared relative to
-    Projet; ProgrammationProjetFilters sets `dossier_field_prefix` to reach
+    Meta.model = Projet) and ProgrammationFilters (Meta.model =
+    DotationProjet). `field_name`s below are declared relative to
+    Projet; ProgrammationFilters sets `dossier_field_prefix` to reach
     Projet through its own relation, prepended in `__init__`."""
 
     dossier_field_prefix = ""
@@ -470,7 +470,7 @@ class CommonFiltersFields(FixedFilterFieldsMixin, FilterSet):
 class ProjetFilters(CommonFiltersFields):
     # Overrides the common field to use the `Exists`-based method: a plain
     # Projet has no single `_notification_status` annotation to look up
-    # (unlike SimulationProjetFilters/ProgrammationProjetFilters, whose
+    # (unlike SimulationProjetFilters/ProgrammationFilters, whose
     # queryset is already scoped to one dotation).
     notification_status = MultipleChoiceFilter(
         label="Statut de notification",
@@ -526,13 +526,9 @@ class ProjetFilters(CommonFiltersFields):
     def filter_montant_retenu(self, queryset, _name, value):
         dotation_qs = DotationProjet.objects.filter(projet=OuterRef("pk"))
         if value.start is not None:
-            dotation_qs = dotation_qs.filter(
-                programmation_projet__montant__gte=value.start
-            )
+            dotation_qs = dotation_qs.filter(montant__gte=value.start)
         if value.stop is not None:
-            dotation_qs = dotation_qs.filter(
-                programmation_projet__montant__lte=value.stop
-            )
+            dotation_qs = dotation_qs.filter(montant__lte=value.stop)
         return queryset.annotate(match=Exists(dotation_qs)).filter(match=True)
 
     def filter_status(self, queryset, _name, values: list[str]):

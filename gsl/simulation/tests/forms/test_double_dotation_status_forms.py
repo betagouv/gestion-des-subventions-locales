@@ -24,11 +24,9 @@ from gsl.projet.constants import (
 from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
 )
 
 from ...forms import SimulationProjetStatusForm
@@ -107,7 +105,7 @@ class TestRefuseOneDoubleDotation:
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        dsil_dotation.status = PROJET_STATUS_REFUSED
+        dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
@@ -145,7 +143,9 @@ class TestRefuseOneDoubleDotation:
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        dsil_dotation.status = PROJET_STATUS_ACCEPTED
+        dsil_dotation.accept_without_ds_update(
+            montant=7_500, enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre)
+        )
         dsil_dotation.save()
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
@@ -212,12 +212,9 @@ class TestDismissOneDoubleDotation:
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        detr_dotation.status = PROJET_STATUS_DISMISSED
-        detr_dotation.save()
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
-        ProgrammationProjetFactory(
-            dotation_projet=detr_dotation, enveloppe=detr_enveloppe
-        )
+        detr_dotation.dismiss(enveloppe=detr_enveloppe)
+        detr_dotation.save()
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
@@ -254,12 +251,9 @@ class TestDismissOneDoubleDotation:
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        detr_dotation.status = PROJET_STATUS_REFUSED
-        detr_dotation.save()
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
-        ProgrammationProjetFactory(
-            dotation_projet=detr_dotation, enveloppe=detr_enveloppe
-        )
+        detr_dotation.refuse(enveloppe=detr_enveloppe)
+        detr_dotation.save()
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
@@ -336,12 +330,8 @@ class TestAcceptOneDoubleDotation:
         assert dsil_dotation.status == PROJET_STATUS_PROCESSING
         assert projet.status == PROJET_STATUS_PROCESSING
 
-        assert ProgrammationProjet.objects.filter(
-            dotation_projet=detr_dotation
-        ).exists()
-        assert not ProgrammationProjet.objects.filter(
-            dotation_projet=dsil_dotation
-        ).exists()
+        assert detr_dotation.is_programmee
+        assert not dsil_dotation.is_programmee
 
     @mock.patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
@@ -394,12 +384,8 @@ class TestAcceptOneDoubleDotation:
         assert dsil_dotation.status == PROJET_STATUS_ACCEPTED
         assert projet.status == PROJET_STATUS_ACCEPTED
 
-        assert ProgrammationProjet.objects.filter(
-            dotation_projet=detr_dotation
-        ).exists()
-        assert ProgrammationProjet.objects.filter(
-            dotation_projet=dsil_dotation
-        ).exists()
+        assert detr_dotation.is_programmee
+        assert dsil_dotation.is_programmee
 
     @mock.patch(
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
@@ -411,7 +397,7 @@ class TestAcceptOneDoubleDotation:
         dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
         projet = double_dotation_projet_detr_dsil["projet"]
 
-        dsil_dotation.status = PROJET_STATUS_REFUSED
+        dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)

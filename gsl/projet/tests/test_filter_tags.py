@@ -14,12 +14,10 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    ProgrammationProjetFactory,
-)
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
-from .factories import ProjetFactory
+from ..constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
+from .factories import DotationProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -154,8 +152,10 @@ def test_active_extra_filter_stays_collapsed_but_shows_tag(client, perimetre):
 
 def test_programmation_list_renders_fixed_fields_and_tags(client, perimetre):
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre, annee=2024)
-    ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+    DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
         enveloppe=enveloppe,
     )
     url = reverse(

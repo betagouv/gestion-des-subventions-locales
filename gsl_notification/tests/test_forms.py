@@ -17,6 +17,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
+from gsl.projet.models import DotationProjet
 from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
 from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
@@ -45,8 +46,6 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl_notification.utils import MENTIONS
-from gsl_programmation.models import ProgrammationProjet
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 # GeneratedDocumentForm
 
@@ -65,14 +64,14 @@ from gsl_programmation.tests.factories import ProgrammationProjetFactory
 @pytest.mark.django_db
 def test_arrete_form_valid(form_class, modele_factory, dotation):
     collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory(
-        dotation_projet__dotation=dotation
+    dotation_projet = DotationProjetFactory(
+        dotation=dotation, status=PROJET_STATUS_ACCEPTED
     )
     modele = modele_factory(dotation=dotation)
     data = {
         "content": {"foo": "bar"},
         "created_by": collegue.id,
-        "dotation_projet": programmation_projet.dotation_projet.id,
+        "dotation_projet": dotation_projet.id,
         "modele": modele.id,
     }
     form = form_class(data)
@@ -162,11 +161,8 @@ def test_analyze_form_rejects_large_file(file_size, is_valid):
 @pytest.mark.django_db
 def test_attach_form_only_offers_documents_importable_on_the_projet():
     projet = ProjetFactory()
-    dotation_projet = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
 
     form = ManualDocumentAttachForm(projet=projet)
@@ -183,9 +179,6 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
     projet = ProjetFactory()
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
 
     key = _parked_pdf()
@@ -214,9 +207,6 @@ def test_attach_form_refuses_a_document_already_imported():
     dotation_projet = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
-    )
     LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
     form = ManualDocumentAttachForm(
@@ -231,11 +221,8 @@ def test_attach_form_refuses_a_document_already_imported():
 @pytest.mark.django_db
 def test_attach_form_refuses_a_key_outside_the_temporary_prefix():
     projet = ProjetFactory()
-    dotation_projet = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
 
     form = ManualDocumentAttachForm(
@@ -350,12 +337,11 @@ def test_generate_documents_step3_form_valid_without_qr_field_submitted():
 
 
 def _make_accepted_dotation_projet(dotation, projet=None):
-    dp = DotationProjetFactory(
+    return DotationProjetFactory(
         projet=projet or ProjetFactory(),
         dotation=dotation,
         status=PROJET_STATUS_ACCEPTED,
     )
-    return ProgrammationProjetFactory(dotation_projet=dp)
 
 
 @pytest.mark.django_db
@@ -375,8 +361,8 @@ def test_generate_accepted_dotations_documents_form_only_lists_accepted_dotation
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_requires_modele_unless_skipped():
     user = CollegueFactory()
-    pp = _make_accepted_dotation_projet(DOTATION_DETR)
-    projet = pp.dotation_projet.projet
+    dotation_projet = _make_accepted_dotation_projet(DOTATION_DETR)
+    projet = dotation_projet.projet
     ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
     ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
 
@@ -390,8 +376,8 @@ def test_generate_accepted_dotations_documents_form_requires_modele_unless_skipp
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_forces_skip_when_no_modele():
     user = CollegueFactory()
-    pp = _make_accepted_dotation_projet(DOTATION_DETR)
-    projet = pp.dotation_projet.projet
+    dotation_projet = _make_accepted_dotation_projet(DOTATION_DETR)
+    projet = dotation_projet.projet
 
     form = GenerateDotationsDocumentsForm({}, projet=projet, user=user)
 
@@ -409,8 +395,8 @@ def test_generate_accepted_dotations_documents_form_forces_skip_when_no_modele()
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_skip_does_not_require_modele():
     user = CollegueFactory()
-    pp = _make_accepted_dotation_projet(DOTATION_DETR)
-    projet = pp.dotation_projet.projet
+    dotation_projet = _make_accepted_dotation_projet(DOTATION_DETR)
+    projet = dotation_projet.projet
 
     data = {
         f"skip_arrete_{DOTATION_DETR}": "on",
@@ -424,8 +410,8 @@ def test_generate_accepted_dotations_documents_form_skip_does_not_require_modele
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_creates_documents():
     user = CollegueFactory()
-    pp = _make_accepted_dotation_projet(DOTATION_DETR)
-    projet = pp.dotation_projet.projet
+    dotation_projet = _make_accepted_dotation_projet(DOTATION_DETR)
+    projet = dotation_projet.projet
     modele_arrete = ModeleArreteFactory(
         dotation=DOTATION_DETR, perimetre=user.perimetre
     )
@@ -442,17 +428,17 @@ def test_generate_accepted_dotations_documents_form_creates_documents():
     documents = form.save()
 
     assert len(documents) == 2
-    pp.refresh_from_db()
-    assert pp.dotation_projet.arrete.modele == modele_arrete
-    assert pp.dotation_projet.arrete.created_by == user
-    assert pp.dotation_projet.lettrenotification.modele == modele_lettre
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.arrete.modele == modele_arrete
+    assert dotation_projet.arrete.created_by == user
+    assert dotation_projet.lettrenotification.modele == modele_lettre
 
 
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_skip_prevents_creation():
     user = CollegueFactory()
-    pp = _make_accepted_dotation_projet(DOTATION_DETR)
-    projet = pp.dotation_projet.projet
+    dotation_projet = _make_accepted_dotation_projet(DOTATION_DETR)
+    projet = dotation_projet.projet
     modele_arrete = ModeleArreteFactory(
         dotation=DOTATION_DETR, perimetre=user.perimetre
     )
@@ -465,19 +451,19 @@ def test_generate_accepted_dotations_documents_form_skip_prevents_creation():
     assert form.is_valid(), form.errors
     form.save()
 
-    assert Arrete.objects.filter(dotation_projet=pp.dotation_projet).exists()
+    assert Arrete.objects.filter(dotation_projet=dotation_projet).exists()
     assert not LettreNotification.objects.filter(
-        dotation_projet=pp.dotation_projet
+        dotation_projet=dotation_projet
     ).exists()
 
 
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_overwrites_existing_document():
     user = CollegueFactory()
-    pp = _make_accepted_dotation_projet(DOTATION_DETR)
+    dotation_projet = _make_accepted_dotation_projet(DOTATION_DETR)
     old_modele = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
-    existing = ArreteFactory(dotation_projet=pp.dotation_projet, modele=old_modele)
-    projet = pp.dotation_projet.projet
+    existing = ArreteFactory(dotation_projet=dotation_projet, modele=old_modele)
+    projet = dotation_projet.projet
     new_modele = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
     modele_lettre = ModeleLettreNotificationFactory(
         dotation=DOTATION_DETR, perimetre=user.perimetre
@@ -491,10 +477,10 @@ def test_generate_accepted_dotations_documents_form_overwrites_existing_document
     assert form.is_valid(), form.errors
     form.save()
 
-    assert Arrete.objects.filter(dotation_projet=pp.dotation_projet).count() == 1
-    pp.refresh_from_db()
-    assert pp.dotation_projet.arrete.pk != existing.pk
-    assert pp.dotation_projet.arrete.modele == new_modele
+    assert Arrete.objects.filter(dotation_projet=dotation_projet).count() == 1
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.arrete.pk != existing.pk
+    assert dotation_projet.arrete.modele == new_modele
 
 
 @pytest.mark.django_db
@@ -506,8 +492,8 @@ def test_generate_accepted_dotations_documents_form_hide_qr_code_propagates(
     mock_generate_pdf,
 ):
     user = CollegueFactory()
-    pp = _make_accepted_dotation_projet(DOTATION_DETR)
-    projet = pp.dotation_projet.projet
+    dotation_projet = _make_accepted_dotation_projet(DOTATION_DETR)
+    projet = dotation_projet.projet
     modele_arrete = ModeleArreteFactory(
         dotation=DOTATION_DETR, perimetre=user.perimetre
     )
@@ -540,15 +526,15 @@ def _content_with_every_mention() -> str:
     )
 
 
-def _save_documents(programmation_projets, modele) -> int:
+def _save_documents(dotation_projets, modele) -> int:
     """Runs GenerateDocumentsCreateForm.save() for the given projets and
     returns the number of queries it issued."""
     form = GenerateDocumentsCreateForm(
         user=CollegueFactory(),
         dotation=DOTATION_DETR,
         request=None,
-        programmation_projets=ProgrammationProjet.objects.filter(
-            pk__in=[pp.pk for pp in programmation_projets]
+        dotation_projets=DotationProjet.objects.filter(
+            pk__in=[dp.pk for dp in dotation_projets]
         ),
     )
     with CaptureQueriesContext(connection) as ctx:
@@ -564,21 +550,21 @@ def test_generate_documents_create_form_save_is_not_n_plus_1_on_all_mentions():
     """Regression test: a modele using every possible mention must not add a
     query per projet. replace_mentions_in_html() and _log_doc_action() both
     walk the dotation_projet -> projet -> dossier_ds -> ds_demandeur/perimetre
-    chain for every mention, so pps_to_create must eager-load it once for the
+    chain for every mention, so the batch must eager-load it once for the
     whole batch instead of once per projet."""
     modele = ModeleLettreNotificationFactory(
         dotation=DOTATION_DETR, content=_content_with_every_mention()
     )
 
-    one_pp = ProgrammationProjetFactory.create_batch(
-        1, dotation_projet__dotation=DOTATION_DETR
+    one = DotationProjetFactory.create_batch(
+        1, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    queries_for_one = _save_documents(one_pp, modele)
+    queries_for_one = _save_documents(one, modele)
 
-    five_pps = ProgrammationProjetFactory.create_batch(
-        5, dotation_projet__dotation=DOTATION_DETR
+    five = DotationProjetFactory.create_batch(
+        5, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    queries_for_five = _save_documents(five_pps, modele)
+    queries_for_five = _save_documents(five, modele)
 
     # The only per-projet query left should be the document INSERT itself
     # (one row per projet, GENERATE_DOCUMENT_SIZE=False in tests so no PDF

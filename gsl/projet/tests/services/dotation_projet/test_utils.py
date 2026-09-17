@@ -14,13 +14,13 @@ from gsl_programmation.models import Enveloppe
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
 )
 
 from ....constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
 )
 from ....services.dotation_projet_services import (
     DotationProjetService as dps,
@@ -103,15 +103,16 @@ def test_get_root_enveloppe_from_dotation_projet_with_a_dsil_and_region_projet(
 @freeze_time("2026-05-06")
 def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(perimetres, caplog):
     arr_dijon, _, region_bfc, *_ = perimetres
+    region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
+        enveloppe=region_dsil_enveloppe,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             2026, 1, 15, tzinfo=UTC
         ),
     )
-    _region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     with pytest.raises(Enveloppe.DoesNotExist):  # No enveloppe for 2026
         dps._get_root_enveloppe_from_dotation_projet(dotation_projet)
@@ -229,84 +230,70 @@ def test_get_montant_from_dossier_handles_missing_montant(caplog):
     assert "Montant is missing" in caplog.records[0].message
 
 
-# -- _is_programmation_projet_created_after_date_of_passage_en_instruction --
+# -- _is_programmation_date_after_passage_en_instruction --
 
 
 @pytest.mark.django_db
-def test_is_programmation_projet_created_after_date_of_passage_en_instruction_without_programmation_projet():
-    """Test _is_programmation_projet_created_after_date_of_passage_en_instruction returns False when there's no programmation_projet"""
-    dotation_projet = DotationProjetFactory()
+def test_is_programmation_date_after_passage_en_instruction_without_programmation():
+    """Test _is_programmation_date_after_passage_en_instruction returns False when the dotation isn't programmed"""
+    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_PROCESSING)
 
-    result = dps._is_programmation_projet_created_after_date_of_passage_en_instruction(
-        dotation_projet
-    )
+    result = dps._is_programmation_date_after_passage_en_instruction(dotation_projet)
 
     assert result is False
 
 
 @pytest.mark.django_db
-def test_is_programmation_projet_created_after_date_of_passage_en_instruction_when_pp_is_created_before_passage_en_instruction():
-    """Test _is_programmation_projet_created_after_date_of_passage_en_instruction returns False when programmation_projet.created_at is before ds_date_passage_en_instruction"""
+def test_is_programmation_date_after_passage_en_instruction_when_before_passage_en_instruction():
+    """Test _is_programmation_date_after_passage_en_instruction returns False when date_programmation is before ds_date_passage_en_instruction"""
     dossier = DossierFactory(
         ds_date_passage_en_instruction=timezone.datetime(2025, 1, 15, tzinfo=UTC)
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(projet=projet)
-
-    # Create programmation_projet with frozen time (2025-01-10) which is before passage en instruction (2025-01-15)
-    with freeze_time("2025-01-10"):
-        programmation_projet = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet,
-        )
-
-    result = dps._is_programmation_projet_created_after_date_of_passage_en_instruction(
-        dotation_projet
+    dotation_projet = DotationProjetFactory(
+        projet=projet,
+        status=PROJET_STATUS_ACCEPTED,
+        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
 
+    result = dps._is_programmation_date_after_passage_en_instruction(dotation_projet)
+
     assert result is False
-    assert programmation_projet.created_at < dossier.ds_date_passage_en_instruction
+    assert dotation_projet.date_programmation < dossier.ds_date_passage_en_instruction
 
 
 @pytest.mark.django_db
-def test_is_programmation_projet_created_after_date_of_passage_en_instruction_when_pp_is_created_after_passage_en_instruction():
-    """Test _is_programmation_projet_created_after_date_of_passage_en_instruction returns True when programmation_projet.created_at is after ds_date_passage_en_instruction"""
+def test_is_programmation_date_after_passage_en_instruction_when_after_passage_en_instruction():
+    """Test _is_programmation_date_after_passage_en_instruction returns True when date_programmation is after ds_date_passage_en_instruction"""
     dossier = DossierFactory(
         ds_date_passage_en_instruction=timezone.datetime(
             2025, 1, 15, 10, 0, 0, tzinfo=UTC
         )
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(projet=projet)
-
-    # Create programmation_projet with frozen time (2025-01-20) which is after passage en instruction (2025-01-15)
-    with freeze_time("2025-01-20"):
-        programmation_projet = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet,
-        )
-
-    result = dps._is_programmation_projet_created_after_date_of_passage_en_instruction(
-        dotation_projet
+    dotation_projet = DotationProjetFactory(
+        projet=projet,
+        status=PROJET_STATUS_ACCEPTED,
+        date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
     )
 
+    result = dps._is_programmation_date_after_passage_en_instruction(dotation_projet)
+
     assert result is True
-    assert programmation_projet.created_at > dossier.ds_date_passage_en_instruction
+    assert dotation_projet.date_programmation > dossier.ds_date_passage_en_instruction
 
 
 @pytest.mark.django_db
-def test_is_programmation_projet_created_after_date_of_passage_en_instruction_with_none_date():
-    """Test _is_programmation_projet_created_after_date_of_passage_en_instruction raises TypeError when ds_date_passage_en_instruction is None"""
+def test_is_programmation_date_after_passage_en_instruction_with_none_date():
+    """Test _is_programmation_date_after_passage_en_instruction raises TypeError when ds_date_passage_en_instruction is None"""
     dossier = DossierFactory(ds_date_passage_en_instruction=None)
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(projet=projet)
-
-    # Create programmation_projet with frozen time
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        created_at=timezone.datetime(2025, 1, 20, tzinfo=UTC),
+    dotation_projet = DotationProjetFactory(
+        projet=projet,
+        status=PROJET_STATUS_ACCEPTED,
+        date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
     )
 
     # When ds_date_passage_en_instruction is None, the comparison raises TypeError
     with pytest.raises(TypeError, match="not supported between instances of"):
-        dps._is_programmation_projet_created_after_date_of_passage_en_instruction(
-            dotation_projet
-        )
+        dps._is_programmation_date_after_passage_en_instruction(dotation_projet)

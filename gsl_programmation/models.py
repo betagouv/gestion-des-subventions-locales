@@ -10,13 +10,10 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.models import DotationProjet, Projet
-from gsl.projet.utils.utils import compute_taux
 from gsl_core.models import BaseModel, Perimetre
-from gsl_demarches_simplifiees.models import Dossier
 
 
 class EnveloppeQueryset(models.QuerySet):
@@ -128,17 +125,17 @@ class Enveloppe(BaseModel):
     @cached_property
     def enveloppe_projets_processed(self):
         if self.is_deleguee:
-            return ProgrammationProjet.objects.active().filter(
+            return DotationProjet.objects.active().filter(
                 enveloppe=self.delegation_root,
-                dotation_projet__projet__in=self.enveloppe_projets_included,
+                projet__in=self.enveloppe_projets_included,
             )
-        return ProgrammationProjet.objects.active().filter(enveloppe=self)
+        return DotationProjet.objects.active().filter(enveloppe=self)
 
     @property
     def accepted_montant(self):
         return (
             self.enveloppe_projets_processed.filter(
-                dotation_projet__status=PROJET_STATUS_ACCEPTED
+                status=PROJET_STATUS_ACCEPTED
             ).aggregate(Sum("montant"))["montant__sum"]
             or 0
         )
@@ -150,13 +147,13 @@ class Enveloppe(BaseModel):
     @property
     def validated_projets_count(self):
         return self.enveloppe_projets_processed.filter(
-            dotation_projet__status=PROJET_STATUS_ACCEPTED
+            status=PROJET_STATUS_ACCEPTED
         ).count()
 
     @property
     def refused_projets_count(self):
         return self.enveloppe_projets_processed.filter(
-            dotation_projet__status=PROJET_STATUS_REFUSED
+            status=PROJET_STATUS_REFUSED
         ).count()
 
     @property
@@ -207,161 +204,3 @@ class Enveloppe(BaseModel):
             raise ValidationError(
                 "Le périmètre de l'enveloppe délégante est incohérent avec celui de l'enveloppe déléguée."
             )
-
-
-class ProgrammationProjetQuerySet(models.QuerySet):
-    def create(self, **kwargs):
-        if "enveloppe" in kwargs:
-            kwargs["enveloppe"] = kwargs["enveloppe"].delegation_root
-        return super().create(**kwargs)
-
-    def to_notify(self):
-        return self.filter(dotation_projet__projet__in=Projet.objects.to_notify())
-
-    def can_generate_accepted_documents(self):
-        return self.filter(
-            dotation_projet__status=PROJET_STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at__isnull=True,
-        )
-
-    def can_generate_refus_documents(self):
-        return self.filter(
-            dotation_projet__status__in=(
-                PROJET_STATUS_REFUSED,
-                PROJET_STATUS_DISMISSED,
-            ),
-            dotation_projet__projet__notified_at__isnull=True,
-        )
-
-    def for_perimetre(self, perimetre):
-        return self.filter(
-            dotation_projet__projet__in=Projet.objects.for_perimetre(perimetre)
-        )
-
-    def active(self):
-        return self.filter(dotation_projet__projet__dossier_ds__is_active=True)
-
-    def visible_to_user(self, user):
-        if user.is_staff:
-            return self.all()
-        return self.filter(dotation_projet__projet__in=Projet.objects.for_user(user))
-
-
-class ProgrammationProjetManager(
-    models.Manager.from_queryset(ProgrammationProjetQuerySet)
-):
-    pass
-
-
-class ProgrammationProjet(models.Model):
-    """
-    Class used to store information about a Projet that is
-    definitely accepted or refused on a given Enveloppe.
-    """
-
-    dotation_projet = models.OneToOneField(
-        DotationProjet,
-        on_delete=models.CASCADE,
-        verbose_name="Dotation projet",
-        related_name="programmation_projet",
-    )
-    enveloppe = models.ForeignKey(
-        Enveloppe, on_delete=models.CASCADE, verbose_name="Enveloppe"
-    )
-    montant = models.DecimalField(
-        decimal_places=2, max_digits=14, verbose_name="Montant"
-    )
-
-    created_at = models.DateTimeField(
-        verbose_name="Date de création", auto_now_add=True
-    )
-    updated_at = models.DateTimeField(
-        verbose_name="Date de dernière modification", auto_now=True
-    )
-
-    objects = ProgrammationProjetManager()
-
-    class Meta:
-        verbose_name = "Programmation projet"
-        verbose_name_plural = "Programmations projet"
-
-    def __str__(self):
-        return f"Projet programmé {self.pk}"
-
-    def get_absolute_url(self):
-        from django.urls import reverse
-
-        return reverse(
-            "projet:get-projet",
-            kwargs={"projet_id": self.projet.id},
-        )
-
-    @property
-    def projet(self):
-        return self.dotation_projet.projet
-
-    @property
-    def dossier(self) -> Dossier:
-        return self.projet.dossier_ds
-
-    @property
-    def taux(self):
-        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
-
-    @property
-    def status(self):
-        return self.dotation_projet.status
-
-    @property
-    def dotation(self):
-        return self.dotation_projet.dotation
-
-    @property
-    def documents_summary(self):
-        return self.dotation_projet.documents_summary
-
-    def clean(self):
-        errors = {}
-        self._validate_montant(errors)
-        self._validate_enveloppe(errors)
-        self._validate_for_refused_status(errors)
-        if errors:
-            raise ValidationError(errors)
-
-    def _validate_montant(self, errors):
-        if self.dotation_projet.assiette is not None:
-            if self.montant and self.montant > self.dotation_projet.assiette:
-                errors["montant"] = {
-                    "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet pour cette dotation."
-                }
-        else:
-            if (
-                self.montant
-                and self.projet.dossier_ds.finance_cout_total
-                and self.montant > self.projet.dossier_ds.finance_cout_total
-            ):
-                errors["montant"] = {
-                    "Le montant de la programmation ne peut pas être supérieur au coût total du projet pour cette dotation."
-                }
-
-    def _validate_enveloppe(self, errors):
-        if self.enveloppe.is_deleguee:
-            errors["enveloppe"] = {
-                "Une programmation ne peut pas être faite sur une enveloppe déléguée."
-                "Il faut programmer sur l'enveloppe mère."
-            }
-
-        if not self.enveloppe.perimetre.contains_or_equal(self.projet.perimetre):
-            errors["enveloppe"] = {
-                "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
-            }
-
-        if self.enveloppe.dotation != self.dotation_projet.dotation:
-            errors["enveloppe"] = {
-                "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
-            }
-
-    def _validate_for_refused_status(self, errors):
-        if self.status == PROJET_STATUS_REFUSED:
-            if self.montant != 0:
-                errors["montant"] = {"Un projet refusé doit avoir un montant nul."}

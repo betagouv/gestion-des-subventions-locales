@@ -20,9 +20,9 @@ from django.db.models import QuerySet
 from pikepdf import Pdf
 
 from gsl.projet.constants import ARRETE, LETTRE
+from gsl.projet.models import DotationProjet
 from gsl_core.models import Collegue
 from gsl_notification.models import UPLOADED_DOCUMENTS, UploadedDocument
-from gsl_programmation.models import ProgrammationProjet
 
 from .codec import iter_decoded_pages
 from .mask import mask_qr_on_last_page
@@ -106,7 +106,7 @@ ReattachEvent = DecodeStarted | PageDecoded | DocumentAttached | MatchFailed
 def reattach_signed_docs(
     pdfs: list[File],
     user: Collegue,
-    programmation_projets: QuerySet[ProgrammationProjet],
+    dotation_projets: QuerySet[DotationProjet],
     remove_qr_code: bool = True,
 ) -> Iterator[ReattachEvent]:
     """Extract every document from the batch, then store each one, streaming
@@ -115,7 +115,7 @@ def reattach_signed_docs(
     Side effects (DB writes, file storage) happen lazily as the caller
     iterates. Callers must drain the generator.
 
-    `programmation_projets` is the queryset a document is looked up in: the web
+    `dotation_projets` is the queryset a document is looked up in: the web
     flow scopes it to the importer's perimetre, the operator CLI passes them
     all. `user` is recorded as the author of every stored document.
 
@@ -123,7 +123,7 @@ def reattach_signed_docs(
     each stored page; set it False to keep the QR visible on the stored file.
     """
     documents = []
-    for event in extract_documents(pdfs, programmation_projets):
+    for event in extract_documents(pdfs, dotation_projets):
         if isinstance(event, DocumentMatched):
             documents.append(event.document)
         else:
@@ -134,10 +134,10 @@ def reattach_signed_docs(
 
 def extract_documents(
     pdfs: list[File],
-    programmation_projets: QuerySet[ProgrammationProjet],
+    dotation_projets: QuerySet[DotationProjet],
 ) -> Iterator[ExtractionEvent]:
     """Decode every page, gather the pages of each declared document across the
-    whole batch, and match it to its ProgrammationProjet — without writing
+    whole batch, and match it to its DotationProjet — without writing
     anything.
 
     A named `pdf` (`ContentFile(..., name=...)`, or the `UploadedFile` a form
@@ -183,7 +183,7 @@ def extract_documents(
         pages.sort(
             key=lambda p: (DOCUMENT_TYPE_ORDER.get(p.doc_type, 99), p.claimed_page)
         )
-        yield _match_document(declared, pages, programmation_projets)
+        yield _match_document(declared, pages, dotation_projets)
 
 
 def replace_documents(
@@ -225,19 +225,17 @@ def _read(pdf: File) -> bytes:
     return pdf.read()
 
 
-def _match_document(
-    declared, pages, programmation_projets
-) -> DocumentMatched | MatchFailed:
+def _match_document(declared, pages, dotation_projets) -> DocumentMatched | MatchFailed:
     try:
-        programmation_projet = programmation_projets.get(
-            dotation_projet__projet__dossier_ds__ds_number=declared.ds_number,
-            dotation_projet__dotation=declared.dotation,
+        dotation_projet = dotation_projets.get(
+            projet__dossier_ds__ds_number=declared.ds_number,
+            dotation=declared.dotation,
         )
-    except ProgrammationProjet.DoesNotExist:
+    except DotationProjet.DoesNotExist:
         return MatchFailed(
             declared=declared, error="Aucun projet programmé correspondant."
         )
-    except ProgrammationProjet.MultipleObjectsReturned:
+    except DotationProjet.MultipleObjectsReturned:
         return MatchFailed(
             declared=declared,
             error="Plusieurs projets programmés correspondent "
@@ -247,7 +245,7 @@ def _match_document(
     return DocumentMatched(
         document=ExtractedDocument(
             declared=declared,
-            dotation_projet_id=programmation_projet.dotation_projet_id,
+            dotation_projet_id=dotation_projet.pk,
             pages=tuple(pages),
         )
     )

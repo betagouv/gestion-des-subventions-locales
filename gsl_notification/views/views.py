@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.models import Projet
+from gsl.projet.models import DotationProjet, Projet
 from gsl.projet.views import BaseProjetDetailView
 from gsl.utils.csp import csp_update
 from gsl_core.exceptions import Http404
@@ -30,9 +30,8 @@ from gsl_notification.utils import (
     merge_generated_documents_into_pdf,
     replace_mentions_in_html,
 )
-from gsl_programmation.models import ProgrammationProjet
 
-# Views for listing notification documents on a programmationProjet, -------------------
+# Views for listing notification documents on a DotationProjet, ------------------------
 # in various contexts
 
 
@@ -66,23 +65,22 @@ class SelectModeleView(FormView):
             self.modele_class = MODELES[self.document_type]
         except KeyError:
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
-        self.programmation_projet = get_object_or_404(
-            ProgrammationProjet.objects.active().visible_to_user(request.user),
-            dotation_projet__projet_id=kwargs["projet_id"],
-            enveloppe__dotation=kwargs["dotation"],
+        self.dotation_projet = get_object_or_404(
+            DotationProjet.objects.programmees().active().visible_to_user(request.user),
+            projet_id=kwargs["projet_id"],
+            dotation=kwargs["dotation"],
         )
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        dotation = self.programmation_projet.dotation
+        dotation = self.dotation_projet.dotation
         perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
         kwargs["queryset"] = self.modele_class.objects.filter(
             dotation=dotation, perimetre__in=perimetres
         )
-        dotation_projet = self.programmation_projet.dotation_projet
-        if hasattr(dotation_projet, self.document_type):
+        if hasattr(self.dotation_projet, self.document_type):
             kwargs["initial"] = {
-                "modele": getattr(dotation_projet, self.document_type).modele_id
+                "modele": getattr(self.dotation_projet, self.document_type).modele_id
             }
         return kwargs
 
@@ -102,10 +100,10 @@ class SelectModeleView(FormView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(
             **kwargs,
-            projet=self.programmation_projet.projet,
-            dossier=self.programmation_projet.projet.dossier_ds,
-            programmation_projet=self.programmation_projet,
-            dotation=self.programmation_projet.dotation,
+            projet=self.dotation_projet.projet,
+            dossier=self.dotation_projet.projet.dossier_ds,
+            dotation_projet=self.dotation_projet,
+            dotation=self.dotation_projet.dotation,
             document_type=self.document_type,
             modele_label=self.modele_class.verbose_name(),
             page_title=f"Modification de {self.modele_class.article_name}",
@@ -132,20 +130,21 @@ class ChangeDocumentView(UpdateView):
             raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
     def get_object(self, queryset=None):
-        self.programmation_projet = get_object_or_404(
-            ProgrammationProjet.objects.active().visible_to_user(self.request.user),
-            dotation_projet__projet_id=self.kwargs["projet_id"],
-            enveloppe__dotation=self.kwargs["dotation"],
+        self.dotation_projet = get_object_or_404(
+            DotationProjet.objects.programmees()
+            .active()
+            .visible_to_user(self.request.user),
+            projet_id=self.kwargs["projet_id"],
+            dotation=self.kwargs["dotation"],
         )
-        dotation_projet = self.programmation_projet.dotation_projet
-        if not hasattr(dotation_projet, self.document_type):
+        if not hasattr(self.dotation_projet, self.document_type):
             raise Http404(user_message="Il n'y a pas de document à modifier.")
-        document = getattr(dotation_projet, self.document_type)
+        document = getattr(self.dotation_projet, self.document_type)
         self.modele = document.modele
 
         modele_id = self.request.GET.get("modele_id")
         if modele_id:
-            dotation = self.programmation_projet.dotation
+            dotation = self.dotation_projet.dotation
             perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
             self.modele = get_object_or_404(
                 self.modele_class,
@@ -154,7 +153,7 @@ class ChangeDocumentView(UpdateView):
                 perimetre__in=perimetres,
             )
             document.content = replace_mentions_in_html(
-                self.modele.content, self.programmation_projet
+                self.modele.content, self.dotation_projet
             )
         return document
 
@@ -163,7 +162,7 @@ class ChangeDocumentView(UpdateView):
         _add_success_message(self.request, self.object)
         log_generated_document_action(
             self.request.user,
-            self.programmation_projet,
+            self.dotation_projet,
             self.object.__class__,
             is_creating=False,
         )
@@ -190,7 +189,7 @@ class ChangeDocumentView(UpdateView):
         context["modele"] = self.modele
         context["document_type"] = self.document_type
         _enrich_context_for_create_or_get_arrete_view(
-            context, self.programmation_projet, self.request
+            context, self.dotation_projet, self.request
         )
         return context
 
@@ -318,14 +317,12 @@ class DownloadMergedGeneratedDocumentsView(DetailView):
         return response
 
 
-def _enrich_context_for_create_or_get_arrete_view(
-    context, programmation_projet, request
-):
+def _enrich_context_for_create_or_get_arrete_view(context, dotation_projet, request):
     context.update(
         {
-            "programmation_projet": programmation_projet,
-            "projet": programmation_projet.projet,
-            "dossier": programmation_projet.projet.dossier_ds,
+            "dotation_projet": dotation_projet,
+            "projet": dotation_projet.projet,
+            "dossier": dotation_projet.projet.dossier_ds,
             "current_tab": "notifications",
         }
     )

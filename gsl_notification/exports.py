@@ -12,13 +12,14 @@ from django.utils import timezone
 from django.utils.text import slugify
 from pikepdf import Pdf
 
+from gsl.projet.models import DotationProjet
 from gsl_notification.forms import (
     ARRETE_ET_LETTRE,
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
 )
-from gsl_notification.models import GENERATED_DOCUMENTS
+from gsl_notification.models import GENERATED_DOCUMENTS, ExportJob
 from gsl_notification.utils import (
     count_pdf_pages,
     generate_pdf_pass1,
@@ -32,21 +33,18 @@ EXPORT_URL_TTL = 900  # 15 minutes
 
 
 def build_export(job) -> tuple[str, str, bytes]:
-    from gsl_notification.models import ExportJob
-    from gsl_programmation.models import ProgrammationProjet
-
-    pk_to_dotation_projet = {
-        programmation_projet.pk: programmation_projet.dotation_projet
-        for programmation_projet in ProgrammationProjet.objects.filter(
-            pk__in=job.pp_ids
+    by_pk = {
+        dotation_projet.pk: dotation_projet
+        for dotation_projet in DotationProjet.objects.filter(
+            pk__in=job.dotation_projet_ids
         ).select_related(
-            "dotation_projet__arrete__modele",
-            "dotation_projet__lettrenotification__modele",
-            "dotation_projet__lettrerefus__modele",
-            "dotation_projet__projet__dossier_ds__ds_demandeur",
+            "arrete__modele",
+            "lettrenotification__modele",
+            "lettrerefus__modele",
+            "projet__dossier_ds__ds_demandeur",
         )
     }
-    dotation_projets = [pk_to_dotation_projet[pk] for pk in job.pp_ids]
+    dotation_projets = [by_pk[pk] for pk in job.dotation_projet_ids]
     documents = [
         getattr(dp, attr) for attr in job.attr_names for dp in dotation_projets
     ]

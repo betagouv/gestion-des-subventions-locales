@@ -90,22 +90,24 @@ def test_qr_roundtrip_through_generated_pdf():
     pdfium = pytest.importorskip("pypdfium2")
     zxingcpp = pytest.importorskip("zxingcpp")
 
+    from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+    from gsl.projet.tests.factories import DotationProjetFactory
     from gsl_notification.tests.factories import (
         LettreNotificationFactory,
         ModeleLettreNotificationFactory,
     )
     from gsl_notification.utils import generate_pdf_for_generated_document
-    from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__ds_number=7654321,
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__ds_number=7654321,
+        status=PROJET_STATUS_ACCEPTED,
     )
     modele = ModeleLettreNotificationFactory(
-        dotation=pp.dotation,
-        perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
+        dotation=dotation_projet.dotation,
+        perimetre=dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        dotation_projet=pp.dotation_projet,
+        dotation_projet=dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )
@@ -129,7 +131,7 @@ def test_qr_roundtrip_through_generated_pdf():
         assert payloads, f"No GSL QR decoded on page {page_idx}"
         assert payloads[0] == QrPayload(
             ds_number=7654321,
-            dotation=pp.dotation,
+            dotation=dotation_projet.dotation,
             document_type=document.document_type,
             page=page_idx,
         )
@@ -141,22 +143,24 @@ def test_decode_per_page_returns_bbox_in_bottom_left(tmp_path):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
+    from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+    from gsl.projet.tests.factories import DotationProjetFactory
     from gsl_notification.tests.factories import (
         LettreNotificationFactory,
         ModeleLettreNotificationFactory,
     )
     from gsl_notification.utils import generate_pdf_for_generated_document
-    from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__ds_number=1234567,
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__ds_number=1234567,
+        status=PROJET_STATUS_ACCEPTED,
     )
     modele = ModeleLettreNotificationFactory(
-        dotation=pp.dotation,
-        perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
+        dotation=dotation_projet.dotation,
+        perimetre=dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        dotation_projet=pp.dotation_projet,
+        dotation_projet=dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )
@@ -194,22 +198,24 @@ def test_no_qr_when_with_qr_code_is_false(tmp_path):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
+    from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+    from gsl.projet.tests.factories import DotationProjetFactory
     from gsl_notification.tests.factories import (
         LettreNotificationFactory,
         ModeleLettreNotificationFactory,
     )
     from gsl_notification.utils import generate_pdf_for_generated_document
-    from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__ds_number=2222222,
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__ds_number=2222222,
+        status=PROJET_STATUS_ACCEPTED,
     )
     modele = ModeleLettreNotificationFactory(
-        dotation=pp.dotation,
-        perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
+        dotation=dotation_projet.dotation,
+        perimetre=dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        dotation_projet=pp.dotation_projet,
+        dotation_projet=dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )
