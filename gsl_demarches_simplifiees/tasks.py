@@ -112,14 +112,9 @@ def task_init_demarche_sync(demarche_number, updated_since_iso: str):
 
 #### of one dossier
 @shared_task
-def task_save_one_dossier_from_ds(
-    dossier_number, refresh_only_if_dossier_has_been_updated=False
-):
+def task_save_one_dossier_from_ds(dossier_number):
     dossier = Dossier.objects.get(ds_number=dossier_number)
-    return save_one_dossier_from_ds(
-        dossier,
-        refresh_only_if_dossier_has_been_updated=refresh_only_if_dossier_has_been_updated,
-    )
+    return save_one_dossier_from_ds(dossier)
 
 
 ### from saved data
