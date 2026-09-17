@@ -635,18 +635,26 @@ def test_in_ds_creates_dossier_data_when_missing(
         ),
     ],
 )
-# TODO PR vérifie que notified_at est bien null (sans mock !!) + qu'un ProjetAction a été créé
 def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
     user, dossier, method_name, mutator_method, mutation_key
 ):
-    """passer_en_instruction/repasser_en_instruction no longer set ds_state /
-    ds_date_derniere_modification themselves: once the mutation response is
-    merged into dossier.data.raw_data, refreshing the Dossier's own fields
-    (state included) from that raw data is delegated to
-    refresh_dossier_from_saved_data (the same function the importer uses for
-    a full sync)."""
+    projet = ProjetFactory(dossier_ds=dossier)
+    expected_event = DsService.MUTATION_EXPECTED_EVENTS[method_name]
     mock_results = {
-        "data": {mutation_key: {"dossier": {"dateDerniereModification": "x"}}}
+        "data": {
+            mutation_key: {
+                "dossier": {
+                    "dateDerniereModification": "x",
+                    "traitements": [
+                        {
+                            "id": "traitement-1",
+                            "dateTraitement": "2024-01-15T10:30:00+01:00",
+                            "event": expected_event,
+                        }
+                    ],
+                }
+            }
+        }
     }
 
     with (
@@ -664,6 +672,20 @@ def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
 
         mock_refresh.assert_called_once_with(dossier)
 
+    projet.refresh_from_db()
+    assert projet.notified_at is None
+
+    action_types = {
+        "passer_en_instruction": ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
+        "repasser_en_instruction": ProjetAction.TYPE_RETOUR_EN_INSTRUCTION,
+    }
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == action_types[method_name]
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.actor == user
+    assert action.source_id == "traitement-1"
+    assert action.created_at == datetime.fromisoformat("2024-01-15T10:30:00+01:00")
+
 
 @pytest.mark.parametrize(
     "method_name, mutator_method, mutation_key",
@@ -680,13 +702,14 @@ def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
         ),
     ],
 )
-# TODO PR vérifie que notified_at est bien nul + qu'un ProjetAction a été créé
 def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_data(
     user, dossier, method_name, mutator_method, mutation_key
 ):
     DossierDataFactory(
         dossier=dossier, raw_data={"number": 123, "champs": [{"id": "champ-1"}]}
     )
+    projet = ProjetFactory(dossier_ds=dossier)
+    expected_event = DsService.MUTATION_EXPECTED_EVENTS[method_name]
     mock_results = {
         "data": {
             mutation_key: {
@@ -697,6 +720,7 @@ def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_
                         {
                             "id": "traitement-1",
                             "dateTraitement": "2024-01-15T10:30:00+01:00",
+                            "event": expected_event,
                         }
                     ],
                 }
@@ -709,9 +733,6 @@ def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_
             f"gsl_demarches_simplifiees.ds_client.DsMutator.{mutator_method}"
         ) as mock_mutator_method,
         patch("gsl_demarches_simplifiees.services.DsService._check_results"),
-        # DossierConverter (called by refresh_dossier_from_saved_data) needs a
-        # full DN payload (champs/annotations/demarche, ...): irrelevant to
-        # what's being verified here, which is the raw_data merge itself.
         patch(
             "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
         ),
@@ -726,11 +747,30 @@ def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_
         assert raw_data["champs"] == [{"id": "champ-1"}]
         assert raw_data["state"] == "en_instruction"
         assert raw_data["traitements"] == [
-            {"id": "traitement-1", "dateTraitement": "2024-01-15T10:30:00+01:00"}
+            {
+                "id": "traitement-1",
+                "dateTraitement": "2024-01-15T10:30:00+01:00",
+                "event": expected_event,
+            }
         ]
 
+    # refresh_dossier_from_saved_data is mocked out above, so nothing here
+    # sets notified_at: it stays null, as it was at creation.
+    projet.refresh_from_db()
+    assert projet.notified_at is None
 
-# TODO PR vérifie que notified_at est bien renseigné (sans mock !!) + qu'un ProjetAction a été créé
+    action_types = {
+        "passer_en_instruction": ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
+        "repasser_en_instruction": ProjetAction.TYPE_RETOUR_EN_INSTRUCTION,
+    }
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == action_types[method_name]
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.actor == user
+    assert action.source_id == "traitement-1"
+    assert action.created_at == datetime.fromisoformat("2024-01-15T10:30:00+01:00")
+
+
 def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
     user, dossier
 ):
@@ -741,10 +781,16 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
 
     DossierDataFactory(dossier=dossier, raw_data=full_raw_data)
     dossier.ds_state = Dossier.STATE_EN_CONSTRUCTION
+    dossier.porteur_de_projet_arrondissement = dossier.perimetre.arrondissement
     dossier.save()
+    projet = ProjetFactory(dossier_ds=dossier)
 
     new_traitements = [
-        {"id": "traitement-1", "dateTraitement": "2024-01-15T10:30:00+01:00"}
+        {
+            "id": "traitement-1",
+            "dateTraitement": "2024-01-15T10:30:00+01:00",
+            "event": "passe_en_instruction",
+        }
     ]
     mock_results = {
         "data": {
@@ -788,6 +834,17 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
     # Verify date was updated (Django converts ISO string to datetime)
     assert dossier.ds_date_derniere_modification is not None
     assert isinstance(dossier.ds_date_derniere_modification, datetime)
+
+    # A dossier back in instruction is not treated: notified_at is cleared.
+    projet.refresh_from_db()
+    assert projet.notified_at is None
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.actor == user
+    assert action.source_id == "traitement-1"
+    assert action.created_at == datetime.fromisoformat("2024-01-15T10:30:00+01:00")
 
 
 def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):

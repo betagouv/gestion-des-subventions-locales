@@ -92,10 +92,10 @@ def test_create_or_update_does_not_set_notified_at_when_dossier_is_not_treated(
 
 
 @pytest.mark.django_db
-def test_create_or_update_does_not_reset_notified_at_when_dossier_is_not_treated():
-    """A projet already notified (e.g. reverted to processing in Turgot
-    while DN still shows a construction/instruction state) must keep its
-    notified_at untouched by a resync — only a treated DS state sets it."""
+def test_create_or_update_resets_notified_at_when_dossier_is_not_treated():
+    """A dossier that is no longer in a treated DS state (e.g. it was
+    reverted to instruction on DN) must have its notified_at cleared on
+    resync — only a treated DS state sets it."""
     already_notified_at = datetime(2024, 1, 1, tzinfo=UTC)
     dossier = DossierFactory(
         projet_adresse=AdresseFactory(), ds_state=Dossier.STATE_EN_INSTRUCTION
@@ -105,7 +105,7 @@ def test_create_or_update_does_not_reset_notified_at_when_dossier_is_not_treated
     ps.create_or_update_from_ds_dossier(dossier)
 
     projet.refresh_from_db()
-    assert projet.notified_at == already_notified_at
+    assert projet.notified_at is None
 
 
 @pytest.mark.django_db

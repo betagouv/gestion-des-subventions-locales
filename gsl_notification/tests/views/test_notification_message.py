@@ -33,6 +33,7 @@ from gsl_core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,
     DossierFactory,
@@ -248,6 +249,76 @@ class TestForm:
 
         projet.refresh_from_db()
         assert projet.notified_at == dn_date_traitement
+
+    def test_save_passer_en_instruction_first_does_not_change_dotation_status(
+        self, perimetre, collegue
+    ):
+        dossier = DossierFactory(
+            perimetre=perimetre,
+            porteur_de_projet_arrondissement=None,
+            porteur_de_projet_departement=perimetre.departement,
+            ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        )
+        full_raw_data = _full_ds_dossier_data()
+        assert full_raw_data["state"] == "en_construction"
+        DossierDataFactory(dossier=dossier, raw_data=full_raw_data)
+        projet = ProjetFactory(dossier_ds=dossier)
+        pp = _accepted_dotation(
+            perimetre, projet, DOTATION_DETR, with_signed_document=True
+        )
+        dotation_projet = pp.dotation_projet
+
+        with (
+            mock.patch(
+                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_passer_en_instruction",
+                return_value={
+                    "data": {
+                        "dossierPasserEnInstruction": {
+                            "dossier": {
+                                "state": "en_instruction",
+                                "traitements": [
+                                    {
+                                        "id": "traitement-passage",
+                                        "event": "passe_en_instruction",
+                                    }
+                                ],
+                            }
+                        }
+                    }
+                },
+            ) as passer_en_instruction,
+            mock.patch(
+                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                return_value=_ds_mutation_response(
+                    "dossierAccepter",
+                    state="accepte",
+                    event="accepte",
+                    date_traitement=timezone.now().isoformat(),
+                ),
+            ),
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ),
+        ):
+            form = NotificationMessageForm(data={"message": "Bravo"}, instance=projet)
+            assert form.is_valid()
+            form.save(user=collegue)
+
+        passer_en_instruction.assert_called_once()
+        dotation_projet.refresh_from_db()
+        assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+        pp.refresh_from_db()
+        assert pp.status == ProgrammationProjet.STATUS_ACCEPTED
+        projet.refresh_from_db()
+        assert projet.notified_at is not None
+
+        actions = ProjetAction.objects.filter(projet=projet)
+        assert actions.count() == 2
+        assert {a.action_type for a in actions} == {
+            ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
+            ProjetAction.TYPE_NOTIFIED,
+        }
 
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
