@@ -602,7 +602,7 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         must_refresh_dossier = True
 
     refresh_dossier_instructeurs(dossier_data, dossier, groupe_index=groupe_index)
-    if getattr(dossier, "ds_data", None) is None:
+    if dossier.data is None:
         DossierData.objects.create(dossier=dossier, raw_data=dossier_data)
     else:
         dossier.ds_data.raw_data = dossier_data

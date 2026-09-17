@@ -210,3 +210,43 @@ def test_get_last_traitement_matching_dossier_state_returns_none_without_dossier
     dossier = DossierFactory(ds_state=Dossier.STATE_ACCEPTE)
 
     assert dossier.get_last_traitement_matching_dossier_state() is None
+
+
+def test_data_returns_none_without_dossier_data():
+    dossier = DossierFactory()
+
+    assert dossier.data is None
+
+
+def test_data_returns_the_linked_dossier_data():
+    dossier = DossierFactory()
+    dossier_data = DossierDataFactory(dossier=dossier)
+
+    assert dossier.data == dossier_data
+
+
+def test_traitements_returns_empty_list_without_dossier_data():
+    dossier = DossierFactory()
+
+    assert dossier.traitements == []
+
+
+def test_traitements_returns_empty_list_when_raw_data_has_no_traitements_key():
+    dossier = DossierFactory()
+    DossierDataFactory(dossier=dossier, raw_data={})
+
+    assert dossier.traitements == []
+
+
+def test_traitements_returns_the_traitements_from_raw_data():
+    dossier = DossierFactory()
+    traitements = [
+        {
+            "id": "depose",
+            "event": "depose",
+            "dateTraitement": "2024-12-01T00:00:00+00:00",
+        }
+    ]
+    DossierDataFactory(dossier=dossier, raw_data={"traitements": traitements})
+
+    assert dossier.traitements == traitements
