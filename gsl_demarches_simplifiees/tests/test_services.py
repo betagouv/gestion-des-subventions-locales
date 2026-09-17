@@ -635,6 +635,7 @@ def test_in_ds_creates_dossier_data_when_missing(
         ),
     ],
 )
+# TODO PR vérifie que notified_at est bien null (sans mock !!) + qu'un ProjetAction a été créé
 def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
     user, dossier, method_name, mutator_method, mutation_key
 ):
@@ -679,6 +680,7 @@ def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
         ),
     ],
 )
+# TODO PR vérifie que notified_at est bien nul + qu'un ProjetAction a été créé
 def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_data(
     user, dossier, method_name, mutator_method, mutation_key
 ):
@@ -728,14 +730,10 @@ def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_
         ]
 
 
+# TODO PR vérifie que notified_at est bien renseigné (sans mock !!) + qu'un ProjetAction a été créé
 def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
     user, dossier
 ):
-    """Real end-to-end check (DossierConverter/refresh_dossier_from_saved_data
-    not mocked): starting from a dossier fully synced once (realistic case),
-    passer_en_instruction must leave it with the fresh `state` (reflected as
-    Dossier.ds_state) and the fresh `traitements` from the mutation response,
-    while untouched fields (here: champs) survive the merge."""
     with open(Path(__file__).parent / "ds_fixtures" / "dossier_data.json") as handle:
         full_raw_data = json.loads(handle.read())
     assert full_raw_data["state"] == "en_construction"
@@ -762,25 +760,34 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
 
     with (
         patch(
-            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_passer_en_instruction"
+            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_passer_en_instruction",
+            return_value=mock_results,
         ) as mock_dossier_passer_en_instruction,
-        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
-        # Unrelated to what's being verified here (state/traitements sync):
-        # this dossier has no matching Departement/Arrondissement fixture, so
-        # Projet/DotationProjet (re)creation would otherwise fail downstream.
         patch(
-            "gsl_demarches_simplifiees.importer.dossier.ProjetService"
-            ".create_or_update_projet_and_co_from_dossier"
-        ),
+            "gsl_demarches_simplifiees.services.DsService._check_results"
+        ) as mock_check_results,
     ):
-        mock_dossier_passer_en_instruction.return_value = mock_results
-
         DsService().passer_en_instruction(dossier, user)
 
+        # Verify the mutator was called with correct parameters
+        mock_dossier_passer_en_instruction.assert_called_once_with(
+            dossier.ds_id, user.ds_id
+        )
+
+        # Verify _check_results was called
+        mock_check_results.assert_called_once_with(
+            mock_results, dossier, user, "passer_en_instruction"
+        )
+
+    # Verify dossier state was updated
     dossier.refresh_from_db()
     assert dossier.ds_state == Dossier.STATE_EN_INSTRUCTION
     assert dossier.data.raw_data["traitements"] == new_traitements
     assert len(dossier.data.raw_data["champs"]) == original_champs_count
+
+    # Verify date was updated (Django converts ISO string to datetime)
+    assert dossier.ds_date_derniere_modification is not None
+    assert isinstance(dossier.ds_date_derniere_modification, datetime)
 
 
 def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):

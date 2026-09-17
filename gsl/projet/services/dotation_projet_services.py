@@ -76,6 +76,7 @@ class DotationProjetService:
         cls, projet: Projet
     ) -> list[DotationProjet]:
         dossier_status = projet.dossier_ds.ds_state
+        # TODO PR remove it !
         if dossier_status in (
             Dossier.STATE_ACCEPTE,
             Dossier.STATE_REFUSE,
@@ -204,7 +205,7 @@ class DotationProjetService:
         cls._update_assiette_from_dossier(projet)
 
         dossier_status = projet.dossier_ds.ds_state
-
+        # TODO PR remove it !
         if dossier_status in (
             Dossier.STATE_ACCEPTE,
             Dossier.STATE_REFUSE,
