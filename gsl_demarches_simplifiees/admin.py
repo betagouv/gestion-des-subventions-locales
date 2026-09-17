@@ -481,11 +481,10 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
 
     def link_to_edit_dossier_data(self, obj):
-        ds_data = getattr(obj, "ds_data", None)
-        if ds_data is not None:
+        if obj.data is not None:
             url = reverse(
                 "admin:gsl_demarches_simplifiees_dossierdata_change",
-                args=[ds_data.pk],
+                args=[obj.data.pk],
             )
             return mark_safe(
                 f'<a href="{url}">Modifier les données brutes (dossierData)</a>'

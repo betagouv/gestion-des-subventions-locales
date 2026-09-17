@@ -1,14 +1,77 @@
+from datetime import datetime
+from typing import TYPE_CHECKING
+
 from django.contrib.admin.models import LogEntry
 from django.db import models
 from django.utils import timezone
 
-from gsl.projet.constants import DOTATION_CHOICES
+from gsl.projet.constants import (
+    DOTATION_CHOICES,
+    DS_TRAITEMENT_EVENT_ACCEPTE,
+    DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT,
+    DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
+    DS_TRAITEMENT_EVENT_DEPOSE,
+    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
+    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT,
+    DS_TRAITEMENT_EVENT_REFUSE,
+    DS_TRAITEMENT_EVENT_REFUSE_AUTOMATIQUEMENT,
+    DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION,
+    DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
+)
+
+if TYPE_CHECKING:
+    from gsl.projet.models import Projet
 
 
 def projet_action_document_upload_to(instance, filename):
     # Named (module-level) so it stays migration-serializable, unlike a lambda.
     timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
     return f"notifications/{instance.projet_id}/{timestamp}/{filename}"
+
+
+class ProjetActionManager(models.Manager):
+    def create_from_dossier_traitements(self, projet: "Projet") -> int:
+        """Parcourt tous les traitements DN du dossier et crée les
+        ProjetActions manquantes (dépôt, passage en instruction, retour en
+        instruction, retour en construction, notification), en associant
+        `source_id` (id du Traitement DN) qui sert de clé pour ne jamais
+        créer de doublon si la fonction est rejouée (ex : resynchronisation
+        périodique du dossier). Retourne le nombre de ProjetActions créées."""
+        event_to_action_type = {
+            DS_TRAITEMENT_EVENT_DEPOSE: self.model.TYPE_DEPOT_DOSSIER,
+            DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION: self.model.TYPE_PASSAGE_EN_INSTRUCTION,
+            DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT: self.model.TYPE_PASSAGE_EN_INSTRUCTION,
+            DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION: self.model.TYPE_RETOUR_EN_INSTRUCTION,
+            DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION: self.model.TYPE_RETOUR_EN_CONSTRUCTION,
+            DS_TRAITEMENT_EVENT_ACCEPTE: self.model.TYPE_NOTIFIED,
+            DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT: self.model.TYPE_NOTIFIED,
+            DS_TRAITEMENT_EVENT_REFUSE: self.model.TYPE_NOTIFIED,
+            DS_TRAITEMENT_EVENT_REFUSE_AUTOMATIQUEMENT: self.model.TYPE_NOTIFIED,
+            DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE: self.model.TYPE_NOTIFIED,
+        }
+
+        traitements = projet.dossier_ds.traitements
+
+        created_count = 0
+        for traitement in traitements:
+            action_type = event_to_action_type.get(traitement.get("event"))
+            traitement_id = traitement.get("id")
+            date_traitement = traitement.get("dateTraitement")
+            if not action_type or not traitement_id or not date_traitement:
+                continue
+
+            _, created = self.get_or_create(
+                projet=projet,
+                source_id=traitement_id,
+                defaults={
+                    "action_type": action_type,
+                    "source": self.model.SOURCE_DN,
+                    "created_at": datetime.fromisoformat(date_traitement),
+                },
+            )
+            created_count += created
+
+        return created_count
 
 
 class ProjetAction(models.Model):
@@ -31,6 +94,9 @@ class ProjetAction(models.Model):
     TYPE_DEPOT_DOSSIER = "depot_dossier"
     TYPE_PASSAGE_EN_INSTRUCTION = "passage_en_instruction"
     TYPE_RETOUR_EN_CONSTRUCTION = "retour_en_construction"
+    TYPE_RETOUR_EN_INSTRUCTION = (
+        "retour_en_instruction"  # TODO, use it when this Turgot action is done
+    )
     TYPE_DEACTIVATION = "deactivation"
     TYPE_REACTIVATION = "reactivation"
 
@@ -50,6 +116,7 @@ class ProjetAction(models.Model):
         (TYPE_DEPOT_DOSSIER, "Dépôt du dossier"),
         (TYPE_PASSAGE_EN_INSTRUCTION, "Passage en instruction"),
         (TYPE_RETOUR_EN_CONSTRUCTION, "Retour en construction"),
+        (TYPE_RETOUR_EN_INSTRUCTION, "Retour en instruction"),
         (TYPE_DEACTIVATION, "Désactivation du dossier"),
         (TYPE_REACTIVATION, "Réactivation du dossier"),
     ]
@@ -74,6 +141,16 @@ class ProjetAction(models.Model):
         on_delete=models.SET_NULL,
     )
     source = models.CharField(max_length=20, choices=SOURCES)
+    source_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        verbose_name="Identifiant externe",
+        help_text=(
+            "Identifiant de l'événement source (ex : id du Traitement DN), "
+            "pour éviter les doublons lors d'une resynchronisation."
+        ),
+    )
     dotation = models.CharField(
         max_length=10, choices=DOTATION_CHOICES, blank=True, default=""
     )
@@ -90,6 +167,8 @@ class ProjetAction(models.Model):
     document = models.FileField(
         upload_to=projet_action_document_upload_to, null=True, blank=True
     )
+
+    objects = ProjetActionManager()
 
     class Meta:
         ordering = ["-created_at"]
@@ -139,6 +218,7 @@ class ProjetAction(models.Model):
             self.TYPE_DEPOT_DOSSIER: "Dépôt du dossier",
             self.TYPE_PASSAGE_EN_INSTRUCTION: "Passage en instruction",
             self.TYPE_RETOUR_EN_CONSTRUCTION: "Retour en construction",
+            self.TYPE_RETOUR_EN_INSTRUCTION: "Retour en instruction",
             self.TYPE_DEACTIVATION: self._deactivation_label,
             self.TYPE_REACTIVATION: "Réactivation du dossier",
         }
