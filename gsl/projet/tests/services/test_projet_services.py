@@ -1,9 +1,12 @@
+from datetime import UTC, datetime
+
 import pytest
 
 from gsl_core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
 )
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -46,6 +49,77 @@ def test_create_projet_from_dossier():
 
     other_projet = ps.create_or_update_from_ds_dossier(dossier)
     assert other_projet == projet
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "ds_state",
+    [Dossier.STATE_ACCEPTE, Dossier.STATE_REFUSE, Dossier.STATE_SANS_SUITE],
+)
+def test_create_or_update_sets_notified_at_when_dossier_is_treated(ds_state):
+    ds_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
+    dossier = DossierFactory(
+        projet_adresse=AdresseFactory(),
+        ds_state=ds_state,
+        ds_date_traitement=ds_date_traitement,
+    )
+
+    projet = ps.create_or_update_from_ds_dossier(dossier)
+
+    assert projet.notified_at == ds_date_traitement
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "ds_state",
+    [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION],
+)
+def test_create_or_update_does_not_set_notified_at_when_dossier_is_not_treated(
+    ds_state,
+):
+    dossier = DossierFactory(
+        projet_adresse=AdresseFactory(),
+        ds_state=ds_state,
+        ds_date_traitement=datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC),
+    )
+
+    projet = ps.create_or_update_from_ds_dossier(dossier)
+
+    assert projet.notified_at is None
+
+
+@pytest.mark.django_db
+def test_create_or_update_resets_notified_at_when_dossier_is_not_treated():
+    """A dossier that is no longer in a treated DS state (e.g. it was
+    reverted to instruction on DN) must have its notified_at cleared on
+    resync — only a treated DS state sets it."""
+    already_notified_at = datetime(2024, 1, 1, tzinfo=UTC)
+    dossier = DossierFactory(
+        projet_adresse=AdresseFactory(), ds_state=Dossier.STATE_EN_INSTRUCTION
+    )
+    projet = ProjetFactory(dossier_ds=dossier, notified_at=already_notified_at)
+
+    ps.create_or_update_from_ds_dossier(dossier)
+
+    projet.refresh_from_db()
+    assert projet.notified_at is None
+
+
+@pytest.mark.django_db
+def test_create_or_update_overwrites_notified_at_with_new_ds_date_traitement_when_treated():
+    old_notified_at = datetime(2024, 1, 1, tzinfo=UTC)
+    new_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
+    dossier = DossierFactory(
+        projet_adresse=AdresseFactory(),
+        ds_state=Dossier.STATE_ACCEPTE,
+        ds_date_traitement=new_date_traitement,
+    )
+    projet = ProjetFactory(dossier_ds=dossier, notified_at=old_notified_at)
+
+    ps.create_or_update_from_ds_dossier(dossier)
+
+    projet.refresh_from_db()
+    assert projet.notified_at == new_date_traitement
 
 
 @pytest.fixture
