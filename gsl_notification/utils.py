@@ -28,6 +28,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     POSSIBLE_DOTATIONS,
 )
+from gsl.projet.models import DotationProjet
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -36,13 +37,12 @@ from gsl_notification.models import (
     UploadedDocument,
 )
 from gsl_notification.qr.codec import build_payload, generate_qr_png_data_uri
-from gsl_programmation.models import ProgrammationProjet
 
 
 def get_nested_attribute(obj, attribute_path):
     """
     Récupère un attribut imbriqué en utilisant la notation en points.
-    Par exemple: get_nested_attribute(programmation_projet, "dossier.date_achevement")
+    Par exemple: get_nested_attribute(dotation_projet, "dossier_ds.date_achevement")
     Retourne None si un intermédiaire est None ou si une relation inverse n'existe pas.
     """
     attributes = attribute_path.split(".")
@@ -74,10 +74,10 @@ class Mention:
     attribute: str
     type: MentionType = MentionType.STRING
 
-    def get_value(self, programmation_projet: ProgrammationProjet) -> str:
+    def get_value(self, dotation_projet: DotationProjet) -> str:
         if self.type == MentionType.DATE_NOW:
             return timezone.now().strftime("%d/%m/%Y")
-        value = get_nested_attribute(programmation_projet, self.attribute)
+        value = get_nested_attribute(dotation_projet, self.attribute)
         match self.type:
             case MentionType.EURO:
                 return euro(value, 2) if value is not None else "N/A"
@@ -98,28 +98,28 @@ class Mention:
 
 
 MENTIONS = [
-    Mention("numero-dossier", "Numéro DN du dossier", "dossier.ds_number"),
+    Mention("numero-dossier", "Numéro DN du dossier", "dossier_ds.ds_number"),
     Mention(
         "date-depot",
         "Date de dépôt du dossier",
-        "dossier.ds_date_depot",
+        "dossier_ds.ds_date_depot",
         MentionType.DATE,
     ),
-    Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier.ds_demandeur"),
+    Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier_ds.ds_demandeur"),
     Mention(
-        "siret-beneficiaire", "SIRET du bénéficiaire", "dossier.ds_demandeur.siret"
+        "siret-beneficiaire", "SIRET du bénéficiaire", "dossier_ds.ds_demandeur.siret"
     ),
-    Mention("projet-intitule", "Intitulé du projet", "dossier.projet_intitule"),
+    Mention("projet-intitule", "Intitulé du projet", "dossier_ds.projet_intitule"),
     Mention(
         "nom-departement", "Nom du département", "projet.perimetre.departement.name"
     ),
     Mention(
         "cout-total",
         "Coût total de l'opération",
-        "dossier.finance_cout_total",
+        "dossier_ds.finance_cout_total",
         MentionType.EURO,
     ),
-    Mention("assiette", "Assiette", "dotation_projet.assiette", MentionType.EURO),
+    Mention("assiette", "Assiette", "assiette", MentionType.EURO),
     Mention(
         "montant-subvention",
         "Montant accordé",
@@ -132,39 +132,43 @@ MENTIONS = [
         "montant",
         MentionType.EURO_LETTRES,
     ),
-    Mention("taux-subvention", "Taux de subvention", "taux", MentionType.PERCENT),
+    Mention(
+        "taux-subvention", "Taux de subvention", "taux_retenu", MentionType.PERCENT
+    ),
     Mention(
         "date-commencement",
         "Date de commencement",
-        "dossier.date_debut",
+        "dossier_ds.date_debut",
         MentionType.DATE,
     ),
     Mention(
         "date-achevement",
         "Date d'achèvement",
-        "dossier.date_achevement",
+        "dossier_ds.date_achevement",
         MentionType.DATE,
     ),
     Mention(
         "porteur-fonction",
         "Fonction du porteur de projet",
-        "dossier.porteur_de_projet_fonction",
+        "dossier_ds.porteur_de_projet_fonction",
     ),
     Mention(
         "porteur-civilite",
         "Civilité du porteur de projet",
-        "dossier.porteur_de_projet_civilite",
+        "dossier_ds.porteur_de_projet_civilite",
     ),
     Mention(
         "porteur-prenom",
         "Prénom du porteur de projet",
-        "dossier.porteur_de_projet_prenom",
+        "dossier_ds.porteur_de_projet_prenom",
     ),
-    Mention("porteur-nom", "Nom du porteur de projet", "dossier.porteur_de_projet_nom"),
+    Mention(
+        "porteur-nom", "Nom du porteur de projet", "dossier_ds.porteur_de_projet_nom"
+    ),
     Mention(
         "adresse-demandeur",
         "Adresse du demandeur",
-        "dossier.ds_demandeur.address.two_lines",
+        "dossier_ds.ds_demandeur.address.two_lines",
     ),
     Mention(
         "date-arrete",
@@ -196,16 +200,14 @@ MENTIONS = [
 MENTION_KEY_TO_MENTION: dict[str, Mention] = {m.key: m for m in MENTIONS}
 
 
-def replace_mentions_in_html(
-    htmlContent: str, programmation_projet: ProgrammationProjet
-):
+def replace_mentions_in_html(htmlContent: str, dotation_projet: DotationProjet):
     soup = BeautifulSoup(htmlContent, "html.parser")
 
     for span in soup.find_all("span", class_="mention"):
         key = span.get("data-id")
         if key not in MENTION_KEY_TO_MENTION:
             raise ValueError(f"Mention {key!r} inconnue.")
-        value = MENTION_KEY_TO_MENTION[key].get_value(programmation_projet)
+        value = MENTION_KEY_TO_MENTION[key].get_value(dotation_projet)
         normalized = value.replace("\r\n", "\n").replace("\r", "\n")
         if "\n" in normalized:
             lines = normalized.split("\n")
@@ -524,9 +526,7 @@ def _build_qr_css_rules(document: GeneratedDocument, page_count: int) -> str:
     return "\n".join(rules)
 
 
-def log_generated_document_action(
-    user, programmation_projet, document_class, is_creating
-):
+def log_generated_document_action(user, dotation_projet, document_class, is_creating):
     action_type = (
         ProjetAction.TYPE_DOC_GENERATED
         if is_creating
@@ -534,11 +534,11 @@ def log_generated_document_action(
     )
     doc_label = document_class.verbose_name()
     ProjetAction.objects.create(
-        projet=programmation_projet.dotation_projet.projet,
+        projet=dotation_projet.projet,
         action_type=action_type,
         actor=user,
         source=ProjetAction.SOURCE_TURGOT,
-        dotation=programmation_projet.dotation_projet.dotation,
+        dotation=dotation_projet.dotation,
         document_name=doc_label,
     )
 

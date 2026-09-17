@@ -129,8 +129,7 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
     assert detr_dp.montant_retenu == 0, "Montant should be 0 if montant is missing"
     assert detr_dp.taux_retenu == 0, "Taux should be 0 if montant is missing"
     assert detr_dp.detr_avis_commission is True
-    assert detr_dp.programmation_projet is not None
-    assert detr_dp.programmation_projet.status == PROJET_STATUS_ACCEPTED
+    assert detr_dp.is_programmee
 
     # Check log message, level and extra
     assert len(caplog.records) == 2
@@ -181,8 +180,7 @@ def test_initialize_dotation_projets_from_projet_refused(perimetres):
     assert detr_dp.montant_retenu == 0
     assert detr_dp.taux_retenu == 0
     assert detr_dp.detr_avis_commission is None
-    assert detr_dp.programmation_projet is not None
-    assert detr_dp.programmation_projet.status == PROJET_STATUS_REFUSED
+    assert detr_dp.is_programmee
 
     dsil_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == PROJET_STATUS_REFUSED
@@ -190,8 +188,7 @@ def test_initialize_dotation_projets_from_projet_refused(perimetres):
     assert dsil_dp.montant_retenu == 0
     assert dsil_dp.taux_retenu == 0
     assert dsil_dp.detr_avis_commission is None
-    assert dsil_dp.programmation_projet is not None
-    assert dsil_dp.programmation_projet.status == PROJET_STATUS_REFUSED
+    assert dsil_dp.is_programmee
 
 
 @pytest.mark.django_db
@@ -252,10 +249,10 @@ def test_initialize_dotation_projets_from_projet_en_construction_or_instruction(
     assert detr_dp.status == PROJET_STATUS_PROCESSING
     assert detr_dp.assiette is None
     assert detr_dp.montant_retenu is None
-    assert not hasattr(detr_dp, "programmation_projet")
+    assert not detr_dp.is_programmee
 
     dsil_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == PROJET_STATUS_PROCESSING
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.montant_retenu is None
-    assert not hasattr(dsil_dp, "programmation_projet")
+    assert not dsil_dp.is_programmee

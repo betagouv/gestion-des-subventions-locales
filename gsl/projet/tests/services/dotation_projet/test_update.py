@@ -16,7 +16,6 @@ from gsl_demarches_simplifiees.tests.factories import DossierFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
 )
 
 from ....constants import (
@@ -235,7 +234,7 @@ def test_update_dotation_projets_from_projet_accepted_keeps_dotation_projets_if_
     # Arrange
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
-    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
@@ -248,9 +247,17 @@ def test_update_dotation_projets_from_projet_accepted_keeps_dotation_projets_if_
     dps._initialize_dotation_projets_from_projet(projet)
     assert projet.dotationprojet_set.count() == 2
 
-    projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
-        status=dotation_status
-    )
+    if dotation_status == PROJET_STATUS_PROCESSING:
+        projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
+            status=dotation_status
+        )
+    else:
+        projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
+            status=dotation_status,
+            enveloppe=dsil_enveloppe,
+            montant=0,
+            date_programmation=timezone.now(),
+        )
 
     # Act
     projet.dossier_ds.annotations_dotation = "DETR"
@@ -285,7 +292,7 @@ def test_update_dotation_projets_from_projet_accepted_removes_dotation_projets_i
     # Arrange
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
-    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
@@ -298,9 +305,17 @@ def test_update_dotation_projets_from_projet_accepted_removes_dotation_projets_i
     dps._initialize_dotation_projets_from_projet(projet)
     assert projet.dotationprojet_set.count() == 2
 
-    projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
-        status=dotation_status
-    )
+    if dotation_status == PROJET_STATUS_PROCESSING:
+        projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
+            status=dotation_status
+        )
+    else:
+        projet.dotationprojet_set.filter(dotation=DOTATION_DSIL).update(
+            status=dotation_status,
+            enveloppe=dsil_enveloppe,
+            montant=0,
+            date_programmation=timezone.now(),
+        )
 
     # Act
     projet.dossier_ds.annotations_dotation = "DETR"
@@ -516,12 +531,19 @@ def test_update_dotation_projets_from_projet_back_to_instruction(
         ),
     )
 
-    # Create dotation projets with different statuses
+    # Create dotation projets with different statuses, programmed before the
+    # passage en instruction so none of them is kept as is.
     detr_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=status_1
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=status_1,
+        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
     dsil_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=status_2
+        projet=projet,
+        dotation=DOTATION_DSIL,
+        status=status_2,
+        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
 
     dotation_projets = dps._update_dotation_projets_from_projet(projet)
@@ -555,12 +577,19 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
         dossier_ds__perimetre=arr_dijon,
     )
 
-    # Create one accepted and one dismissed dotation projet
+    # Create one accepted and one dismissed dotation projet, both programmed
+    # before the passage en instruction.
     detr_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
     dsil_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=refused_or_dismissed
+        projet=projet,
+        dotation=DOTATION_DSIL,
+        status=refused_or_dismissed,
+        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
 
     dotation_projets = dps._update_dotation_projets_from_projet_back_to_instruction(
@@ -590,7 +619,7 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
     ),
 )
 @pytest.mark.django_db
-def test_update_dotation_projets_from_projet_back_to_instruction_with_a_programmation_projet_created_after_date_of_passage_en_instruction(
+def test_update_dotation_projets_from_projet_back_to_instruction_with_a_programmation_after_date_of_passage_en_instruction(
     perimetres,
     first_status,
     second_status,
@@ -608,16 +637,17 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_a_programm
 
     # Create two accepted dotation projets
     detr_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=first_status
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=first_status,
+        date_programmation=timezone.datetime(2025, 1, 25, tzinfo=UTC),
     )
-    with freeze_time("2025-01-25"):
-        ProgrammationProjetFactory.create(dotation_projet=detr_dp)
-
     dsil_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=second_status
+        projet=projet,
+        dotation=DOTATION_DSIL,
+        status=second_status,
+        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
-    with freeze_time("2025-01-10"):
-        ProgrammationProjetFactory.create(dotation_projet=dsil_dp)
 
     # --
 
@@ -628,16 +658,16 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_a_programm
     assert len(dotation_projets) == 2
     detr_dp.refresh_from_db()
     assert detr_dp.status == first_status, (
-        "The dotation projet with status %s should remain %s because the programmation_projet was created before the date of passage en instruction"
+        "The dotation projet with status %s should remain %s because it was programmed after the date of passage en instruction"
         % (first_status, first_status)
     )
 
     dsil_dp.refresh_from_db()
     assert dsil_dp.status == PROJET_STATUS_PROCESSING, (
-        "The dotation projet with status %s should be set to processing because the programmation_projet was created after the date of passage en instruction"
+        "The dotation projet with status %s should be set to processing because it was programmed before the date of passage en instruction"
         % second_status
     )
-    assert hasattr(dsil_dp, "programmation_projet") is False
+    assert dsil_dp.is_programmee is False
 
 
 @pytest.mark.parametrize(
@@ -645,11 +675,11 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_a_programm
     (PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED),
 )
 @pytest.mark.django_db
-def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accepted_and_programmation_projet_created_after_date_of_passage_en_instruction_and_one_dismissed_or_refused(
+def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accepted_and_programmation_after_date_of_passage_en_instruction_and_one_dismissed_or_refused(
     perimetres,
     second_status,
 ):
-    """Test _update_dotation_projets_from_projet_back_to_instruction with two accepted dotation projets and one programmation_projet created after date of passage en instruction"""
+    """Test _update_dotation_projets_from_projet_back_to_instruction with two accepted dotation projets and one programmed after date of passage en instruction"""
     arr_dijon, *_ = perimetres
 
     projet = ProjetFactory(
@@ -663,16 +693,17 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
 
     # Create two accepted dotation projets
     detr_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        date_programmation=timezone.datetime(2025, 1, 25, tzinfo=UTC),
     )
-    with freeze_time("2025-01-25"):
-        ProgrammationProjetFactory.create(dotation_projet=detr_dp)
-
-    dsil_dp = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=second_status
+    DotationProjetFactory(
+        projet=projet,
+        dotation=DOTATION_DSIL,
+        status=second_status,
+        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
-    with freeze_time("2025-01-10"):
-        ProgrammationProjetFactory.create(dotation_projet=dsil_dp)
 
     # --
 
@@ -683,7 +714,7 @@ def test_update_dotation_projets_from_projet_back_to_instruction_with_one_accept
     assert len(dotation_projets) == 1
     detr_dp.refresh_from_db()
     assert detr_dp.status == PROJET_STATUS_ACCEPTED, (
-        "The accepted dotation projet should remain accepted because the programmation_projet was created before the date of passage en instruction"
+        "The accepted dotation projet should remain accepted because it was programmed after the date of passage en instruction"
     )
 
 

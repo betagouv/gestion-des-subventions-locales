@@ -22,7 +22,6 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -83,9 +82,8 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
         projet, detr_dotation, dsil_dotation = double_dotation_projet
 
         # Create programming for both dotations
-        ProgrammationProjetFactory(
-            dotation_projet=detr_dotation, enveloppe=detr_envelope
-        )
+        detr_dotation.accept_without_ds_update(montant=0, enveloppe=detr_envelope)
+        detr_dotation.save()
 
         # Access DETR programming page
         url = reverse(
@@ -110,11 +108,8 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
         """DSIL amount should be displayed in the other dotation row"""
         projet, detr_dotation, dsil_dotation = double_dotation_projet
 
-        ProgrammationProjetFactory(
-            dotation_projet=detr_dotation,
-            enveloppe=detr_envelope,
-            montant=5000,  # DETR amount
-        )
+        detr_dotation.accept_without_ds_update(montant=5000, enveloppe=detr_envelope)
+        detr_dotation.save()
         SimulationProjetFactory(
             dotation_projet=dsil_dotation,
             simulation=SimulationFactory(enveloppe=dsil_envelope),
@@ -145,9 +140,8 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
         projet = ProjetFactory()
         detr_dotation = DetrProjetFactory(projet=projet)
 
-        ProgrammationProjetFactory(
-            dotation_projet=detr_dotation, enveloppe=detr_envelope
-        )
+        detr_dotation.accept_without_ds_update(montant=0, enveloppe=detr_envelope)
+        detr_dotation.save()
 
         url = reverse(
             "programmation:programmation-projet-list-dotation",

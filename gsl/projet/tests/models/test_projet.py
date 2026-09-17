@@ -8,7 +8,6 @@ from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     LettreRefusSigneeFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...constants import (
     DOTATION_DETR,
@@ -126,9 +125,10 @@ def test_to_notify_false_when_projet_already_notified():
     from django.utils import timezone
 
     projet = ProjetFactory(notified_at=timezone.now())
-    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
 
-    ProgrammationProjetFactory(dotation_projet=dotation)
     assert projet.to_notify is False
 
 
@@ -137,11 +137,12 @@ def test_to_notify_with_double_dotation_all_notified():
     from django.utils import timezone
 
     projet = ProjetFactory(notified_at=timezone.now())
-    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-
-    ProgrammationProjetFactory(dotation_projet=dotation_detr)
-    ProgrammationProjetFactory(dotation_projet=dotation_dsil)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+    )
 
     assert projet.to_notify is False
 
@@ -162,8 +163,9 @@ def test_to_notify_with_double_dotation_partial_programmation():
 def test_with_at_least_one_treated_dotation():
     """Project with at least one accepted programmation should be included."""
     projet = ProjetFactory()
-    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(dotation_projet=dotation, status=PROJET_STATUS_ACCEPTED)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+    )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -171,7 +173,9 @@ def test_with_at_least_one_treated_dotation():
 def test_with_at_least_one_treated_dotation_without_programmation():
     """Project without programmation should not be included."""
     projet = ProjetFactory()
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+    )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 0
     assert projet not in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -179,8 +183,9 @@ def test_with_at_least_one_treated_dotation_without_programmation():
 def test_with_at_least_one_treated_dotation_with_refused_status():
     """Project with a refused programmation should be included."""
     projet = ProjetFactory()
-    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(dotation_projet=dotation, status=PROJET_STATUS_REFUSED)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_REFUSED
+    )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -188,8 +193,9 @@ def test_with_at_least_one_treated_dotation_with_refused_status():
 def test_with_at_least_one_treated_dotation_with_dismissed_status():
     """Project with a dismissed programmation should be included."""
     projet = ProjetFactory()
-    dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(dotation_projet=dotation, status=PROJET_STATUS_DISMISSED)
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+    )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -197,13 +203,11 @@ def test_with_at_least_one_treated_dotation_with_dismissed_status():
 def test_with_at_least_one_treated_dotation_when_projet_has_two_accepted_programmations():
     """Project with two accepted programmations should be included once."""
     projet = ProjetFactory()
-    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_detr, status=PROJET_STATUS_ACCEPTED
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_dsil, status=PROJET_STATUS_ACCEPTED
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
@@ -212,13 +216,11 @@ def test_with_at_least_one_treated_dotation_when_projet_has_two_accepted_program
 def test_with_at_least_one_treated_dotation_with_one_accepted_one_refused():
     """Project with one accepted and one refused programmation should be included."""
     projet = ProjetFactory()
-    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_detr, status=PROJET_STATUS_ACCEPTED
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_dsil, status=PROJET_STATUS_REFUSED
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
@@ -229,17 +231,14 @@ def test_with_at_least_one_treated_dotation_for_user():
     perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_detr, status=PROJET_STATUS_ACCEPTED
+    DotationProjetFactory(
+        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
     projet_not_in_perimeter = ProjetFactory()
-    dotation_detr_not_in_perimeter = DotationProjetFactory(
-        projet=projet_not_in_perimeter, dotation=DOTATION_DETR
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_detr_not_in_perimeter,
+    DotationProjetFactory(
+        projet=projet_not_in_perimeter,
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
     )
 
@@ -497,14 +496,11 @@ def test_generated_documents_sorted_by_dotation_then_type():
     dsil_dp = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
     )
-    detr_pp = ProgrammationProjetFactory(dotation_projet=detr_dp)
-    dsil_pp = ProgrammationProjetFactory(dotation_projet=dsil_dp)
-
     # Created in a deliberately mixed order to prove the sort, not the creation order.
-    lettre_dsil = LettreNotificationFactory(dotation_projet=dsil_pp.dotation_projet)
-    arrete_dsil = ArreteFactory(dotation_projet=dsil_pp.dotation_projet)
-    lettre_detr = LettreNotificationFactory(dotation_projet=detr_pp.dotation_projet)
-    arrete_detr = ArreteFactory(dotation_projet=detr_pp.dotation_projet)
+    lettre_dsil = LettreNotificationFactory(dotation_projet=dsil_dp)
+    arrete_dsil = ArreteFactory(dotation_projet=dsil_dp)
+    lettre_detr = LettreNotificationFactory(dotation_projet=detr_dp)
+    arrete_detr = ArreteFactory(dotation_projet=detr_dp)
 
     assert projet.generated_documents == [
         arrete_detr,
@@ -522,18 +518,11 @@ def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
     dsil_dp = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
     )
-    detr_pp = ProgrammationProjetFactory(dotation_projet=detr_dp)
-    dsil_pp = ProgrammationProjetFactory(dotation_projet=dsil_dp)
-
     # Created in a deliberately mixed order to prove the sort, not the creation order.
-    annexe_dsil = AnnexeFactory(dotation_projet=dsil_pp.dotation_projet)
-    lettre_et_arrete_signes_dsil = LettreEtArreteSignesFactory(
-        dotation_projet=dsil_pp.dotation_projet
-    )
-    annexe_detr = AnnexeFactory(dotation_projet=detr_pp.dotation_projet)
-    lettre_et_arrete_signes_detr = LettreEtArreteSignesFactory(
-        dotation_projet=detr_pp.dotation_projet
-    )
+    annexe_dsil = AnnexeFactory(dotation_projet=dsil_dp)
+    lettre_et_arrete_signes_dsil = LettreEtArreteSignesFactory(dotation_projet=dsil_dp)
+    annexe_detr = AnnexeFactory(dotation_projet=detr_dp)
+    lettre_et_arrete_signes_detr = LettreEtArreteSignesFactory(dotation_projet=detr_dp)
 
     assert projet.imported_documents == [
         lettre_et_arrete_signes_detr,
@@ -552,17 +541,8 @@ def test_imported_documents_includes_signed_refusal_letter():
     refused_dp = DotationProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
     )
-    accepted_pp = ProgrammationProjetFactory(dotation_projet=accepted_dp)
-    refused_pp = ProgrammationProjetFactory(
-        dotation_projet=refused_dp, status=PROJET_STATUS_REFUSED
-    )
-
-    lettre_et_arrete_signes = LettreEtArreteSignesFactory(
-        dotation_projet=accepted_pp.dotation_projet
-    )
-    lettre_refus_signee = LettreRefusSigneeFactory(
-        dotation_projet=refused_pp.dotation_projet
-    )
+    lettre_et_arrete_signes = LettreEtArreteSignesFactory(dotation_projet=accepted_dp)
+    lettre_refus_signee = LettreRefusSigneeFactory(dotation_projet=refused_dp)
 
     assert projet.imported_documents == [
         lettre_et_arrete_signes,

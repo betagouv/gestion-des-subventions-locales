@@ -10,7 +10,9 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     LETTRE,
     LETTRE_REFUS,
+    PROJET_STATUS_ACCEPTED,
 )
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -32,7 +34,6 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
     ModeleLettreRefusFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 
 @pytest.fixture
@@ -41,17 +42,15 @@ def perimetre():
 
 
 @pytest.fixture
-def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
+def dotation_projet(perimetre):
+    return DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
 
 
 @pytest.fixture
-def lettre_et_arrete_signes(programmation_projet):
-    return LettreEtArreteSignesFactory(
-        dotation_projet=programmation_projet.dotation_projet
-    )
+def lettre_et_arrete_signes(dotation_projet):
+    return LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
 
 @pytest.fixture

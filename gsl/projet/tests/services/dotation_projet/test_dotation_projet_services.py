@@ -17,11 +17,9 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
 )
 
 from ....constants import (
@@ -291,6 +289,7 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
+        montant=0,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
@@ -783,6 +782,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_filters_by_year(
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
@@ -1000,6 +1000,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=None,
@@ -1046,6 +1047,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
@@ -1311,10 +1313,9 @@ def test_update_accepted_dotation_projets_montant_from_dn_skips_non_accepted():
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
-    pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
     dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
-    pp.refresh_from_db()
-    assert pp.montant == 1_000
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.montant is None
 
 
 @pytest.mark.django_db
@@ -1322,12 +1323,12 @@ def test_update_accepted_dotation_projets_montant_from_dn_updates_montant():
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
+        montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
-    pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
     dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
-    pp.refresh_from_db()
-    assert pp.montant == 2_000
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.montant == 2_000
 
 
 @pytest.mark.django_db
@@ -1335,25 +1336,12 @@ def test_update_accepted_dotation_projets_montant_from_dn_does_not_update_montan
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
+        montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=None,
     )
-    pp = ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
     dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
-    pp.refresh_from_db()
-    assert pp.montant == 1_000
-
-
-@pytest.mark.django_db
-def test_update_accepted_dotation_projets_montant_from_dn_does_not_update_montant_without_pp():
-    dotation_projet = DotationProjetFactory(
-        dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
-        projet__dossier_ds__annotations_montant_accorde_detr=2_000,
-    )
-    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
-    assert not ProgrammationProjet.objects.filter(
-        dotation_projet=dotation_projet
-    ).exists()
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.montant == 1_000
 
 
 @pytest.mark.django_db
@@ -1361,9 +1349,9 @@ def test_update_accepted_dotation_projets_montant_from_dn_creates_action_when_mo
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
+        montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
-    ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
 
     dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
 
@@ -1384,9 +1372,9 @@ def test_update_accepted_dotation_projets_montant_from_dn_does_not_create_action
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
+        montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
     )
-    ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=1_000)
 
     dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
 
@@ -1422,9 +1410,6 @@ def test_accept_dotation_projet_conserve_enveloppe_existante(perimetres):
         ),
         projet__dossier_ds__annotations_dotation=DOTATION_DETR,
         projet__dossier_ds__annotations_montant_accorde_detr=5_000,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
         enveloppe=enveloppe_2025,
         montant=4_000,
     )
@@ -1432,10 +1417,10 @@ def test_accept_dotation_projet_conserve_enveloppe_existante(perimetres):
     dps._accept_dotation_projet(dotation_projet.projet, DOTATION_DETR)
 
     dotation_projet.refresh_from_db()
-    assert dotation_projet.programmation_projet.enveloppe == enveloppe_2025
+    assert dotation_projet.enveloppe == enveloppe_2025
 
 
-# -- _get_all_concerned_simulations_for_dotation_projet (programmation_projet) --
+# -- _get_all_concerned_simulations_for_dotation_projet (programmation) --
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
@@ -1452,10 +1437,8 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_simulations_
     )
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
         enveloppe=enveloppe_current_year,
     )
 
@@ -1481,11 +1464,12 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_simulations_
 def test_get_all_concerned_simulations_for_dotation_projet_includes_all_years_when_no_programmation(
     perimetres,
 ):
-    """Test que toutes les années >= année courante sont incluses sans programmation_projet."""
+    """Test que toutes les années >= année courante sont incluses sans programmation."""
     arr_dijon, *_ = perimetres
 
     dotation_projet = DotationProjetFactory(
         dotation=DOTATION_DETR,
+        status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 

@@ -9,10 +9,7 @@ from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    ProgrammationProjetFactory,
-)
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import Simulation, SimulationProjet
 from ..factories import SimulationFactory
@@ -239,10 +236,10 @@ class TestSimulationCreateExcludesPreviouslyProgrammedProjets:
             annee=date.today().year - 1,
             perimetre=dep_perimetre,
         )
-        ProgrammationProjetFactory(
-            dotation_projet=dotation_projet,
-            enveloppe=previous_year_enveloppe,
+        dotation_projet.accept_without_ds_update(
+            montant=1_000, enveloppe=previous_year_enveloppe
         )
+        dotation_projet.save()
 
         current_year_enveloppe = DetrEnveloppeFactory(
             annee=date.today().year,

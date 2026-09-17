@@ -15,6 +15,7 @@ from gsl.projet.constants import (
     LETTRE,
     PROJET_STATUS_ACCEPTED,
 )
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -31,7 +32,6 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 ## FIXTURES
 
@@ -42,17 +42,15 @@ def perimetre():
 
 
 @pytest.fixture
-def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
+def dotation_projet(perimetre):
+    return DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
 
 
 @pytest.fixture
-def lettre_et_arrete_signes(programmation_projet):
-    return LettreEtArreteSignesFactory(
-        dotation_projet=programmation_projet.dotation_projet
-    )
+def lettre_et_arrete_signes(dotation_projet):
+    return LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
 
 @pytest.fixture
@@ -68,11 +66,11 @@ def different_perimetre_client_with_user_logged():
 
 
 @pytest.fixture
-def accepted_detr_programmation_projet(perimetre):
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
-        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+def accepted_detr_dotation_projet(perimetre):
+    return DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
     )
 
 
@@ -82,9 +80,9 @@ pytestmark = pytest.mark.django_db
 
 ### documents -----------------------------------
 def test_get_documents_with_not_correct_perimetre_and_without_arrete(
-    programmation_projet, different_perimetre_client_with_user_logged
+    dotation_projet, different_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     url = reverse(
         "notification:documents",
         kwargs={
@@ -97,9 +95,9 @@ def test_get_documents_with_not_correct_perimetre_and_without_arrete(
 
 
 def test_get_documents_with_correct_perimetre_and_without_arrete(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     url = reverse(
         "notification:documents",
         kwargs={
@@ -116,9 +114,9 @@ def test_get_documents_with_correct_perimetre_and_without_arrete(
 
 
 def test_get_documents_renders_the_table_of_existing_documents(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    dotation_projet = programmation_projet.dotation_projet
+    dotation_projet = dotation_projet
     arrete = ArreteFactory(dotation_projet=dotation_projet)
     LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
@@ -137,9 +135,9 @@ def test_get_documents_renders_the_table_of_existing_documents(
 
 
 def test_get_documents_without_back_param_uses_projet_list(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     url = reverse("notification:documents", kwargs={"projet_id": projet.id})
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
@@ -148,9 +146,9 @@ def test_get_documents_without_back_param_uses_projet_list(
 
 
 def test_get_documents_with_valid_back_param_uses_it(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     url = reverse("notification:documents", kwargs={"projet_id": projet.id})
     back = "/simulation/42/"
     response = correct_perimetre_client_with_user_logged.get(url, {"back": back})
@@ -159,9 +157,9 @@ def test_get_documents_with_valid_back_param_uses_it(
 
 
 def test_get_documents_with_external_back_url_falls_back_to_projet_list(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     url = reverse("notification:documents", kwargs={"projet_id": projet.id})
     response = correct_perimetre_client_with_user_logged.get(
         url, {"back": "https://evil.com/"}
@@ -175,12 +173,12 @@ def test_get_documents_with_external_back_url_falls_back_to_projet_list(
 
 
 def test_post_documents_creates_generated_documents_and_refreshes(
-    accepted_detr_programmation_projet,
+    accepted_detr_dotation_projet,
     perimetre,
     correct_perimetre_client_with_user_logged,
 ):
-    pp = accepted_detr_programmation_projet
-    projet = pp.dotation_projet.projet
+    dotation_projet = accepted_detr_dotation_projet
+    projet = dotation_projet.projet
     modele_arrete = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
     modele_lettre = ModeleLettreNotificationFactory(
         dotation=DOTATION_DETR, perimetre=perimetre
@@ -200,21 +198,19 @@ def test_post_documents_creates_generated_documents_and_refreshes(
 
     assert response.status_code == 200
     assert response.headers.get("HX-Refresh") == "true"
-    assert Arrete.objects.filter(dotation_projet=pp.dotation_projet).exists()
-    assert LettreNotification.objects.filter(
-        dotation_projet=pp.dotation_projet
-    ).exists()
+    assert Arrete.objects.filter(dotation_projet=dotation_projet).exists()
+    assert LettreNotification.objects.filter(dotation_projet=dotation_projet).exists()
 
 
 def test_post_documents_after_notification_returns_404(
-    accepted_detr_programmation_projet,
+    accepted_detr_dotation_projet,
     perimetre,
     correct_perimetre_client_with_user_logged,
 ):
     from django.utils import timezone
 
-    pp = accepted_detr_programmation_projet
-    projet = pp.dotation_projet.projet
+    dotation_projet = accepted_detr_dotation_projet
+    projet = dotation_projet.projet
     projet.notified_at = timezone.now()
     projet.save()
 
@@ -236,19 +232,19 @@ def test_post_documents_after_notification_returns_404(
     )
 
     assert response.status_code == 404
-    assert not Arrete.objects.filter(dotation_projet=pp.dotation_projet).exists()
+    assert not Arrete.objects.filter(dotation_projet=dotation_projet).exists()
     assert not LettreNotification.objects.filter(
-        dotation_projet=pp.dotation_projet
+        dotation_projet=dotation_projet
     ).exists()
 
 
 def test_post_documents_invalid_rerenders_block_with_errors(
-    accepted_detr_programmation_projet,
+    accepted_detr_dotation_projet,
     perimetre,
     correct_perimetre_client_with_user_logged,
 ):
-    pp = accepted_detr_programmation_projet
-    projet = pp.dotation_projet.projet
+    dotation_projet = accepted_detr_dotation_projet
+    projet = dotation_projet.projet
     # A modele must exist, otherwise the skip checkbox is forced on and the
     # form becomes valid without a modele selection.
     ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
@@ -264,7 +260,7 @@ def test_post_documents_invalid_rerenders_block_with_errors(
     assert response.status_code == 200
     assert response.templates[0].name == "includes/_generate_documents_form.html"
     assert f"modele_arrete_{DOTATION_DETR}" in response.context["form"].errors
-    assert not Arrete.objects.filter(dotation_projet=pp.dotation_projet).exists()
+    assert not Arrete.objects.filter(dotation_projet=dotation_projet).exists()
 
 
 #### select-modele -----------------------------------
@@ -330,10 +326,10 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
         dotation=DOTATION_DSIL, perimetre=_arrondissement_21
     )
 
-    programmation_projet = ProgrammationProjetFactory(
-        dotation_projet__dotation=DOTATION_DETR,
+    dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
-        dotation_projet__projet__dossier_ds__perimetre=departement_1,
+        projet__dossier_ds__perimetre=departement_1,
     )
 
     user = CollegueFactory(perimetre=departement_1)
@@ -342,8 +338,8 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
     url = reverse(
         "notification:select-modele",
         kwargs={
-            "projet_id": programmation_projet.dotation_projet.projet.id,
-            "dotation": programmation_projet.enveloppe.dotation,
+            "projet_id": dotation_projet.projet.id,
+            "dotation": dotation_projet.dotation,
             "document_type": document_type,
         },
     )
@@ -351,8 +347,8 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
     assert list(response.context["form"].fields["modele"].queryset) == [
         detr_modele_dep_1
     ], "Seul le modèle avec le bon périmètre doit être proposé"
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     assert (
         url
         == f"/notification/{projet.id}/selection-d-un-modele/{dotation}/{document_type}"
@@ -385,7 +381,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
     (False, True),
 )
 def test_modify_arrete_url_with_not_correct_perimetre(
-    programmation_projet,
+    dotation_projet,
     different_perimetre_client_with_user_logged,
     factory,
     document_type,
@@ -393,13 +389,13 @@ def test_modify_arrete_url_with_not_correct_perimetre(
 ):
     if with_document_already_created:
         factory(
-            dotation_projet=programmation_projet.dotation_projet,
+            dotation_projet=dotation_projet,
             content="<p>Contenu de l’arrêté</p>",
         )
     else:
-        assert not hasattr(programmation_projet.dotation_projet, "arrete")
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+        assert not hasattr(dotation_projet, "arrete")
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -421,10 +417,10 @@ def test_modify_arrete_url_with_not_correct_perimetre(
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
 def test_modify_document_url_without_arrete(
-    programmation_projet, correct_perimetre_client_with_user_logged, document_type
+    dotation_projet, correct_perimetre_client_with_user_logged, document_type
 ):
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -448,17 +444,17 @@ def test_modify_document_url_without_arrete(
     ((ARRETE, ArreteFactory), (LETTRE, LettreNotificationFactory)),
 )
 def test_modify_arrete_url_with_arrete(
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
 ):
     document = factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         content="<p>Contenu de l’arrêté</p>",
     )
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -499,7 +495,7 @@ def test_modify_arrete_url_with_arrete(
     ),
 )
 def test_modify_arrete_url_with_document_and_with_correct_modele_id(
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
@@ -507,14 +503,14 @@ def test_modify_arrete_url_with_document_and_with_correct_modele_id(
 ):
     modele = modele_factory(
         perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
-        dotation=programmation_projet.dotation_projet.dotation,
+        dotation=dotation_projet.dotation,
     )
     factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         content="<p>Contenu de l'arrêté</p>",
     )
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -553,7 +549,7 @@ def test_modify_arrete_url_with_document_and_with_correct_modele_id(
     ),
 )
 def test_modify_arrete_url_with_document_and_with_wrong_modele_id(
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
@@ -561,18 +557,14 @@ def test_modify_arrete_url_with_document_and_with_wrong_modele_id(
 ):
     modele = modele_factory(
         perimetre=correct_perimetre_client_with_user_logged.user.perimetre,
-        dotation=(
-            "DSIL"
-            if programmation_projet.dotation_projet.dotation == "DETR"
-            else "DETR"
-        ),
+        dotation=("DSIL" if dotation_projet.dotation == "DETR" else "DETR"),
     )
     factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         content="<p>Contenu de l’arrêté</p>",
     )
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -597,11 +589,11 @@ def test_modify_arrete_url_with_document_and_with_wrong_modele_id(
     (ARRETE, LETTRE),
 )
 def test_change_document_view_valid_but_with_wrong_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged, document_type
+    dotation_projet, different_perimetre_client_with_user_logged, document_type
 ):
-    assert not hasattr(programmation_projet.dotation_projet, "arrete")
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    assert not hasattr(dotation_projet, "arrete")
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -612,12 +604,12 @@ def test_change_document_view_valid_but_with_wrong_perimetre(
     )
     data = {
         "created_by": different_perimetre_client_with_user_logged.user.id,
-        "dotation_projet": programmation_projet.dotation_projet_id,
+        "dotation_projet": dotation_projet.id,
         "content": "<p>Le contenu</p>",
     }
     response = different_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 404
-    assert not hasattr(programmation_projet.dotation_projet, document_type)
+    assert not hasattr(dotation_projet, document_type)
 
 
 @freeze_time("2025-08-11")
@@ -629,19 +621,19 @@ def test_change_document_view_valid_but_with_wrong_perimetre(
     ),
 )
 def test_change_document_view_valid_with_existing_document(
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
     modele_factory,
 ):
     document = factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         content="<p>Ancien contenu</p>",
     )
-    new_modele = modele_factory(dotation=programmation_projet.dotation)
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    new_modele = modele_factory(dotation=dotation_projet.dotation)
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -652,7 +644,7 @@ def test_change_document_view_valid_with_existing_document(
     )
     data = {
         "created_by": correct_perimetre_client_with_user_logged.user.id,
-        "dotation_projet": programmation_projet.dotation_projet_id,
+        "dotation_projet": dotation_projet.id,
         "content": "<p>Le contenu</p>",
         "modele": new_modele.id,
     }
@@ -662,7 +654,7 @@ def test_change_document_view_valid_with_existing_document(
     document.refresh_from_db()
     assert document.content == "<p>Le contenu</p>"
     assert document.created_by == correct_perimetre_client_with_user_logged.user
-    assert document.dotation_projet == programmation_projet.dotation_projet
+    assert document.dotation_projet == dotation_projet
     assert document.modele == new_modele
     messages = get_messages(response.wsgi_request)
     assert len(messages) == 1
@@ -671,12 +663,12 @@ def test_change_document_view_valid_with_existing_document(
     if document_type == ARRETE:
         assert (
             message.message
-            == f"L'arrêté “Arrêté {programmation_projet.dotation_projet.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifié."
+            == f"L'arrêté “Arrêté {dotation_projet.dotation} - {dotation_projet.dossier_ds.ds_number} - {slugify(dotation_projet.dossier_ds.ds_demandeur.raison_sociale)}.pdf” a bien été modifié."
         )
     else:
         assert (
             message.message
-            == f"La lettre de notification “Lettre {programmation_projet.dotation_projet.dotation} - {programmation_projet.dossier.ds_number} - {slugify(programmation_projet.dossier.ds_demandeur.raison_sociale)}.pdf” a bien été modifiée."
+            == f"La lettre de notification “Lettre {dotation_projet.dotation} - {dotation_projet.dossier_ds.ds_number} - {slugify(dotation_projet.dossier_ds.ds_demandeur.raison_sociale)}.pdf” a bien été modifiée."
         )
 
 
@@ -688,19 +680,19 @@ def test_change_document_view_valid_with_existing_document(
     ),
 )
 def test_change_document_view_invalid(
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
 ):
     factory(
-        dotation_projet=programmation_projet.dotation_projet,
-        modele__dotation=programmation_projet.dotation,
+        dotation_projet=dotation_projet,
+        modele__dotation=dotation_projet.dotation,
         content="<p>Ancien contenu</p>",
     )
 
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.enveloppe.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
     url = reverse(
         "notification:modifier-document",
         kwargs={
@@ -739,12 +731,12 @@ def test_change_document_view_invalid(
     ),
 )
 def test_document_download_url_with_correct_perimetre(
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
 ):
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
     url = reverse(
         "notification:document-download",
         kwargs={"document_type": document_type, "document_id": doc.id},
@@ -766,7 +758,7 @@ def test_document_download_url_with_correct_perimetre(
 )
 def test_document_download_includes_qr_by_default_and_respects_stored_choice(
     perimetre,
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
@@ -777,14 +769,15 @@ def test_document_download_includes_qr_by_default_and_respects_stored_choice(
     from gsl_notification.qr.codec import decode_per_page
 
     with_qr = factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
     )
     without_qr = factory(
-        dotation_projet=ProgrammationProjetFactory(
-            dotation_projet__dotation=programmation_projet.dotation,
-            dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        ).dotation_projet,
+        dotation_projet=DotationProjetFactory(
+            dotation=dotation_projet.dotation,
+            status=PROJET_STATUS_ACCEPTED,
+            projet__dossier_ds__perimetre=perimetre,
+        ),
         content="<p>" + ("Contenu de test. " * 200) + "</p>",
         with_qr_code=False,
     )
@@ -830,12 +823,12 @@ def test_document_download_url_with_correct_perimetre_and_without_document(
     ),
 )
 def test_document_download_url_with_wrong_perimetre(
-    programmation_projet,
+    dotation_projet,
     different_perimetre_client_with_user_logged,
     document_type,
     factory,
 ):
-    document = factory(dotation_projet=programmation_projet.dotation_projet)
+    document = factory(dotation_projet=dotation_projet)
     url = reverse(
         "notification:document-download",
         kwargs={"document_type": document_type, "document_id": document.id},
@@ -848,11 +841,11 @@ def test_document_download_url_with_wrong_perimetre(
 
 
 def test_generated_documents_download_merges_all_documents_in_table_order(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
-    ArreteFactory(dotation_projet=programmation_projet.dotation_projet)
-    LettreNotificationFactory(dotation_projet=programmation_projet.dotation_projet)
+    projet = dotation_projet.projet
+    ArreteFactory(dotation_projet=dotation_projet)
+    LettreNotificationFactory(dotation_projet=dotation_projet)
 
     url = reverse("notification:generated-documents-download", args=[projet.id])
     assert url == f"/notification/{projet.id}/documents-generes/telecharger/"
@@ -869,19 +862,19 @@ def test_generated_documents_download_merges_all_documents_in_table_order(
 
 
 def test_generated_documents_download_with_no_documents_returns_404(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     url = reverse("notification:generated-documents-download", args=[projet.id])
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
 
 def test_generated_documents_download_with_wrong_perimetre(
-    programmation_projet, different_perimetre_client_with_user_logged
+    dotation_projet, different_perimetre_client_with_user_logged
 ):
-    ArreteFactory(dotation_projet=programmation_projet.dotation_projet)
-    projet = programmation_projet.dotation_projet.projet
+    ArreteFactory(dotation_projet=dotation_projet)
+    projet = dotation_projet.projet
     url = reverse("notification:generated-documents-download", args=[projet.id])
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
@@ -898,12 +891,12 @@ def test_generated_documents_download_with_wrong_perimetre(
     ),
 )
 def test_document_view_url_with_correct_perimetre(
-    programmation_projet,
+    dotation_projet,
     correct_perimetre_client_with_user_logged,
     document_type,
     factory,
 ):
-    document = factory(dotation_projet=programmation_projet.dotation_projet)
+    document = factory(dotation_projet=dotation_projet)
     url = reverse(
         "notification:document-view",
         kwargs={"document_type": document_type, "document_id": document.id},
@@ -937,12 +930,12 @@ def test_document_view_url_with_correct_perimetre_and_without_document(
     ),
 )
 def test_document_view_url_with_wrong_perimetre(
-    programmation_projet,
+    dotation_projet,
     different_perimetre_client_with_user_logged,
     document_type,
     factory,
 ):
-    document = factory(dotation_projet=programmation_projet.dotation_projet)
+    document = factory(dotation_projet=dotation_projet)
     url = reverse(
         "notification:document-view",
         kwargs={"document_type": document_type, "document_id": document.id},
@@ -963,30 +956,30 @@ def test_document_view_url_with_wrong_perimetre(
 )
 def test_delete_document_with_correct_perimetre(
     correct_perimetre_client_with_user_logged,
-    programmation_projet,
+    dotation_projet,
     document_type,
     factory,
 ):
-    document = factory(dotation_projet=programmation_projet.dotation_projet)
+    document = factory(dotation_projet=dotation_projet)
     url = reverse(
         "gsl_notification:delete-document",
         kwargs={"document_type": document_type, "document_id": document.id},
     )
 
     attr = ARRETE if document_type == ARRETE else "lettre"
-    assert hasattr(programmation_projet.dotation_projet, attr)
+    assert hasattr(dotation_projet, attr)
 
     response = correct_perimetre_client_with_user_logged.post(url)
 
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     expected_redirect_url = reverse(
         "gsl_notification:documents", kwargs={"projet_id": projet.id}
     )
     assert response.status_code == 302
     assert response.url == expected_redirect_url
 
-    programmation_projet.refresh_from_db()
-    assert not hasattr(programmation_projet.dotation_projet, attr)
+    dotation_projet.refresh_from_db()
+    assert not hasattr(dotation_projet, attr)
 
 
 @pytest.mark.parametrize(
@@ -998,11 +991,11 @@ def test_delete_document_with_correct_perimetre(
 )
 def test_delete_document_with_incorrect_perimetre(
     different_perimetre_client_with_user_logged,
-    programmation_projet,
+    dotation_projet,
     document_type,
     factory,
 ):
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
     url = reverse(
         "gsl_notification:delete-document",
         kwargs={"document_type": document_type, "document_id": doc.id},
@@ -1021,11 +1014,11 @@ def test_delete_document_with_incorrect_perimetre(
 )
 def test_delete_document_with_get_method_not_allowed(
     correct_perimetre_client_with_user_logged,
-    programmation_projet,
+    dotation_projet,
     document_type,
     factory,
 ):
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
     url = reverse(
         "gsl_notification:delete-document",
         kwargs={"document_type": document_type, "document_id": doc.id},

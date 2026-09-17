@@ -13,11 +13,7 @@ from gsl.projet.constants import (
 from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
-from gsl_programmation.models import ProgrammationProjet
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    ProgrammationProjetFactory,
-)
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet
@@ -113,7 +109,7 @@ def test_update_status_with_processing(user):
 @mock.patch(
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
-def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_mother_enveloppe(
+def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
     mock_ds_update,
     user,
 ):
@@ -124,6 +120,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
         status=SimulationProjet.STATUS_PROCESSING,
         simulation=simulation,
         dotation_projet__dotation=DOTATION_DETR,
+        dotation_projet__status=PROJET_STATUS_PROCESSING,
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
@@ -140,12 +137,8 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
         taux=simulation_projet.taux,
     )
 
-    programmation_projets_qs = ProgrammationProjet.objects.filter(
-        dotation_projet=simulation_projet.dotation_projet
-    )
-    assert programmation_projets_qs.count() == 1
-    programmation_projet = programmation_projets_qs.first()
-    assert programmation_projet.enveloppe == mother_enveloppe
+    simulation_projet.dotation_projet.refresh_from_db()
+    assert simulation_projet.dotation_projet.enveloppe == mother_enveloppe
 
 
 @mock.patch(
@@ -161,7 +154,7 @@ def test_accept_a_simulation_projet_has_created_a_programmation_projet_with_moth
         ),
     ),
 )
-def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_mother_enveloppe(
+def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
     mock_ds_update,
     initial_programmation_status,
     new_projet_status,
@@ -172,7 +165,10 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     simulation = SimulationFactory(enveloppe=child_enveloppe)
     dotation_projet = DotationProjetFactory(
-        projet__dossier_ds__perimetre=child_enveloppe.perimetre, dotation=DOTATION_DETR
+        projet__dossier_ds__perimetre=child_enveloppe.perimetre,
+        dotation=DOTATION_DETR,
+        status=initial_programmation_status,
+        enveloppe=mother_enveloppe,
     )
 
     simulation_projet = SimulationProjetFactory(
@@ -180,15 +176,6 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
         status=SimulationProjet.STATUS_PROCESSING,
         simulation=simulation,
     )
-    ProgrammationProjetFactory(
-        dotation_projet=simulation_projet.dotation_projet,
-        enveloppe=mother_enveloppe,
-        status=initial_programmation_status,
-    )
-    programmation_projets_qs = ProgrammationProjet.objects.filter(
-        dotation_projet=simulation_projet.dotation_projet
-    )
-    assert programmation_projets_qs.count() == 1
 
     form = SimulationProjetStatusForm(
         instance=simulation_projet, status=new_projet_status
@@ -206,14 +193,9 @@ def test_accept_a_simulation_projet_has_updated_a_programmation_projet_with_moth
             taux=simulation_projet.taux,
         )
 
-    programmation_projets_qs = ProgrammationProjet.objects.filter(
-        dotation_projet=simulation_projet.dotation_projet
-    )
-    assert programmation_projets_qs.count() == 1
-
-    programmation_projet = programmation_projets_qs.first()
-    assert programmation_projet.enveloppe == mother_enveloppe
-    assert programmation_projet.status == programmation_status_expected
+    dotation_projet.refresh_from_db()
+    assert dotation_projet.enveloppe == mother_enveloppe
+    assert dotation_projet.status == programmation_status_expected
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +244,7 @@ def test_revert_from_final_status_resets_dotation_projet_to_processing(
         (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
     ),
 )
-def test_revert_from_final_status_deletes_programmation_projet(
+def test_revert_from_final_status_drops_the_programmation(
     mock_ds_update,
     initial_simulation_status,
     initial_dotation_status,
@@ -272,15 +254,13 @@ def test_revert_from_final_status_deletes_programmation_projet(
         status=initial_simulation_status,
         dotation_projet__status=initial_dotation_status,
     )
-    ProgrammationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
     form = SimulationProjetStatusForm(
         instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
     )
     form.save(user)
 
-    assert not ProgrammationProjet.objects.filter(
-        dotation_projet=simulation_projet.dotation_projet
-    ).exists()
+    simulation_projet.dotation_projet.refresh_from_db()
+    assert not simulation_projet.dotation_projet.is_programmee
 
 
 @mock.patch(

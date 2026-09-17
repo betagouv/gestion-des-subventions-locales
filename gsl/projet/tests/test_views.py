@@ -22,9 +22,13 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_notification.tests.factories import ArreteFactory, LettreNotificationFactory
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
-from ..constants import DOTATION_DETR, DOTATION_DSIL
+from ..constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
+)
 from ..models import Projet
 from ..utils.projet_filters import ProjetFilters
 from ..views import (
@@ -520,17 +524,16 @@ def projets_with_montant_retenu(perimetre) -> list[Projet]:
         projet = ProjetFactory(
             dossier_ds__perimetre=perimetre,
         )
-        detr_projet = DetrProjetFactory(projet=projet)
-        if detr_montant is not None:
-            ProgrammationProjetFactory(
-                dotation_projet=detr_projet, montant=detr_montant
-            )
-
-        dsil_projet = DsilProjetFactory(projet=projet)
-        if dsil_montant is not None:
-            ProgrammationProjetFactory(
-                dotation_projet=dsil_projet, montant=dsil_montant
-            )
+        for dotation_factory, montant in (
+            (DetrProjetFactory, detr_montant),
+            (DsilProjetFactory, dsil_montant),
+        ):
+            if montant is None:
+                dotation_factory(projet=projet, status=PROJET_STATUS_PROCESSING)
+            else:
+                dotation_factory(
+                    projet=projet, status=PROJET_STATUS_ACCEPTED, montant=montant
+                )
 
         projets.append(projet)
     return projets
@@ -545,7 +548,7 @@ def test_annotate_montant_retenu(
     projet_qs = projet_qs.annotate(
         dotation_projet_with_this_minimum_montant_retenu_count=Count(
             "dotationprojet",
-            filter=Q(dotationprojet__programmation_projet__montant__gte=100_000),
+            filter=Q(dotationprojet__montant__gte=100_000),
         )
     )
     projet_qs = projet_qs.filter(
@@ -654,13 +657,21 @@ def test_order_by_assiette(req, view, perimetre):
 def test_order_by_taux(req, view, perimetre):
     # projet_low: montant=10000, assiette=100000 -> taux=10%
     projet_low = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dp_low = DetrProjetFactory(projet=projet_low, assiette=Decimal("100000"))
-    ProgrammationProjetFactory(dotation_projet=dp_low, montant=Decimal("10000"))
+    DetrProjetFactory(
+        projet=projet_low,
+        status=PROJET_STATUS_ACCEPTED,
+        assiette=Decimal("100000"),
+        montant=Decimal("10000"),
+    )
 
     # projet_high: montant=80000, assiette=100000 -> taux=80%
     projet_high = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dp_high = DetrProjetFactory(projet=projet_high, assiette=Decimal("100000"))
-    ProgrammationProjetFactory(dotation_projet=dp_high, montant=Decimal("80000"))
+    DetrProjetFactory(
+        projet=projet_high,
+        status=PROJET_STATUS_ACCEPTED,
+        assiette=Decimal("100000"),
+        montant=Decimal("80000"),
+    )
 
     request = req.get("/", data={"order": "taux"})
     view.request = request
@@ -814,12 +825,10 @@ def projet_with_mixed_notification_statuses() -> Projet:
     projet = ProjetFactory()
 
     to_sign_dp = DetrProjetFactory(projet=projet, status="accepted")
-    to_sign_pp = ProgrammationProjetFactory(dotation_projet=to_sign_dp)
-    ArreteFactory(dotation_projet=to_sign_pp.dotation_projet)
-    LettreNotificationFactory(dotation_projet=to_sign_pp.dotation_projet)
+    ArreteFactory(dotation_projet=to_sign_dp)
+    LettreNotificationFactory(dotation_projet=to_sign_dp)
 
-    to_generate_dp = DsilProjetFactory(projet=projet, status="accepted")
-    ProgrammationProjetFactory(dotation_projet=to_generate_dp)
+    DsilProjetFactory(projet=projet, status="accepted")
 
     return projet
 

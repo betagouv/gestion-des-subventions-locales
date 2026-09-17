@@ -11,10 +11,7 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    ProgrammationProjetFactory,
-)
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import (
     DOTATION_DETR,
@@ -103,19 +100,16 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        montant=400,
     )
     SimulationProjetFactory.create_batch(
         2,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=400,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        montant=400,
-        dotation_projet__projet__notified_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     # Notified or not, projet should stay accepted
 
@@ -142,10 +136,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
 
-    programmation_projet = dotation_projet.programmation_projet  # always exists
-    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
-    assert programmation_projet.montant == 400
-    assert programmation_projet.taux == 10
+    assert dotation_projet.montant == 400
+    assert dotation_projet.taux_retenu == 10
 
 
 @pytest.mark.django_db
@@ -166,19 +158,16 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        montant=400,
     )
     SimulationProjetFactory.create_batch(
         2,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=400,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        montant=400,
-        dotation_projet__projet__notified_at=None,
     )
 
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -201,8 +190,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
 
-    programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
+    assert dotation_projet.is_programmee
 
 
 @pytest.mark.django_db
@@ -222,19 +210,16 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        montant=400,
     )
     SimulationProjetFactory.create_batch(
         2,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=400,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        montant=400,
-        dotation_projet__projet__notified_at=None,
     )
 
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -260,10 +245,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
 
-    programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
-    assert programmation_projet.montant == 400
-    assert programmation_projet.taux == 10
+    assert dotation_projet.montant == 400
+    assert dotation_projet.taux_retenu == 10
 
 
 @pytest.mark.django_db
@@ -283,18 +266,16 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_REFUSED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_REFUSED,
+        enveloppe=detr_enveloppe,
     )
     SimulationProjetFactory.create_batch(
         2,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_REFUSED,
-        enveloppe=detr_enveloppe,
     )
     assert projet.status == PROJET_STATUS_REFUSED
 
@@ -315,10 +296,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
         assert simulation_projet.montant == 5_000
         assert simulation_projet.taux == 10
 
-    programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == PROJET_STATUS_ACCEPTED
-    assert programmation_projet.montant == 5_000
-    assert programmation_projet.taux == 10
+    assert dotation_projet.montant == 5_000
+    assert dotation_projet.taux_retenu == 10
 
 
 @pytest.mark.django_db
@@ -333,18 +312,16 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        enveloppe=detr_enveloppe,
+        montant=500,
     )
     SimulationProjetFactory.create_batch(
         2,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
-        montant=500,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        enveloppe=detr_enveloppe,
         montant=500,
     )
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -369,10 +346,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
-    programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == PROJET_STATUS_REFUSED
-    assert programmation_projet.montant == 0
-    assert programmation_projet.taux == 0
+    assert dotation_projet.montant == 0
+    assert dotation_projet.taux_retenu == 0
 
 
 @pytest.mark.django_db
@@ -387,18 +362,16 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     )
     projet = ProjetFactory(dossier_ds=dossier)
     dotation_projet = DotationProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=PROJET_STATUS_ACCEPTED,
+        enveloppe=detr_enveloppe,
+        montant=500,
     )
     SimulationProjetFactory.create_batch(
         2,
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
-        montant=500,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        enveloppe=detr_enveloppe,
         montant=500,
     )
     assert projet.status == PROJET_STATUS_ACCEPTED
@@ -423,10 +396,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
-    programmation_projet = dotation_projet.programmation_projet
-    assert programmation_projet.status == PROJET_STATUS_DISMISSED
-    assert programmation_projet.montant == 0
-    assert programmation_projet.taux == 0
+    assert dotation_projet.montant == 0
+    assert dotation_projet.taux_retenu == 0
 
 
 @pytest.mark.django_db
@@ -450,15 +421,11 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
         is_in_qpv=False,
         is_attached_to_a_crte=False,
     )
-    dotation_projet = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         assiette=50_000,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
     )
@@ -474,7 +441,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
     dotation_projet = dotation_projets.first()
     assert dotation_projet.dotation == DOTATION_DETR
     assert dotation_projet.assiette == 60_000
-    assert dotation_projet.programmation_projet.montant == 6_000
+    assert dotation_projet.montant == 6_000
 
 
 @pytest.mark.django_db
