@@ -591,7 +591,6 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
         if self.instance.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
             ds = DsService()
-            # TODO PR tester que passer_en_instruction ne change pas les statuts !!
             ds.passer_en_instruction(dossier=self.instance.dossier_ds, user=user)
 
         status = self.instance.status
