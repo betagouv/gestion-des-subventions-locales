@@ -83,22 +83,21 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
     readonly_fields = ("created_at", "updated_at", "perimetre", "reporte")
+    list_select_related = (
+        "dossier_ds",
+        "dossier_ds__ds_data",
+        "dossier_ds__ds_demarche",
+        "dossier_ds__perimetre",
+        "dossier_ds__perimetre__departement",
+    )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "dossier_ds",
-            "dossier_ds__ds_data",
-            "dossier_ds__ds_demarche",
-            "dossier_ds__perimetre",
-            "dossier_ds__perimetre__departement",
-        )
         qs = qs.defer(
             "dossier_ds__ds_data__raw_data",
             "dossier_ds__ds_demarche__raw_ds_data",
         )
-        qs = qs.prefetch_related("dotationprojet_set")
-        return qs
+        return qs.prefetch_related("dotationprojet_set")
 
     @admin.action(description="Rafraîchir depuis le dossier DN")
     def refresh_from_dossier(self, request, queryset):
@@ -219,13 +218,12 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("projet__dossier_ds__is_active", "dotation", "status")
     inlines = [SimulationProjetInline, ProgrammationProjetInline]
     readonly_fields = ("created_at", "updated_at", "dossier_link", "projet_link")
+    list_select_related = ("projet", "projet__dossier_ds")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.annotate(simulation_count=Count("simulationprojet"))
-        qs = qs.select_related("projet", "projet__dossier_ds")
-        qs = qs.prefetch_related("simulationprojet_set")
-        return qs
+        return qs.prefetch_related("simulationprojet_set")
 
     def has_delete_permission(self, request, obj: Optional[DotationProjet] = None):
         perm = super().has_delete_permission(request, obj)

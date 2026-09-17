@@ -44,6 +44,17 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         "deleguee_by",
         "perimetre",
     )
+    list_select_related = (
+        "perimetre",
+        "perimetre__region",
+        "perimetre__departement",
+        "perimetre__arrondissement",
+        "deleguee_by",
+        "deleguee_by__perimetre",
+        "deleguee_by__perimetre__region",
+        "deleguee_by__perimetre__departement",
+        "deleguee_by__perimetre__arrondissement",
+    )
 
     def region_name(self, obj):
         return obj.perimetre.region.name
@@ -79,17 +90,6 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "perimetre",
-            "perimetre__region",
-            "perimetre__departement",
-            "perimetre__arrondissement",
-            "deleguee_by",
-            "deleguee_by__perimetre",
-            "deleguee_by__perimetre__region",
-            "deleguee_by__perimetre__departement",
-            "deleguee_by__perimetre__arrondissement",
-        )
         return qs.annotate(simulations_count=Count("simulation"))
 
 
@@ -122,6 +122,17 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "enveloppe__perimetre__region__name",
         "enveloppe__perimetre__departement__name",
         "dotation_projet__projet__dossier_ds__ds_demarche__ds_number",
+    )
+    list_select_related = (
+        "enveloppe",
+        "enveloppe__perimetre",
+        "enveloppe__perimetre__region",
+        "enveloppe__perimetre__departement",
+        "enveloppe__perimetre__arrondissement",
+        "dotation_projet",
+        "dotation_projet__projet",
+        "dotation_projet__projet__dossier_ds",
+        "dotation_projet__projet__dossier_ds__ds_demarche",
     )
 
     actions = ("associer_enveloppe_2025",)
@@ -213,21 +224,9 @@ class ProgrammationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "enveloppe",
-            "enveloppe__perimetre",
-            "enveloppe__perimetre__region",
-            "enveloppe__perimetre__departement",
-            "enveloppe__perimetre__arrondissement",
-            "dotation_projet",
-            "dotation_projet__projet",
-            "dotation_projet__projet__dossier_ds",
-            "dotation_projet__projet__dossier_ds__ds_demarche",
-        )
-        qs = qs.defer(
+        return qs.defer(
             "dotation_projet__projet__dossier_ds__ds_demarche__raw_ds_data",
         )
-        return qs
 
     def dossier_link(self, obj):
         if obj.dotation_projet.projet.dossier_ds:

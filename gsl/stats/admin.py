@@ -15,6 +15,7 @@ class SubventionAdmin(admin.ModelAdmin):
         "montant_attribue",
     )
     list_filter = ("source", "exercice", "dispositif", "departement")
+    list_select_related = ("departement",)
     search_fields = ("siren", "intitule")
 
     def has_add_permission(self, request):

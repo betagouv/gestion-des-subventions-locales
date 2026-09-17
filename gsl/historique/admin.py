@@ -39,16 +39,10 @@ class ProjetActionAdmin(admin.ModelAdmin):
         "document",
     )
     ordering = ("-created_at",)
+    list_select_related = ("actor", "projet", "projet__dossier_ds", "enveloppe")
 
     def has_add_permission(self, request):
         return False
-
-    def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related("actor", "projet", "projet__dossier_ds", "enveloppe")
-        )
 
 
 @admin.register(CollegueLogEntry)
@@ -72,6 +66,7 @@ class CollegueLogEntryAdmin(admin.ModelAdmin):
         "action_flag",
         "change_message",
     )
+    list_select_related = ("user", "content_type")
 
     def has_module_permission(self, request):
         return request.user.is_staff or request.user.is_superuser
@@ -90,12 +85,7 @@ class CollegueLogEntryAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         collegue_ct = ContentType.objects.get_for_model(Collegue)
-        return (
-            super()
-            .get_queryset(request)
-            .filter(content_type=collegue_ct)
-            .select_related("user", "content_type")
-        )
+        return super().get_queryset(request).filter(content_type=collegue_ct)
 
     def action_label(self, obj):
         return {ADDITION: "Ajout", CHANGE: "Modification", DELETION: "Suppression"}.get(
