@@ -30,9 +30,7 @@ def projet_action_document_upload_to(instance, filename):
     return f"notifications/{instance.projet_id}/{timestamp}/{filename}"
 
 
-# TODO PR: move it in Collegue model
-# TODO PR: test it
-def _get_or_create_collegue_from_traitement_email(
+def get_or_create_collegue_from_traitement_email(
     traitement: dict | None,
 ) -> Collegue | None:
     if not traitement:
@@ -41,13 +39,7 @@ def _get_or_create_collegue_from_traitement_email(
     if not email:
         return None
 
-    collegue, created = Collegue.objects.get_or_create(
-        email=email, defaults={"username": email, "is_active": False}
-    )
-    if created:
-        collegue.set_unusable_password()
-        collegue.save(update_fields=["password"])
-    return collegue
+    return Collegue.objects.get_or_create_from_email(email)
 
 
 class ProjetActionManager(models.Manager):
@@ -88,7 +80,7 @@ class ProjetActionManager(models.Manager):
                     "action_type": action_type,
                     "source": self.model.SOURCE_DN,
                     "created_at": datetime.fromisoformat(date_traitement),
-                    "actor": _get_or_create_collegue_from_traitement_email(traitement),
+                    "actor": get_or_create_collegue_from_traitement_email(traitement),
                 },
             )
             created_count += created

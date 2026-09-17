@@ -17,9 +17,11 @@ from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
 )
 from gsl.projet.tests.factories import ProjetFactory
+from gsl_core.models import Collegue
+from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 
-from ..models import ProjetAction
+from ..models import ProjetAction, get_or_create_collegue_from_traitement_email
 
 pytestmark = pytest.mark.django_db
 
@@ -30,8 +32,11 @@ def _dossier_with_traitements(*, traitements):
     return projet
 
 
-def _traitement(id, event, date="2025-01-15T10:00:00+00:00"):
-    return {"id": id, "event": event, "dateTraitement": date}
+def _traitement(id, event, date="2025-01-15T10:00:00+00:00", email_agent_traitant=None):
+    traitement = {"id": id, "event": event, "dateTraitement": date}
+    if email_agent_traitant is not None:
+        traitement["emailAgentTraitant"] = email_agent_traitant
+    return traitement
 
 
 @pytest.mark.parametrize(
@@ -188,3 +193,82 @@ def test_returns_zero_when_dossier_has_no_traitements():
     created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
 
     assert created_count == 0
+
+
+def test_sets_actor_from_traitement_email_agent_traitant():
+    projet = _dossier_with_traitements(
+        traitements=[
+            _traitement(
+                "traitement-1",
+                DS_TRAITEMENT_EVENT_ACCEPTE,
+                email_agent_traitant="Instructeur@Example.Net",
+            )
+        ]
+    )
+
+    ProjetAction.objects.create_from_dossier_traitements(projet)
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.actor is not None
+    assert action.actor.email == "instructeur@example.net"
+
+
+def test_reuses_existing_collegue_matching_the_traitement_email():
+    existing = CollegueFactory(email="instructeur@example.net")
+    projet = _dossier_with_traitements(
+        traitements=[
+            _traitement(
+                "traitement-1",
+                DS_TRAITEMENT_EVENT_ACCEPTE,
+                email_agent_traitant="instructeur@example.net",
+            )
+        ]
+    )
+
+    ProjetAction.objects.create_from_dossier_traitements(projet)
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.actor == existing
+
+
+def test_leaves_actor_null_when_traitement_has_no_email_agent_traitant():
+    projet = _dossier_with_traitements(
+        traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_ACCEPTE)]
+    )
+
+    ProjetAction.objects.create_from_dossier_traitements(projet)
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.actor is None
+
+
+class TestGetOrCreateCollegueFromTraitementEmail:
+    def test_returns_none_for_falsy_traitement(self):
+        assert get_or_create_collegue_from_traitement_email(None) is None
+        assert get_or_create_collegue_from_traitement_email({}) is None
+
+    def test_returns_none_when_email_agent_traitant_is_missing_or_blank(self):
+        assert get_or_create_collegue_from_traitement_email({}) is None
+        assert (
+            get_or_create_collegue_from_traitement_email({"emailAgentTraitant": "   "})
+            is None
+        )
+
+    def test_creates_a_collegue_for_a_new_email(self):
+        collegue = get_or_create_collegue_from_traitement_email(
+            {"emailAgentTraitant": "Instructeur@Example.Net"}
+        )
+
+        assert collegue is not None
+        assert collegue.email == "instructeur@example.net"
+        assert Collegue.objects.count() == 1
+
+    def test_reuses_an_existing_collegue_case_insensitively(self):
+        existing = CollegueFactory(email="instructeur@example.net")
+
+        collegue = get_or_create_collegue_from_traitement_email(
+            {"emailAgentTraitant": "Instructeur@Example.Net"}
+        )
+
+        assert collegue == existing
+        assert Collegue.objects.count() == 1
