@@ -165,6 +165,7 @@ class UploadedDocumentAnalyzeForm(DsfrBaseForm, forms.Form):
     asked for (`ManualDocumentAttachForm`) when the file has none.
     """
 
+    # TODO améliorer ce field, pour que, si une erreur apparait le set_autofocus_on_first_error fonctionne
     file = DragNDropFileField(
         label="Document à importer",
         validators=[document_file_validator],
