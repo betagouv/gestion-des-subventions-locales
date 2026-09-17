@@ -29,13 +29,7 @@ class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "updated_at",
     )
     readonly_fields = ("dossier_link",)
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "programmation_projet__dotation_projet__projet__dossier_ds"
-        )
-        return qs
+    list_select_related = ("programmation_projet__dotation_projet__projet__dossier_ds",)
 
     def dossier_link(self, obj):
         dossier = obj.programmation_projet.dotation_projet.projet.dossier_ds
@@ -91,13 +85,7 @@ class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "is_infected",
     )
     actions = [relaunch_antivirus_scan]
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "programmation_projet__dotation_projet__projet__dossier_ds"
-        )
-        return qs
+    list_select_related = ("programmation_projet__dotation_projet__projet__dossier_ds",)
 
     def dossier_link(self, obj):
         dossier = obj.programmation_projet.dotation_projet.projet.dossier_ds
@@ -131,17 +119,13 @@ class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     list_filter = ("perimetre__region__name", "perimetre__departement__name")
     readonly_fields = ("last_scan", "is_infected")
     actions = [relaunch_antivirus_scan]
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "perimetre",
-            "perimetre__region",
-            "perimetre__departement",
-            "perimetre__arrondissement",
-            "created_by",
-        )
-        return qs
+    list_select_related = (
+        "perimetre",
+        "perimetre__region",
+        "perimetre__departement",
+        "perimetre__arrondissement",
+        "created_by",
+    )
 
 
 @admin.register(ModeleLettreNotification)
@@ -196,13 +180,11 @@ class DocumentImportJobAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+    list_select_related = ("created_by",)
 
     def has_add_permission(self, request):
         # Jobs are created by the import flow, never by hand.
         return False
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related("created_by")
 
     def progress_display(self, obj):
         return f"{obj.processed_pages} / {obj.total_pages}"

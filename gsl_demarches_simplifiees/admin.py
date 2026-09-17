@@ -304,6 +304,7 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "admin_projet_link",
         "link_to_json",
     )
+    list_select_related = ("ds_data", "projet", "perimetre__departement")
 
     fieldsets = (
         (
@@ -471,15 +472,10 @@ class DossierAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related(
-            "ds_data",
-            "projet",
-            "perimetre__departement",
-        ).defer(
+        return qs.defer(
             "ds_data__raw_data",  # Main Dossier
             "ds_demarche__raw_ds_data",  # Related Demarche
         )
-        return qs
 
     def link_to_json(self, obj):
         return mark_safe(f'<a href="{obj.json_url}">JSON brut</a>')
@@ -547,9 +543,7 @@ class DossierDataAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     search_fields = ("dossier__ds_number",)
     readonly_fields = ("link_to_dossier",)
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related("dossier")
+    list_select_related = ("dossier",)
 
     fieldsets = ((None, {"fields": ("link_to_dossier", "raw_data")}),)
 
@@ -605,11 +599,11 @@ class FieldMappingAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmi
     resource_classes = (FieldMappingResource,)
     search_fields = ("ds_field_label", "django_field", "ds_field_id")
     search_help_text = "Chercher par ID ou intitulé DN, ou par champ Django"
+    list_select_related = ("demarche",)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related("demarche").defer("demarche__raw_ds_data")
-        return qs
+        return qs.defer("demarche__raw_ds_data")
 
 
 @admin.register(Profile)
@@ -680,8 +674,4 @@ class CategorieDetrAdmin(CategorieDsilAdmin):
         "demarche__ds_number",
     )
     search_fields = ("label", "parent_label")
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = qs.select_related("departement")
-        return qs.annotate(dossiers_count=Count("dossier"))
+    list_select_related = ("departement",)

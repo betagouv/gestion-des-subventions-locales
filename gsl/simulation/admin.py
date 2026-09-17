@@ -79,6 +79,13 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         SimulationRegionFilter,
         SimulationDepartementFilter,
     )
+    list_select_related = (
+        "enveloppe",
+        "enveloppe__perimetre",
+        "enveloppe__perimetre__region",
+        "enveloppe__perimetre__departement",
+        "enveloppe__perimetre__arrondissement",
+    )
 
     def simulationprojets_count(self, obj) -> int:
         return obj.simulationprojets_count
@@ -88,15 +95,7 @@ class SimulationAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = (
-            qs.select_related("enveloppe")
-            .select_related("enveloppe__perimetre")
-            .select_related("enveloppe__perimetre__region")
-            .select_related("enveloppe__perimetre__departement")
-            .select_related("enveloppe__perimetre__arrondissement")
-        )
-        qs = qs.annotate(simulationprojets_count=Count("simulationprojet"))
-        return qs
+        return qs.annotate(simulationprojets_count=Count("simulationprojet"))
 
 
 @admin.register(SimulationProjet)
@@ -140,15 +139,11 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        qs = (
-            qs.select_related("dotation_projet__projet")
-            .select_related("dotation_projet__projet__dossier_ds")
-            .select_related("simulation")
-        )
-        return qs
+    list_select_related = (
+        "dotation_projet__projet",
+        "dotation_projet__projet__dossier_ds",
+        "simulation",
+    )
 
     @admin.display(boolean=True, description="Actif")
     def is_active(self, obj):
@@ -231,10 +226,7 @@ class BulkStatusJobAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related("simulation", "simulation__enveloppe", "created_by")
+    list_select_related = ("simulation", "simulation__enveloppe", "created_by")
 
     def processed_display(self, obj):
         return f"{obj.processed} / {obj.total}"

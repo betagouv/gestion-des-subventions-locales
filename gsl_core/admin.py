@@ -120,6 +120,12 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
     )
 
     list_editable = ("comment",)
+    list_select_related = (
+        "perimetre__departement",
+        "perimetre__region",
+        "perimetre__arrondissement",
+        "ds_profile",
+    )
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == "comment":
@@ -320,12 +326,7 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
             .values("created_at")[:1]
         )
 
-        return qs.select_related(
-            "perimetre__departement",
-            "perimetre__region",
-            "perimetre__arrondissement",
-            "ds_profile",
-        ).annotate(
+        return qs.annotate(
             _last_simulation_created_at=Subquery(last_simulation_subquery),
         )
 
@@ -664,12 +665,8 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 @admin.register(Adresse)
 class AdresseAdmin(AllPermsForSuperUserAndViewOnlyForStaffUser, admin.ModelAdmin):
     list_display = ("label", "postal_code", "commune")
+    list_select_related = ("commune",)
     autocomplete_fields = ("commune",)
-
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request)
-        queryset = queryset.select_related("commune")
-        return queryset
 
 
 @admin.register(Region)
@@ -728,10 +725,7 @@ class ArrondissementAdmin(
         "departement__region__name",
     )
     resource_classes = (ArrondissementResource,)
-
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related("departement", "departement__region")
+    list_select_related = ("departement", "departement__region")
 
 
 @admin.register(Commune)
@@ -745,11 +739,7 @@ class CommuneAdmin(
         "name",
         "insee_code",
     )
-
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request)
-        queryset = queryset.select_related("arrondissement", "departement")
-        return queryset
+    list_select_related = ("arrondissement", "departement")
 
 
 @admin.register(Perimetre)
@@ -768,6 +758,7 @@ class PerimetreAdmin(AllPermsForSuperUserAndViewOnlyForStaffUser, admin.ModelAdm
         "arrondissement_id",
         "user_count",
     )
+    list_select_related = ("departement", "region")
 
     def has_add_permission(self, request):
         """Disable add permission - keep autocomplete but prevent creation."""
@@ -783,9 +774,7 @@ class PerimetreAdmin(AllPermsForSuperUserAndViewOnlyForStaffUser, admin.ModelAdm
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        queryset = queryset.select_related("departement", "region")
-        queryset = queryset.annotate(user_count=Count("collegue"))
-        return queryset
+        return queryset.annotate(user_count=Count("collegue"))
 
     def user_count(self, obj):
         return obj.user_count
