@@ -12,7 +12,9 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     DS_TRAITEMENT_EVENT_ACCEPTE,
     DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
+    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
     DS_TRAITEMENT_EVENT_REFUSE,
+    DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
     POSSIBLE_DOTATIONS,
 )
 from gsl_core.models import Collegue
@@ -54,6 +56,8 @@ class DsService:
         "accept": DS_TRAITEMENT_EVENT_ACCEPTE,
         "dismiss": DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
         "refuser": DS_TRAITEMENT_EVENT_REFUSE,
+        "passer_en_instruction": DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
+        "repasser_en_instruction": DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
     }
 
     def __init__(self):
@@ -73,6 +77,13 @@ class DsService:
 
         dossier_data = self._get_dossier_data(results, mutation)
         dossier.update_data(dossier_data)
+        self._create_projet_action_for_mutation(
+            dossier,
+            user,
+            mutation,
+            ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
+            dossier_data,
+        )
 
         refresh_dossier_from_saved_data(dossier)
 
@@ -90,6 +101,13 @@ class DsService:
 
         dossier_data = self._get_dossier_data(results, mutation)
         dossier.update_data(dossier_data)
+        self._create_projet_action_for_mutation(
+            dossier,
+            user,
+            mutation,
+            ProjetAction.TYPE_RETOUR_EN_INSTRUCTION,
+            dossier_data,
+        )
 
         refresh_dossier_from_saved_data(dossier)
 
@@ -113,8 +131,14 @@ class DsService:
 
         dossier_data = self._get_dossier_data(results, mutation)
         dossier.update_data(dossier_data)
-        self._create_notified_projet_action(
-            dossier, user, mutation, dossier_data, document, motivation
+        self._create_projet_action_for_mutation(
+            dossier,
+            user,
+            mutation,
+            ProjetAction.TYPE_NOTIFIED,
+            dossier_data,
+            document=document,
+            motivation=motivation,
         )
         refresh_dossier_from_saved_data(dossier)
 
@@ -139,8 +163,14 @@ class DsService:
         dossier_data = self._get_dossier_data(results, mutation)
         dossier.update_data(dossier_data)
 
-        self._create_notified_projet_action(
-            dossier, user, mutation, dossier_data, document, motivation
+        self._create_projet_action_for_mutation(
+            dossier,
+            user,
+            mutation,
+            ProjetAction.TYPE_NOTIFIED,
+            dossier_data,
+            document=document,
+            motivation=motivation,
         )
         refresh_dossier_from_saved_data(dossier)
 
@@ -165,23 +195,30 @@ class DsService:
         dossier_data = self._get_dossier_data(results, mutation)
         dossier.update_data(dossier_data)
 
-        self._create_notified_projet_action(
-            dossier, user, mutation, dossier_data, document, motivation
+        self._create_projet_action_for_mutation(
+            dossier,
+            user,
+            mutation,
+            ProjetAction.TYPE_NOTIFIED,
+            dossier_data,
+            document=document,
+            motivation=motivation,
         )
         refresh_dossier_from_saved_data(dossier)
 
-    def _create_notified_projet_action(
+    def _create_projet_action_for_mutation(
         self,
         dossier: Dossier,
         user: Collegue,
         mutation_type: MUTATION_TYPES,
+        action_type: str,
         dossier_data: dict,
-        document: UploadedFile | None,
-        motivation: str,
+        document: UploadedFile | None = None,
+        motivation: str = "",
     ) -> None:
-        """Met à jour `dossier.ds_date_traitement` et crée le ProjetAction de
-        notification (source Turgot) correspondant à une mutation
-        d'acceptation/refus/classement sans suite."""
+        """Met à jour `dossier.ds_date_traitement` et crée le ProjetAction
+        (source Turgot) correspondant à la mutation DN (notification,
+        passage ou retour en instruction)."""
         from gsl.projet.models import Projet
 
         date_traitement = dossier_data.get("dateTraitement")
@@ -208,7 +245,7 @@ class DsService:
 
         action = ProjetAction(
             projet=projet,
-            action_type=ProjetAction.TYPE_NOTIFIED,
+            action_type=action_type,
             actor=user,
             source=ProjetAction.SOURCE_TURGOT,
             source_id=traitement_id or "",
