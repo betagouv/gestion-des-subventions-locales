@@ -250,3 +250,51 @@ def test_traitements_returns_the_traitements_from_raw_data():
     DossierDataFactory(dossier=dossier, raw_data={"traitements": traitements})
 
     assert dossier.traitements == traitements
+
+
+def test_update_data_does_nothing_when_dossier_data_is_empty():
+    dossier = DossierFactory()
+
+    dossier.update_data({})
+
+    assert dossier.data is None
+
+
+def test_update_data_creates_dossier_data_when_missing():
+    dossier = DossierFactory()
+
+    dossier.update_data({"state": "accepte"})
+
+    assert dossier.data is not None
+    assert dossier.data.raw_data == {"state": "accepte"}
+
+
+def test_update_data_merges_only_present_fields():
+    dossier = DossierFactory()
+    DossierDataFactory(
+        dossier=dossier,
+        raw_data={"number": 123, "champs": [{"id": "champ-1"}]},
+    )
+
+    dossier.update_data({"state": "accepte"})
+
+    raw_data = dossier.data.raw_data
+    assert raw_data["number"] == 123
+    assert raw_data["champs"] == [{"id": "champ-1"}]
+    assert raw_data["state"] == "accepte"
+
+
+@pytest.mark.parametrize(
+    "ds_state, expected",
+    [
+        (Dossier.STATE_ACCEPTE, True),
+        (Dossier.STATE_REFUSE, True),
+        (Dossier.STATE_SANS_SUITE, True),
+        (Dossier.STATE_EN_CONSTRUCTION, False),
+        (Dossier.STATE_EN_INSTRUCTION, False),
+    ],
+)
+def test_is_treated(ds_state, expected):
+    dossier = DossierFactory(ds_state=ds_state)
+
+    assert dossier.is_treated is expected

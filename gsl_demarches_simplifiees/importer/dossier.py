@@ -383,6 +383,7 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
         raise e
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
+    # TODO PR remove this !!
     _create_dossier_event_actions(
         dossier,
         old_instruction_date,

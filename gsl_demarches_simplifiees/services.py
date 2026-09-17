@@ -5,8 +5,16 @@ from typing import List, Literal
 from django.core.exceptions import FieldDoesNotExist
 from django.core.files.uploadedfile import UploadedFile
 from django.db import models
+from django.utils import timezone
 
-from gsl.projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
+from gsl.historique.models import ProjetAction
+from gsl.projet.constants import (
+    DOTATION_DSIL,
+    DS_TRAITEMENT_EVENT_ACCEPTE,
+    DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
+    DS_TRAITEMENT_EVENT_REFUSE,
+    POSSIBLE_DOTATIONS,
+)
 from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.exceptions import (
@@ -40,48 +48,50 @@ class DsService:
         "repasser_en_instruction",
     ]
 
+    # Événement DN (`traitements[].event`) attendu pour le traitement créé
+    # par chaque mutation, utilisé pour fiabiliser `most_recent_traitement`.
+    MUTATION_EXPECTED_EVENTS = {
+        "accept": DS_TRAITEMENT_EVENT_ACCEPTE,
+        "dismiss": DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
+        "refuser": DS_TRAITEMENT_EVENT_REFUSE,
+    }
+
     def __init__(self):
         self.mutator = DsMutator()
 
     # Status
 
-    def passer_en_instruction(self, dossier: Dossier, user: Collegue):
-        results = self.mutator.dossier_passer_en_instruction(dossier.ds_id, user.ds_id)
-        self._check_results(results, dossier, user, "passer_en_instruction")
-        dossier.ds_state = Dossier.STATE_EN_INSTRUCTION
-        date_derniere_modification = (
-            results.get("data", {})
-            .get("dossierPasserEnInstruction")
-            .get("dossier")
-            .get("dateDerniereModification")
+    def passer_en_instruction(self, dossier: Dossier, user: Collegue) -> None:
+        from gsl_demarches_simplifiees.importer.dossier import (
+            refresh_dossier_from_saved_data,
         )
-        dossier.ds_date_derniere_modification = (
-            datetime.fromisoformat(date_derniere_modification)
-            if date_derniere_modification
-            else None
-        )
-        dossier.save()
-        return results
 
-    def repasser_en_instruction(self, dossier: Dossier, user: Collegue):
+        mutation = "passer_en_instruction"
+
+        results = self.mutator.dossier_passer_en_instruction(dossier.ds_id, user.ds_id)
+        self._check_results(results, dossier, user, mutation)
+
+        dossier_data = self._get_dossier_data(results, mutation)
+        dossier.update_data(dossier_data)
+
+        refresh_dossier_from_saved_data(dossier)
+
+    def repasser_en_instruction(self, dossier: Dossier, user: Collegue) -> None:
+        from gsl_demarches_simplifiees.importer.dossier import (
+            refresh_dossier_from_saved_data,
+        )
+
+        mutation = "repasser_en_instruction"
+
         results = self.mutator.dossier_repasser_en_instruction(
             dossier.ds_id, user.ds_id
         )
-        self._check_results(results, dossier, user, "repasser_en_instruction")
-        dossier.ds_state = Dossier.STATE_EN_INSTRUCTION
-        date_derniere_modification = (
-            results.get("data", {})
-            .get("dossierRepasserEnInstruction", {})
-            .get("dossier", {})
-            .get("dateDerniereModification")
-        )
-        dossier.ds_date_derniere_modification = (
-            datetime.fromisoformat(date_derniere_modification)
-            if date_derniere_modification
-            else None
-        )
-        dossier.save()
-        return results
+        self._check_results(results, dossier, user, mutation)
+
+        dossier_data = self._get_dossier_data(results, mutation)
+        dossier.update_data(dossier_data)
+
+        refresh_dossier_from_saved_data(dossier)
 
     def accept_in_ds(
         self,
@@ -89,15 +99,24 @@ class DsService:
         user: Collegue,
         document: UploadedFile,
         motivation: str = "",
-    ) -> str | None:
+    ) -> None:
+        from gsl_demarches_simplifiees.importer.dossier import (
+            refresh_dossier_from_saved_data,
+        )
+
+        mutation = "accept"
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_accepter(
             dossier.ds_id, instructeur_id, motivation=motivation, document=document
         )
-        self._check_results(results, dossier, user, "accept", value=motivation)
-        return self._update_ds_date_traitement_and_get_traitement_id(
-            dossier, results, "accept"
+        self._check_results(results, dossier, user, mutation, value=motivation)
+
+        dossier_data = self._get_dossier_data(results, mutation)
+        dossier.update_data(dossier_data)
+        self._create_notified_projet_action(
+            dossier, user, mutation, dossier_data, document, motivation
         )
+        refresh_dossier_from_saved_data(dossier)
 
     def dismiss_in_ds(
         self,
@@ -105,15 +124,25 @@ class DsService:
         user: Collegue,
         motivation: str,
         document: UploadedFile | None = None,
-    ) -> str | None:
+    ) -> None:
+        from gsl_demarches_simplifiees.importer.dossier import (
+            refresh_dossier_from_saved_data,
+        )
+
+        mutation = "dismiss"
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_classer_sans_suite(
             dossier.ds_id, instructeur_id, motivation, document=document
         )
-        self._check_results(results, dossier, user, "dismiss", value=motivation)
-        return self._update_ds_date_traitement_and_get_traitement_id(
-            dossier, results, "dismiss"
+        self._check_results(results, dossier, user, mutation, value=motivation)
+
+        dossier_data = self._get_dossier_data(results, mutation)
+        dossier.update_data(dossier_data)
+
+        self._create_notified_projet_action(
+            dossier, user, mutation, dossier_data, document, motivation
         )
+        refresh_dossier_from_saved_data(dossier)
 
     def refuser_in_ds(
         self,
@@ -121,31 +150,81 @@ class DsService:
         user: Collegue,
         motivation: str,
         document: UploadedFile | None = None,
-    ) -> str | None:
+    ) -> None:
+        from gsl_demarches_simplifiees.importer.dossier import (
+            refresh_dossier_from_saved_data,
+        )
+
+        mutation = "refuser"
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_refuser(
             dossier, instructeur_id, motivation=motivation, document=document
         )
-        self._check_results(results, dossier, user, "refuser", value=motivation)
-        return self._update_ds_date_traitement_and_get_traitement_id(
-            dossier, results, "refuser"
-        )
+        self._check_results(results, dossier, user, mutation, value=motivation)
 
-    def _update_ds_date_traitement_and_get_traitement_id(
-        self, dossier: Dossier, results: dict, mutation_type: MUTATION_TYPES
-    ) -> str | None:
-        mutation_key = self.MUTATION_KEYS[mutation_type]
-        dossier_data = (
-            results.get("data", {}).get(mutation_key, {}).get("dossier") or {}
+        dossier_data = self._get_dossier_data(results, mutation)
+        dossier.update_data(dossier_data)
+
+        self._create_notified_projet_action(
+            dossier, user, mutation, dossier_data, document, motivation
         )
+        refresh_dossier_from_saved_data(dossier)
+
+    def _create_notified_projet_action(
+        self,
+        dossier: Dossier,
+        user: Collegue,
+        mutation_type: MUTATION_TYPES,
+        dossier_data: dict,
+        document: UploadedFile | None,
+        motivation: str,
+    ) -> None:
+        """Met à jour `dossier.ds_date_traitement` et crée le ProjetAction de
+        notification (source Turgot) correspondant à une mutation
+        d'acceptation/refus/classement sans suite."""
+        from gsl.projet.models import Projet
+
         date_traitement = dossier_data.get("dateTraitement")
         if date_traitement:
             dossier.ds_date_traitement = datetime.fromisoformat(date_traitement)
             dossier.save()
 
         traitements = dossier_data.get("traitements") or []
-        traitement = most_recent_traitement(traitements)
-        return traitement["id"] if traitement else None
+        traitement = most_recent_traitement(
+            traitements, self.MUTATION_EXPECTED_EVENTS[mutation_type]
+        )
+        traitement_id = traitement["id"] if traitement else None
+
+        try:
+            projet = dossier.projet
+        except Projet.DoesNotExist:
+            return
+
+        created_at = (
+            datetime.fromisoformat(traitement["dateTraitement"])
+            if traitement and traitement.get("dateTraitement")
+            else timezone.now()
+        )
+
+        action = ProjetAction(
+            projet=projet,
+            action_type=ProjetAction.TYPE_NOTIFIED,
+            actor=user,
+            source=ProjetAction.SOURCE_TURGOT,
+            source_id=traitement_id or "",
+            details=motivation,
+            created_at=created_at,
+        )
+        if document:
+            document.seek(0)
+            action.document.save(document.name, document, save=False)
+        action.save()
+
+    def _get_dossier_data(self, results: dict, mutation_type: MUTATION_TYPES) -> dict:
+        """Extrait le sous-objet `dossier` de la réponse d'une mutation DN
+        (cf `ds_mutations.gql`), ou `{}` s'il est absent."""
+        mutation_key = self.MUTATION_KEYS[mutation_type]
+        return results.get("data", {}).get(mutation_key, {}).get("dossier") or {}
 
     # Annotations
 
