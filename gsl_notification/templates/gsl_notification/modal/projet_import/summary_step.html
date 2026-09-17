@@ -1,0 +1,60 @@
+{% extends "gsl_notification/modal/step_base.html" %}
+{% load custom_pluralize %}
+{% block before_content %}
+    <div class="fr-modal__header">
+        <button aria-controls="{{ modal_id }}"
+                title="Fermer"
+                type="button"
+                class="fr-btn--close fr-btn">
+            Fermer
+        </button>
+    </div>
+{% endblock before_content %}
+{% block content %}
+    <div class="fr-alert fr-alert--success">
+        <p>
+            {{ report.attached|length }} document{{ report.attached|length|custom_pluralize }}
+            importé{{ report.attached|length|custom_pluralize }}.
+        </p>
+    </div>
+    <ul class="fr-mt-2w">
+        {% for document in report.attached %}
+            <li>
+                {{ document.programmation_projet.dotation }} —
+                {{ document.verbose_name }} : {{ document.name }}
+            </li>
+        {% endfor %}
+    </ul>
+    {% if report.rejected %}
+        <div class="fr-alert fr-alert--warning fr-mt-2w" role="alert">
+            <h3 class="fr-alert__title">
+                {{ report.rejected|length }} document{{ report.rejected|length|custom_pluralize }}
+                écarté{{ report.rejected|length|custom_pluralize }}
+            </h3>
+            <ul>
+                {% for reason in report.rejected %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    {% if report.unreadable_pages %}
+        <div class="fr-alert fr-alert--warning fr-mt-2w" role="alert">
+            <h3 class="fr-alert__title">
+                {{ report.unreadable_pages|length }} page{{ report.unreadable_pages|length|custom_pluralize }}
+                non rattachée{{ report.unreadable_pages|length|custom_pluralize }}
+            </h3>
+            <p>
+                Aucun QR code lisible sur
+                {% if report.unreadable_pages|length == 1 %}
+                    la page {{ report.unreadable_pages.0 }}.
+                {% else %}
+                    les pages {{ report.unreadable_pages|join:", " }}.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <button type="button" class="fr-btn" aria-controls="{{ modal_id }}">Fermer</button>
+    </li>
+{% endblock footer_buttons %}

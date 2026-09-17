@@ -146,45 +146,45 @@ class HtmxModalWizardMixin:
         return merged_data
 
 
-TEMPLATES = "gsl_notification/generated_document/multiple_wizard/"
-PROGRESS_TEMPLATE = TEMPLATES + "modal_export_progress.html"
+TEMPLATES = "gsl_notification/modal/bulk_generation/"
+PROGRESS_TEMPLATE = TEMPLATES + "export_progress.html"
 # The launch step is the trigger button submission, from the projet list page:
 # its form resolves the projets the run applies to, hence one per wizard. It is
 # only ever rendered when that resolution fails.
 ACCEPTED_LAUNCH = Step(
     name="launch",
     form_class=GenerateAcceptedDocumentsLaunchForm,
-    template=TEMPLATES + "modal_launch.html",
+    template=TEMPLATES + "launch.html",
 )
 REFUS_LAUNCH = Step(
     name="launch",
     form_class=GenerateRefusLettersLaunchForm,
-    template=TEMPLATES + "modal_launch.html",
+    template=TEMPLATES + "launch.html",
 )
 TYPE_SELECTION = Step(
     name="type_selection",
     form_class=GenerateDocumentsTypeSelectionForm,
-    template=TEMPLATES + "modal_form_step.html",
+    template=TEMPLATES + "form_step.html",
     title="Types de document",
 )
 MODELE_SELECTION = Step(
     name="modele_selection",
     form_class=GenerateDocumentsModeleSelectionForm,
-    template=TEMPLATES + "modal_modele_selection.html",
+    template=TEMPLATES + "modele_selection.html",
     title="Choix des modèles",
     form_kwargs=("document_type", "programmation_projets"),
 )
 FORMAT = Step(
     name="format",
     form_class=GenerateDocumentsFormatForm,
-    template=TEMPLATES + "modal_form_step.html",
+    template=TEMPLATES + "form_step.html",
     title="Format d'export",
     form_kwargs=("document_type",),
 )
 CREATE = Step(
     name="create",
     form_class=GenerateDocumentsCreateForm,
-    template=TEMPLATES + "modal_loading.html",
+    template=TEMPLATES + "loading.html",
     title="Téléchargement",
     form_kwargs=("programmation_projets",),
     extra_context=("doc_count",),
@@ -374,7 +374,7 @@ class BaseGenerateDocumentsStatusView(DetailView):
             return render(request, PROGRESS_TEMPLATE, context)
 
         if job.status != ExportJob.STATUS_DONE:
-            return render(request, TEMPLATES + "modal_export_error.html", context)
+            return render(request, TEMPLATES + "export_error.html", context)
 
         export_format = job.export_format
         context.update(
@@ -391,7 +391,7 @@ class BaseGenerateDocumentsStatusView(DetailView):
                 ),
             }
         )
-        response = render(request, TEMPLATES + "modal_success.html", context)
+        response = render(request, TEMPLATES + "success.html", context)
         return trigger_client_event(response, "documents-generated")
 
     def get_refreshed_programmation_projets(self, pp_ids):

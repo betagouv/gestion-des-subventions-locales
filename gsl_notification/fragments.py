@@ -1,4 +1,12 @@
+import logging
+from dataclasses import dataclass, field
+
+from django.core.files.storage import default_storage
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 from django_htmx.http import HttpResponseClientRefresh
+from pikepdf import PdfError
+from pypdfium2 import PdfiumError
 
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
@@ -6,18 +14,33 @@ from gsl.projet.constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.fragments import ProjetActionsFragment, ProjetFragment
+from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
 from gsl.projet.models import Projet
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
+    MATOMO_ACTION_IMPORT_DOCUMENT,
+    MATOMO_CATEGORY_DOCUMENT,
     MATOMO_CATEGORY_NOTIFICATION,
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
     GenerateDotationsDocumentsForm,
+    ManualDocumentAttachForm,
     NotificationMessageForm,
+    UploadedDocumentAnalyzeForm,
 )
+from gsl_notification.models import DocumentImportJob
+from gsl_notification.qr.reattach import (
+    DocumentMatched,
+    MatchFailed,
+    PageDecoded,
+    extract_documents,
+    replace_documents,
+)
+from gsl_programmation.models import ProgrammationProjet
+
+logger = logging.getLogger(__name__)
 
 NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
     PROJET_STATUS_ACCEPTED: "accepte",
@@ -25,8 +48,18 @@ NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
     PROJET_STATUS_DISMISSED: "classe_sans_suite",
 }
 
+UPLOAD_MODAL_ID = "upload-document-modal"
+IMPORT_TEMPLATE_BASE = "gsl_notification/modal/projet_import/"
 
-class NotifiedFragment(ProjetFragment):
+
+@dataclass
+class ImportReport:
+    attached: list = field(default_factory=list)
+    rejected: list = field(default_factory=list)
+    unreadable_pages: list = field(default_factory=list)
+
+
+class NotifiedFragment(BaseProjetFragment):
     name = "notified"
     template_name = (
         "gsl_notification/tab_simulation_projet/tab_notifications.html#notified"
@@ -43,7 +76,7 @@ class NotifiedFragment(ProjetFragment):
         }
 
 
-class GenerateDocumentsFragment(ProjetFragment):
+class GenerateDocumentsFragment(BaseProjetFragment):
     name = "generate_documents"
     route_params = "<int:pk>"
     template_name = "includes/_generate_documents_form.html"
@@ -66,7 +99,7 @@ class GenerateDocumentsFragment(ProjetFragment):
         return HttpResponseClientRefresh()
 
 
-class NotificationMessageFragment(ProjetFragment):
+class NotificationMessageFragment(BaseProjetFragment):
     name = "notification_message"
     route_params = "<int:pk>"
     template_name = "includes/_notification_message_form.html"
@@ -103,3 +136,184 @@ class NotificationMessageFragment(ProjetFragment):
             NOTIFICATION_RESULT_TO_MATOMO_ACTION[self.object.status],
         )
         return self.render_valid()
+
+
+class ImportedDocumentsFragment(BaseProjetFragment):
+    name = "imported_documents"
+    template_name = (
+        "gsl_notification/tab_simulation_projet/"
+        "tab_notifications.html#imported_documents"
+    )
+
+    def get_context(self):
+        return {
+            **super().get_context(),
+            "imported_documents": self.object.imported_documents,
+        }
+
+
+class BaseImportStepFragment(BaseProjetFragment):
+    """Base fragment of the per-projet import modal.
+
+    Steps render one another — the file decides which comes next — so a step
+    returns another fragment's `render()` rather than only its own.
+    """
+
+    # An imported document lands in the table, and a signed lettre unblocks the
+    # "Notifier" button.
+    oob_fragments = (ImportedDocumentsFragment, NotificationMessageFragment)
+
+    @classmethod
+    def get_queryset(cls, request):
+        return (
+            Projet.objects.active()
+            .for_user(request.user)
+            .to_notify()
+            .with_at_least_one_treated_dotation()
+        )
+
+    def get_context(self):
+        return {
+            **super().get_context(),
+            "modal_id": UPLOAD_MODAL_ID,
+            "modal_title": "Importer un document",
+        }
+
+    def render_summary(self, report: ImportReport):
+        """The end of the flow: a plain template, since it answers another
+        step's URL and nothing ever renders it on its own."""
+        report.unreadable_pages.sort()
+        html = render_to_string(
+            IMPORT_TEMPLATE_BASE + "summary_step.html",
+            {**self.get_context(), "report": report},
+            request=self.request,
+        )
+        return HttpResponse(html + self.render_oob())
+
+    def _log_import(self, document):
+        dotation = document.programmation_projet.dotation
+        queue_matomo_event(
+            self.request,
+            MATOMO_CATEGORY_DOCUMENT,
+            MATOMO_ACTION_IMPORT_DOCUMENT,
+            dotation,
+        )
+        ProjetAction.objects.create(
+            projet=self.object,
+            action_type=ProjetAction.TYPE_DOC_UPLOADED,
+            actor=self.request.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=dotation,
+            document_name=type(document)._meta.verbose_name,
+        )
+
+
+class UploadedDocumentAnalyzeFragment(BaseImportStepFragment):
+    """The file itself. A scan of a generated document carries a GSL QR code on
+    every page, naming the dossier, the dotation and the document type — enough
+    to attach it without asking anything. Only when that fails is the type
+    asked for."""
+
+    name = "upload_document_analyze"
+    route_params = "<int:pk>"
+    template_name = IMPORT_TEMPLATE_BASE + "upload_step.html"
+    form_class = UploadedDocumentAnalyzeForm
+
+    def get_form(self, data=None):
+        files = self.request.FILES if data is not None else None
+        return self.form_class(data=data, files=files)
+
+    def on_get(self):
+        """The dialog fetches this step on every opening, so a step left in
+        error is never what the agent comes back to."""
+        return HttpResponse(self.render())
+
+    def on_valid(self):
+        uploaded_file = self.form.cleaned_data["file"]
+        if not uploaded_file.name.lower().endswith(".pdf"):
+            # Only PDFs can carry a QR code; images go straight to the choice.
+            return self._ask_for_the_type(uploaded_file)
+
+        report = self._reattach(
+            uploaded_file, remove_qr_code=self.form.cleaned_data["remove_qr_code"]
+        )
+        if report.attached:
+            return self.render_summary(report)
+        if report.rejected:
+            self.form.add_error("file", report.rejected[0])
+            return self.render_invalid()
+        return self._ask_for_the_type(uploaded_file)
+
+    def _ask_for_the_type(self, uploaded_file):
+        """No QR code told us what this file is — ask.
+
+        The file waits under the temporary prefix, whose lifecycle rule sweeps
+        it away if the agent never answers.
+        """
+        key = default_storage.save(
+            DocumentImportJob.temp_s3_key(uploaded_file.name), uploaded_file
+        )
+        return self.respond_with(ManualDocumentAttachFragment, key=key)
+
+    def _reattach(self, uploaded_file, remove_qr_code: bool) -> ImportReport:
+        report = ImportReport()
+        documents = []
+        files = [uploaded_file]
+        queryset = ProgrammationProjet.objects.visible_to_user(self.request.user)
+        try:
+            for event in extract_documents(files, queryset):
+                if isinstance(event, DocumentMatched):
+                    declared = event.document.declared
+                    if declared.ds_number != self.object.dossier_ds.ds_number:
+                        report.rejected.append(
+                            f"Mauvais numéro de dossier : {declared.ds_number}"
+                        )
+                    else:
+                        documents.append(event.document)
+                elif isinstance(event, MatchFailed):
+                    report.rejected.append(event.error)
+                elif isinstance(event, PageDecoded) and not event.qr_found:
+                    report.unreadable_pages.append(event.scan_page)
+        except (PdfError, PdfiumError):
+            # A PDF we cannot even parse carries no readable QR either: fall
+            # through to the choice step rather than fail the whole import.
+            # The file itself is still storable, as it was before this modal.
+            logger.info("Import : PDF illisible, bascule sur le choix manuel")
+            return ImportReport()
+
+        report.attached = [
+            event.stored
+            for event in replace_documents(
+                documents, [uploaded_file], self.request.user, remove_qr_code
+            )
+        ]
+        for document in report.attached:
+            self._log_import(document)
+        return report
+
+
+class ManualDocumentAttachFragment(BaseImportStepFragment):
+    """The file carried no usable QR code: the agent names the dotation and the
+    document type, and the browser posts back the key it is parked under."""
+
+    name = "manual_document_attach"
+    route_params = "<int:pk>"
+    template_name = IMPORT_TEMPLATE_BASE + "choice_step.html"
+    form_class = ManualDocumentAttachForm
+
+    def __init__(self, request, obj, key=None):
+        super().__init__(request, obj)
+        # key can come from the analysed step directly, or from the POST when we are in
+        # the manual step.
+        self.key = key or request.POST.get("key", "")
+
+    def get_context(self):
+        return {**super().get_context(), "key": self.key}
+
+    def get_form(self, data=None):
+        return self.form_class(data=data, projet=self.object)
+
+    def on_valid(self):
+        document = self.form.save(self.request.user)
+        self._log_import(document)
+        return self.render_summary(ImportReport(attached=[document]))

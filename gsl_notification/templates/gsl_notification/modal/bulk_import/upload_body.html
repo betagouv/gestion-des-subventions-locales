@@ -14,32 +14,7 @@
     <div class="fr-modal__content">
         <h1 class="fr-modal__title" id="{{ modal_id }}-title">Importer les documents signés</h1>
         {% dsfr_stepper current_step_id=1 total_steps=3 current_step_title="Téléverser les documents" next_step_title="Traitement des documents" %}
-        <div class="gsl-dropzone fr-p-4w fr-mt-3w"
-             data-document-import-target="dropzone"
-             data-action="dragover->document-import#onDragOver dragleave->document-import#onDragLeave drop->document-import#onDrop">
-            <p class="fr-mb-2w">
-                Déposez vos fichiers pour les téléverser
-                <br>
-                ou
-            </p>
-            <div class="fr-btns-group--center">
-                <button type="button"
-                        class="fr-btn fr-btn--secondary"
-                        aria-describedby="{{ modal_id }}-dropzone-hint"
-                        data-action="document-import#openPicker">
-                    Sélectionner les fichiers
-                </button>
-            </div>
-            <p id="{{ modal_id }}-dropzone-hint" class="fr-mt-2w fr-mb-0">
-                Fichier PDF uniquement, maximum {{ max_import_size_in_mo }} Mo au total.
-            </p>
-            <input type="file"
-                   accept="application/pdf"
-                   multiple
-                   hidden
-                   data-document-import-target="fileInput"
-                   data-action="document-import#onFileChange">
-        </div>
+        {% include "includes/_dropzone.html" with id=modal_id|add:"-dropzone" accept="application/pdf" multiple=True hint=dropzone_hint input_action="change->document-import#onFileChange" %}
         <ul class="fr-mt-2w no-list-style"
             data-document-import-target="fileList"
             aria-label="Fichiers sélectionnés">

@@ -95,6 +95,7 @@ class MatchFailed:
 @dataclass(frozen=True)
 class DocumentAttached:
     document: ExtractedDocument
+    stored: UploadedDocument
 
 
 ExtractionEvent = DecodeStarted | PageDecoded | DocumentMatched | MatchFailed
@@ -128,8 +129,7 @@ def reattach_signed_docs(
         else:
             yield event
 
-    for document in replace_documents(documents, pdfs, user, remove_qr_code):
-        yield DocumentAttached(document=document)
+    yield from replace_documents(documents, pdfs, user, remove_qr_code)
 
 
 def extract_documents(
@@ -191,7 +191,7 @@ def replace_documents(
     pdfs: list[File],
     user: Collegue,
     remove_qr_code: bool = True,
-) -> Iterator[ExtractedDocument]:
+) -> Iterator[DocumentAttached]:
     """Assemble each document into a single PDF and store it on its
     ProgrammationProjet, deleting any existing document of the same kind — its
     stored file included.
@@ -207,13 +207,13 @@ def replace_documents(
     try:
         for document in documents:
             uploaded = _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code)
-            _replace_uploaded_document(
+            stored = _replace_uploaded_document(
                 document.declared.target_model,
                 document.programmation_projet_id,
                 uploaded,
                 user,
             )
-            yield document
+            yield DocumentAttached(document=document, stored=stored)
     finally:
         for src in srcs:
             src.close()
@@ -267,6 +267,7 @@ def _replace_uploaded_document(target_model, programmation_projet_id, uploaded, 
             file=uploaded,
         )
         doc.save()
+        return doc
 
 
 def _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code=True):

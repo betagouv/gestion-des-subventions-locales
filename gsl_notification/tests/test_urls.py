@@ -85,13 +85,24 @@ def test_document_delete_url(document_type):
 # Uploaded documents URLs
 
 
-@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
-def test_create_lettre_et_arrete_signes_url(doc_type):
-    url = reverse(
-        "gsl_notification:upload-a-document",
-        kwargs={"projet_id": 123, "dotation": DOTATION_DETR, "document_type": doc_type},
+@pytest.mark.parametrize(
+    "fragment_name, expected",
+    (
+        (
+            "upload_document_analyze",
+            "/fragment/gsl_notification/upload_document_analyze/123/",
+        ),
+        (
+            "manual_document_attach",
+            "/fragment/gsl_notification/manual_document_attach/123/",
+        ),
+    ),
+)
+def test_upload_document_step_urls(fragment_name, expected):
+    assert (
+        reverse(f"fragment:gsl_notification:{fragment_name}", kwargs={"pk": 123})
+        == expected
     )
-    assert url == f"/notification/123/televersement/{DOTATION_DETR}/{doc_type}/creer/"
 
 
 @pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))

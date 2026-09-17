@@ -177,7 +177,7 @@ def test_launch_with_valid_ids_renders_type_selection_step_dialog(
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
+        "gsl_notification/modal/bulk_generation/form_step.html"
     )
     assert "HX-Location" not in response.headers
 
@@ -186,7 +186,7 @@ def test_launch_no_projects_renders_error_body(client):
     response = _post_launch(client, ids="")
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_launch.html"
+        "gsl_notification/modal/bulk_generation/launch.html"
     )
     form = response.context["form"]
     assert "Aucun projet à notifier." in " ".join(form.errors.get("ids", []))
@@ -202,7 +202,7 @@ def test_launch_wrong_perimetre_renders_error_body(client):
     response = _post_launch(client, ids=str(wrong_pp.id))
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_launch.html"
+        "gsl_notification/modal/bulk_generation/launch.html"
     )
     form = response.context["form"]
     assert "choix valide" in " ".join(form.errors.get("ids", []))
@@ -229,7 +229,7 @@ def test_wizard_type_selection_invalid_document_type_re_renders_type_selection(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
+        "gsl_notification/modal/bulk_generation/form_step.html"
     )
     form = response.context["form"]
     assert "Type de document inconnu" in " ".join(form["document_type"].errors)
@@ -246,7 +246,7 @@ def test_wizard_type_selection_to_modele_selection_renders_modeles(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_modele_selection.html"
+        "gsl_notification/modal/bulk_generation/modele_selection.html"
     )
     form = response.context["form"]
     assert detr_lettre_modele in form.fields["modele_lettre_id"].queryset
@@ -264,7 +264,7 @@ def test_wizard_type_selection_to_modele_selection_both_types_renders_two_select
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_modele_selection.html"
+        "gsl_notification/modal/bulk_generation/modele_selection.html"
     )
     form = response.context["form"]
     assert detr_arrete_modele in form.fields["modele_arrete_id"].queryset
@@ -310,7 +310,7 @@ def test_wizard_modele_selection_missing_modele_re_renders_modele_selection(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_modele_selection.html"
+        "gsl_notification/modal/bulk_generation/modele_selection.html"
     )
     form = response.context["form"]
     assert form.errors["modele_lettre_id"] == ["Veuillez sélectionner un modèle."]
@@ -334,7 +334,7 @@ def test_wizard_modele_selection_missing_both_modeles_re_renders_modele_selectio
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_modele_selection.html"
+        "gsl_notification/modal/bulk_generation/modele_selection.html"
     )
     form = response.context["form"]
     assert form.errors["modele_arrete_id"] == ["Veuillez sélectionner un modèle."]
@@ -359,7 +359,7 @@ def test_wizard_modele_selection_to_format_step(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
+        "gsl_notification/modal/bulk_generation/form_step.html"
     )
 
 
@@ -387,7 +387,7 @@ def test_wizard_format_step_invalid_export_format_re_renders_format_step(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
+        "gsl_notification/modal/bulk_generation/form_step.html"
     )
     form = response.context["form"]
     assert "Veuillez sélectionner un format d'export." in " ".join(
@@ -469,7 +469,7 @@ def test_wizard_format_step_renders_loading_body(
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_loading.html"
+        "gsl_notification/modal/bulk_generation/loading.html"
     )
     assert response.context["doc_count"] == 3
     # Loading body must include the wizard management form so the auto-POST
@@ -489,7 +489,7 @@ def test_wizard_create_step_returns_polling_template(
     response = _post_create_step_raw(client)
     assert response.status_code == 200
     assert (
-        "gsl_notification/generated_document/multiple_wizard/modal_export_progress.html"
+        "gsl_notification/modal/bulk_generation/export_progress.html"
         in _template_names(response)
     )
     assert "job_id" in response.context
@@ -513,7 +513,7 @@ def test_wizard_create_step_aborts_when_projets_became_ineligible(
 
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_launch.html"
+        "gsl_notification/modal/bulk_generation/launch.html"
     )
     assert "Aucun projet à notifier." in response.content.decode()
     assert ExportJob.objects.count() == 0
@@ -530,9 +530,8 @@ def test_wizard_create_step_creates_documents_and_returns_success(
     )
     response = _post_create_step(client)
     assert response.status_code == 200
-    assert (
-        "gsl_notification/generated_document/multiple_wizard/modal_success.html"
-        in _template_names(response)
+    assert "gsl_notification/modal/bulk_generation/success.html" in _template_names(
+        response
     )
     assert response.context["doc_count"] == 3
     assert len(list(response.context["refreshed_programmation_projets"])) == 3
@@ -593,7 +592,7 @@ def test_wizard_modele_selection_conserver_when_all_covered_advances_to_format_s
     )
     assert response.status_code == 200
     assert response.templates[0].name == (
-        "gsl_notification/generated_document/multiple_wizard/modal_form_step.html"
+        "gsl_notification/modal/bulk_generation/form_step.html"
     )
     form = response.context["form"]
     assert "overwrite_strategy" not in form.errors
@@ -617,9 +616,8 @@ def test_wizard_create_step_conserver_creates_only_missing_documents(
     )
     response = _post_create_step(client)
     assert response.status_code == 200
-    assert (
-        "gsl_notification/generated_document/multiple_wizard/modal_success.html"
-        in _template_names(response)
+    assert "gsl_notification/modal/bulk_generation/success.html" in _template_names(
+        response
     )
 
     pp_with_existing.refresh_from_db()
@@ -650,9 +648,8 @@ def test_wizard_create_step_remplacer_when_all_covered_replaces_all(
     )
     response = _post_create_step(client)
     assert response.status_code == 200
-    assert (
-        "gsl_notification/generated_document/multiple_wizard/modal_success.html"
-        in _template_names(response)
+    assert "gsl_notification/modal/bulk_generation/success.html" in _template_names(
+        response
     )
     for pp, old_id in zip(programmation_projets, old_ids, strict=True):
         pp.refresh_from_db()
@@ -697,9 +694,8 @@ def test_wizard_create_step_conserver_full_coverage_with_empty_ids_reaches_succe
     )
     response = _post_create_step(client)
     assert response.status_code == 200
-    assert (
-        "gsl_notification/generated_document/multiple_wizard/modal_success.html"
-        in _template_names(response)
+    assert "gsl_notification/modal/bulk_generation/success.html" in _template_names(
+        response
     )
     assert LettreNotification.objects.count() == 3
 
@@ -721,9 +717,8 @@ def test_wizard_create_step_both_creates_arrete_and_lettre(
     )
     response = _post_create_step(client)
     assert response.status_code == 200
-    assert (
-        "gsl_notification/generated_document/multiple_wizard/modal_success.html"
-        in _template_names(response)
+    assert "gsl_notification/modal/bulk_generation/success.html" in _template_names(
+        response
     )
     assert response.context["doc_count"] == 6  # 3 projets × 2 types = ARRETE_ET_LETTRE
     assert "download_url" in response.context

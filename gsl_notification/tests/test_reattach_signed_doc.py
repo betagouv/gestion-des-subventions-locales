@@ -535,5 +535,9 @@ def test_extracting_writes_nothing_and_can_be_replayed():
     assert extract() == documents
     assert not LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
 
-    assert list(replace_documents(documents, pdfs, user)) == documents
+    attached = list(replace_documents(documents, pdfs, user))
+    assert [event.document for event in attached] == documents
     assert LettreEtArreteSignes.objects.filter(programmation_projet=pp).count() == 1
+    assert [event.stored for event in attached] == [
+        LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    ]
