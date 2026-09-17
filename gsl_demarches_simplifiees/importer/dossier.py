@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from gsl.celery import TASK_PRIORITY_HIGH, TASK_PRIORITY_LOW
 from gsl.historique.models import ProjetAction
+from gsl.projet.models import Projet
 from gsl.projet.services.projet_services import ProjetService
 from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
@@ -366,9 +367,6 @@ def import_one_dossier_from_ds(dossier_number: int):
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):
-    old_instruction_date = dossier.ds_date_passage_en_instruction
-    old_construction_date = dossier.ds_date_passage_en_construction
-    old_ds_state = dossier.ds_state
     old_is_active = dossier.is_active
     old_raison = dossier.raison_desactivation
 
@@ -383,66 +381,22 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
         raise e
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
-    # TODO PR remove this !!
-    _create_dossier_event_actions(
+    _create_deactivation_projet_actions(
         dossier,
-        old_instruction_date,
-        old_construction_date,
-        old_ds_state,
         old_is_active,
         old_raison,
     )
 
 
-_DS_FINAL_STATES = {
-    Dossier.STATE_ACCEPTE,
-    Dossier.STATE_REFUSE,
-    Dossier.STATE_SANS_SUITE,
-}
-
-
-def _create_dossier_event_actions(
+def _create_deactivation_projet_actions(
     dossier,
-    old_instruction_date,
-    old_construction_date,
-    old_ds_state,
     old_is_active,
     old_raison,
 ):
-    from gsl.projet.models import Projet
-
     try:
         projet = dossier.projet
     except Projet.DoesNotExist:
         return
-
-    new_instruction_date = dossier.ds_date_passage_en_instruction
-    coming_from_final_state = old_ds_state in _DS_FINAL_STATES
-    if (
-        new_instruction_date
-        and new_instruction_date != old_instruction_date
-        and not coming_from_final_state
-    ):
-        ProjetAction.objects.get_or_create(
-            projet=projet,
-            action_type=ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
-            created_at=new_instruction_date,
-            defaults={"source": ProjetAction.SOURCE_DN},
-        )
-
-    new_construction_date = dossier.ds_date_passage_en_construction
-    if (
-        new_instruction_date
-        and new_construction_date
-        and old_construction_date
-        and new_construction_date != old_construction_date
-    ):
-        ProjetAction.objects.get_or_create(
-            projet=projet,
-            action_type=ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
-            created_at=new_construction_date,
-            defaults={"source": ProjetAction.SOURCE_DN},
-        )
 
     if old_is_active and not dossier.is_active:
         ProjetAction.objects.create(

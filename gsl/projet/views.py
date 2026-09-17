@@ -170,8 +170,7 @@ class ProjetHistoriqueView(BaseProjetDetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Une notification déclenchée par DN et le changement de statut qui
-        # l'accompagne partagent le même created_at (cf.
-        # DotationProjetService._create_notified_projet_action_from_dossier_treatment) ;
+        # l'accompagne partagent le même created_at ;
         # on affiche alors la notification au-dessus du changement de statut.
         display_priority = Case(
             When(action_type=ProjetAction.TYPE_NOTIFIED, then=Value(0)),
