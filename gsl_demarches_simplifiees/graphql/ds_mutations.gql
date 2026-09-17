@@ -16,29 +16,15 @@ mutation dossierRepasserEnInstruction(
   dossierRepasserEnInstruction(input: $input) {
     clientMutationId
     dossier {
-      archived
-      connectionUsager
-      dateDepot
-      dateDerniereCorrectionEnAttente
-      dateDerniereModification
-      dateDerniereModificationAnnotations
-      dateDerniereModificationChamps
-      dateExpiration
-      datePassageEnConstruction
-      datePassageEnInstruction
-      datePrevisionnelleDecisionSVASVR
-      dateSuppressionParAdministration
-      dateSuppressionParUsager
-      dateTraitement
-      dateTraitementSVASVR
-      deposeParUnTiers
       id
-      motivation
-      nomMandataire
-      number
-      prefilled
-      prenomMandataire
+      dateDerniereModification
       state
+      traitements {
+        id
+        dateTraitement
+        event
+        emailAgentTraitant
+      }
     }
     errors {
       message
@@ -50,32 +36,15 @@ mutation dossierAccepter($input: DossierAccepterInput!) {
   dossierAccepter(input: $input) {
     clientMutationId
     dossier {
-      archived
-      connectionUsager
-      dateDepot
-      dateDerniereCorrectionEnAttente
-      dateDerniereModification
-      dateDerniereModificationAnnotations
-      dateDerniereModificationChamps
-      dateExpiration
-      datePassageEnConstruction
-      datePassageEnInstruction
-      datePrevisionnelleDecisionSVASVR
-      dateSuppressionParAdministration
-      dateSuppressionParUsager
-      dateTraitement
-      dateTraitementSVASVR
-      deposeParUnTiers
       id
-      motivation
-      nomMandataire
-      number
-      prefilled
-      prenomMandataire
+      dateDerniereModification
+      dateTraitement
       state
       traitements {
         id
         dateTraitement
+        event
+        emailAgentTraitant
       }
     }
     errors {
@@ -88,31 +57,15 @@ mutation dossierRefuser($input: DossierRefuserInput!) {
   dossierRefuser(input: $input) {
     clientMutationId
     dossier {
-      archived
-      connectionUsager
-      dateDepot
-      dateDerniereCorrectionEnAttente
-      dateDerniereModification
-      dateDerniereModificationAnnotations
-      dateDerniereModificationChamps
-      dateExpiration
-      datePassageEnConstruction
-      datePassageEnInstruction
-      datePrevisionnelleDecisionSVASVR
-      dateSuppressionParAdministration
-      dateSuppressionParUsager
-      dateTraitement
-      dateTraitementSVASVR
-      deposeParUnTiers
       id
-      motivation
-      nomMandataire
-      number
-      prefilled
-      prenomMandataire
+      dateDerniereModification
+      dateTraitement
       state
       traitements {
         id
+        dateTraitement
+        event
+        emailAgentTraitant
       }
     }
     errors {
@@ -125,31 +78,15 @@ mutation dossierClasserSansSuite($input: DossierClasserSansSuiteInput!) {
   dossierClasserSansSuite(input: $input) {
     clientMutationId
     dossier {
-      archived
-      connectionUsager
-      dateDepot
-      dateDerniereCorrectionEnAttente
-      dateDerniereModification
-      dateDerniereModificationAnnotations
-      dateDerniereModificationChamps
-      dateExpiration
-      datePassageEnConstruction
-      datePassageEnInstruction
-      datePrevisionnelleDecisionSVASVR
-      dateSuppressionParAdministration
-      dateSuppressionParUsager
-      dateTraitement
-      dateTraitementSVASVR
-      deposeParUnTiers
       id
-      motivation
-      nomMandataire
-      number
-      prefilled
-      prenomMandataire
+      dateDerniereModification
+      dateTraitement
       state
       traitements {
         id
+        dateTraitement
+        event
+        emailAgentTraitant
       }
     }
     errors {
@@ -162,29 +99,16 @@ mutation dossierPasserEnInstruction($input: DossierPasserEnInstructionInput!) {
   dossierPasserEnInstruction(input: $input) {
     clientMutationId
     dossier {
-      archived
-      connectionUsager
-      dateDepot
-      dateDerniereCorrectionEnAttente
-      dateDerniereModification
-      dateDerniereModificationAnnotations
-      dateDerniereModificationChamps
-      dateExpiration
-      datePassageEnConstruction
-      datePassageEnInstruction
-      datePrevisionnelleDecisionSVASVR
-      dateSuppressionParAdministration
-      dateSuppressionParUsager
-      dateTraitement
-      dateTraitementSVASVR
-      deposeParUnTiers
       id
-      motivation
-      nomMandataire
-      number
-      prefilled
-      prenomMandataire
+      dateDerniereModification
+      dateTraitement
       state
+      traitements {
+        id
+        dateTraitement
+        event
+        emailAgentTraitant
+      }
     }
     errors {
       message
