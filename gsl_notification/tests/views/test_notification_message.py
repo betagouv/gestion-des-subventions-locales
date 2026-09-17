@@ -4,8 +4,10 @@ notifications tab), driven by ``NotificationMessageForm`` and posted through
 ``NotificationDocumentsView``.
 """
 
+import json
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import cast
 from unittest import mock
 
@@ -15,6 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gsl.historique.models import ProjetAction
+from gsl.historique.tests.factories import ProjetActionFactory
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -30,6 +33,10 @@ from gsl_core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
+from gsl_demarches_simplifiees.tests.factories import (
+    DossierDataFactory,
+    DossierFactory,
+)
 from gsl_notification.forms import NotificationMessageForm
 from gsl_notification.tests.factories import (
     AnnexeFactory,
@@ -40,6 +47,46 @@ from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+
+DS_FIXTURES_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent
+    / "gsl_demarches_simplifiees"
+    / "tests"
+    / "ds_fixtures"
+)
+
+
+def _full_ds_dossier_data() -> dict:
+    with open(DS_FIXTURES_DIR / "dossier_data.json") as handle:
+        return json.loads(handle.read())
+
+
+def _ds_mutation_response(
+    mutation_key: str,
+    *,
+    state: str,
+    event: str,
+    date_traitement: str,
+    traitement_id: str = "traitement-1",
+) -> dict:
+    return {
+        "data": {
+            mutation_key: {
+                "dossier": {
+                    "dateTraitement": date_traitement,
+                    "state": state,
+                    "traitements": [
+                        {
+                            "id": traitement_id,
+                            "dateTraitement": date_traitement,
+                            "event": event,
+                        }
+                    ],
+                }
+            }
+        }
+    }
+
 
 pytestmark = pytest.mark.django_db
 
@@ -132,12 +179,27 @@ class TestForm:
         assert not form.is_valid()
         assert form.non_field_errors()
 
-    def test_save_sets_notified_at_and_creates_projet_action(self, perimetre, collegue):
-        projet = _accepted_projet(perimetre)
+    def test_save_sets_notified_at(self, perimetre, collegue):
+        dossier = DossierFactory(
+            perimetre=perimetre,
+            porteur_de_projet_arrondissement=None,
+            porteur_de_projet_departement=perimetre.departement,
+        )
+        DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
+        projet = ProjetFactory(dossier_ds=dossier)
+        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
+
+        dn_date_traitement = timezone.now().isoformat()
+
         with (
             mock.patch(
-                "gsl_notification.forms.DsService.accept_in_ds",
-                return_value="traitement-1",
+                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                return_value=_ds_mutation_response(
+                    "dossierAccepter",
+                    state="accepte",
+                    event="accepte",
+                    date_traitement=dn_date_traitement,
+                ),
             ) as ds,
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
@@ -152,31 +214,28 @@ class TestForm:
         assert ds.call_args.kwargs["motivation"] == "Bravo"
         projet.refresh_from_db()
         assert projet.notified_at is not None
-        action = ProjetAction.objects.get(
-            projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+
+    def test_save_uses_dn_date_traitement_for_notified_at(self, perimetre, collegue):
+        dossier = DossierFactory(
+            perimetre=perimetre,
+            porteur_de_projet_arrondissement=None,
+            porteur_de_projet_departement=perimetre.departement,
         )
-        assert action.details == "Bravo"
-        assert action.source_id == "traitement-1"
-        assert action.document.name.endswith("/notification.pdf")
+        DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
+        projet = ProjetFactory(dossier_ds=dossier)
+        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
 
-    def test_save_uses_dn_date_traitement_for_notified_at_and_action(
-        self, perimetre, collegue
-    ):
-        """notified_at and the ProjetAction's created_at must reuse the exact
-        dateTraitement DN sent back, not the local clock — otherwise the
-        DotationProjetService DN-sync would log this same notification a
-        second time (get_or_create keyed on that date)."""
-        projet = _accepted_projet(perimetre)
         dn_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
-
-        def _fake_accept_in_ds(dossier, user, document=None, motivation=""):
-            dossier.ds_date_traitement = dn_date_traitement
-            dossier.save()
 
         with (
             mock.patch(
-                "gsl_notification.forms.DsService.accept_in_ds",
-                side_effect=_fake_accept_in_ds,
+                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                return_value=_ds_mutation_response(
+                    "dossierAccepter",
+                    state="accepte",
+                    event="accepte",
+                    date_traitement=dn_date_traitement.isoformat(),
+                ),
             ),
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
@@ -189,10 +248,6 @@ class TestForm:
 
         projet.refresh_from_db()
         assert projet.notified_at == dn_date_traitement
-        action = ProjetAction.objects.get(
-            projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
-        )
-        assert action.created_at == dn_date_traitement
 
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
@@ -313,10 +368,6 @@ class TestForm:
 
         merge_mock.assert_not_called()
         assert refuser.call_args.kwargs["document"] is None
-        action = ProjetAction.objects.get(
-            projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
-        )
-        assert not action.document
 
     def test_save_merges_lettre_refus_signee_and_annexe_for_refused(
         self, perimetre, collegue
@@ -407,14 +458,36 @@ class TestForm:
 
 class TestView:
     def test_post_send_notification_success(self, client_with_user_logged, perimetre):
-        projet = _accepted_projet(perimetre)
+        """Real end-to-end: only the DN network call is faked.
+        DsService.accept_in_ds and refresh_dossier_from_saved_data both run
+        for real — including ProjetService.create_or_update_from_ds_dossier,
+        which is what actually sets notified_at once it sees the dossier's
+        DS state as treated. notified_at itself is never mocked: this is
+        what proves the real chain, end to end, does update it."""
+        dossier = DossierFactory(
+            perimetre=perimetre,
+            porteur_de_projet_arrondissement=None,
+            porteur_de_projet_departement=perimetre.departement,
+        )
+        DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
+        projet = ProjetFactory(dossier_ds=dossier)
+        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
+
         url = reverse(
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
+        dn_date_traitement = timezone.now().isoformat()
+
         with (
             mock.patch(
-                "gsl_notification.forms.DsService.accept_in_ds", return_value=None
+                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                return_value=_ds_mutation_response(
+                    "dossierAccepter",
+                    state="accepte",
+                    event="accepte",
+                    date_traitement=dn_date_traitement,
+                ),
             ),
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
@@ -437,38 +510,54 @@ class TestView:
         assert "fr-error-text" not in content
         projet.refresh_from_db()
         assert projet.notified_at is not None
-        action = ProjetAction.objects.get(
-            projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
-        )
-        assert action.details == "Bravo"
         # The "4 - Notifications" block lists this notification's details.
         assert "Bravo" in content
 
     def test_notifications_are_listed_chronologically_across_renotifications(
         self, client_with_user_logged, perimetre
     ):
-        """A projet can be re-notified after a dotation change resets
-        `notified_at` (see gsl/projet/forms.py) — every past notification
-        should still show up, oldest first."""
-        projet = _accepted_projet(perimetre)
+        dossier = DossierFactory(
+            perimetre=perimetre,
+            porteur_de_projet_arrondissement=None,
+            porteur_de_projet_departement=perimetre.departement,
+        )
+        DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
+        projet = ProjetFactory(dossier_ds=dossier)
+        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
+
+        first_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
+        ProjetActionFactory(
+            projet=projet,
+            source_id="traitement-1",
+            action_type=ProjetAction.TYPE_NOTIFIED,
+            created_at=first_date_traitement,
+            details="Premier message",
+        )
+        # notified_at stays None here: a dotation change reset it since that
+        # first notification, which is exactly what allows re-notifying.
+
         url = reverse(
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
+        second_date_traitement = datetime(2025, 6, 26, 9, 0, 0, tzinfo=UTC)
+
         with (
             mock.patch(
-                "gsl_notification.forms.DsService.accept_in_ds", return_value=None
+                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                return_value=_ds_mutation_response(
+                    "dossierAccepter",
+                    state="accepte",
+                    event="accepte",
+                    date_traitement=second_date_traitement.isoformat(),
+                    traitement_id="traitement-2",
+                ),
             ),
             mock.patch(
                 "gsl_notification.forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
-            client_with_user_logged.post(
-                url, {"message": "Premier message"}, headers={"HX-Request": "true"}
-            )
-            projet.notified_at = None
-            projet.save(update_fields=["notified_at"])
             response = client_with_user_logged.post(
                 url, {"message": "Second message"}, headers={"HX-Request": "true"}
             )
@@ -482,6 +571,8 @@ class TestView:
             ).count()
             == 2
         )
+        projet.refresh_from_db()
+        assert projet.notified_at == second_date_traitement
 
     def test_post_send_notification_blocked_when_document_missing(
         self, client_with_user_logged, perimetre
@@ -504,17 +595,34 @@ class TestView:
     def test_post_send_notification_success_for_refused(
         self, client_with_user_logged, perimetre
     ):
-        projet = _refused_projet(perimetre)
+        dossier = DossierFactory(
+            perimetre=perimetre,
+            porteur_de_projet_arrondissement=None,
+            porteur_de_projet_departement=perimetre.departement,
+        )
+        DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
+        projet = ProjetFactory(dossier_ds=dossier)
+        _treated_dotation(perimetre, projet, DOTATION_DETR, PROJET_STATUS_REFUSED)
+
         url = reverse(
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
+        dn_date_traitement = timezone.now().isoformat()
+
         with mock.patch(
-            "gsl_notification.forms.DsService.refuser_in_ds", return_value=None
+            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser",
+            return_value=_ds_mutation_response(
+                "dossierRefuser",
+                state="refuse",
+                event="refuse",
+                date_traitement=dn_date_traitement,
+            ),
         ):
             response = client_with_user_logged.post(
                 url, {"message": "Motif"}, headers={"HX-Request": "true"}
             )
+
         assert response.status_code == 200
         content = response.content.decode()
         assert 'id="notification-message-block"' in content
@@ -528,17 +636,34 @@ class TestView:
     def test_post_send_notification_success_for_dismissed(
         self, client_with_user_logged, perimetre
     ):
-        projet = _dismissed_projet(perimetre)
+        dossier = DossierFactory(
+            perimetre=perimetre,
+            porteur_de_projet_arrondissement=None,
+            porteur_de_projet_departement=perimetre.departement,
+        )
+        DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
+        projet = ProjetFactory(dossier_ds=dossier)
+        _treated_dotation(perimetre, projet, DOTATION_DETR, PROJET_STATUS_DISMISSED)
+
         url = reverse(
             "fragment:gsl_notification:notification_message",
             kwargs={"pk": projet.id},
         )
+        dn_date_traitement = timezone.now().isoformat()
+
         with mock.patch(
-            "gsl_notification.forms.DsService.dismiss_in_ds", return_value=None
+            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_classer_sans_suite",
+            return_value=_ds_mutation_response(
+                "dossierClasserSansSuite",
+                state="sans_suite",
+                event="classe_sans_suite",
+                date_traitement=dn_date_traitement,
+            ),
         ):
             response = client_with_user_logged.post(
                 url, {"message": "Motif"}, headers={"HX-Request": "true"}
             )
+
         assert response.status_code == 200
         content = response.content.decode()
         assert 'id="notification-message-block"' in content

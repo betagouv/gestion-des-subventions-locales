@@ -1,13 +1,24 @@
 import copy
+import json
 import logging
 from datetime import datetime
 from datetime import timezone as dt_timezone
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.historique.models import ProjetAction
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    DS_TRAITEMENT_EVENT_ACCEPTE,
+    DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
+    DS_TRAITEMENT_EVENT_REFUSE,
+)
+from gsl.projet.tests.factories import ProjetFactory
 from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_demarches_simplifiees.services import (
@@ -18,6 +29,7 @@ from gsl_demarches_simplifiees.services import (
     UserRightsError,
 )
 from gsl_demarches_simplifiees.tests.factories import (
+    DossierDataFactory,
     DossierFactory,
     FieldMappingFactory,
     ProfileFactory,
@@ -279,6 +291,11 @@ def test_dismiss_in_ds():
         patch(
             "gsl_demarches_simplifiees.services.DsService._check_results"
         ) as mock_check_results,
+        # DossierConverter (called by refresh_dossier_from_saved_data) needs a
+        # full DN payload (champs/annotations/demarche, ...): irrelevant here.
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
     ):
         mock_get_instructeur_id.return_value = "instructeur_id"
         results = {"results": {"data": {}}}
@@ -296,20 +313,35 @@ def test_dismiss_in_ds():
 
 
 @pytest.mark.parametrize(
-    "method_name, mutator_method, mutation_key",
+    "method_name, mutator_method, mutation_key, expected_event",
     [
-        ("accept_in_ds", "dossier_accepter", "dossierAccepter"),
-        ("dismiss_in_ds", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
-        ("refuser_in_ds", "dossier_refuser", "dossierRefuser"),
+        (
+            "accept_in_ds",
+            "dossier_accepter",
+            "dossierAccepter",
+            DS_TRAITEMENT_EVENT_ACCEPTE,
+        ),
+        (
+            "dismiss_in_ds",
+            "dossier_classer_sans_suite",
+            "dossierClasserSansSuite",
+            DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
+        ),
+        (
+            "refuser_in_ds",
+            "dossier_refuser",
+            "dossierRefuser",
+            DS_TRAITEMENT_EVENT_REFUSE,
+        ),
     ],
 )
 def test_in_ds_updates_ds_date_traitement(
-    user, dossier, method_name, mutator_method, mutation_key
+    user, dossier, method_name, mutator_method, mutation_key, expected_event
 ):
-    """accept_in_ds/dismiss_in_ds/refuser_in_ds should update dossier.ds_date_traitement
-    from DN's own response, and return the id of the Traitement DN just created (the
-    one with the most recent dateTraitement in `dossier.traitements` — not necessarily
-    the list's last entry), so the caller can store it as ProjetAction.source_id."""
+    """accept_in_ds/dismiss_in_ds/refuser_in_ds should update
+    dossier.ds_date_traitement from DN's own response (using the most recent
+    dateTraitement in `dossier.traitements` — not necessarily the list's
+    last entry)."""
     ds_service = DsService()
     expected_date_str = "2025-06-25T11:46:30+02:00"
     expected_date = datetime.fromisoformat(expected_date_str)
@@ -323,10 +355,12 @@ def test_in_ds_updates_ds_date_traitement(
                         {
                             "id": "traitement-2",
                             "dateTraitement": "2025-06-25T11:46:30+02:00",
+                            "event": expected_event,
                         },
                         {
                             "id": "traitement-1",
                             "dateTraitement": "2025-06-20T09:00:00+02:00",
+                            "event": expected_event,
                         },
                     ],
                 }
@@ -342,6 +376,9 @@ def test_in_ds_updates_ds_date_traitement(
         patch(
             "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
         ) as mock_get_instructeur_id,
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
     ):
         mock_get_instructeur_id.return_value = "instructeur_id"
         mock_mutator_method.return_value = mock_results
@@ -349,7 +386,7 @@ def test_in_ds_updates_ds_date_traitement(
         dossier.ds_date_traitement = None
         dossier.save()
 
-        result = getattr(ds_service, method_name)(
+        getattr(ds_service, method_name)(
             dossier, user, document=None, motivation="motivation"
         )
 
@@ -364,7 +401,6 @@ def test_in_ds_updates_ds_date_traitement(
             )
             < 1
         )
-        assert result == "traitement-2"
 
 
 def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, dossier):
@@ -381,6 +417,9 @@ def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, d
         patch(
             "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
         ) as mock_get_instructeur_id,
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
     ):
         mock_get_instructeur_id.return_value = "instructeur_id"
         mock_dossier_accepter.return_value = {"data": {"dossierAccepter": {}}}
@@ -391,16 +430,332 @@ def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, d
         assert dossier.ds_date_traitement == original_date
 
 
-def test_passer_en_instruction(user, dossier):
-    """Test that passer_en_instruction updates dossier state and date correctly"""
-    ds_service = DsService()
-    expected_date_str = "2024-01-15T10:30:00+01:00"
-    expected_date = datetime.fromisoformat(expected_date_str)
+@pytest.mark.parametrize(
+    "method_name, mutator_method, mutation_key",
+    [
+        ("accept_in_ds", "dossier_accepter", "dossierAccepter"),
+        ("dismiss_in_ds", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
+        ("refuser_in_ds", "dossier_refuser", "dossierRefuser"),
+    ],
+)
+def test_in_ds_merges_only_present_fields_into_dossier_data(
+    user, dossier, method_name, mutator_method, mutation_key
+):
+    """The mutation response only carries a handful of fields (cf
+    ds_mutations.gql): merging it into dossier.data.raw_data must not erase
+    unrelated fields (champs, annotations, demandeur, ...) already stored
+    there by a previous full sync."""
+    DossierDataFactory(
+        dossier=dossier,
+        raw_data={
+            "number": 123,
+            "dateTraitement": "2022-06-25T11:46:30+02:00",
+            "champs": [{"id": "champ-1"}],
+        },
+    )
 
     mock_results = {
         "data": {
+            mutation_key: {
+                "dossier": {
+                    "state": "accepte",
+                    "dateTraitement": "2025-06-25T11:46:30+02:00",
+                    "traitements": [
+                        {
+                            "id": "traitement-1",
+                            "dateTraitement": "2025-06-25T11:46:30+02:00",
+                        }
+                    ],
+                }
+            }
+        }
+    }
+
+    with (
+        patch(
+            f"gsl_demarches_simplifiees.ds_client.DsMutator.{mutator_method}"
+        ) as mock_mutator_method,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
+        ) as mock_get_instructeur_id,
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
+    ):
+        mock_get_instructeur_id.return_value = "instructeur_id"
+        mock_mutator_method.return_value = mock_results
+
+        getattr(DsService(), method_name)(
+            dossier, user, document=None, motivation="motivation"
+        )
+
+        dossier.refresh_from_db()
+        raw_data = dossier.data.raw_data
+        assert raw_data["number"] == 123
+        assert raw_data["champs"] == [{"id": "champ-1"}]
+        assert raw_data["state"] == "accepte"
+        assert raw_data["dateTraitement"] == "2025-06-25T11:46:30+02:00"
+        assert raw_data["traitements"] == [
+            {"id": "traitement-1", "dateTraitement": "2025-06-25T11:46:30+02:00"}
+        ]
+
+
+@pytest.mark.parametrize(
+    "method_name, mutator_method, mutation_key, expected_event",
+    [
+        (
+            "accept_in_ds",
+            "dossier_accepter",
+            "dossierAccepter",
+            DS_TRAITEMENT_EVENT_ACCEPTE,
+        ),
+        (
+            "dismiss_in_ds",
+            "dossier_classer_sans_suite",
+            "dossierClasserSansSuite",
+            DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
+        ),
+        (
+            "refuser_in_ds",
+            "dossier_refuser",
+            "dossierRefuser",
+            DS_TRAITEMENT_EVENT_REFUSE,
+        ),
+    ],
+)
+def test_in_ds_creates_notified_projet_action_with_turgot_source(
+    user, dossier, method_name, mutator_method, mutation_key, expected_event
+):
+    """accept_in_ds/dismiss_in_ds/refuser_in_ds must create the ProjetAction
+    (source Turgot) recording the notification: right action_type, actor,
+    motivation, the Traitement DN's own date, its id as source_id, and the
+    signed document attached."""
+    projet = ProjetFactory(dossier_ds=dossier)
+    document = SimpleUploadedFile("justificatif.pdf", b"%PDF-1.4 fake content")
+
+    mock_results = {
+        "data": {
+            mutation_key: {
+                "dossier": {
+                    "dateTraitement": "2025-06-25T11:46:30+02:00",
+                    "traitements": [
+                        {
+                            "id": "traitement-1",
+                            "dateTraitement": "2025-06-25T11:46:30+02:00",
+                            "event": expected_event,
+                        }
+                    ],
+                }
+            }
+        }
+    }
+
+    with (
+        patch(
+            f"gsl_demarches_simplifiees.ds_client.DsMutator.{mutator_method}"
+        ) as mock_mutator_method,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
+        ) as mock_get_instructeur_id,
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
+    ):
+        mock_get_instructeur_id.return_value = "instructeur_id"
+        mock_mutator_method.return_value = mock_results
+
+        getattr(DsService(), method_name)(
+            dossier, user, document=document, motivation="Motif de la décision"
+        )
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == ProjetAction.TYPE_NOTIFIED
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.actor == user
+    assert action.source_id == "traitement-1"
+    assert action.details == "Motif de la décision"
+    assert action.created_at == datetime.fromisoformat("2025-06-25T11:46:30+02:00")
+    assert "justificatif" in action.document.name
+    assert action.document.name.endswith(".pdf")
+
+
+@pytest.mark.parametrize(
+    "method_name, mutator_method, mutation_key",
+    [
+        ("accept_in_ds", "dossier_accepter", "dossierAccepter"),
+        ("dismiss_in_ds", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
+        ("refuser_in_ds", "dossier_refuser", "dossierRefuser"),
+    ],
+)
+def test_in_ds_creates_dossier_data_when_missing(
+    user, dossier, method_name, mutator_method, mutation_key
+):
+    assert dossier.data is None
+
+    mock_results = {"data": {mutation_key: {"dossier": {"state": "accepte"}}}}
+
+    with (
+        patch(
+            f"gsl_demarches_simplifiees.ds_client.DsMutator.{mutator_method}"
+        ) as mock_mutator_method,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        patch(
+            "gsl_demarches_simplifiees.services.DsService._get_instructeur_id"
+        ) as mock_get_instructeur_id,
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
+    ):
+        mock_get_instructeur_id.return_value = "instructeur_id"
+        mock_mutator_method.return_value = mock_results
+
+        getattr(DsService(), method_name)(
+            dossier, user, document=None, motivation="motivation"
+        )
+
+        dossier.refresh_from_db()
+        assert dossier.data is not None
+        assert dossier.data.raw_data == {"state": "accepte"}
+
+
+@pytest.mark.parametrize(
+    "method_name, mutator_method, mutation_key",
+    [
+        (
+            "passer_en_instruction",
+            "dossier_passer_en_instruction",
+            "dossierPasserEnInstruction",
+        ),
+        (
+            "repasser_en_instruction",
+            "dossier_repasser_en_instruction",
+            "dossierRepasserEnInstruction",
+        ),
+    ],
+)
+def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
+    user, dossier, method_name, mutator_method, mutation_key
+):
+    """passer_en_instruction/repasser_en_instruction no longer set ds_state /
+    ds_date_derniere_modification themselves: once the mutation response is
+    merged into dossier.data.raw_data, refreshing the Dossier's own fields
+    (state included) from that raw data is delegated to
+    refresh_dossier_from_saved_data (the same function the importer uses for
+    a full sync)."""
+    mock_results = {
+        "data": {mutation_key: {"dossier": {"dateDerniereModification": "x"}}}
+    }
+
+    with (
+        patch(
+            f"gsl_demarches_simplifiees.ds_client.DsMutator.{mutator_method}"
+        ) as mock_mutator_method,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ) as mock_refresh,
+    ):
+        mock_mutator_method.return_value = mock_results
+
+        getattr(DsService(), method_name)(dossier, user)
+
+        mock_refresh.assert_called_once_with(dossier)
+
+
+@pytest.mark.parametrize(
+    "method_name, mutator_method, mutation_key",
+    [
+        (
+            "passer_en_instruction",
+            "dossier_passer_en_instruction",
+            "dossierPasserEnInstruction",
+        ),
+        (
+            "repasser_en_instruction",
+            "dossier_repasser_en_instruction",
+            "dossierRepasserEnInstruction",
+        ),
+    ],
+)
+def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_data(
+    user, dossier, method_name, mutator_method, mutation_key
+):
+    DossierDataFactory(
+        dossier=dossier, raw_data={"number": 123, "champs": [{"id": "champ-1"}]}
+    )
+    mock_results = {
+        "data": {
+            mutation_key: {
+                "dossier": {
+                    "dateDerniereModification": "2024-01-15T10:30:00+01:00",
+                    "state": "en_instruction",
+                    "traitements": [
+                        {
+                            "id": "traitement-1",
+                            "dateTraitement": "2024-01-15T10:30:00+01:00",
+                        }
+                    ],
+                }
+            }
+        }
+    }
+
+    with (
+        patch(
+            f"gsl_demarches_simplifiees.ds_client.DsMutator.{mutator_method}"
+        ) as mock_mutator_method,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        # DossierConverter (called by refresh_dossier_from_saved_data) needs a
+        # full DN payload (champs/annotations/demarche, ...): irrelevant to
+        # what's being verified here, which is the raw_data merge itself.
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
+    ):
+        mock_mutator_method.return_value = mock_results
+
+        getattr(DsService(), method_name)(dossier, user)
+
+        dossier.refresh_from_db()
+        raw_data = dossier.data.raw_data
+        assert raw_data["number"] == 123
+        assert raw_data["champs"] == [{"id": "champ-1"}]
+        assert raw_data["state"] == "en_instruction"
+        assert raw_data["traitements"] == [
+            {"id": "traitement-1", "dateTraitement": "2024-01-15T10:30:00+01:00"}
+        ]
+
+
+def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
+    user, dossier
+):
+    """Real end-to-end check (DossierConverter/refresh_dossier_from_saved_data
+    not mocked): starting from a dossier fully synced once (realistic case),
+    passer_en_instruction must leave it with the fresh `state` (reflected as
+    Dossier.ds_state) and the fresh `traitements` from the mutation response,
+    while untouched fields (here: champs) survive the merge."""
+    with open(Path(__file__).parent / "ds_fixtures" / "dossier_data.json") as handle:
+        full_raw_data = json.loads(handle.read())
+    assert full_raw_data["state"] == "en_construction"
+    original_champs_count = len(full_raw_data["champs"])
+
+    DossierDataFactory(dossier=dossier, raw_data=full_raw_data)
+    dossier.ds_state = Dossier.STATE_EN_CONSTRUCTION
+    dossier.save()
+
+    new_traitements = [
+        {"id": "traitement-1", "dateTraitement": "2024-01-15T10:30:00+01:00"}
+    ]
+    mock_results = {
+        "data": {
             "dossierPasserEnInstruction": {
-                "dossier": {"dateDerniereModification": expected_date_str}
+                "dossier": {
+                    "dateDerniereModification": "2024-01-15T10:30:00+01:00",
+                    "state": "en_instruction",
+                    "traitements": new_traitements,
+                }
             }
         }
     }
@@ -409,49 +764,23 @@ def test_passer_en_instruction(user, dossier):
         patch(
             "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_passer_en_instruction"
         ) as mock_dossier_passer_en_instruction,
+        patch("gsl_demarches_simplifiees.services.DsService._check_results"),
+        # Unrelated to what's being verified here (state/traitements sync):
+        # this dossier has no matching Departement/Arrondissement fixture, so
+        # Projet/DotationProjet (re)creation would otherwise fail downstream.
         patch(
-            "gsl_demarches_simplifiees.services.DsService._check_results"
-        ) as mock_check_results,
+            "gsl_demarches_simplifiees.importer.dossier.ProjetService"
+            ".create_or_update_projet_and_co_from_dossier"
+        ),
     ):
         mock_dossier_passer_en_instruction.return_value = mock_results
 
-        # Set initial state to en_construction
-        dossier.ds_state = Dossier.STATE_EN_CONSTRUCTION
-        dossier.ds_date_derniere_modification = None
-        dossier.save()
+        DsService().passer_en_instruction(dossier, user)
 
-        result = ds_service.passer_en_instruction(dossier, user)
-
-        # Verify the mutator was called with correct parameters
-        mock_dossier_passer_en_instruction.assert_called_once_with(
-            dossier.ds_id, user.ds_id
-        )
-
-        # Verify _check_results was called
-        mock_check_results.assert_called_once_with(
-            mock_results, dossier, user, "passer_en_instruction"
-        )
-
-        # Verify dossier state was updated
-        dossier.refresh_from_db()
-        assert dossier.ds_state == Dossier.STATE_EN_INSTRUCTION
-
-        # Verify date was updated (Django converts ISO string to datetime)
-        assert dossier.ds_date_derniere_modification is not None
-        assert isinstance(dossier.ds_date_derniere_modification, datetime)
-        # Compare the datetime values (accounting for timezone conversion)
-        assert (
-            abs(
-                (
-                    dossier.ds_date_derniere_modification
-                    - expected_date.astimezone(dt_timezone.utc)
-                ).total_seconds()
-            )
-            < 1
-        )
-
-        # Verify return value
-        assert result == mock_results
+    dossier.refresh_from_db()
+    assert dossier.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert dossier.data.raw_data["traitements"] == new_traitements
+    assert len(dossier.data.raw_data["champs"]) == original_champs_count
 
 
 def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):

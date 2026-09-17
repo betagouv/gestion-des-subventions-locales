@@ -15,6 +15,7 @@ from gsl.projet.constants import (
     DS_STATE_REFUSE,
     DS_STATE_SANS_SUITE,
     DS_STATE_VALUES,
+    DS_TREATED_STATES,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
 )
@@ -779,11 +780,12 @@ class Dossier(BaseModel):
     def is_instructeur(self, user) -> bool:
         return self.ds_instructeurs.filter(ds_id=user.ds_id).exists()
 
+    # TODO PR kill this
     def get_last_traitement_matching_dossier_state(self) -> dict | None:
         event = self.EVENT_BY_STATE.get(self.ds_state)
 
         matching_traitements = [t for t in self.traitements if t.get("event") == event]
-        return most_recent_traitement(matching_traitements)
+        return most_recent_traitement(matching_traitements, event)
 
     @property
     def dotations_demande(self) -> list[POSSIBLE_DOTATIONS]:
@@ -928,6 +930,24 @@ class Dossier(BaseModel):
         if self.data is None:
             return []
         return self.data.raw_data.get("traitements") or []
+
+    @property
+    def is_treated(self) -> bool:
+        return self.ds_state in DS_TREATED_STATES
+
+    def update_data(self, dossier_data: dict) -> None:
+        """Fusionne dans `self.data.raw_data` les seuls champs présents dans
+        `dossier_data` (ex : le sous-objet `dossier` de la réponse d'une
+        mutation DN, cf `ds_mutations.gql`). Les champs absents de
+        `dossier_data` (`champs`, `annotations`, `demandeur`, ...) restent
+        inchangés, jusqu'à la prochaine resynchronisation complète du
+        dossier."""
+        if not dossier_data:
+            return
+
+        ds_data = self.data or DossierData(dossier=self)
+        ds_data.raw_data = {**(ds_data.raw_data or {}), **dossier_data}
+        ds_data.save()
 
 
 class DsChoiceLibelle(BaseModel):
