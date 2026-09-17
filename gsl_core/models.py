@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, UniqueConstraint
@@ -335,7 +335,25 @@ class ImportState(models.Model):
         return obj
 
 
+class CollegueManager(UserManager):
+    def get_or_create_from_email(self, email: str) -> "Collegue":
+        """Get or create a Collegue for the given email. A new Collegue is
+        created inactive (no login) with an unusable password: it exists
+        only to be referenced as the actor of an action attributed to that
+        email (e.g. a DN traitement's emailAgentTraitant)."""
+        email = email.strip().lower()
+        collegue, created = self.get_or_create(
+            email=email, defaults={"username": email, "is_active": False}
+        )
+        if created:
+            collegue.set_unusable_password()
+            collegue.save(update_fields=["password"])
+        return collegue
+
+
 class Collegue(AbstractUser):
+    objects = CollegueManager()
+
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
