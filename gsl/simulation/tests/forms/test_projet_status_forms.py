@@ -10,7 +10,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
@@ -28,24 +28,24 @@ def user() -> Collegue:
 
 
 @pytest.mark.parametrize(
-    ("simulation_projet_status, dotation_projet_transition"),
+    ("simulation_projet_status, enveloppe_projet_transition"),
     (
         (SimulationProjet.STATUS_REFUSED, "refuse"),
         (SimulationProjet.STATUS_DISMISSED, "dismiss"),
     ),
 )
 def test_refuse_or_dismiss_does_not_touch_ds(
-    simulation_projet_status, dotation_projet_transition, user
+    simulation_projet_status, enveloppe_projet_transition, user
 ):
     """
-    Refuse and dismiss only update the DotationProjet status: no DS mutation,
+    Refuse and dismiss only update the EnveloppeProjet status: no DS mutation,
     no projet.notified_at update. Notification is now a separate step.
     """
     simulation_projet = SimulationProjetFactory()
 
     with mock.patch(
-        f"gsl.projet.models.DotationProjet.{dotation_projet_transition}",
-        wraps=getattr(simulation_projet.dotation_projet, dotation_projet_transition),
+        f"gsl.projet.models.EnveloppeProjet.{enveloppe_projet_transition}",
+        wraps=getattr(simulation_projet.enveloppe_projet, enveloppe_projet_transition),
     ) as mock_transition:
         with (
             mock.patch(
@@ -87,7 +87,7 @@ def test_update_status_with_accepted(mock_ds_update, user):
         user=user,
         annotations_dotation_to_update=simulation_projet.dotation,
         dotations_to_be_checked=[simulation_projet.dotation],
-        assiette=simulation_projet.dotation_projet.assiette,
+        assiette=simulation_projet.enveloppe_projet.assiette,
         montant=simulation_projet.montant,
         taux=simulation_projet.taux,
     )
@@ -119,8 +119,8 @@ def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING,
         simulation=simulation,
-        dotation_projet__dotation=DOTATION_DETR,
-        dotation_projet__status=PROJET_STATUS_PROCESSING,
+        enveloppe_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__status=PROJET_STATUS_PROCESSING,
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
@@ -132,13 +132,13 @@ def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
         user=user,
         annotations_dotation_to_update=simulation_projet.dotation,
         dotations_to_be_checked=[simulation_projet.dotation],
-        assiette=simulation_projet.dotation_projet.assiette,
+        assiette=simulation_projet.enveloppe_projet.assiette,
         montant=simulation_projet.montant,
         taux=simulation_projet.taux,
     )
 
-    simulation_projet.dotation_projet.refresh_from_db()
-    assert simulation_projet.dotation_projet.enveloppe == mother_enveloppe
+    simulation_projet.enveloppe_projet.refresh_from_db()
+    assert simulation_projet.enveloppe_projet.enveloppe == mother_enveloppe
 
 
 @mock.patch(
@@ -164,7 +164,7 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
     mother_enveloppe = DetrEnveloppeFactory()
     child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
     simulation = SimulationFactory(enveloppe=child_enveloppe)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=child_enveloppe.perimetre,
         dotation=DOTATION_DETR,
         status=initial_programmation_status,
@@ -172,7 +172,7 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
     )
 
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         simulation=simulation,
     )
@@ -188,14 +188,14 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
             user=user,
             annotations_dotation_to_update=simulation_projet.dotation,
             dotations_to_be_checked=[simulation_projet.dotation],
-            assiette=simulation_projet.dotation_projet.assiette,
+            assiette=simulation_projet.enveloppe_projet.assiette,
             montant=simulation_projet.montant,
             taux=simulation_projet.taux,
         )
 
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.enveloppe == mother_enveloppe
-    assert dotation_projet.status == programmation_status_expected
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe == mother_enveloppe
+    assert enveloppe_projet.status == programmation_status_expected
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
         (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
     ),
 )
-def test_revert_from_final_status_resets_dotation_projet_to_processing(
+def test_revert_from_final_status_resets_enveloppe_projet_to_processing(
     mock_ds_update,
     initial_simulation_status,
     initial_dotation_status,
@@ -222,15 +222,15 @@ def test_revert_from_final_status_resets_dotation_projet_to_processing(
 ):
     simulation_projet = SimulationProjetFactory(
         status=initial_simulation_status,
-        dotation_projet__status=initial_dotation_status,
+        enveloppe_projet__status=initial_dotation_status,
     )
     form = SimulationProjetStatusForm(
         instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
     )
     form.save(user)
 
-    simulation_projet.dotation_projet.refresh_from_db()
-    assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
+    simulation_projet.enveloppe_projet.refresh_from_db()
+    assert simulation_projet.enveloppe_projet.status == PROJET_STATUS_PROCESSING
 
 
 @mock.patch(
@@ -252,15 +252,15 @@ def test_revert_from_final_status_drops_the_programmation(
 ):
     simulation_projet = SimulationProjetFactory(
         status=initial_simulation_status,
-        dotation_projet__status=initial_dotation_status,
+        enveloppe_projet__status=initial_dotation_status,
     )
     form = SimulationProjetStatusForm(
         instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
     )
     form.save(user)
 
-    simulation_projet.dotation_projet.refresh_from_db()
-    assert not simulation_projet.dotation_projet.is_programmee
+    simulation_projet.enveloppe_projet.refresh_from_db()
+    assert not simulation_projet.enveloppe_projet.is_programmee
 
 
 @mock.patch(
@@ -283,7 +283,7 @@ def test_revert_from_final_status_drops_the_programmation(
         ),
     ),
 )
-def test_pending_to_pending_does_not_revert_dotation_projet(
+def test_pending_to_pending_does_not_revert_enveloppe_projet(
     mock_ds_update,
     initial_status,
     new_status,
@@ -291,10 +291,10 @@ def test_pending_to_pending_does_not_revert_dotation_projet(
 ):
     simulation_projet = SimulationProjetFactory(
         status=initial_status,
-        dotation_projet__status=PROJET_STATUS_PROCESSING,
+        enveloppe_projet__status=PROJET_STATUS_PROCESSING,
     )
     form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
     form.save(user)
 
-    simulation_projet.dotation_projet.refresh_from_db()
-    assert simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
+    simulation_projet.enveloppe_projet.refresh_from_db()
+    assert simulation_projet.enveloppe_projet.status == PROJET_STATUS_PROCESSING

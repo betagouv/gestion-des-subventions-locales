@@ -22,7 +22,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -64,15 +64,15 @@ def _accepted_dotation(perimetre, projet, dotation, with_signed_document):
         if dotation == DOTATION_DETR
         else DsilEnveloppeFactory(perimetre=perimetre)
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=dotation,
         status=PROJET_STATUS_ACCEPTED,
         enveloppe=enveloppe,
     )
     if with_signed_document:
-        LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
-    return dotation_projet
+        LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+    return enveloppe_projet
 
 
 def _accepted_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=True):
@@ -87,12 +87,12 @@ def _treated_dotation(perimetre, projet, dotation, status, with_signed_document=
         if dotation == DOTATION_DETR
         else DsilEnveloppeFactory(perimetre=perimetre)
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=dotation, status=status, enveloppe=enveloppe
     )
     if with_signed_document:
-        LettreRefusSigneeFactory(dotation_projet=dotation_projet)
-    return dotation_projet
+        LettreRefusSigneeFactory(enveloppe_projet=enveloppe_projet)
+    return enveloppe_projet
 
 
 def _refused_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=False):
@@ -156,14 +156,14 @@ class TestForm:
 
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-        detr_dotation_projet = _accepted_dotation(
+        detr_enveloppe_projet = _accepted_dotation(
             perimetre, projet, DOTATION_DETR, with_signed_document=True
         )
-        detr_annexe = AnnexeFactory(dotation_projet=detr_dotation_projet)
-        dsil_dotation_projet = _accepted_dotation(
+        detr_annexe = AnnexeFactory(enveloppe_projet=detr_enveloppe_projet)
+        dsil_enveloppe_projet = _accepted_dotation(
             perimetre, projet, DOTATION_DSIL, with_signed_document=True
         )
-        dsil_annexe = AnnexeFactory(dotation_projet=dsil_dotation_projet)
+        dsil_annexe = AnnexeFactory(enveloppe_projet=dsil_enveloppe_projet)
 
         with (
             mock.patch("gsl_notification.forms.DsService.accept_in_ds"),
@@ -178,9 +178,9 @@ class TestForm:
 
         merged_documents = merge_mock.call_args.args[0]
         assert merged_documents == [
-            detr_dotation_projet.lettre_et_arrete_signes,
+            detr_enveloppe_projet.lettre_et_arrete_signes,
             detr_annexe,
-            dsil_dotation_projet.lettre_et_arrete_signes,
+            dsil_enveloppe_projet.lettre_et_arrete_signes,
             dsil_annexe,
         ]
 
@@ -266,14 +266,14 @@ class TestForm:
         self, perimetre, collegue
     ):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-        dotation_projet = _treated_dotation(
+        enveloppe_projet = _treated_dotation(
             perimetre,
             projet,
             DOTATION_DETR,
             PROJET_STATUS_REFUSED,
             with_signed_document=True,
         )
-        annexe = AnnexeFactory(dotation_projet=dotation_projet)
+        annexe = AnnexeFactory(enveloppe_projet=enveloppe_projet)
 
         with (
             mock.patch("gsl_notification.forms.DsService.refuser_in_ds"),
@@ -287,7 +287,7 @@ class TestForm:
             form.save(user=collegue)
 
         merged_documents = merge_mock.call_args.args[0]
-        assert merged_documents == [dotation_projet.lettre_refus_signee, annexe]
+        assert merged_documents == [enveloppe_projet.lettre_refus_signee, annexe]
 
     def test_notification_filename_single_document_uses_its_own_name(self, perimetre):
         projet = _refused_projet(perimetre, with_signed_document=True)
@@ -531,7 +531,7 @@ class TestView:
     ):
         """One dotation still being processed means the projet isn't notifiable yet."""
         projet = _accepted_projet(perimetre, dotation=DOTATION_DETR)
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
         )
 

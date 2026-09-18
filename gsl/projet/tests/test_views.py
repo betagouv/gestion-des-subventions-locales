@@ -158,14 +158,14 @@ def test_projets_ordering(req, view, projets, tri_param, expected_ordering):
 
 @pytest.fixture
 def projets_detr() -> list[Projet]:
-    dotation_projets = DetrProjetFactory.create_batch(3)
-    return [dp.projet for dp in dotation_projets]
+    enveloppe_projets = DetrProjetFactory.create_batch(3)
+    return [dp.projet for dp in enveloppe_projets]
 
 
 @pytest.fixture
 def projets_dsil() -> list[Projet]:
-    dotation_projets = DsilProjetFactory.create_batch(2)
-    return [dp.projet for dp in dotation_projets]
+    enveloppe_projets = DsilProjetFactory.create_batch(2)
+    return [dp.projet for dp in enveloppe_projets]
 
 
 @pytest.fixture
@@ -204,8 +204,8 @@ def test_filter_by_dotation_only_detr(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3
-    assert all(p.dotationprojet_set.count() == 1 for p in qs)
-    assert all(p.dotationprojet_set.first().dotation == DOTATION_DETR for p in qs)
+    assert all(p.enveloppeprojet_set.count() == 1 for p in qs)
+    assert all(p.enveloppeprojet_set.first().dotation == DOTATION_DETR for p in qs)
 
 
 def test_filter_by_dotation_only_dsil(
@@ -223,8 +223,8 @@ def test_filter_by_dotation_only_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 2
-    assert all(p.dotationprojet_set.count() == 1 for p in qs)
-    assert all(p.dotationprojet_set.first().dotation == DOTATION_DSIL for p in qs)
+    assert all(p.enveloppeprojet_set.count() == 1 for p in qs)
+    assert all(p.enveloppeprojet_set.first().dotation == DOTATION_DSIL for p in qs)
 
 
 def test_filter_by_dotation_detr_and_dsil(
@@ -242,9 +242,9 @@ def test_filter_by_dotation_detr_and_dsil(
     assert Projet.objects.count() == 11
 
     assert qs.count() == 3 + 2
-    assert all(p.dotationprojet_set.count() == 1 for p in qs)
-    assert qs.filter(dotationprojet__dotation=DOTATION_DETR).count() == 3
-    assert qs.filter(dotationprojet__dotation=DOTATION_DSIL).count() == 2
+    assert all(p.enveloppeprojet_set.count() == 1 for p in qs)
+    assert qs.filter(enveloppeprojet__dotation=DOTATION_DETR).count() == 3
+    assert qs.filter(enveloppeprojet__dotation=DOTATION_DSIL).count() == 2
 
 
 def test_filter_by_dotation_only_detr_dsil(
@@ -546,13 +546,13 @@ def test_annotate_montant_retenu(
 ):
     projet_qs = Projet.objects.all()
     projet_qs = projet_qs.annotate(
-        dotation_projet_with_this_minimum_montant_retenu_count=Count(
-            "dotationprojet",
-            filter=Q(dotationprojet__montant__gte=100_000),
+        enveloppe_projet_with_this_minimum_montant_retenu_count=Count(
+            "enveloppeprojet",
+            filter=Q(enveloppeprojet__montant__gte=100_000),
         )
     )
     projet_qs = projet_qs.filter(
-        dotation_projet_with_this_minimum_montant_retenu_count__gt=0
+        enveloppe_projet_with_this_minimum_montant_retenu_count__gt=0
     )
     assert projet_qs.count() == 4
 
@@ -568,7 +568,7 @@ def test_filter_by_min_montant_retenu(
 
     assert qs.count() == 4
     for p in qs:
-        assert any(100_000 <= dp.montant_retenu for dp in p.dotationprojet_set.all())
+        assert any(100_000 <= dp.montant_retenu for dp in p.enveloppeprojet_set.all())
 
 
 def test_filter_by_max_montant_retenu(
@@ -589,7 +589,7 @@ def test_filter_by_max_montant_retenu(
     assert qs.count() == 5
     for p in qs:
         assert any(
-            (dp.montant_retenu or 0.0) <= 100_000 for dp in p.dotationprojet_set.all()
+            (dp.montant_retenu or 0.0) <= 100_000 for dp in p.enveloppeprojet_set.all()
         )
 
 
@@ -608,13 +608,13 @@ def test_filter_by_montant_retenu_range(
     # (50_000, 50_000) ❌
     # (100_000, 50_000) ✅
     # (100_000, 100_000) ✅
-    # (150_000, 50_000) ❌ Il faut qu'un dotation_projet matche les deux filtres
+    # (150_000, 50_000) ❌ Il faut qu'un enveloppe_projet matche les deux filtres
     # (150_000, 150_000) ❌
 
     assert qs.count() == 2
     for p in qs:
         assert any(
-            90_000 <= dp.montant_retenu <= 110_000 for dp in p.dotationprojet_set.all()
+            90_000 <= dp.montant_retenu <= 110_000 for dp in p.enveloppeprojet_set.all()
         )
 
 
@@ -801,7 +801,7 @@ def test_filter_by_status(req, view, projets_with_status, status, expected_count
 
 
 def test_filter_by_status_refused_excludes_project_without_dotation(req, view):
-    ProjetFactory()  # projet sans DotationProjet
+    ProjetFactory()  # projet sans EnveloppeProjet
     projet_refuse = ProjetFactory()
     DetrProjetFactory(projet=projet_refuse, status="refused")
 
@@ -825,8 +825,8 @@ def projet_with_mixed_notification_statuses() -> Projet:
     projet = ProjetFactory()
 
     to_sign_dp = DetrProjetFactory(projet=projet, status="accepted")
-    ArreteFactory(dotation_projet=to_sign_dp)
-    LettreNotificationFactory(dotation_projet=to_sign_dp)
+    ArreteFactory(enveloppe_projet=to_sign_dp)
+    LettreNotificationFactory(enveloppe_projet=to_sign_dp)
 
     DsilProjetFactory(projet=projet, status="accepted")
 

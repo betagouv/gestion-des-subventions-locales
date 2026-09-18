@@ -16,7 +16,7 @@ from ...constants import (
 )
 from ...models import Projet
 from ...services.projet_services import ProjetService as ps
-from ..factories import DotationProjetFactory, ProjetFactory
+from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 
 @pytest.mark.django_db
@@ -87,10 +87,10 @@ def test_totals_cost_with_filtered_qs(
 
 @pytest.mark.django_db
 def test_totals_amount_granted():
-    DotationProjetFactory(status=PROJET_STATUS_ACCEPTED, montant=10_000)
-    DotationProjetFactory(status=PROJET_STATUS_ACCEPTED, montant=20_000)
-    DotationProjetFactory(status=PROJET_STATUS_REFUSED, montant=0)
-    DotationProjetFactory(status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED, montant=10_000)
+    EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED, montant=20_000)
+    EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED, montant=0)
+    EnveloppeProjetFactory(status=PROJET_STATUS_PROCESSING)
 
     assert Projet.objects.all().totals()["total_amount_granted"] == 30_000
 

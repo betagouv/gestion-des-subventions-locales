@@ -11,7 +11,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.tests.factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProjetFactory,
 )
 
@@ -22,8 +22,8 @@ from ..factories import SimulationFactory, SimulationProjetFactory
 pytestmark = pytest.mark.django_db
 
 
-def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulation_projet_exists():
-    dotation_projet = DotationProjetFactory(
+def test_create_or_update_simulation_projet_from_enveloppe_projet_when_no_simulation_projet_exists():
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
         status=PROJET_STATUS_ACCEPTED,
@@ -32,13 +32,11 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
     )
     simulation = SimulationFactory(enveloppe__dotation=DOTATION_DETR)
 
-    simulation_projet = (
-        SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
-            dotation_projet, simulation
-        )
+    simulation_projet = SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
+        enveloppe_projet, simulation
     )
 
-    assert simulation_projet.projet == dotation_projet.projet
+    assert simulation_projet.projet == enveloppe_projet.projet
     assert simulation_projet.simulation == simulation
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == 10.0
@@ -47,7 +45,7 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
 
 def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_exists():
     simulation = SimulationFactory()
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
         status=PROJET_STATUS_ACCEPTED,
@@ -55,21 +53,19 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
         dotation=simulation.enveloppe.dotation,
     )
     original_simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         simulation=simulation,
         montant=500,
         status=SimulationProjet.STATUS_PROCESSING,
     )
 
-    simulation_projet = (
-        SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
-            dotation_projet, simulation
-        )
+    simulation_projet = SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
+        enveloppe_projet, simulation
     )
 
     assert simulation_projet.id == original_simulation_projet.id
-    assert simulation_projet.projet == dotation_projet.projet
-    assert simulation_projet.dotation_projet == dotation_projet
+    assert simulation_projet.projet == enveloppe_projet.projet
+    assert simulation_projet.enveloppe_projet == enveloppe_projet
     assert simulation_projet.simulation == simulation
     assert simulation_projet.montant == 1_000
     assert simulation_projet.taux == 10.0
@@ -84,10 +80,10 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
         (None, 10_000, 5_000, "demandé"),
     ),
 )
-def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem(
+def test_get_initial_montant_from_enveloppe_projet_must_log_if_there_is_a_problem(
     dotation, annotations_montant_accorde, demande_montant, assiette, log, caplog
 ):
-    dp = DotationProjetFactory(
+    dp = EnveloppeProjetFactory(
         projet__dossier_ds__annotations_montant_accorde_detr=annotations_montant_accorde
         if dotation == DOTATION_DETR
         else None,
@@ -100,7 +96,7 @@ def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem
         assiette=assiette,
     )
     with caplog.at_level(logging.WARNING):
-        montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
+        montant = SimulationProjetService.get_initial_montant_from_enveloppe_projet(
             dp,
             status=SimulationProjet.STATUS_PROCESSING,
         )
@@ -127,7 +123,7 @@ def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem
         (SimulationProjet.STATUS_PROCESSING, 10_000, None, None, 0),
     ),
 )
-def test_get_initial_montant_from_dotation_projet(
+def test_get_initial_montant_from_enveloppe_projet(
     dotation,
     field,
     status,
@@ -136,7 +132,7 @@ def test_get_initial_montant_from_dotation_projet(
     demande_montant,
     expected_montant,
 ):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__annotations_montant_accorde_detr=annotations_montant_accorde
         if dotation == DOTATION_DETR
         else None,
@@ -154,15 +150,15 @@ def test_get_initial_montant_from_dotation_projet(
         ),
     )
 
-    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
-        dotation_projet, status
+    montant = SimulationProjetService.get_initial_montant_from_enveloppe_projet(
+        enveloppe_projet, status
     )
 
     assert montant == expected_montant
 
 
 @pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
-def test_get_initial_montant_from_dotation_projet_when_programmed(
+def test_get_initial_montant_from_enveloppe_projet_when_programmed(
     dotation,
 ):
     projet = ProjetFactory(
@@ -175,12 +171,12 @@ def test_get_initial_montant_from_dotation_projet_when_programmed(
         dossier_ds__finance_cout_total=100_000_000,
         dossier_ds__demande_montant=100_202_500,
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=dotation, status=PROJET_STATUS_ACCEPTED, montant=500
     )
 
-    montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
-        dotation_projet,
+    montant = SimulationProjetService.get_initial_montant_from_enveloppe_projet(
+        enveloppe_projet,
         SimulationProjet.STATUS_PROCESSING,  # status not coherent, but must work nevertheless
     )
 
@@ -197,6 +193,6 @@ def test_get_initial_montant_from_dotation_projet_when_programmed(
     ),
 )
 def test_get_simulation_projet_status(projet_status, simulation_projet_status_expected):
-    dotation_projet = DotationProjetFactory(status=projet_status)
-    status = SimulationProjetService.get_simulation_projet_status(dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=projet_status)
+    status = SimulationProjetService.get_simulation_projet_status(enveloppe_projet)
     assert status == simulation_projet_status_expected

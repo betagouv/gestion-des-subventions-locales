@@ -5,7 +5,7 @@ from django.forms.widgets import CheckboxSelectMultiple
 from dsfr.forms import DsfrBaseForm
 
 from gsl.projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
-from gsl.projet.services.dotation_projet_services import DotationProjetService
+from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,
@@ -95,8 +95,8 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
         self.instance.projet.save()
 
         instance = super().save(commit=commit)
-        service = DotationProjetService()
-        service.create_or_update_dotation_projet_from_projet(instance.projet)
+        service = EnveloppeProjetService()
+        service.create_or_update_enveloppe_projet_from_projet(instance.projet)
         return instance
 
     class Meta:

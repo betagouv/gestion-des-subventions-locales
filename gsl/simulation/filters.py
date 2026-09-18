@@ -9,7 +9,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
 )
-from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -54,7 +54,7 @@ class SimulationProjetFilters(CommonFiltersFields):
         # notification_status filter and for the `order` OrderingFilter.
         self.queryset = self.queryset.annotate(
             _notification_status=Subquery(
-                DotationProjet.objects.annotate_notification_status()
+                EnveloppeProjet.objects.annotate_notification_status()
                 .filter(
                     projet=models.OuterRef("pk"),
                     simulationprojet__simulation__slug=self.slug,
@@ -139,7 +139,7 @@ class SimulationProjetFilters(CommonFiltersFields):
 
     status = MultipleChoiceFilter(
         label="Statut",
-        field_name="dotationprojet__simulationprojet__status",
+        field_name="enveloppeprojet__simulationprojet__status",
         choices=order_couples_tuple_by_first_value(
             SimulationProjet.STATUS_CHOICES, ordered_status
         ),
@@ -149,7 +149,7 @@ class SimulationProjetFilters(CommonFiltersFields):
 
     montant_previsionnel = RangeFilter(
         label="Montant prévisionnel accordé",
-        field_name="dotationprojet__simulationprojet__montant",
+        field_name="enveloppeprojet__simulationprojet__montant",
         widget=DsfrRangeWidget(icon="fr-icon-money-euro-box-fill"),
         method="filter_montant_previsionnel",
     )
@@ -171,23 +171,23 @@ class SimulationProjetFilters(CommonFiltersFields):
     def filter_status(self, queryset, name, value):
         return queryset.filter(
             **self._simulation_slug_filter_kwarg(),
-            dotationprojet__simulationprojet__status__in=value,
+            enveloppeprojet__simulationprojet__status__in=value,
         )
 
     def filter_montant_previsionnel(self, queryset, _name, value):
         kwargs = self._simulation_slug_filter_kwarg()
         if value.start is not None:
             queryset = queryset.filter(
-                **kwargs, dotationprojet__simulationprojet__montant__gte=value.start
+                **kwargs, enveloppeprojet__simulationprojet__montant__gte=value.start
             )
         if value.stop is not None:
             queryset = queryset.filter(
-                **kwargs, dotationprojet__simulationprojet__montant__lte=value.stop
+                **kwargs, enveloppeprojet__simulationprojet__montant__lte=value.stop
             )
         return queryset
 
     def _simulation_slug_filter_kwarg(self):
-        return {"dotationprojet__simulationprojet__simulation__slug": self.slug}
+        return {"enveloppeprojet__simulationprojet__simulation__slug": self.slug}
 
     class Meta:
         model = Projet
@@ -217,10 +217,10 @@ class SimulationProjetFilters(CommonFiltersFields):
 
     @property
     def qs(self):
-        from gsl.projet.models import DotationProjet
+        from gsl.projet.models import EnveloppeProjet
 
         slug_filter = {"simulationprojet__simulation__slug": self.slug}
-        simu_dp_qs = DotationProjet.objects.active().filter(
+        simu_dp_qs = EnveloppeProjet.objects.active().filter(
             projet=models.OuterRef("pk"), **slug_filter
         )
 

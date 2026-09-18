@@ -2,19 +2,19 @@ import pytest
 from django import forms
 
 from ...constants import DOTATION_DETR
-from ...forms import DotationProjetForm
-from ...models import DotationProjet
-from ..factories import DotationProjetFactory
+from ...forms import EnveloppeProjetForm
+from ...models import EnveloppeProjet
+from ..factories import EnveloppeProjetFactory
 
 
 @pytest.fixture
-def dotation_projet():
-    return DotationProjetFactory(dotation=DOTATION_DETR, detr_avis_commission=None)
+def enveloppe_projet():
+    return EnveloppeProjetFactory(dotation=DOTATION_DETR, detr_avis_commission=None)
 
 
 @pytest.mark.django_db
-def test_dotation_projet_form_fields(dotation_projet):
-    form = DotationProjetForm(instance=dotation_projet)
+def test_enveloppe_projet_form_fields(enveloppe_projet):
+    form = EnveloppeProjetForm(instance=enveloppe_projet)
 
     expected_fields = [
         "detr_avis_commission",
@@ -33,28 +33,28 @@ def test_dotation_projet_form_fields(dotation_projet):
 
 
 @pytest.mark.django_db
-def test_dotation_projet_form_validation(dotation_projet):
+def test_enveloppe_projet_form_validation(enveloppe_projet):
     valid_data = {
         "detr_avis_commission": True,
     }
-    form = DotationProjetForm(instance=dotation_projet, data=valid_data)
+    form = EnveloppeProjetForm(instance=enveloppe_projet, data=valid_data)
     assert form.is_valid()
 
     invalid_data = {
         "detr_avis_commission": "invalid",
     }
-    form = DotationProjetForm(instance=dotation_projet, data=invalid_data)
+    form = EnveloppeProjetForm(instance=enveloppe_projet, data=invalid_data)
     assert not form.is_valid()
     assert "detr_avis_commission" in form.errors
 
 
 @pytest.mark.django_db
-def test_dotation_projet_form_save(dotation_projet):
+def test_enveloppe_projet_form_save(enveloppe_projet):
     data = {
         "detr_avis_commission": True,
     }
-    form = DotationProjetForm(instance=dotation_projet, data=data)
+    form = EnveloppeProjetForm(instance=enveloppe_projet, data=data)
     assert form.is_valid()
-    dotation_projet = form.save(commit=True)
-    assert isinstance(dotation_projet, DotationProjet)
-    assert dotation_projet.detr_avis_commission is True
+    enveloppe_projet = form.save(commit=True)
+    assert isinstance(enveloppe_projet, EnveloppeProjet)
+    assert enveloppe_projet.detr_avis_commission is True

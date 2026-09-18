@@ -23,12 +23,12 @@
                         <div role="alert" class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">
                             <p>La dotation {{ projet.dotation_not_treated }} est en attente de traitement.</p>
                         </div>
-                    {% elif dotation_projets_without_signed_document %}
+                    {% elif enveloppe_projets_without_signed_document %}
                         <div role="alert" class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">
                             <p>Documents manquants pour notifier&nbsp;:</p>
                             <ul>
-                                {% for dotation_projet in dotation_projets_without_signed_document %}
-                                    <li>Lettre de notification et arrêté signés {{ dotation_projet.dotation }}</li>
+                                {% for enveloppe_projet in enveloppe_projets_without_signed_document %}
+                                    <li>Lettre de notification et arrêté signés {{ enveloppe_projet.dotation }}</li>
                                 {% endfor %}
                             </ul>
                         </div>
@@ -36,7 +36,7 @@
 
                     <button type="submit"
                             class="fr-btn fr-icon-mail-line fr-btn--icon-right"
-                            {% if projet.dotation_not_treated or dotation_projets_without_signed_document %}disabled{% endif %}>
+                            {% if projet.dotation_not_treated or enveloppe_projets_without_signed_document %}disabled{% endif %}>
                         Notifier
                     </button>
                 </form>

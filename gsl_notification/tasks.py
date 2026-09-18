@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 from django.db.models import F
 from django.utils import timezone
 
-from gsl.projet.models import DotationProjet
+from gsl.projet.models import EnveloppeProjet
 from gsl_notification.models import (
     UPLOADED_DOCUMENTS,
     Annexe,
@@ -258,7 +258,7 @@ def _reattach_all_files(job, pdfs, result) -> None:
         reattach_signed_docs(
             pdfs,
             job.created_by,
-            DotationProjet.objects.programmees().visible_to_user(job.created_by),
+            EnveloppeProjet.objects.programmees().visible_to_user(job.created_by),
             remove_qr_code=job.remove_qr_code,
         ),
         job,

@@ -113,7 +113,7 @@ class BaseSimulationProjetResource(ModelResource):
         widget=DecimalWidget(),
     )
     assiette = Field(
-        attribute="dotation_projet__assiette",
+        attribute="enveloppe_projet__assiette",
         column_name="Assiette subventionnable",
         widget=DecimalWidget(),
     )
@@ -123,7 +123,7 @@ class BaseSimulationProjetResource(ModelResource):
         widget=DecimalWidget(),
     )
     demande_taux = Field(
-        attribute="dotation_projet__taux_de_subvention_sollicite",
+        attribute="enveloppe_projet__taux_de_subvention_sollicite",
         column_name="Taux demandé",
         widget=TauxWidget(),
     )
@@ -162,7 +162,7 @@ class BaseSimulationProjetResource(ModelResource):
         widget=OuiNonWidget(),
     )
     dotation = Field(
-        attribute="dotation_projet__dotation",
+        attribute="enveloppe_projet__dotation",
         column_name="Dotation",
     )
     categorie = Field(
@@ -288,7 +288,7 @@ class BaseSimulationProjetResource(ModelResource):
 
 class DsilSimulationProjetResource(BaseSimulationProjetResource):
     def dehydrate_categorie(self, simu_projet: SimulationProjet):
-        dp = simu_projet.dotation_projet
+        dp = simu_projet.enveloppe_projet
         dossier_ds = dp.projet.dossier_ds
         categorie = getattr(dossier_ds, "demande_categorie_dsil", None)
         return categorie.label if categorie else ""
@@ -301,13 +301,13 @@ class DetrSimulationProjetResource(BaseSimulationProjetResource):
         widget=OuiNonWidget(),
     )
     detr_avis_commission = Field(
-        attribute="dotation_projet__detr_avis_commission",
+        attribute="enveloppe_projet__detr_avis_commission",
         column_name="Avis de la commission",
         widget=OuiNonWidget(),
     )
 
     def dehydrate_categorie(self, simu_projet: SimulationProjet):
-        dp = simu_projet.dotation_projet
+        dp = simu_projet.enveloppe_projet
         dossier_ds = dp.projet.dossier_ds
         if getattr(dossier_ds, "demande_has_categorie_detr", None) is False:
             return "Hors catégorie"

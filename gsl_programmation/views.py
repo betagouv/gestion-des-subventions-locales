@@ -14,7 +14,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
 )
-from gsl.projet.models import DotationProjet
+from gsl.projet.models import EnveloppeProjet
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
@@ -30,10 +30,10 @@ from gsl_programmation.utils.programmation_projet_filters import ProgrammationFi
 
 
 class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
-    model = DotationProjet
+    model = EnveloppeProjet
     filterset_class = ProgrammationFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
-    context_object_name = "dotation_projets"
+    context_object_name = "enveloppe_projets"
     paginate_by = 25
     ordering = ["-date_programmation"]
 
@@ -54,13 +54,13 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
                 "enveloppe",
                 "annexes",
                 "enveloppe__perimetre",
-                "projet__dotationprojet_set",
-                "projet__dotationprojet_set__simulationprojet_set",
-                "projet__dotationprojet_set__arrete",
-                "projet__dotationprojet_set__lettrenotification",
-                "projet__dotationprojet_set__lettre_et_arrete_signes",
-                "projet__dotationprojet_set__enveloppe",
-                "projet__dotationprojet_set__annexes",
+                "projet__enveloppeprojet_set",
+                "projet__enveloppeprojet_set__simulationprojet_set",
+                "projet__enveloppeprojet_set__arrete",
+                "projet__enveloppeprojet_set__lettrenotification",
+                "projet__enveloppeprojet_set__lettre_et_arrete_signes",
+                "projet__enveloppeprojet_set__enveloppe",
+                "projet__enveloppeprojet_set__annexes",
                 "projet__dossier_ds__demande_categorie_dsil",
                 "projet__dossier_ds__demande_categorie_detr",
                 "projet__dossier_ds__ds_demarche",

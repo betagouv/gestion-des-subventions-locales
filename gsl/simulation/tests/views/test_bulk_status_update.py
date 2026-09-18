@@ -10,7 +10,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -96,14 +96,14 @@ def test_bulk_status_update_rejects_ids_outside_user_perimeter(
     other_perimetre = PerimetreDepartementalFactory()
     other_enveloppe = DetrEnveloppeFactory(perimetre=other_perimetre, annee=2025)
     other_simulation = SimulationFactory(enveloppe=other_enveloppe)
-    other_dotation = DotationProjetFactory(
+    other_dotation = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=other_perimetre,
         dotation=DOTATION_DETR,
         assiette=10_000,
     )
     outside = SimulationProjetFactory(
-        dotation_projet=other_dotation,
+        enveloppe_projet=other_dotation,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
         simulation=other_simulation,
@@ -308,8 +308,8 @@ def test_preflight_to_accepted_with_missing_assiette_returns_preflight_modal(
 ):
     sp_ok = _make_simu_projet(collegue, simulation)
     sp_blocked = _make_simu_projet(collegue, simulation)
-    sp_blocked.dotation_projet.assiette = None
-    sp_blocked.dotation_projet.save()
+    sp_blocked.enveloppe_projet.assiette = None
+    sp_blocked.enveloppe_projet.save()
 
     response = client_with_user_logged.post(
         _bulk_url(SimulationProjet.STATUS_ACCEPTED),
@@ -336,8 +336,8 @@ def test_preflight_to_accepted_with_all_rows_blocked_returns_error_modal(
     client_with_user_logged, collegue, simulation
 ):
     sp = _make_simu_projet(collegue, simulation)
-    sp.dotation_projet.assiette = None
-    sp.dotation_projet.save()
+    sp.enveloppe_projet.assiette = None
+    sp.enveloppe_projet.save()
 
     response = client_with_user_logged.post(
         _bulk_url(SimulationProjet.STATUS_ACCEPTED),
@@ -395,8 +395,8 @@ def test_preflight_montant_exceeds_assiette_blocks_row(
 ):
     sp_ok = _make_simu_projet(collegue, simulation)
     sp_blocked = _make_simu_projet(collegue, simulation)
-    sp_blocked.dotation_projet.assiette = 100
-    sp_blocked.dotation_projet.save()
+    sp_blocked.enveloppe_projet.assiette = 100
+    sp_blocked.enveloppe_projet.save()
     sp_blocked.montant = 5000
     sp_blocked.save()
 
@@ -419,11 +419,11 @@ def test_preflight_groups_blockers_by_reason(
 ):
     sp_ok = _make_simu_projet(collegue, simulation)
     sp_missing = _make_simu_projet(collegue, simulation)
-    sp_missing.dotation_projet.assiette = None
-    sp_missing.dotation_projet.save()
+    sp_missing.enveloppe_projet.assiette = None
+    sp_missing.enveloppe_projet.save()
     sp_exceeds = _make_simu_projet(collegue, simulation)
-    sp_exceeds.dotation_projet.assiette = 100
-    sp_exceeds.dotation_projet.save()
+    sp_exceeds.enveloppe_projet.assiette = 100
+    sp_exceeds.enveloppe_projet.save()
     sp_exceeds.montant = 5000
     sp_exceeds.save()
 
@@ -467,8 +467,8 @@ def test_preflight_modal_for_dn_target_posts_to_job_start(
 ):
     sp_ok = _make_simu_projet(collegue, simulation)
     sp_blocked = _make_simu_projet(collegue, simulation)
-    sp_blocked.dotation_projet.assiette = None
-    sp_blocked.dotation_projet.save()
+    sp_blocked.enveloppe_projet.assiette = None
+    sp_blocked.enveloppe_projet.save()
 
     response = client_with_user_logged.post(
         _bulk_url(SimulationProjet.STATUS_ACCEPTED),

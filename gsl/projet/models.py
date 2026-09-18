@@ -66,28 +66,28 @@ class ProjetQuerySet(models.QuerySet):
 
     def annotate_status(self):
         has_processing = Exists(
-            DotationProjet.objects.filter(
+            EnveloppeProjet.objects.filter(
                 projet=OuterRef("pk"), status=PROJET_STATUS_PROCESSING
             )
         )
 
         # Count dotations with specific programmation status
         has_accepted = Exists(
-            DotationProjet.objects.filter(
+            EnveloppeProjet.objects.filter(
                 projet=OuterRef("pk"),
                 status=PROJET_STATUS_ACCEPTED,
             )
         )
 
         has_dismissed = Exists(
-            DotationProjet.objects.filter(
+            EnveloppeProjet.objects.filter(
                 projet=OuterRef("pk"),
                 status=PROJET_STATUS_DISMISSED,
             )
         )
 
         has_refused = Exists(
-            DotationProjet.objects.filter(
+            EnveloppeProjet.objects.filter(
                 projet=OuterRef("pk"),
                 status=PROJET_STATUS_REFUSED,
             )
@@ -115,7 +115,7 @@ class ProjetQuerySet(models.QuerySet):
                     has_refused,
                     then=Value(PROJET_STATUS_REFUSED),
                 ),
-                # Projects without any DotationProjet have no status
+                # Projects without any EnveloppeProjet have no status
                 default=Value(None),
             )
         )
@@ -158,7 +158,7 @@ class ProjetQuerySet(models.QuerySet):
     def included_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
         projet_qs_with_the_correct_dotation = projet_qs.filter(
-            dotationprojet__dotation=enveloppe.dotation
+            enveloppeprojet__dotation=enveloppe.dotation
         )
         projet_qs_submitted_before_the_end_of_the_year = (
             projet_qs_with_the_correct_dotation.filter(
@@ -174,10 +174,10 @@ class ProjetQuerySet(models.QuerySet):
 
     def to_notify(self):
         return self.annotate(
-            dotations_count=Count("dotationprojet"),
+            dotations_count=Count("enveloppeprojet"),
             programmation_count=Count(
-                "dotationprojet",
-                filter=Q(dotationprojet__enveloppe__isnull=False),
+                "enveloppeprojet",
+                filter=Q(enveloppeprojet__enveloppe__isnull=False),
             ),
         ).filter(
             dotations_count__gt=0,
@@ -188,7 +188,7 @@ class ProjetQuerySet(models.QuerySet):
     def with_at_least_one_treated_dotation(self):
         return self.filter(
             Exists(
-                DotationProjet.objects.programmees().filter(
+                EnveloppeProjet.objects.programmees().filter(
                     projet=OuterRef("pk"),
                     status__in=PROJET_FINAL_STATUSES,
                 )
@@ -198,7 +198,7 @@ class ProjetQuerySet(models.QuerySet):
     def with_at_least_one_accepted_dotation(self):
         return self.filter(
             Exists(
-                DotationProjet.objects.filter(
+                EnveloppeProjet.objects.filter(
                     projet=OuterRef("pk"), status=PROJET_STATUS_ACCEPTED
                 )
             )
@@ -235,8 +235,8 @@ class ProjetQuerySet(models.QuerySet):
                 total_cost=Sum("dossier_ds__finance_cout_total"),
                 total_amount_asked=Sum("dossier_ds__demande_montant"),
                 total_amount_granted=Sum(
-                    "dotationprojet__montant",
-                    filter=Q(dotationprojet__status=PROJET_STATUS_ACCEPTED),
+                    "enveloppeprojet__montant",
+                    filter=Q(enveloppeprojet__status=PROJET_STATUS_ACCEPTED),
                 ),
             )
 
@@ -252,7 +252,7 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
             super()
             .get_queryset()
             .select_related("dossier_ds")
-            .prefetch_related("dotationprojet_set")
+            .prefetch_related("enveloppeprojet_set")
         )
 
 
@@ -339,13 +339,13 @@ class Projet(BaseModel):
             return self._status
 
         return projet_status_from_dotation_statuses(
-            list(d.status for d in self.dotationprojet_set.all())
+            list(d.status for d in self.enveloppeprojet_set.all())
         )
 
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
-            self.dotationprojet_set.filter(dotation=DOTATION_DETR).exists()
+            self.enveloppeprojet_set.filter(dotation=DOTATION_DETR).exists()
             and self.dossier_ds.demande_montant is not None
             and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
         )
@@ -355,24 +355,24 @@ class Projet(BaseModel):
         return sorted(
             [
                 dotation.dotation
-                for dotation in self.dotationprojet_set.all()
+                for dotation in self.enveloppeprojet_set.all()
                 if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
             ]
         )
 
     @property
     def has_double_dotations(self):
-        return self.dotationprojet_set.count() > 1
+        return self.enveloppeprojet_set.count() > 1
 
     @property
     def dotation_detr(self):
-        for dp in self.dotationprojet_set.all():
+        for dp in self.enveloppeprojet_set.all():
             if dp.dotation == DOTATION_DETR:
                 return dp
 
     @property
     def dotation_dsil(self):
-        for dp in self.dotationprojet_set.all():
+        for dp in self.enveloppeprojet_set.all():
             if dp.dotation == DOTATION_DSIL:
                 return dp
 
@@ -381,20 +381,20 @@ class Projet(BaseModel):
         if self.notified_at is not None:
             return False
 
-        dotation_projets = self.dotationprojet_set.all()
-        if not dotation_projets:
+        enveloppe_projets = self.enveloppeprojet_set.all()
+        if not enveloppe_projets:
             return False
 
-        return all(dp.is_treated for dp in dotation_projets)
+        return all(dp.is_treated for dp in enveloppe_projets)
 
     @property
     def has_treated_dotation(self) -> bool:
-        return any(dp.is_treated for dp in self.dotationprojet_set.all())
+        return any(dp.is_treated for dp in self.enveloppeprojet_set.all())
 
     @property
     def has_accepted_dotation(self) -> bool:
         return any(
-            dp.status == PROJET_STATUS_ACCEPTED for dp in self.dotationprojet_set.all()
+            dp.status == PROJET_STATUS_ACCEPTED for dp in self.enveloppeprojet_set.all()
         )
 
     @property
@@ -407,13 +407,13 @@ class Projet(BaseModel):
 
     @property
     def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
-        # Python-side sort so we benefit from the dotationprojet_set
+        # Python-side sort so we benefit from the enveloppeprojet_set
         # prefetch instead of re-querying via order_by().
         return next(
             (
                 dp.dotation
                 for dp in sorted(
-                    self.dotationprojet_set.all(), key=lambda dp: dp.dotation
+                    self.enveloppeprojet_set.all(), key=lambda dp: dp.dotation
                 )
                 if dp.status == PROJET_STATUS_PROCESSING
             ),
@@ -424,7 +424,7 @@ class Projet(BaseModel):
     def all_dotations_have_processing_status(self) -> bool:
         return all(
             dp.status == PROJET_STATUS_PROCESSING
-            for dp in self.dotationprojet_set.all()
+            for dp in self.enveloppeprojet_set.all()
         )
 
     @property
@@ -433,13 +433,13 @@ class Projet(BaseModel):
             document
             for model in GENERATED_DOCUMENTS.values()
             for document in model.objects.filter(
-                dotation_projet__projet=self
+                enveloppe_projet__projet=self
             ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
             documents,
             key=lambda d: (
-                DOTATIONS.index(d.dotation_projet.dotation),
+                DOTATIONS.index(d.enveloppe_projet.dotation),
                 list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
@@ -450,13 +450,13 @@ class Projet(BaseModel):
             document
             for model in UPLOADED_DOCUMENTS.values()
             for document in model.objects.filter(
-                dotation_projet__projet=self
+                enveloppe_projet__projet=self
             ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
             documents,
             key=lambda d: (
-                DOTATIONS.index(d.dotation_projet.dotation),
+                DOTATIONS.index(d.enveloppe_projet.dotation),
                 list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
@@ -483,14 +483,14 @@ class Projet(BaseModel):
 
 # Used to construct file name
 _GENERATED_DOCUMENT_SELECT_RELATED = (
-    "dotation_projet__projet__dossier_ds__ds_demandeur",
+    "enveloppe_projet__projet__dossier_ds__ds_demandeur",
 )
 
 # Used for dotation column
-_UPLOADED_DOCUMENT_SELECT_RELATED = ("dotation_projet",)
+_UPLOADED_DOCUMENT_SELECT_RELATED = ("enveloppe_projet",)
 
 
-class DotationProjetQuerySet(models.QuerySet):
+class EnveloppeProjetQuerySet(models.QuerySet):
     def programmees(self):
         return self.filter(enveloppe__isnull=False)
 
@@ -556,11 +556,11 @@ class DotationProjetQuerySet(models.QuerySet):
         )
 
 
-class DotationProjetManager(models.Manager.from_queryset(DotationProjetQuerySet)):
+class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySet)):
     pass
 
 
-class DotationProjet(BaseModel):
+class EnveloppeProjet(BaseModel):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     # TODO pr_dotation put back protected=True, once every status transition is handled ?
@@ -596,12 +596,12 @@ class DotationProjet(BaseModel):
         "Date de programmation", blank=True, null=True
     )
 
-    objects = DotationProjetManager()
+    objects = EnveloppeProjetManager()
 
     class Meta:
         unique_together = ("projet", "dotation")
-        verbose_name = "Dotation projet"
-        verbose_name_plural = "Dotations projet"
+        verbose_name = "Enveloppe projet"
+        verbose_name_plural = "Enveloppes projet"
         constraints = (
             models.CheckConstraint(
                 condition=Q(status=PROJET_STATUS_PROCESSING, enveloppe__isnull=True)
@@ -729,8 +729,8 @@ class DotationProjet(BaseModel):
         return self.enveloppe_id is not None
 
     @property
-    def other_dotations(self) -> List["DotationProjet"]:
-        return list(d for d in self.projet.dotationprojet_set.all() if d.pk != self.pk)
+    def other_dotations(self) -> List["EnveloppeProjet"]:
+        return list(d for d in self.projet.enveloppeprojet_set.all() if d.pk != self.pk)
 
     @property
     def other_accepted_dotations(self) -> List[POSSIBLE_DOTATIONS]:
@@ -797,7 +797,7 @@ class DotationProjet(BaseModel):
             return self._notification_status
 
         return (
-            DotationProjet.objects.annotate_notification_status()
+            EnveloppeProjet.objects.annotate_notification_status()
             .values_list("_notification_status", flat=True)
             .get(pk=self.pk)
         )
@@ -809,7 +809,7 @@ class DotationProjet(BaseModel):
     @property
     def lettre(self):
         """Bridge between the LETTRE document_type and the related_name, so
-        `getattr(dotation_projet, document_type)` resolves for every type."""
+        `getattr(enveloppe_projet, document_type)` resolves for every type."""
         return self.lettrenotification
 
     @property
@@ -855,7 +855,7 @@ class DotationProjet(BaseModel):
         previous_enveloppe = self.enveloppe
         previous_montant = self.montant
 
-        SimulationProjet.objects.filter(dotation_projet=self).update(
+        SimulationProjet.objects.filter(enveloppe_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=montant,
         )
@@ -921,7 +921,7 @@ class DotationProjet(BaseModel):
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
 
-        SimulationProjet.objects.filter(dotation_projet=self).update(
+        SimulationProjet.objects.filter(enveloppe_projet=self).update(
             status=SimulationProjet.STATUS_REFUSED,
             montant=0,
         )
@@ -952,7 +952,7 @@ class DotationProjet(BaseModel):
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
 
-        SimulationProjet.objects.filter(dotation_projet=self).update(
+        SimulationProjet.objects.filter(enveloppe_projet=self).update(
             status=SimulationProjet.STATUS_DISMISSED, montant=0
         )
 
@@ -981,7 +981,7 @@ class DotationProjet(BaseModel):
     def set_back_status_to_processing_without_ds(self, actor=None):
         from gsl.simulation.models import SimulationProjet
 
-        SimulationProjet.objects.filter(dotation_projet=self).update(
+        SimulationProjet.objects.filter(enveloppe_projet=self).update(
             status=SimulationProjet.STATUS_PROCESSING,
         )
 

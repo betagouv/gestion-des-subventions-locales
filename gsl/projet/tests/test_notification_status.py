@@ -20,99 +20,103 @@ from ..constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from ..models import DotationProjet
-from .factories import DotationProjetFactory
+from ..models import EnveloppeProjet
+from .factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
 
 
-def _assert_property_matches_annotation(dotation_projet: DotationProjet):
+def _assert_property_matches_annotation(enveloppe_projet: EnveloppeProjet):
     """
     Checks all three access paths agree: the property's fallback computation
     (non-annotated instance), the raw queryset annotation, and the property's
     fast path when called on an already-annotated instance.
     """
-    annotated_instance = DotationProjet.objects.annotate_notification_status().get(
-        pk=dotation_projet.pk
+    annotated_instance = EnveloppeProjet.objects.annotate_notification_status().get(
+        pk=enveloppe_projet.pk
     )
 
     assert (
-        dotation_projet.notification_status == annotated_instance._notification_status
+        enveloppe_projet.notification_status == annotated_instance._notification_status
     )
-    assert dotation_projet.notification_status == annotated_instance.notification_status
+    assert (
+        enveloppe_projet.notification_status == annotated_instance.notification_status
+    )
 
 
-def test_dotation_projet_without_programmation_has_no_notification_status():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_PROCESSING)
+def test_enveloppe_projet_without_programmation_has_no_notification_status():
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_PROCESSING)
 
-    assert dotation_projet.notification_status is None
-    _assert_property_matches_annotation(dotation_projet)
-
-
-def test_dotation_projet_with_programmation_but_no_document_is_to_generate():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
-    _assert_property_matches_annotation(dotation_projet)
+    assert enveloppe_projet.notification_status is None
+    _assert_property_matches_annotation(enveloppe_projet)
 
 
-def test_accepted_dotation_projet_with_both_documents_is_to_sign():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    ArreteFactory(dotation_projet=dotation_projet)
-    LettreNotificationFactory(dotation_projet=dotation_projet)
+def test_enveloppe_projet_with_programmation_but_no_document_is_to_generate():
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
 
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_SIGN
-    _assert_property_matches_annotation(dotation_projet)
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
+    _assert_property_matches_annotation(enveloppe_projet)
 
 
-def test_accepted_dotation_projet_with_only_one_document_is_to_generate():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    ArreteFactory(dotation_projet=dotation_projet)
+def test_accepted_enveloppe_projet_with_both_documents_is_to_sign():
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    ArreteFactory(enveloppe_projet=enveloppe_projet)
+    LettreNotificationFactory(enveloppe_projet=enveloppe_projet)
 
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
-    _assert_property_matches_annotation(dotation_projet)
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_TO_SIGN
+    _assert_property_matches_annotation(enveloppe_projet)
 
 
-def test_dotation_projet_with_signed_documents_is_to_notify():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
+def test_accepted_enveloppe_projet_with_only_one_document_is_to_generate():
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    ArreteFactory(enveloppe_projet=enveloppe_projet)
 
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_NOTIFY
-    _assert_property_matches_annotation(dotation_projet)
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
+    _assert_property_matches_annotation(enveloppe_projet)
+
+
+def test_enveloppe_projet_with_signed_documents_is_to_notify():
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_TO_NOTIFY
+    _assert_property_matches_annotation(enveloppe_projet)
 
 
 def test_notified_projet_dotation_is_notified_even_with_no_signed_document():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    dotation_projet.projet.notified_at = datetime.now(UTC)
-    dotation_projet.projet.save()
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet.projet.notified_at = datetime.now(UTC)
+    enveloppe_projet.projet.save()
 
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_NOTIFIED
-    _assert_property_matches_annotation(dotation_projet)
-
-
-@pytest.mark.parametrize("status", [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
-def test_refused_or_dismissed_dotation_projet_with_programmation_is_to_generate(status):
-    dotation_projet = DotationProjetFactory(status=status)
-
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
-    _assert_property_matches_annotation(dotation_projet)
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_NOTIFIED
+    _assert_property_matches_annotation(enveloppe_projet)
 
 
 @pytest.mark.parametrize("status", [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
-def test_refused_or_dismissed_dotation_projet_with_lettre_refus_is_to_sign(status):
-    dotation_projet = DotationProjetFactory(status=status)
-    LettreRefusFactory(dotation_projet=dotation_projet)
-
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_SIGN
-    _assert_property_matches_annotation(dotation_projet)
-
-
-@pytest.mark.parametrize("status", [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
-def test_refused_or_dismissed_dotation_projet_with_signed_lettre_refus_is_to_notify(
+def test_refused_or_dismissed_enveloppe_projet_with_programmation_is_to_generate(
     status,
 ):
-    dotation_projet = DotationProjetFactory(status=status)
-    LettreRefusSigneeFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
 
-    assert dotation_projet.notification_status == NOTIFICATION_STATUS_TO_NOTIFY
-    _assert_property_matches_annotation(dotation_projet)
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_TO_GENERATE
+    _assert_property_matches_annotation(enveloppe_projet)
+
+
+@pytest.mark.parametrize("status", [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
+def test_refused_or_dismissed_enveloppe_projet_with_lettre_refus_is_to_sign(status):
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
+    LettreRefusFactory(enveloppe_projet=enveloppe_projet)
+
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_TO_SIGN
+    _assert_property_matches_annotation(enveloppe_projet)
+
+
+@pytest.mark.parametrize("status", [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
+def test_refused_or_dismissed_enveloppe_projet_with_signed_lettre_refus_is_to_notify(
+    status,
+):
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
+    LettreRefusSigneeFactory(enveloppe_projet=enveloppe_projet)
+
+    assert enveloppe_projet.notification_status == NOTIFICATION_STATUS_TO_NOTIFY
+    _assert_property_matches_annotation(enveloppe_projet)

@@ -7,7 +7,7 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -54,12 +54,12 @@ class TestProgrammationProjetListView:
 
 class TestProgrammationProjetListViewWithDotation:
     @pytest.fixture
-    def dsil_dotation_projet(self, user_with_perimetre):
+    def dsil_enveloppe_projet(self, user_with_perimetre):
         dsil_enveloppe = DsilEnveloppeFactory(
             perimetre=user_with_perimetre.perimetre.parent,
             annee=2024,  # DSIL programmation can only be on Region
         )
-        return DotationProjetFactory(
+        return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DSIL,
             status=PROJET_STATUS_ACCEPTED,
@@ -67,11 +67,11 @@ class TestProgrammationProjetListViewWithDotation:
         )
 
     @pytest.fixture
-    def detr_dotation_projet(self, user_with_perimetre):
+    def detr_enveloppe_projet(self, user_with_perimetre):
         detr_enveloppe = DetrEnveloppeFactory(
             perimetre=user_with_perimetre.perimetre, annee=2024
         )
-        return DotationProjetFactory(
+        return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_ACCEPTED,
@@ -79,7 +79,7 @@ class TestProgrammationProjetListViewWithDotation:
         )
 
     def test_list_view_with_detr(
-        self, user_with_perimetre, detr_dotation_projet, dsil_dotation_projet
+        self, user_with_perimetre, detr_enveloppe_projet, dsil_enveloppe_projet
     ):
         """Un utilisateur avec un périmètre peut accéder à la liste des projets"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
@@ -89,12 +89,12 @@ class TestProgrammationProjetListViewWithDotation:
         )
         response = client.get(url)
         assert response.status_code == 200
-        assert "dotation_projets" in response.context
-        assert response.context["dotation_projets"].count() == 1
-        assert response.context["dotation_projets"].first() == detr_dotation_projet
+        assert "enveloppe_projets" in response.context
+        assert response.context["enveloppe_projets"].count() == 1
+        assert response.context["enveloppe_projets"].first() == detr_enveloppe_projet
 
     def test_list_view_with_dsil(
-        self, user_with_perimetre, detr_dotation_projet, dsil_dotation_projet
+        self, user_with_perimetre, detr_enveloppe_projet, dsil_enveloppe_projet
     ):
         """Un utilisateur avec un périmètre peut accéder à la liste des projets DSIL"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
@@ -104,12 +104,12 @@ class TestProgrammationProjetListViewWithDotation:
         )
         response = client.get(url)
         assert response.status_code == 200
-        assert "dotation_projets" in response.context
-        assert response.context["dotation_projets"].count() == 1
-        assert response.context["dotation_projets"].first() == dsil_dotation_projet
+        assert "enveloppe_projets" in response.context
+        assert response.context["enveloppe_projets"].count() == 1
+        assert response.context["enveloppe_projets"].first() == dsil_enveloppe_projet
 
     def test_list_view_renders_import_documents_button(
-        self, user_with_perimetre, detr_dotation_projet
+        self, user_with_perimetre, detr_enveloppe_projet
     ):
         """La barre d'outils propose l'import des documents signés."""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
@@ -160,13 +160,13 @@ class TestProgrammationProjetListViewExcludesInactiveDossiers:
         detr_enveloppe = DetrEnveloppeFactory(
             perimetre=user_with_perimetre.perimetre, annee=2024
         )
-        active_dotation_projet = DotationProjetFactory(
+        active_enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_ACCEPTED,
             enveloppe=detr_enveloppe,
         )
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             projet__dossier_ds__is_active=False,
             dotation=DOTATION_DETR,
@@ -182,6 +182,6 @@ class TestProgrammationProjetListViewExcludesInactiveDossiers:
         response = client.get(url)
 
         assert response.status_code == 200
-        dotation_projets = response.context["dotation_projets"]
-        assert dotation_projets.count() == 1
-        assert dotation_projets.first() == active_dotation_projet
+        enveloppe_projets = response.context["enveloppe_projets"]
+        assert enveloppe_projets.count() == 1
+        assert enveloppe_projets.first() == active_enveloppe_projet

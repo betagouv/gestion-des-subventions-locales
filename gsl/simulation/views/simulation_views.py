@@ -14,7 +14,7 @@ from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
 from gsl.projet.constants import DOTATION_DSIL, DOTATIONS
-from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.models import EnveloppeProjet, Projet
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_CREATION_SIMULATION,
@@ -135,8 +135,8 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
             .filter(
                 simulation=simulation,
                 status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
-                dotation_projet__projet__in=self.filterset.qs,
-                dotation_projet__projet__notified_at__isnull=True,
+                enveloppe_projet__projet__in=self.filterset.qs,
+                enveloppe_projet__projet__notified_at__isnull=True,
             )
             .values_list("id", flat=True)
         )
@@ -169,11 +169,11 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
     def _get_projet_base_queryset(self):
         return (
             Projet.objects.active()
-            .filter(dotationprojet__simulationprojet__simulation=self.object)
+            .filter(enveloppeprojet__simulationprojet__simulation=self.object)
             .select_related("address", "address__commune")
             .prefetch_related(
-                "dotationprojet_set",
-                "dotationprojet_set__simulationprojet_set",
+                "enveloppeprojet_set",
+                "enveloppeprojet_set__simulationprojet_set",
                 "dossier_ds__demande_categorie_detr",
                 "dossier_ds__demande_categorie_dsil",
                 "dossier_ds__porteur_de_projet_arrondissement",
@@ -183,14 +183,14 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
                 "dossier_ds__projet_zonage",
                 "dossier_ds__projet_contractualisation",
                 Prefetch(
-                    "dotationprojet_set",
-                    queryset=DotationProjet.objects.active().filter(
+                    "enveloppeprojet_set",
+                    queryset=EnveloppeProjet.objects.active().filter(
                         dotation=self.object.enveloppe.dotation
                     ),
-                    to_attr="dotation_projet",
+                    to_attr="enveloppe_projet",
                 ),
                 Prefetch(
-                    "dotation_projet__simulationprojet_set",
+                    "enveloppe_projet__simulationprojet_set",
                     queryset=SimulationProjet.objects.filter(simulation=self.object),
                     to_attr="simu",
                 ),
@@ -317,18 +317,18 @@ class FilteredProjetsExportView(SimulationDetailView):
         queryset = self.get_projet_queryset()
         simu_projet_qs = (
             SimulationProjet.objects.active()
-            .filter(simulation=self.object, dotation_projet__projet__in=queryset)
+            .filter(simulation=self.object, enveloppe_projet__projet__in=queryset)
             .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__dossier_ds__ds_demandeur",
+                "enveloppe_projet",
+                "enveloppe_projet__projet",
+                "enveloppe_projet__projet__dossier_ds",
+                "enveloppe_projet__projet__dossier_ds__ds_demandeur",
             )
             .prefetch_related(
-                "dotation_projet__projet__dotationprojet_set",
-                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
-                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
-                "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
+                "enveloppe_projet__projet__enveloppeprojet_set",
+                "enveloppe_projet__projet__dossier_ds__demande_categorie_detr",
+                "enveloppe_projet__projet__dossier_ds__demande_categorie_dsil",
+                "enveloppe_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
             )
         )
 

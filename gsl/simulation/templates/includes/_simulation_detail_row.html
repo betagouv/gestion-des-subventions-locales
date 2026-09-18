@@ -3,7 +3,7 @@
 {% with row_url=simu.get_absolute_url %}
     <tr id="simulation-{{ simu.pk }}"
         hx-swap-oob="true"
-        {% if dotation_projet.other_dotations|length > 0 %}class="gsl-projet-table__row--double-dotation"{% endif %}>
+        {% if enveloppe_projet.other_dotations|length > 0 %}class="gsl-projet-table__row--double-dotation"{% endif %}>
         <td class="gsl-projet-table__cell--checkbox">
             {% if simu.id in selectable_ids_list %}
                 <div class="fr-checkbox-group fr-checkbox-group--sm">

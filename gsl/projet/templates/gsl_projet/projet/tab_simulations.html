@@ -54,7 +54,7 @@
         {% if simulation_projets_with_forms %}
             <div class="fr-grid-row fr-grid-row--gutters">
                 {% for simu, simulation_projet_form, form_id in simulation_projets_with_forms %}
-                    {% with dotation_projet=simu.dotation_projet dossier=simu.dossier %}
+                    {% with enveloppe_projet=simu.enveloppe_projet dossier=simu.dossier %}
                         {% include "gsl_projet/projet/includes/_simulation_card.html" %}
                     {% endwith %}
                 {% endfor %}

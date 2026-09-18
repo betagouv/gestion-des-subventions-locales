@@ -13,11 +13,11 @@ from gsl_core.templatetags.gsl_filters import percent
 from gsl_programmation.models import Enveloppe
 
 from .constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_CHOICES
-from .models import DotationProjet, Projet, ProjetQuerySet
+from .models import EnveloppeProjet, Projet, ProjetQuerySet
 
 
-class DotationProjetInline(admin.TabularInline):
-    model = DotationProjet
+class EnveloppeProjetInline(admin.TabularInline):
+    model = EnveloppeProjet
     extra = 0
     show_change_link = True
 
@@ -81,7 +81,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     actions = ("refresh_from_dossier",)
     inlines = [
-        DotationProjetInline,
+        EnveloppeProjetInline,
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
     readonly_fields = ("created_at", "updated_at", "perimetre", "reporte")
@@ -99,7 +99,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             "dossier_ds__ds_data__raw_data",
             "dossier_ds__ds_demarche__raw_ds_data",
         )
-        return qs.prefetch_related("dotationprojet_set")
+        return qs.prefetch_related("enveloppeprojet_set")
 
     @admin.action(description="Rafraîchir depuis le dossier DN")
     def refresh_from_dossier(self, request, queryset):
@@ -119,7 +119,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             super().get_deleted_objects(objs, request)
         )
         try:
-            perms_needed.remove(DotationProjet._meta.verbose_name)
+            perms_needed.remove(EnveloppeProjet._meta.verbose_name)
         except KeyError:
             pass
         return deleted_objects, model_count, perms_needed, protected
@@ -178,8 +178,8 @@ class SimulationProjetInline(admin.TabularInline):
     ]
 
 
-@admin.register(DotationProjet)
-class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+@admin.register(EnveloppeProjet)
+class EnveloppeProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("projet",)
     list_display = (
         "id",
@@ -237,31 +237,31 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         valid_qs = queryset.filter(
             status=PROJET_STATUS_ACCEPTED, enveloppe__annee=2026
         ).select_related("enveloppe__perimetre")
-        dotation_projet_ids = list(valid_qs.values_list("id", flat=True))
+        enveloppe_projet_ids = list(valid_qs.values_list("id", flat=True))
         success_count = 0
-        for dotation_projet in valid_qs:
+        for enveloppe_projet in valid_qs:
             try:
                 enveloppe_2025 = Enveloppe.objects.get(
-                    dotation=dotation_projet.enveloppe.dotation,
-                    perimetre=dotation_projet.enveloppe.perimetre,
+                    dotation=enveloppe_projet.enveloppe.dotation,
+                    perimetre=enveloppe_projet.enveloppe.perimetre,
                     annee=2025,
                     deleguee_by=None,
                 )
             except Enveloppe.DoesNotExist:
                 self.message_user(
                     request,
-                    f"Aucune enveloppe 2025 trouvée pour le projet {dotation_projet.id} "
-                    f"(dotation={dotation_projet.enveloppe.dotation}, périmètre={dotation_projet.enveloppe.perimetre}).",
+                    f"Aucune enveloppe 2025 trouvée pour le projet {enveloppe_projet.id} "
+                    f"(dotation={enveloppe_projet.enveloppe.dotation}, périmètre={enveloppe_projet.enveloppe.perimetre}).",
                     messages.ERROR,
                 )
                 continue
 
-            dotation_projet.accept_without_ds_update(
-                montant=dotation_projet.montant,
+            enveloppe_projet.accept_without_ds_update(
+                montant=enveloppe_projet.montant,
                 enveloppe=enveloppe_2025,
                 actor=request.user,
             )
-            dotation_projet.save()
+            enveloppe_projet.save()
             success_count += 1
 
         if success_count:
@@ -272,8 +272,8 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             )
 
         deleted_count, _ = SimulationProjet.objects.filter(
-            dotation_projet__in=dotation_projet_ids,
-            dotation_projet__enveloppe__annee__lt=F("simulation__enveloppe__annee"),
+            enveloppe_projet__in=enveloppe_projet_ids,
+            enveloppe_projet__enveloppe__annee__lt=F("simulation__enveloppe__annee"),
         ).delete()
         if deleted_count:
             self.message_user(
@@ -287,7 +287,7 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
 
     formatted_taux.short_description = "Taux"
 
-    def has_delete_permission(self, request, obj: Optional[DotationProjet] = None):
+    def has_delete_permission(self, request, obj: Optional[EnveloppeProjet] = None):
         perm = super().has_delete_permission(request, obj)
         if not perm:
             return False
@@ -295,10 +295,10 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         if obj is None:
             return True
 
-        return obj.projet.dotationprojet_set.count() > 1
+        return obj.projet.enveloppeprojet_set.count() > 1
 
     @admin.display(boolean=True, description="Actif")
-    def is_active(self, obj: DotationProjet):
+    def is_active(self, obj: EnveloppeProjet):
         return obj.projet.dossier_ds.is_active
 
     def simulation_count(self, obj):

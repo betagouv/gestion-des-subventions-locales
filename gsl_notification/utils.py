@@ -28,7 +28,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     POSSIBLE_DOTATIONS,
 )
-from gsl.projet.models import DotationProjet
+from gsl.projet.models import EnveloppeProjet
 from gsl_core.exceptions import Http404
 from gsl_core.models import Perimetre
 from gsl_core.templatetags.gsl_filters import euro, percent
@@ -42,7 +42,7 @@ from gsl_notification.qr.codec import build_payload, generate_qr_png_data_uri
 def get_nested_attribute(obj, attribute_path):
     """
     Récupère un attribut imbriqué en utilisant la notation en points.
-    Par exemple: get_nested_attribute(dotation_projet, "dossier_ds.date_achevement")
+    Par exemple: get_nested_attribute(enveloppe_projet, "dossier_ds.date_achevement")
     Retourne None si un intermédiaire est None ou si une relation inverse n'existe pas.
     """
     attributes = attribute_path.split(".")
@@ -74,10 +74,10 @@ class Mention:
     attribute: str
     type: MentionType = MentionType.STRING
 
-    def get_value(self, dotation_projet: DotationProjet) -> str:
+    def get_value(self, enveloppe_projet: EnveloppeProjet) -> str:
         if self.type == MentionType.DATE_NOW:
             return timezone.now().strftime("%d/%m/%Y")
-        value = get_nested_attribute(dotation_projet, self.attribute)
+        value = get_nested_attribute(enveloppe_projet, self.attribute)
         match self.type:
             case MentionType.EURO:
                 return euro(value, 2) if value is not None else "N/A"
@@ -200,14 +200,14 @@ MENTIONS = [
 MENTION_KEY_TO_MENTION: dict[str, Mention] = {m.key: m for m in MENTIONS}
 
 
-def replace_mentions_in_html(htmlContent: str, dotation_projet: DotationProjet):
+def replace_mentions_in_html(htmlContent: str, enveloppe_projet: EnveloppeProjet):
     soup = BeautifulSoup(htmlContent, "html.parser")
 
     for span in soup.find_all("span", class_="mention"):
         key = span.get("data-id")
         if key not in MENTION_KEY_TO_MENTION:
             raise ValueError(f"Mention {key!r} inconnue.")
-        value = MENTION_KEY_TO_MENTION[key].get_value(dotation_projet)
+        value = MENTION_KEY_TO_MENTION[key].get_value(enveloppe_projet)
         normalized = value.replace("\r\n", "\n").replace("\r", "\n")
         if "\n" in normalized:
             lines = normalized.split("\n")
@@ -459,7 +459,7 @@ def generate_pdf_for_generated_document(
 
     When ``with_qr_code`` is True (default), a per-page QR code is rendered at
     the bottom-left of every page so a scanned, signed copy can be reattached
-    to the right DotationProjet. Because each page needs a *different* QR
+    to the right EnveloppeProjet. Because each page needs a *different* QR
     (the payload includes the page number), this is a two-pass render: first
     pass counts pages, second pass emits one ``@page :nth(K)`` rule per page
     with the matching QR image.
@@ -512,8 +512,8 @@ def count_pdf_pages(pdf_bytes: bytes) -> int:
 
 def _build_qr_css_rules(document: GeneratedDocument, page_count: int) -> str:
     """Return CSS with one ``@page :nth(K)`` rule per page, each carrying its QR."""
-    ds_number = document.dotation_projet.dossier_ds.ds_number
-    dotation = document.dotation_projet.dotation
+    ds_number = document.enveloppe_projet.dossier_ds.ds_number
+    dotation = document.enveloppe_projet.dotation
     document_type = document.document_type
 
     rules = []
@@ -526,7 +526,7 @@ def _build_qr_css_rules(document: GeneratedDocument, page_count: int) -> str:
     return "\n".join(rules)
 
 
-def log_generated_document_action(user, dotation_projet, document_class, is_creating):
+def log_generated_document_action(user, enveloppe_projet, document_class, is_creating):
     action_type = (
         ProjetAction.TYPE_DOC_GENERATED
         if is_creating
@@ -534,11 +534,11 @@ def log_generated_document_action(user, dotation_projet, document_class, is_crea
     )
     doc_label = document_class.verbose_name()
     ProjetAction.objects.create(
-        projet=dotation_projet.projet,
+        projet=enveloppe_projet.projet,
         action_type=action_type,
         actor=user,
         source=ProjetAction.SOURCE_TURGOT,
-        dotation=dotation_projet.dotation,
+        dotation=enveloppe_projet.dotation,
         document_name=doc_label,
     )
 

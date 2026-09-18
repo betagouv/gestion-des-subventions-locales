@@ -3,8 +3,8 @@ Tests for the acceptance validation modal.
 
 When opening the acceptance modal from either the simulation detail page
 or the project detail page, the view must validate that:
-- DotationProjet.assiette is set
-- DotationProjet.assiette >= SimulationProjet.montant
+- EnveloppeProjet.assiette is set
+- EnveloppeProjet.assiette >= SimulationProjet.montant
 
 Otherwise a dedicated error modal is rendered with the detailed reasons.
 """
@@ -19,7 +19,7 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_PROCESSING,
 )
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -61,15 +61,15 @@ def simulation(detr_enveloppe):
 
 
 def _make_simulation_projet(collegue, simulation, *, assiette, montant):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
         assiette=assiette,
     )
-    dotation_projet.projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)
+    enveloppe_projet.projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)
     return SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=montant,
         simulation=simulation,
@@ -191,7 +191,7 @@ class TestAcceptanceModalView:
         content = response.content.decode()
         assert "inférieure au montant accordé" in content
 
-    def test_get_renders_error_modal_for_double_dotation_projet(
+    def test_get_renders_error_modal_for_double_enveloppe_projet(
         self, client_with_user_logged, collegue, simulation
     ):
         """
@@ -202,20 +202,20 @@ class TestAcceptanceModalView:
         """
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)
-        detr_dotation = DotationProjetFactory(
+        detr_dotation = EnveloppeProjetFactory(
             projet=projet,
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_PROCESSING,
             assiette=3_000,
         )
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             projet=projet,
             dotation=DOTATION_DSIL,
             status=PROJET_STATUS_PROCESSING,
             assiette=15_000,
         )
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
             simulation=simulation,
