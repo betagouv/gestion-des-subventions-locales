@@ -18,6 +18,7 @@ from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION,
     DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
 )
+from gsl_core.models import Collegue
 
 if TYPE_CHECKING:
     from gsl.projet.models import Projet
@@ -27,6 +28,18 @@ def projet_action_document_upload_to(instance, filename):
     # Named (module-level) so it stays migration-serializable, unlike a lambda.
     timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
     return f"notifications/{instance.projet_id}/{timestamp}/{filename}"
+
+
+def get_or_create_collegue_from_traitement_email(
+    traitement: dict | None,
+) -> Collegue | None:
+    if not traitement:
+        return None
+    email = (traitement.get("emailAgentTraitant") or "").strip().lower()
+    if not email:
+        return None
+
+    return Collegue.objects.get_or_create_from_email(email)
 
 
 class ProjetActionManager(models.Manager):
@@ -67,6 +80,7 @@ class ProjetActionManager(models.Manager):
                     "action_type": action_type,
                     "source": self.model.SOURCE_DN,
                     "created_at": datetime.fromisoformat(date_traitement),
+                    "actor": get_or_create_collegue_from_traitement_email(traitement),
                 },
             )
             created_count += created

@@ -6,7 +6,7 @@ from django.db import transaction
 
 from gsl.historique.models import ProjetAction
 from gsl.simulation.models import Simulation, SimulationProjet
-from gsl_core.models import Collegue, Perimetre
+from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
 
@@ -76,16 +76,6 @@ class DotationProjetService:
         cls, projet: Projet
     ) -> list[DotationProjet]:
         dossier_status = projet.dossier_ds.ds_state
-        # TODO PR remove it !
-        if dossier_status in (
-            Dossier.STATE_ACCEPTE,
-            Dossier.STATE_REFUSE,
-            Dossier.STATE_SANS_SUITE,
-        ):
-            projet.notified_at = projet.dossier_ds.ds_date_traitement
-            projet.save(update_fields=["notified_at"])
-            cls._create_notified_projet_action_from_dossier_treatment(projet)
-
         if dossier_status == Dossier.STATE_ACCEPTE:
             return cls._initialize_dotation_projets_from_projet_accepted(projet)
         elif dossier_status == Dossier.STATE_REFUSE:
@@ -205,16 +195,6 @@ class DotationProjetService:
         cls._update_assiette_from_dossier(projet)
 
         dossier_status = projet.dossier_ds.ds_state
-        # TODO PR remove it !
-        if dossier_status in (
-            Dossier.STATE_ACCEPTE,
-            Dossier.STATE_REFUSE,
-            Dossier.STATE_SANS_SUITE,
-        ):
-            projet.notified_at = projet.dossier_ds.ds_date_traitement
-            projet.save(update_fields=["notified_at"])
-            cls._create_notified_projet_action_from_dossier_treatment(projet)
-
         if dossier_status == Dossier.STATE_ACCEPTE:
             return cls._update_dotation_projets_from_projet_accepted(projet)
         elif dossier_status == Dossier.STATE_REFUSE:
@@ -392,56 +372,6 @@ class DotationProjetService:
         return dotation_projets
 
     ## -------------------------- Utils --------------------------
-
-    # TODO PR kill this
-    @classmethod
-    def _create_notified_projet_action_from_dossier_treatment(
-        cls, projet: Projet
-    ) -> None:
-        dossier = projet.dossier_ds
-        if dossier.ds_date_traitement is None:
-            return
-
-        traitement = dossier.get_last_traitement_matching_dossier_state()
-        source_id = (traitement or {}).get("id")
-        if not source_id:
-            return
-
-        actor = cls._get_or_create_collegue_from_traitement_email(traitement)
-        # source_id est la clé de dédup : une notification déjà logguée avec
-        # cet id (que ce soit par ce sync ou par NotificationMessageForm.save,
-        # qui renseigne aussi source_id depuis la réponse de la mutation DN)
-        # n'est pas recréée, et ses champs (source, actor…) ne sont pas
-        # écrasés.
-        ProjetAction.objects.get_or_create(
-            projet=projet,
-            action_type=ProjetAction.TYPE_NOTIFIED,
-            source_id=source_id,
-            defaults={
-                "source": ProjetAction.SOURCE_DN,
-                "details": (traitement or {}).get("motivation") or "",
-                "actor": actor,
-                "created_at": dossier.ds_date_traitement,
-            },
-        )
-
-    @classmethod
-    def _get_or_create_collegue_from_traitement_email(
-        cls, traitement: dict | None
-    ) -> Collegue | None:
-        if not traitement:
-            return None
-        email = (traitement.get("emailAgentTraitant") or "").strip().lower()
-        if not email:
-            return None
-
-        collegue, created = Collegue.objects.get_or_create(
-            email=email, defaults={"username": email, "is_active": False}
-        )
-        if created:
-            collegue.set_unusable_password()
-            collegue.save(update_fields=["password"])
-        return collegue
 
     @classmethod
     def _update_accepted_dotation_projets_montant_from_dn(cls, projet: Projet) -> None:
