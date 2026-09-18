@@ -5,6 +5,7 @@ notifications tab), driven by ``NotificationMessageForm`` and posted through
 """
 
 import os
+from datetime import UTC, datetime
 from typing import cast
 from unittest import mock
 
@@ -158,6 +159,41 @@ class TestForm:
         )
         assert action.details == "Bravo"
         assert action.document.name.endswith("/notification.pdf")
+
+    def test_save_uses_dn_date_traitement_for_notified_at_and_action(
+        self, perimetre, collegue
+    ):
+        """notified_at and the ProjetAction's created_at must reuse the exact
+        dateTraitement DN sent back, not the local clock — otherwise the
+        DotationProjetService DN-sync would log this same notification a
+        second time (get_or_create keyed on that date)."""
+        projet = _accepted_projet(perimetre)
+        dn_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
+
+        def _fake_accept_in_ds(dossier, user, document=None, motivation=""):
+            dossier.ds_date_traitement = dn_date_traitement
+            dossier.save()
+
+        with (
+            mock.patch(
+                "gsl_notification.forms.DsService.accept_in_ds",
+                side_effect=_fake_accept_in_ds,
+            ),
+            mock.patch(
+                "gsl_notification.forms.merge_documents_into_pdf",
+                return_value=_merged_pdf(),
+            ),
+        ):
+            form = NotificationMessageForm(data={"message": "Bravo"}, instance=projet)
+            assert form.is_valid()
+            form.save(user=collegue)
+
+        projet.refresh_from_db()
+        assert projet.notified_at == dn_date_traitement
+        action = ProjetAction.objects.get(
+            projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
+        )
+        assert action.created_at == dn_date_traitement
 
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
