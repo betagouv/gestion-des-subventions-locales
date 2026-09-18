@@ -2,13 +2,13 @@ from decimal import Decimal
 
 import pytest
 
+from gsl.projet.constants import PROJET_STATUS_ACCEPTED
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ..models import SuiviFinancier
@@ -22,7 +22,7 @@ def make_projet_with_accorde(dotation_factory, montant):
     dotation_projet = dotation_factory(projet=projet)
     ProgrammationProjetFactory(
         dotation_projet=dotation_projet,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=Decimal(montant),
     )
     return projet

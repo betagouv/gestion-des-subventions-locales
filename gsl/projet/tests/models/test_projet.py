@@ -8,7 +8,6 @@ from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     LettreRefusSigneeFactory,
 )
-from gsl_programmation.models import ProgrammationProjet as pp
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...constants import (
@@ -164,7 +163,7 @@ def test_with_at_least_one_treated_dotation():
     """Project with at least one accepted programmation should be included."""
     projet = ProjetFactory()
     dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_ACCEPTED)
+    ProgrammationProjetFactory(dotation_projet=dotation, status=PROJET_STATUS_ACCEPTED)
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -181,7 +180,7 @@ def test_with_at_least_one_treated_dotation_with_refused_status():
     """Project with a refused programmation should be included."""
     projet = ProjetFactory()
     dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_REFUSED)
+    ProgrammationProjetFactory(dotation_projet=dotation, status=PROJET_STATUS_REFUSED)
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -190,7 +189,7 @@ def test_with_at_least_one_treated_dotation_with_dismissed_status():
     """Project with a dismissed programmation should be included."""
     projet = ProjetFactory()
     dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(dotation_projet=dotation, status=pp.STATUS_DISMISSED)
+    ProgrammationProjetFactory(dotation_projet=dotation, status=PROJET_STATUS_DISMISSED)
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -200,8 +199,12 @@ def test_with_at_least_one_treated_dotation_when_projet_has_two_accepted_program
     projet = ProjetFactory()
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-    ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
-    ProgrammationProjetFactory(dotation_projet=dotation_dsil, status=pp.STATUS_ACCEPTED)
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_detr, status=PROJET_STATUS_ACCEPTED
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_dsil, status=PROJET_STATUS_ACCEPTED
+    )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -211,8 +214,12 @@ def test_with_at_least_one_treated_dotation_with_one_accepted_one_refused():
     projet = ProjetFactory()
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
     dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-    ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
-    ProgrammationProjetFactory(dotation_projet=dotation_dsil, status=pp.STATUS_REFUSED)
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_detr, status=PROJET_STATUS_ACCEPTED
+    )
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_dsil, status=PROJET_STATUS_REFUSED
+    )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
 
@@ -223,7 +230,9 @@ def test_with_at_least_one_treated_dotation_for_user():
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dotation_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    ProgrammationProjetFactory(dotation_projet=dotation_detr, status=pp.STATUS_ACCEPTED)
+    ProgrammationProjetFactory(
+        dotation_projet=dotation_detr, status=PROJET_STATUS_ACCEPTED
+    )
 
     projet_not_in_perimeter = ProjetFactory()
     dotation_detr_not_in_perimeter = DotationProjetFactory(
@@ -231,7 +240,7 @@ def test_with_at_least_one_treated_dotation_for_user():
     )
     ProgrammationProjetFactory(
         dotation_projet=dotation_detr_not_in_perimeter,
-        status=pp.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
 
     assert (
@@ -545,7 +554,7 @@ def test_imported_documents_includes_signed_refusal_letter():
     )
     accepted_pp = ProgrammationProjetFactory(dotation_projet=accepted_dp)
     refused_pp = ProgrammationProjetFactory(
-        dotation_projet=refused_dp, status=pp.STATUS_REFUSED
+        dotation_projet=refused_dp, status=PROJET_STATUS_REFUSED
     )
 
     lettre_et_arrete_signes = LettreEtArreteSignesFactory(

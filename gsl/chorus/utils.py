@@ -18,7 +18,7 @@ def resume_dotation(projet, dotation):
         ProgrammationProjet.objects.filter(
             dotation_projet__projet=projet,
             dotation_projet__dotation=dotation,
-            status=PROJET_STATUS_ACCEPTED,
+            dotation_projet__status=PROJET_STATUS_ACCEPTED,
         )
         .values_list("montant", flat=True)
         .first()

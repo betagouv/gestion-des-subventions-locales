@@ -5,7 +5,15 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
-from gsl.projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
+from gsl.projet.constants import (
+    ARRETE,
+    DOTATION_DETR,
+    DOTATION_DSIL,
+    LETTRE,
+    PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_DISMISSED,
+    PROJET_STATUS_REFUSED,
+)
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
@@ -19,7 +27,6 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
     ModeleLettreRefusFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 
@@ -37,9 +44,7 @@ from gsl_programmation.tests.factories import ProgrammationProjetFactory
 )
 def generated_document_properties(type, modele_factory, factory):
     collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED
-    )
+    programmation_projet = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     file_content = {"key": "value"}
@@ -76,9 +81,7 @@ def generated_document_properties(type, modele_factory, factory):
 )
 def test_generated_document_save_calculates_size(modele_factory, factory):
     """Test that the save method calculates and saves the size field"""
-    programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED
-    )
+    programmation_projet = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests
@@ -119,9 +122,7 @@ def test_generated_document_save_updates_size_on_content_change(
     mock_get_logo_base64, modele_factory, factory
 ):
     """Test that the save method recalculates size when content changes"""
-    programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED
-    )
+    programmation_projet = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests - keep it active for both saves
@@ -168,12 +169,8 @@ def test_generated_document_save_with_different_content_sizes(
 ):
     """Test that size calculation works correctly with different content sizes"""
     # Create separate programmation_projets since Arrete/LettreNotification have OneToOneField
-    programmation_projet1 = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED
-    )
-    programmation_projet2 = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED
-    )
+    programmation_projet1 = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    programmation_projet2 = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests - keep it active for both document creations
@@ -253,7 +250,7 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
 def test_generated_document_validation_error_when_pp_status_mismatch(
     modele_factory, factory, message
 ):
-    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
+    pp = ProgrammationProjetFactory(status=PROJET_STATUS_REFUSED)
     modele = modele_factory(dotation=pp.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(dotation_projet=pp.dotation_projet, modele=modele)
@@ -265,7 +262,7 @@ def test_generated_document_validation_error_when_pp_status_mismatch(
 
 @pytest.mark.django_db
 def test_lettre_refus_validation_error_when_pp_status_mismatch():
-    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    pp = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = ModeleLettreRefusFactory(dotation=pp.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = LettreRefusFactory(dotation_projet=pp.dotation_projet, modele=modele)
@@ -287,7 +284,7 @@ def test_lettre_refus_validation_error_when_pp_status_mismatch():
     ),
 )
 def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
-    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    pp = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory(dotation=pp.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(dotation_projet=pp.dotation_projet, modele=modele)
@@ -297,7 +294,7 @@ def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "status",
-    (ProgrammationProjet.STATUS_REFUSED, ProgrammationProjet.STATUS_DISMISSED),
+    (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
 )
 def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
     pp = ProgrammationProjetFactory(status=status)
@@ -311,9 +308,7 @@ def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_properties(factory):
     collegue = CollegueFactory()
-    programmation_projet = ProgrammationProjetFactory(
-        status=ProgrammationProjet.STATUS_ACCEPTED
-    )
+    programmation_projet = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
 
     file_content = b"dummy content"
     file = SimpleUploadedFile(
@@ -390,7 +385,7 @@ def test_two_models_have_different_logos():
 
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
-    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_REFUSED)
+    pp = ProgrammationProjetFactory(status=PROJET_STATUS_REFUSED)
     doc = LettreEtArreteSignesFactory(dotation_projet=pp.dotation_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
@@ -403,7 +398,7 @@ def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
 
 @pytest.mark.django_db
 def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
-    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    pp = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     doc = LettreRefusSigneeFactory(dotation_projet=pp.dotation_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
@@ -417,9 +412,9 @@ def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
 @pytest.mark.parametrize(
     "status",
     (
-        ProgrammationProjet.STATUS_ACCEPTED,
-        ProgrammationProjet.STATUS_REFUSED,
-        ProgrammationProjet.STATUS_DISMISSED,
+        PROJET_STATUS_ACCEPTED,
+        PROJET_STATUS_REFUSED,
+        PROJET_STATUS_DISMISSED,
     ),
 )
 @pytest.mark.django_db
@@ -431,7 +426,7 @@ def test_annexe_no_error_regardless_of_pp_status(status):
 
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
-    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    pp = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     doc = LettreEtArreteSignesFactory(dotation_projet=pp.dotation_projet)
     doc.clean()  # should not raise
 
@@ -439,7 +434,7 @@ def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "status",
-    (ProgrammationProjet.STATUS_REFUSED, ProgrammationProjet.STATUS_DISMISSED),
+    (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
 )
 def test_lettre_refus_signee_no_error_when_pp_refused_or_dismissed(status):
     pp = ProgrammationProjetFactory(status=status)
@@ -477,7 +472,7 @@ def test_second_annexe_with_the_same_name_is_suffixed():
 def test_replacing_a_single_document_keeps_its_name():
     """Only documents that legitimately coexist collide: deleting the previous
     one frees its stored file, so a replacement is not suffixed."""
-    pp = ProgrammationProjetFactory(status=ProgrammationProjet.STATUS_ACCEPTED)
+    pp = ProgrammationProjetFactory(status=PROJET_STATUS_ACCEPTED)
     LettreEtArreteSignesFactory(
         dotation_projet=pp.dotation_projet, file__filename="remplacement.pdf"
     ).delete()

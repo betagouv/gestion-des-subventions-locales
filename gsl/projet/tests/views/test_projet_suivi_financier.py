@@ -9,7 +9,6 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...constants import (
@@ -57,7 +56,7 @@ def test_displays_chorus_lines_grouped_by_dotation():
     )
     ProgrammationProjetFactory(
         dotation_projet=DetrProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED),
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         montant=Decimal("13000"),
     )
     SuiviFinancier.objects.create(

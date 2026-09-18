@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from freezegun import freeze_time
 
-from gsl.projet.constants import DOTATION_DETR, LETTRE
+from gsl.projet.constants import DOTATION_DETR, LETTRE, PROJET_STATUS_ACCEPTED
 from gsl.projet.models import Projet
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -32,7 +32,6 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -52,7 +51,7 @@ def programmation_projets(perimetre):
         3,
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         dotation_projet__projet__notified_at=None,
     )
 
@@ -196,7 +195,7 @@ def test_launch_no_projects_renders_error_body(client):
 def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_pp = ProgrammationProjetFactory(
         dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         dotation_projet__projet__notified_at=None,
     )
     response = _post_launch(client, ids=str(wrong_pp.id))
@@ -750,7 +749,7 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
         ProgrammationProjetFactory(
             dotation_projet__projet__dossier_ds__perimetre=perimetre,
             dotation_projet__dotation=DOTATION_DETR,
-            status=ProgrammationProjet.STATUS_ACCEPTED,
+            status=PROJET_STATUS_ACCEPTED,
             dotation_projet__projet__notified_at=None,
         )
     ]
@@ -817,7 +816,7 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
     pp = ProgrammationProjetFactory(
         dotation_projet__projet__dossier_ds__perimetre=perimetre,
         dotation_projet__dotation=DOTATION_DETR,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
         dotation_projet__projet__notified_at=None,
     )
     _drive_through_format_step(

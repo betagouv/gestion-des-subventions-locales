@@ -35,7 +35,6 @@ from gsl_notification.tests.factories import (
     LettreEtArreteSignesFactory,
     LettreRefusSigneeFactory,
 )
-from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -72,7 +71,7 @@ def _accepted_dotation(perimetre, projet, dotation, with_signed_document):
     pp = ProgrammationProjetFactory(
         dotation_projet=dp,
         enveloppe=enveloppe,
-        status=ProgrammationProjet.STATUS_ACCEPTED,
+        status=PROJET_STATUS_ACCEPTED,
     )
     if with_signed_document:
         LettreEtArreteSignesFactory(dotation_projet=pp.dotation_projet)
