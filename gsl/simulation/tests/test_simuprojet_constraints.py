@@ -24,15 +24,15 @@ def simulation():
 @skip_on_sqlite
 @pytest.mark.django_db
 def test_projet_only_once_per_simulation_and_enveloppe(simulation):
-    dotation_projet = DetrProjetFactory()
+    enveloppe_projet = DetrProjetFactory()
     simulation_projet_un = SimulationProjetFactory(
         simulation=simulation,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
     )
     with pytest.raises(IntegrityError):
         sp = SimulationProjet(
             simulation=simulation_projet_un.simulation,
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             montant=0,
         )
         sp.save()
@@ -42,16 +42,16 @@ def test_projet_only_once_per_simulation_and_enveloppe(simulation):
 def test_projet_twice_per_simulation_with_different_projet(simulation):
     SimulationProjetFactory(
         simulation=simulation,
-        dotation_projet=DetrProjetFactory(),
+        enveloppe_projet=DetrProjetFactory(),
     )
     SimulationProjetFactory(
-        simulation=simulation, dotation_projet__dotation=DOTATION_DETR
+        simulation=simulation, enveloppe_projet__dotation=DOTATION_DETR
     )
 
 
 @pytest.mark.django_db
 def test_projet_twice_per_simulation_with_different_simulation():
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=DetrProjetFactory(),
+        enveloppe_projet=DetrProjetFactory(),
     )
-    SimulationProjetFactory(dotation_projet=simulation_projet.dotation_projet)
+    SimulationProjetFactory(enveloppe_projet=simulation_projet.enveloppe_projet)

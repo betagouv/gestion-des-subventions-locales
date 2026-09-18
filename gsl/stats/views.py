@@ -64,7 +64,7 @@ class CollectiviteDetailView(View):
             )
         projets = (
             projets.select_related("dossier_ds", "dossier_ds__ds_demandeur")
-            .prefetch_related("dotationprojet_set")
+            .prefetch_related("enveloppeprojet_set")
             .order_by("-dossier_ds__ds_date_depot")
         )
 

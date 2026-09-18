@@ -39,10 +39,10 @@ from ...constants import (
     PROJET_STATUS_REFUSED,
 )
 from ...models import (
-    DotationProjet,
+    EnveloppeProjet,
 )
 from ..factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProjetFactory,
 )
 
@@ -52,45 +52,45 @@ pytestmark = pytest.mark.django_db
 # -- manager --
 
 
-def test_dotation_projet_manager_excludes_inactive_dossier():
-    DotationProjetFactory()
-    DotationProjetFactory(projet__dossier_ds__is_active=False)
+def test_enveloppe_projet_manager_excludes_inactive_dossier():
+    EnveloppeProjetFactory()
+    EnveloppeProjetFactory(projet__dossier_ds__is_active=False)
 
-    assert DotationProjet.objects.active().count() == 1
+    assert EnveloppeProjet.objects.active().count() == 1
 
 
 # -- compute_montant_from_taux --
 
 
 def test_compute_montant_from_taux():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__finance_cout_total=100_000,
     )
-    assert dotation_projet.compute_montant_from_taux(25) == 25_000
+    assert enveloppe_projet.compute_montant_from_taux(25) == 25_000
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=50_000,
     )
-    assert dotation_projet.compute_montant_from_taux(25) == 12_500
+    assert enveloppe_projet.compute_montant_from_taux(25) == 12_500
 
-    dotation_projet = DotationProjetFactory()
-    assert dotation_projet.compute_montant_from_taux(25) == 0
+    enveloppe_projet = EnveloppeProjetFactory()
+    assert enveloppe_projet.compute_montant_from_taux(25) == 0
 
 
 @pytest.mark.parametrize(("dotation"), DOTATIONS)
-def test_dotation_projet_unicity(dotation):
+def test_enveloppe_projet_unicity(dotation):
     projet = ProjetFactory()
-    DotationProjet(projet=projet, dotation=dotation).save()
+    EnveloppeProjet(projet=projet, dotation=dotation).save()
     with pytest.raises(IntegrityError):
-        DotationProjet(projet=projet, dotation=dotation).save()
+        EnveloppeProjet(projet=projet, dotation=dotation).save()
 
 
-def test_dsil_dotation_projet_must_have_a_detr_avis_commission_null():
-    dotation_projet = DotationProjetFactory(
+def test_dsil_enveloppe_projet_must_have_a_detr_avis_commission_null():
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL, detr_avis_commission=True
     )
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.full_clean()
+        enveloppe_projet.full_clean()
 
     assert exc_info.value.message_dict["detr_avis_commission"][0] == (
         "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
@@ -98,53 +98,53 @@ def test_dsil_dotation_projet_must_have_a_detr_avis_commission_null():
 
 
 def test_assiette_or_cout_total():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=1_000, projet__dossier_ds__finance_cout_total=2_000
     )
-    assert dotation_projet.assiette_or_cout_total == 1_000
+    assert enveloppe_projet.assiette_or_cout_total == 1_000
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=None, projet__dossier_ds__finance_cout_total=2_000
     )
-    assert dotation_projet.assiette_or_cout_total == 2_000
+    assert enveloppe_projet.assiette_or_cout_total == 2_000
 
 
 def test_montant_retenu_when_accepted():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED, montant=10_000
     )
-    assert dotation_projet.montant_retenu == 10_000
+    assert enveloppe_projet.montant_retenu == 10_000
 
 
 def test_montant_retenu_when_not_programmed():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_PROCESSING)
-    assert dotation_projet.montant_retenu is None
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_PROCESSING)
+    assert enveloppe_projet.montant_retenu is None
 
 
 def test_montant_retenu_when_refused():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED, montant=0)
-    assert dotation_projet.montant_retenu == 0
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED, montant=0)
+    assert enveloppe_projet.montant_retenu == 0
 
 
 def test_taux_retenu_when_accepted():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED, montant=100, assiette=1_000
     )
-    assert dotation_projet.taux_retenu == 10
+    assert enveloppe_projet.taux_retenu == 10
 
 
 def test_taux_retenu_when_not_programmed():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING, assiette=1_000
     )
-    assert dotation_projet.taux_retenu is None
+    assert enveloppe_projet.taux_retenu is None
 
 
 def test_taux_retenu_when_refused():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_REFUSED, montant=0, assiette=1_000
     )
-    assert dotation_projet.taux_retenu == 0
+    assert enveloppe_projet.taux_retenu == 0
 
 
 @pytest.mark.parametrize(
@@ -157,8 +157,8 @@ def test_taux_retenu_when_refused():
     ),
 )
 def test_is_treated(status, expected):
-    dotation_projet = DotationProjetFactory(status=status)
-    assert dotation_projet.is_treated is expected
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
+    assert enveloppe_projet.is_treated is expected
 
 
 @pytest.mark.parametrize(
@@ -173,20 +173,20 @@ def test_is_treated(status, expected):
 def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
     dotation, avis_commission, must_raise_error
 ):
-    dotation_projet = DotationProjetFactory(dotation=dotation)
-    dotation_projet.detr_avis_commission = avis_commission
+    enveloppe_projet = EnveloppeProjetFactory(dotation=dotation)
+    enveloppe_projet.detr_avis_commission = avis_commission
     exclude = ["assiette"]
 
     if must_raise_error:
         with pytest.raises(ValidationError) as exc_info:
-            dotation_projet.clean_fields(exclude=exclude)
+            enveloppe_projet.clean_fields(exclude=exclude)
         assert (
             str(exc_info.value.messages[0])
             == "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
         )
     else:
-        dotation_projet.clean_fields(exclude=exclude)
-        assert dotation_projet.detr_avis_commission == avis_commission
+        enveloppe_projet.clean_fields(exclude=exclude)
+        assert enveloppe_projet.detr_avis_commission == avis_commission
 
 
 @pytest.mark.parametrize(
@@ -200,7 +200,7 @@ def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
 def test_error_raised_if_assiette_is_greater_than_cout_total(
     cout_total, assiette, must_raise_error
 ):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=assiette,
         projet__dossier_ds__finance_cout_total=cout_total,
@@ -209,23 +209,23 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
 
     if must_raise_error:
         with pytest.raises(ValidationError) as exc_info:
-            dotation_projet.clean_fields(exclude=exclude)
+            enveloppe_projet.clean_fields(exclude=exclude)
         assert (
             str(exc_info.value.messages[0])
             == "L'assiette doit être inférieure ou égale au coût total du projet."
         )
     else:
-        dotation_projet.clean_fields(exclude=exclude)
-        assert dotation_projet.assiette == assiette
+        enveloppe_projet.clean_fields(exclude=exclude)
+        assert enveloppe_projet.assiette == assiette
 
 
 @pytest.mark.django_db
 def test_get_other_accepted_dotations_with_one_processing_dotation():
-    detr_dp = DotationProjetFactory(dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjetFactory(dotation=DOTATION_DETR)
 
     assert detr_dp.other_accepted_dotations == []
 
-    dsil_dp = DotationProjetFactory(
+    dsil_dp = EnveloppeProjetFactory(
         projet=detr_dp.projet,
         status=PROJET_STATUS_PROCESSING,
         dotation=DOTATION_DSIL,
@@ -240,83 +240,85 @@ def test_get_other_accepted_dotations_with_one_processing_dotation():
 # Accept
 
 
-def test_accept_dotation_projet_without_simulation_projet():
-    dotation_projet = DotationProjetFactory(
+def test_accept_enveloppe_projet_without_simulation_projet():
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
     )
-    assert dotation_projet.projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
     # --
 
-    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
     # --
 
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
-        dotation_projet=dotation_projet, status=SimulationProjet.STATUS_ACCEPTED
+        enveloppe_projet=enveloppe_projet, status=SimulationProjet.STATUS_ACCEPTED
     )
     assert simulation_projets.count() == 0
 
-    assert dotation_projet.enveloppe == enveloppe
-    assert dotation_projet.montant == 5_000
-    assert dotation_projet.taux_retenu == 50
+    assert enveloppe_projet.enveloppe == enveloppe
+    assert enveloppe_projet.montant == 5_000
+    assert enveloppe_projet.taux_retenu == 50
 
 
-def test_accept_dotation_projet():
-    dotation_projet = DotationProjetFactory(
+def test_accept_enveloppe_projet():
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
     )
-    assert dotation_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
     SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=1_000,
     )
     SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_REFUSED,
         montant=2_000,
     )
     SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=3_000,
     )
-    assert SimulationProjet.objects.filter(dotation_projet=dotation_projet).count() == 3
+    assert (
+        SimulationProjet.objects.filter(enveloppe_projet=enveloppe_projet).count() == 3
+    )
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
     # --
 
-    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
     # --
 
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
-        dotation_projet=dotation_projet, status=SimulationProjet.STATUS_ACCEPTED
+        enveloppe_projet=enveloppe_projet, status=SimulationProjet.STATUS_ACCEPTED
     )
     for simulation_projet in simulation_projets:
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
         assert simulation_projet.montant == 5_000
         assert simulation_projet.taux == 50
 
-    assert dotation_projet.enveloppe == enveloppe
-    assert dotation_projet.montant == 5_000
-    assert dotation_projet.taux_retenu == 50
+    assert enveloppe_projet.enveloppe == enveloppe
+    assert enveloppe_projet.montant == 5_000
+    assert enveloppe_projet.taux_retenu == 50
 
 
-def test_accept_dotation_projet_replaces_a_previous_programmation():
+def test_accept_enveloppe_projet_replaces_a_previous_programmation():
     enveloppe = DetrEnveloppeFactory(annee=2025)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=9_000,
         status=PROJET_STATUS_REFUSED,
         dotation=DOTATION_DETR,
@@ -326,20 +328,20 @@ def test_accept_dotation_projet_replaces_a_previous_programmation():
 
     # --
 
-    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
     # --
 
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert dotation_projet.enveloppe == enveloppe
-    assert dotation_projet.montant == 5_000
-    assert round(dotation_projet.taux_retenu, 4) == Decimal("55.5556")
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.enveloppe == enveloppe
+    assert enveloppe_projet.montant == 5_000
+    assert round(enveloppe_projet.taux_retenu, 4) == Decimal("55.5556")
 
 
-def test_accept_dotation_projet_select_parent_enveloppe():
-    dotation_projet = DotationProjetFactory(
+def test_accept_enveloppe_projet_select_parent_enveloppe():
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=9_000,
         status=PROJET_STATUS_PROCESSING,
         dotation=DOTATION_DSIL,
@@ -349,21 +351,21 @@ def test_accept_dotation_projet_select_parent_enveloppe():
 
     # --
 
-    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=child_enveloppe)
+    enveloppe_projet.accept_without_ds_update(montant=5_000, enveloppe=child_enveloppe)
 
     # --
 
-    assert dotation_projet.enveloppe == parent_enveloppe
+    assert enveloppe_projet.enveloppe == parent_enveloppe
 
 
 def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
     )
     enveloppe = DsilEnveloppeFactory()
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
+        enveloppe_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
     assert (
         str(exc_info.value.message)
         == "La dotation du projet et de l'enveloppe ne correspondent pas."
@@ -371,15 +373,15 @@ def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
 
 
 def test_accept_creates_status_change_action_when_status_was_different():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
     )
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
-    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
+    enveloppe_projet.accept_without_ds_update(montant=5_000, enveloppe=enveloppe)
 
     actions = ProjetAction.objects.filter(
-        projet=dotation_projet.projet,
+        projet=enveloppe_projet.projet,
         action_type=ProjetAction.TYPE_STATUS_CHANGE,
         status=PROJET_STATUS_ACCEPTED,
     )
@@ -389,18 +391,18 @@ def test_accept_creates_status_change_action_when_status_was_different():
 
 def test_accept_does_not_create_status_change_action_when_already_accepted_and_same_enveloppe():
     enveloppe = DetrEnveloppeFactory(annee=2025)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         enveloppe=enveloppe,
     )
 
-    dotation_projet.accept_without_ds_update(montant=6_000, enveloppe=enveloppe)
+    enveloppe_projet.accept_without_ds_update(montant=6_000, enveloppe=enveloppe)
 
     assert (
         ProjetAction.objects.filter(
-            projet=dotation_projet.projet,
+            projet=enveloppe_projet.projet,
             action_type=ProjetAction.TYPE_STATUS_CHANGE,
         ).count()
         == 0
@@ -410,17 +412,17 @@ def test_accept_does_not_create_status_change_action_when_already_accepted_and_s
 def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe_changed():
     old_enveloppe = DetrEnveloppeFactory(annee=2024)
     new_enveloppe = DetrEnveloppeFactory(annee=2025)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         enveloppe=old_enveloppe,
     )
 
-    dotation_projet.accept_without_ds_update(montant=5_000, enveloppe=new_enveloppe)
+    enveloppe_projet.accept_without_ds_update(montant=5_000, enveloppe=new_enveloppe)
 
     actions = ProjetAction.objects.filter(
-        projet=dotation_projet.projet,
+        projet=enveloppe_projet.projet,
         action_type=ProjetAction.TYPE_STATUS_CHANGE,
         status=PROJET_STATUS_ACCEPTED,
     )
@@ -431,59 +433,63 @@ def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe
 # Refuse
 
 
-def test_refusing_a_dotation_projet_programmes_it():
-    dotation_projet = DotationProjetFactory(
+def test_refusing_a_enveloppe_projet_programmes_it():
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
     )
-    assert dotation_projet.status == PROJET_STATUS_PROCESSING
-    assert dotation_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2024)
 
-    dotation_projet.refuse(enveloppe=enveloppe)
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.refuse(enveloppe=enveloppe)
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
-    assert dotation_projet.status == PROJET_STATUS_REFUSED
+    assert enveloppe_projet.status == PROJET_STATUS_REFUSED
 
-    assert dotation_projet.enveloppe == enveloppe
-    assert dotation_projet.montant == 0
-    assert dotation_projet.taux_retenu == 0
+    assert enveloppe_projet.enveloppe == enveloppe
+    assert enveloppe_projet.montant == 0
+    assert enveloppe_projet.taux_retenu == 0
 
 
 def test_refusing_a_projet_updates_all_simulation_projet():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
     )
-    assert dotation_projet.status == PROJET_STATUS_PROCESSING
-    assert dotation_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2024)
 
     SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=1_000,
     )
     SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=2_000,
     )
     SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=5_000,
     )
-    assert SimulationProjet.objects.filter(dotation_projet=dotation_projet).count() == 3
+    assert (
+        SimulationProjet.objects.filter(enveloppe_projet=enveloppe_projet).count() == 3
+    )
 
-    dotation_projet.refuse(enveloppe=enveloppe)
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.refuse(enveloppe=enveloppe)
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
-    assert SimulationProjet.objects.filter(dotation_projet=dotation_projet).count() == 3
+    assert (
+        SimulationProjet.objects.filter(enveloppe_projet=enveloppe_projet).count() == 3
+    )
     simulation_projets = SimulationProjet.objects.filter(
-        dotation_projet=dotation_projet
+        enveloppe_projet=enveloppe_projet
     )
     for simulation_projet in simulation_projets:
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
@@ -492,13 +498,13 @@ def test_refusing_a_projet_updates_all_simulation_projet():
 
 
 def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
     )
     enveloppe = DsilEnveloppeFactory()
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.refuse(enveloppe=enveloppe)
+        enveloppe_projet.refuse(enveloppe=enveloppe)
     assert (
         str(exc_info.value.message)
         == "La dotation du projet et de l'enveloppe ne correspondent pas."
@@ -517,31 +523,31 @@ def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
 )
 def test_dismiss(status, montant):
     enveloppe = DetrEnveloppeFactory()
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=status, dotation=DOTATION_DETR, enveloppe=enveloppe
     )
 
     simulation_projet_status = (
         SimulationProjet.STATUS_REFUSED
-        if dotation_projet.status == PROJET_STATUS_REFUSED
+        if enveloppe_projet.status == PROJET_STATUS_REFUSED
         else SimulationProjet.STATUS_ACCEPTED
     )
 
     SimulationProjetFactory.create_batch(
         3,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=simulation_projet_status,
         montant=montant,
     )
 
-    dotation_projet.dismiss(enveloppe=enveloppe)
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.dismiss(enveloppe=enveloppe)
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
-    assert dotation_projet.status == PROJET_STATUS_DISMISSED
-    assert dotation_projet.is_programmee
+    assert enveloppe_projet.status == PROJET_STATUS_DISMISSED
+    assert enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
-        dotation_projet=dotation_projet
+        enveloppe_projet=enveloppe_projet
     )
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
@@ -552,24 +558,24 @@ def test_dismiss(status, montant):
 
 def test_dismiss_from_processing():
     enveloppe = DetrEnveloppeFactory()
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
     )
     SimulationProjetFactory.create_batch(
         3,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=500,
     )
 
-    dotation_projet.dismiss(enveloppe=enveloppe)
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.dismiss(enveloppe=enveloppe)
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
-    assert dotation_projet.status == PROJET_STATUS_DISMISSED
-    assert dotation_projet.is_programmee
+    assert enveloppe_projet.status == PROJET_STATUS_DISMISSED
+    assert enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
-        dotation_projet=dotation_projet
+        enveloppe_projet=enveloppe_projet
     )
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
@@ -582,7 +588,7 @@ def test_dismiss_from_processing():
 
 
 def test_set_back_status_to_processing_without_ds_from_accepted():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED,
         assiette=50_000,
         montant=10_000,
@@ -590,31 +596,31 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
     )
     SimulationProjetFactory.create_batch(
         3,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=10_000,
     )
 
-    assert dotation_projet.projet.notified_at is not None
+    assert enveloppe_projet.projet.notified_at is not None
 
     # --
-    dotation_projet.set_back_status_to_processing_without_ds()
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.set_back_status_to_processing_without_ds()
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
     # --
 
-    assert dotation_projet.status == PROJET_STATUS_PROCESSING
-    assert not dotation_projet.is_programmee
+    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert not enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
-        dotation_projet=dotation_projet
+        enveloppe_projet=enveloppe_projet
     )
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 10_000
         assert simulation_projet.taux == 20
-    assert dotation_projet.projet.notified_at is None
+    assert enveloppe_projet.projet.notified_at is None
 
 
 @pytest.mark.parametrize(
@@ -627,47 +633,47 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
 def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
     projet_status, simulation_projet_status
 ):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=projet_status, projet__notified_at=timezone.now()
     )
     SimulationProjetFactory.create_batch(
         3,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=simulation_projet_status,
         montant=0,
     )
 
-    assert dotation_projet.projet.notified_at is not None
+    assert enveloppe_projet.projet.notified_at is not None
 
     # --
 
-    dotation_projet.set_back_status_to_processing_without_ds()
-    dotation_projet.save()
-    dotation_projet.refresh_from_db()
+    enveloppe_projet.set_back_status_to_processing_without_ds()
+    enveloppe_projet.save()
+    enveloppe_projet.refresh_from_db()
 
     # --
 
-    assert dotation_projet.status == PROJET_STATUS_PROCESSING
-    assert not dotation_projet.is_programmee
+    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert not enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
-        dotation_projet=dotation_projet
+        enveloppe_projet=enveloppe_projet
     )
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
-    assert dotation_projet.projet.notified_at is None
+    assert enveloppe_projet.projet.notified_at is None
 
 
 @pytest.mark.parametrize(("status"), [PROJET_STATUS_PROCESSING])
 def test_set_back_status_to_processing_without_ds_from_other_status_than_accepted_or_refused(
     status,
 ):
-    dotation_projet = DotationProjetFactory(status=status)
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
 
     with pytest.raises(TransitionNotAllowed):
-        dotation_projet.set_back_status_to_processing_without_ds()
+        enveloppe_projet.set_back_status_to_processing_without_ds()
 
 
 @mock.patch(
@@ -676,18 +682,18 @@ def test_set_back_status_to_processing_without_ds_from_other_status_than_accepte
 def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
     projet = ProjetFactory()
     user = CollegueFactory()
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    other_dotation = DotationProjetFactory(
+    other_dotation = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
     )
 
-    dotation_projet.set_back_status_to_processing(user=user)
-    dotation_projet.save()
+    enveloppe_projet.set_back_status_to_processing(user=user)
+    enveloppe_projet.save()
 
     mock_update_ds.assert_called_once_with(
-        dossier=dotation_projet.projet.dossier_ds,
+        dossier=enveloppe_projet.projet.dossier_ds,
         user=user,
         dotations_to_be_checked=[other_dotation.dotation],
     )
@@ -702,15 +708,15 @@ def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notifi
 ):
     projet = ProjetFactory(notified_at=timezone.now())
     user = CollegueFactory()
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
-    dotation_projet.set_back_status_to_processing(user=user)
-    dotation_projet.save()
+    enveloppe_projet.set_back_status_to_processing(user=user)
+    enveloppe_projet.save()
 
     mock_repasser_en_instruction.assert_called_once_with(
-        dotation_projet.projet.dossier_ds, user
+        enveloppe_projet.projet.dossier_ds, user
     )
 
 
@@ -723,12 +729,12 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
 ):
     projet = ProjetFactory(notified_at=None)
     user = CollegueFactory()
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
-    dotation_projet.set_back_status_to_processing(user=user)
-    dotation_projet.save()
+    enveloppe_projet.set_back_status_to_processing(user=user)
+    enveloppe_projet.save()
 
     mock_repasser_en_instruction.assert_not_called()
 
@@ -736,8 +742,8 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
 # -- save() default assiette --
 
 
-def test_dotation_projet_assiette_defaults_to_finance_cout_total_when_no_annotation():
-    dp = DotationProjetFactory(
+def test_enveloppe_projet_assiette_defaults_to_finance_cout_total_when_no_annotation():
+    dp = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
@@ -746,8 +752,8 @@ def test_dotation_projet_assiette_defaults_to_finance_cout_total_when_no_annotat
     assert dp.assiette == 50_000
 
 
-def test_dotation_projet_assiette_uses_detr_annotation_when_set():
-    dp = DotationProjetFactory(
+def test_enveloppe_projet_assiette_uses_detr_annotation_when_set():
+    dp = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
@@ -756,8 +762,8 @@ def test_dotation_projet_assiette_uses_detr_annotation_when_set():
     assert dp.assiette == 30_000
 
 
-def test_dotation_projet_assiette_uses_dsil_annotation_when_set():
-    dp = DotationProjetFactory(
+def test_enveloppe_projet_assiette_uses_dsil_annotation_when_set():
+    dp = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
@@ -766,16 +772,16 @@ def test_dotation_projet_assiette_uses_dsil_annotation_when_set():
     assert dp.assiette == 20_000
 
 
-def test_dotation_projet_assiette_explicit_value_kept():
-    dp = DotationProjetFactory(
+def test_enveloppe_projet_assiette_explicit_value_kept():
+    dp = EnveloppeProjetFactory(
         assiette=30_000,
         projet__dossier_ds__finance_cout_total=50_000,
     )
     assert dp.assiette == 30_000
 
 
-def test_dotation_projet_assiette_stays_none_when_no_cout_total_and_no_annotation():
-    dp = DotationProjetFactory(
+def test_enveloppe_projet_assiette_stays_none_when_no_cout_total_and_no_annotation():
+    dp = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=None,
@@ -784,8 +790,8 @@ def test_dotation_projet_assiette_stays_none_when_no_cout_total_and_no_annotatio
     assert dp.assiette is None
 
 
-def test_dotation_projet_save_update_does_not_reset_assiette():
-    dp = DotationProjetFactory(
+def test_enveloppe_projet_save_update_does_not_reset_assiette():
+    dp = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
@@ -803,49 +809,49 @@ def test_dotation_projet_save_update_does_not_reset_assiette():
 
 
 def test_documents_summary_no_document():
-    assert DotationProjetFactory().documents_summary == []
+    assert EnveloppeProjetFactory().documents_summary == []
 
 
 def test_documents_summary_arrete_genere():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    ArreteFactory(dotation_projet=dotation_projet)
-    LettreNotificationFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    ArreteFactory(enveloppe_projet=enveloppe_projet)
+    LettreNotificationFactory(enveloppe_projet=enveloppe_projet)
 
-    assert dotation_projet.documents_summary == ["1 arrêté", "1 lettre"]
+    assert enveloppe_projet.documents_summary == ["1 arrêté", "1 lettre"]
 
 
 @pytest.mark.parametrize(
     "annexes_count, expected_summary", ((0, []), (1, ["1 annexe"]), (2, ["2 annexes"]))
 )
 def test_documents_summary_annexes(annexes_count, expected_summary):
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    AnnexeFactory.create_batch(annexes_count, dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    AnnexeFactory.create_batch(annexes_count, enveloppe_projet=enveloppe_projet)
 
-    assert dotation_projet.documents_summary == expected_summary
+    assert enveloppe_projet.documents_summary == expected_summary
 
 
 def test_documents_summary_lettre_et_arrete_signes_hides_arrete_and_lettre_generes():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
-    ArreteFactory(dotation_projet=dotation_projet)
-    LettreNotificationFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+    ArreteFactory(enveloppe_projet=enveloppe_projet)
+    LettreNotificationFactory(enveloppe_projet=enveloppe_projet)
 
-    assert dotation_projet.documents_summary == ["1 lettre et arrêté signés"]
+    assert enveloppe_projet.documents_summary == ["1 lettre et arrêté signés"]
 
 
 def test_documents_summary_lettre_refus_generee():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
-    LettreRefusFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    LettreRefusFactory(enveloppe_projet=enveloppe_projet)
 
-    assert dotation_projet.documents_summary == ["1 lettre de refus"]
+    assert enveloppe_projet.documents_summary == ["1 lettre de refus"]
 
 
 def test_documents_summary_lettre_refus_signee_hides_lettre_refus_generee():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
-    LettreRefusSigneeFactory(dotation_projet=dotation_projet)
-    LettreRefusFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    LettreRefusSigneeFactory(enveloppe_projet=enveloppe_projet)
+    LettreRefusFactory(enveloppe_projet=enveloppe_projet)
 
-    assert dotation_projet.documents_summary == ["1 lettre de refus signée"]
+    assert enveloppe_projet.documents_summary == ["1 lettre de refus signée"]
 
 
 # -- programmation --
@@ -863,25 +869,25 @@ def test_documents_summary_lettre_refus_signee_hides_lettre_refus_generee():
 def test_taux_retenu_falls_back_on_cout_total(
     montant, assiette, finance_cout_total, expected_taux
 ):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED,
         montant=montant,
         assiette=assiette,
         projet__dossier_ds__finance_cout_total=finance_cout_total,
     )
-    assert isinstance(dotation_projet.taux_retenu, Decimal)
-    assert dotation_projet.taux_retenu == expected_taux
+    assert isinstance(enveloppe_projet.taux_retenu, Decimal)
+    assert enveloppe_projet.taux_retenu == expected_taux
 
 
 def test_montant_cant_be_higher_than_assiette():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=100,
         projet__dossier_ds__finance_cout_total=200,
         status=PROJET_STATUS_ACCEPTED,
         montant=101,
     )
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.clean()
+        enveloppe_projet.clean()
     assert (
         "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet pour cette dotation."
         in exc_info.value.message_dict["montant"][0]
@@ -889,10 +895,10 @@ def test_montant_cant_be_higher_than_assiette():
 
 
 def test_a_projet_can_be_accepted_on_two_different_enveloppes():
-    detr_dotation = DotationProjetFactory(
+    detr_dotation = EnveloppeProjetFactory(
         dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         projet=detr_dotation.projet,
         status=PROJET_STATUS_ACCEPTED,
@@ -905,7 +911,7 @@ def test_clean_rejects_a_deleguee_enveloppe():
     mother = DsilEnveloppeFactory(
         perimetre=PerimetreRegionalFactory(region=perimetre.region)
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
@@ -914,7 +920,7 @@ def test_clean_rejects_a_deleguee_enveloppe():
         enveloppe=DsilEnveloppeFactory(deleguee_by=mother, perimetre=perimetre),
     )
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.clean()
+        enveloppe_projet.clean()
     assert (
         "Une programmation ne peut pas être faite sur une enveloppe déléguée."
         in exc_info.value.message_dict["enveloppe"][0]
@@ -923,7 +929,7 @@ def test_clean_rejects_a_deleguee_enveloppe():
 
 def test_clean_accepts_a_coherent_programmation():
     perimetre = PerimetreArrondissementFactory()
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
@@ -933,16 +939,16 @@ def test_clean_accepts_a_coherent_programmation():
             perimetre=PerimetreRegionalFactory(region=perimetre.region)
         ),
     )
-    dotation_projet.clean()
+    enveloppe_projet.clean()
 
 
 def test_clean_rejects_a_refused_dotation_with_a_montant():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_REFUSED, assiette=Decimal("1234.00")
     )
-    dotation_projet.montant = Decimal("100.00")
+    enveloppe_projet.montant = Decimal("100.00")
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.clean()
+        enveloppe_projet.clean()
     assert (
         "Un projet refusé doit avoir un montant nul."
         in exc_info.value.message_dict["montant"][0]
@@ -950,13 +956,13 @@ def test_clean_rejects_a_refused_dotation_with_a_montant():
 
 
 def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
         enveloppe=DsilEnveloppeFactory(),
     )
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.clean()
+        enveloppe_projet.clean()
     assert (
         "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
         in exc_info.value.message_dict["enveloppe"][0]
@@ -964,13 +970,13 @@ def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
 
 
 def test_clean_rejects_an_enveloppe_of_another_dotation():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         enveloppe=DsilEnveloppeFactory(),
     )
     with pytest.raises(ValidationError) as exc_info:
-        dotation_projet.clean()
+        enveloppe_projet.clean()
     assert (
         "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
         in exc_info.value.message_dict["enveloppe"][0]
@@ -978,20 +984,20 @@ def test_clean_rejects_an_enveloppe_of_another_dotation():
 
 
 def test_to_notify():
-    accepted_not_notified = DotationProjetFactory(
+    accepted_not_notified = EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED, projet__notified_at=None
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED, projet__notified_at=timezone.now()
     )
-    refused_not_notified = DotationProjetFactory(
+    refused_not_notified = EnveloppeProjetFactory(
         status=PROJET_STATUS_REFUSED, projet__notified_at=None
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         status=PROJET_STATUS_REFUSED, projet__notified_at=timezone.now()
     )
 
-    result = DotationProjet.objects.to_notify()
+    result = EnveloppeProjet.objects.to_notify()
 
     assert accepted_not_notified in result
     assert refused_not_notified in result

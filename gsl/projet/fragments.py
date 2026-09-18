@@ -1,12 +1,12 @@
 from gsl_core.fragments import Fragment
 
 from .forms import (
-    DotationProjetAssietteForm,
-    DotationProjetForm,
+    EnveloppeProjetAssietteForm,
+    EnveloppeProjetForm,
     ProjetBudgetVertForm,
     ProjetZonageForm,
 )
-from .models import DotationProjet, Projet
+from .models import EnveloppeProjet, Projet
 
 
 class BaseProjetFragment(Fragment):
@@ -60,27 +60,27 @@ class ZonageFragment(ProjetFormFragment):
     template_name = "includes/forms/_boolean_fields_projet_form.html"
 
 
-class DotationProjetFormFragment(FormFragment):
-    context_object_name = "dotation_projet"
+class EnveloppeProjetFormFragment(FormFragment):
+    context_object_name = "enveloppe_projet"
     route_params = "<int:pk>"
 
     @classmethod
     def get_queryset(cls, request):
-        return DotationProjet.objects.filter(
+        return EnveloppeProjet.objects.filter(
             projet__in=Projet.objects.active().for_user(request.user)
         )
 
 
-class DetrAvisCommissionFragment(DotationProjetFormFragment):
+class DetrAvisCommissionFragment(EnveloppeProjetFormFragment):
     name = "detr_avis_commission_form"
-    form_class = DotationProjetForm
+    form_class = EnveloppeProjetForm
     template_name = "includes/forms/_detr_avis_commission_form.html"
 
 
-class AssietteDotationFragment(DotationProjetFormFragment):
+class AssietteDotationFragment(EnveloppeProjetFormFragment):
     name = "assiette_dotation_form"
-    form_class = DotationProjetAssietteForm
-    template_name = "includes/forms/_assiette_dotation_projet_form.html"
+    form_class = EnveloppeProjetAssietteForm
+    template_name = "includes/forms/_assiette_enveloppe_projet_form.html"
 
     @classmethod
     def get_queryset(cls, request):

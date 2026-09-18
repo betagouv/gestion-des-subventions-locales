@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl.projet.tests.factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
 )
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -125,7 +125,7 @@ def client_with_cote_d_or_user_logged(cote_d_or_perimetre):
 
 @pytest.fixture
 def cote_dorien_simulation_projet(cote_d_or_perimetre):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=cote_d_or_perimetre,
         projet__dossier_ds__finance_cout_total=1_000_000,
         dotation=DOTATION_DETR,
@@ -135,7 +135,7 @@ def cote_dorien_simulation_projet(cote_d_or_perimetre):
         enveloppe=DetrEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )
     return SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         simulation=simulation,
         status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=0,
@@ -396,7 +396,7 @@ def test_regional_user_cant_patch_projet_if_simulation_projet_is_associated_to_d
 
 @pytest.fixture
 def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=cote_d_or_perimetre,
         assiette=1_000,
         dotation=DOTATION_DSIL,
@@ -405,7 +405,7 @@ def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
         enveloppe=DsilEnveloppeFactory(perimetre=cote_d_or_perimetre)
     )
     return SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         simulation=simulation,
     )
 

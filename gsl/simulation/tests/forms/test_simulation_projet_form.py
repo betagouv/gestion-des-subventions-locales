@@ -20,13 +20,13 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def simulation_projet() -> SimulationProjet:
-    dotation_projet = DetrProjetFactory(
+    enveloppe_projet = DetrProjetFactory(
         assiette=1_000, status=PROJET_STATUS_ACCEPTED, montant=200
     )
     return cast(
         SimulationProjet,
         SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             montant=200,
             status=SimulationProjet.STATUS_ACCEPTED,
         ),
@@ -203,14 +203,14 @@ def test_incoherent_new_assiette_and_new_taux(_mock, simulation_projet, initial_
     assert form.cleaned_data["montant"] == 200
     assert form.cleaned_data["taux"] == 10
     form.save()
-    assert simulation_projet.dotation_projet.assiette == 2_000
+    assert simulation_projet.enveloppe_projet.assiette == 2_000
     assert simulation_projet.montant == 200
     assert simulation_projet.taux == 10
 
 
 def test_assiette_cant_be_higher_than_cout_total(simulation_projet):
-    simulation_projet.dotation_projet.projet.dossier_ds.finance_cout_total = 1_000
-    simulation_projet.dotation_projet.projet.dossier_ds.save()
+    simulation_projet.enveloppe_projet.projet.dossier_ds.finance_cout_total = 1_000
+    simulation_projet.enveloppe_projet.projet.dossier_ds.save()
     data = {
         "assiette": 2_000,
         "montant": 200,
@@ -255,7 +255,7 @@ def test_save_with_dn_error(simulation_projet, user):
             assert str(e) == "Some error"
 
     simulation_projet.refresh_from_db()
-    assert simulation_projet.dotation_projet.assiette == 1_000  # not updated
+    assert simulation_projet.enveloppe_projet.assiette == 1_000  # not updated
     assert simulation_projet.montant == 200  # not updated
     assert simulation_projet.taux == 20  # not updated
 
@@ -265,9 +265,9 @@ def test_save_with_dn_error(simulation_projet, user):
 )
 def test_remove_assiette_field(_mock):
     simulation_projet = SimulationProjetFactory(
-        dotation_projet__projet__dossier_ds__finance_cout_total=10_000,
-        dotation_projet__assiette=1_000,
-        dotation_projet__detr_avis_commission=None,
+        enveloppe_projet__projet__dossier_ds__finance_cout_total=10_000,
+        enveloppe_projet__assiette=1_000,
+        enveloppe_projet__detr_avis_commission=None,
         montant=200,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
@@ -281,7 +281,7 @@ def test_remove_assiette_field(_mock):
     assert form.cleaned_data["taux"] == 2  # computed from montant and cout total
     assert form.changed_data == ["assiette", "taux"]
     form.save()
-    assert simulation_projet.dotation_projet.assiette is None
+    assert simulation_projet.enveloppe_projet.assiette is None
     assert simulation_projet.montant == 200
     assert simulation_projet.taux == 2
 
@@ -290,15 +290,15 @@ def test_simulation_projet_form_cannot_change_amounts_when_notified():
     """Test that assiette, montant, taux cannot be changed for a notified project"""
     from django.utils import timezone
 
-    dotation_projet = DetrProjetFactory(
+    enveloppe_projet = DetrProjetFactory(
         assiette=1_000, status=PROJET_STATUS_ACCEPTED, montant=200
     )
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         montant=200,
     )
-    simulation_projet.dotation_projet.projet.notified_at = timezone.now()
-    simulation_projet.dotation_projet.projet.save()
+    simulation_projet.enveloppe_projet.projet.notified_at = timezone.now()
+    simulation_projet.enveloppe_projet.projet.save()
 
     # Try to change montant
     data = {"assiette": 1_000, "montant": 500, "taux": 20}

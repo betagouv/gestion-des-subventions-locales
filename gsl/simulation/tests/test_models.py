@@ -4,7 +4,7 @@ import pytest
 from django.forms import ValidationError
 
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -27,11 +27,11 @@ from .factories import SimulationFactory, SimulationProjetFactory
 )
 @pytest.mark.django_db
 def test_simulation_projet_taux(montant, assiette, finance_cout_total, expected_taux):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=assiette, projet__dossier_ds__finance_cout_total=finance_cout_total
     )
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet, montant=montant
+        enveloppe_projet=enveloppe_projet, montant=montant
     )
     assert isinstance(simulation_projet.taux, Decimal)
     assert simulation_projet.taux == expected_taux
@@ -47,29 +47,29 @@ def simulation_projects(simulation):
     SimulationProjetFactory.create_batch(
         2,
         simulation=simulation,
-        dotation_projet__dotation=simulation.enveloppe.dotation,
+        enveloppe_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
     SimulationProjetFactory(
         status=SimulationProjet.STATUS_ACCEPTED,
-        dotation_projet__dotation=simulation.enveloppe.dotation,
+        enveloppe_projet__dotation=simulation.enveloppe.dotation,
     )
     SimulationProjetFactory.create_batch(
         3,
         simulation=simulation,
-        dotation_projet__dotation=simulation.enveloppe.dotation,
+        enveloppe_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_REFUSED,
     )
     SimulationProjetFactory.create_batch(
         1,
         simulation=simulation,
-        dotation_projet__dotation=simulation.enveloppe.dotation,
+        enveloppe_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_PROCESSING,
     )
     SimulationProjetFactory.create_batch(
         4,
         simulation=simulation,
-        dotation_projet__dotation=simulation.enveloppe.dotation,
+        enveloppe_projet__dotation=simulation.enveloppe.dotation,
         status=SimulationProjet.STATUS_PROVISIONALLY_REFUSED,
     )
 
@@ -97,14 +97,14 @@ def test_get_projet_status_summary_notified_count(simulation):
     SimulationProjetFactory.create_batch(
         2,
         simulation=simulation,
-        dotation_projet__dotation=simulation.enveloppe.dotation,
-        dotation_projet__projet__notified_at=timezone.now(),
+        enveloppe_projet__dotation=simulation.enveloppe.dotation,
+        enveloppe_projet__projet__notified_at=timezone.now(),
         status=SimulationProjet.STATUS_ACCEPTED,
     )
     SimulationProjetFactory(
         simulation=simulation,
-        dotation_projet__dotation=simulation.enveloppe.dotation,
-        dotation_projet__projet__notified_at=None,
+        enveloppe_projet__dotation=simulation.enveloppe.dotation,
+        enveloppe_projet__projet__notified_at=None,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
 
@@ -115,12 +115,12 @@ def test_get_projet_status_summary_notified_count(simulation):
 
 @pytest.mark.django_db
 def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=100, projet__dossier_ds__finance_cout_total=200
     )
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             montant=101,
             status=SimulationProjet.STATUS_ACCEPTED,
         )
@@ -134,14 +134,14 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
 
 @pytest.mark.django_db
 def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=100,
     )
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             montant=101,
             status=SimulationProjet.STATUS_ACCEPTED,
         )
@@ -154,13 +154,13 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
 
 @pytest.mark.django_db
 def test_simulation_projet_must_have_a_dotation_consistency():
-    dotation_projet = DotationProjetFactory(dotation=DOTATION_DSIL)
+    enveloppe_projet = EnveloppeProjetFactory(dotation=DOTATION_DSIL)
     simulation = SimulationFactory(enveloppe__dotation=DOTATION_DETR)
 
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
         )
         sp.clean()
     assert (

@@ -17,7 +17,7 @@ from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
-from .factories import DotationProjetFactory, ProjetFactory
+from .factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -152,7 +152,7 @@ def test_active_extra_filter_stays_collapsed_but_shows_tag(client, perimetre):
 
 def test_programmation_list_renders_fixed_fields_and_tags(client, perimetre):
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre, annee=2024)
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
@@ -180,8 +180,8 @@ def test_simulation_detail_fixed_row_shows_montant_previsionnel(client, perimetr
     simulation = SimulationFactory(enveloppe=enveloppe)
     SimulationProjetFactory(
         simulation=simulation,
-        dotation_projet__dotation=enveloppe.dotation,
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
+        enveloppe_projet__dotation=enveloppe.dotation,
+        enveloppe_projet__projet__dossier_ds__perimetre=perimetre,
     )
     url = reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
     response = client.get(url, data={"search": "baz"})

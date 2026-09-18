@@ -101,7 +101,7 @@
                                     <tr>
                                         <td>{{ projet.dossier_ds.ds_date_depot|date:"Y" }}</td>
                                         <td>
-                                            {% for dp in projet.dotationprojet_set.all %}
+                                            {% for dp in projet.enveloppeprojet_set.all %}
                                                 {% dsfr_tag label=dp.dotation %}
                                             {% endfor %}
                                         </td>
@@ -109,14 +109,14 @@
                                             <a href="{% url 'projet:get-projet' projet.pk %}">{{ projet.dossier_ds.projet_intitule|lower|capfirst }}</a>
                                         </td>
                                         <td>
-                                            {% for dp in projet.dotationprojet_set.all %}
+                                            {% for dp in projet.enveloppeprojet_set.all %}
                                                 <span class="fr-badge badge-projet-status badge-projet-status__{{ dp.status }}">
                                                     {{ dp.get_status_display|remove_first_word }}
                                                 </span>
                                             {% endfor %}
                                         </td>
                                         <td>
-                                            {% for dp in projet.dotationprojet_set.all %}
+                                            {% for dp in projet.enveloppeprojet_set.all %}
                                                 {% if dp.montant_retenu %}
                                                     {{ dp.montant_retenu|euro }}
                                                     <br>

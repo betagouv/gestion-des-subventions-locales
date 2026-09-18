@@ -10,8 +10,8 @@ from gsl.projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.models import Projet
-from gsl.projet.services.dotation_projet_services import DotationProjetService
-from gsl.projet.tests.factories import DotationProjetFactory, SubmittedProjetFactory
+from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
+from gsl.projet.tests.factories import EnveloppeProjetFactory, SubmittedProjetFactory
 from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
@@ -51,14 +51,14 @@ def submitted_projets(perimetre_departemental):
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
     for projet in projets:
-        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+        EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet(projet)
     return projets
 
 
 @pytest.fixture
 def programmation_projets(perimetre_departemental, detr_enveloppe):
     for _ in range(3):
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_REFUSED,
             enveloppe=detr_enveloppe,
@@ -70,7 +70,7 @@ def programmation_projets(perimetre_departemental, detr_enveloppe):
         )
 
     for montant in (200_000, 300_000):
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_ACCEPTED,
             enveloppe=detr_enveloppe,
@@ -167,7 +167,7 @@ class TestDelegatedEnveloppe:
 
         perimetre_arr_1, perimetre_arr_2 = perimetre_arrondissements
 
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             enveloppe=self.detr_enveloppe,
             projet__dossier_ds__perimetre=perimetre_arr_1,
             status=PROJET_STATUS_ACCEPTED,
@@ -176,7 +176,7 @@ class TestDelegatedEnveloppe:
             dotation=DOTATION_DETR,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             enveloppe=self.detr_enveloppe,
             projet__dossier_ds__perimetre=perimetre_arr_2,
             status=PROJET_STATUS_REFUSED,
@@ -239,7 +239,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
             perimetre=arrondissement, deleguee_by=self.dsil_enveloppe_dep, annee=2021
         )
 
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             enveloppe=self.dsil_enveloppe,
             dotation=DOTATION_DSIL,
             projet__dossier_ds__perimetre=arrondissement,
@@ -248,7 +248,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
             projet__dossier_ds__demande_montant=500_000,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             enveloppe=self.dsil_enveloppe,
             dotation=DOTATION_DSIL,
             projet__dossier_ds__perimetre=arrondissement,
@@ -307,7 +307,7 @@ class TestEnveloppePropertiesExcludeInactiveProjets:
 
         # 2 active accepted projets
         for montant in (100_000, 150_000):
-            DotationProjetFactory(
+            EnveloppeProjetFactory(
                 dotation=DOTATION_DETR,
                 status=PROJET_STATUS_ACCEPTED,
                 enveloppe=self.enveloppe,
@@ -318,7 +318,7 @@ class TestEnveloppePropertiesExcludeInactiveProjets:
             )
 
         # 1 active refused projet
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_REFUSED,
             enveloppe=self.enveloppe,
@@ -329,7 +329,7 @@ class TestEnveloppePropertiesExcludeInactiveProjets:
         )
 
         # 1 active projet without programmation (eligible, not yet programmed)
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_PROCESSING,
             projet__dossier_ds__perimetre=perimetre,
@@ -338,7 +338,7 @@ class TestEnveloppePropertiesExcludeInactiveProjets:
         )
 
         # 1 INACTIVE accepted projet — must be excluded everywhere
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             status=PROJET_STATUS_ACCEPTED,
             enveloppe=self.enveloppe,
@@ -350,7 +350,7 @@ class TestEnveloppePropertiesExcludeInactiveProjets:
         )
 
         # 1 INACTIVE projet without programmation — must be excluded from included
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             projet__dossier_ds__is_active=False,
             projet__dossier_ds__perimetre=perimetre,

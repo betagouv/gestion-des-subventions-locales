@@ -48,12 +48,12 @@ class ArreteFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Arrete
 
-    dotation_projet = factory.SubFactory(
-        "gsl.projet.tests.factories.DotationProjetFactory", status="accepted"
+    enveloppe_projet = factory.SubFactory(
+        "gsl.projet.tests.factories.EnveloppeProjetFactory", status="accepted"
     )
     modele = factory.LazyAttribute(
         lambda obj: ModeleArreteFactory(
-            dotation=obj.dotation_projet.dotation,
+            dotation=obj.enveloppe_projet.dotation,
         )
     )
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
@@ -69,7 +69,7 @@ class LettreNotificationFactory(ArreteFactory):
 
     modele = factory.LazyAttribute(
         lambda obj: ModeleLettreNotificationFactory(
-            dotation=obj.dotation_projet.dotation,
+            dotation=obj.enveloppe_projet.dotation,
         )
     )
 
@@ -78,12 +78,12 @@ class LettreRefusFactory(ArreteFactory):
     class Meta:
         model = LettreRefus
 
-    dotation_projet = factory.SubFactory(
-        "gsl.projet.tests.factories.DotationProjetFactory", status="refused"
+    enveloppe_projet = factory.SubFactory(
+        "gsl.projet.tests.factories.EnveloppeProjetFactory", status="refused"
     )
     modele = factory.LazyAttribute(
         lambda obj: ModeleLettreRefusFactory(
-            dotation=obj.dotation_projet.dotation,
+            dotation=obj.enveloppe_projet.dotation,
         )
     )
 
@@ -97,8 +97,8 @@ class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
         content_type="application/pdf",
         size=1024,  # 1 KB
     )
-    dotation_projet = factory.SubFactory(
-        "gsl.projet.tests.factories.DotationProjetFactory", status="accepted"
+    enveloppe_projet = factory.SubFactory(
+        "gsl.projet.tests.factories.EnveloppeProjetFactory", status="accepted"
     )
     created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
@@ -113,7 +113,7 @@ class LettreRefusSigneeFactory(LettreEtArreteSignesFactory):
     class Meta:
         model = LettreRefusSignee
 
-    dotation_projet = factory.SubFactory(
-        "gsl.projet.tests.factories.DotationProjetFactory",
+    enveloppe_projet = factory.SubFactory(
+        "gsl.projet.tests.factories.EnveloppeProjetFactory",
         status="refused",
     )

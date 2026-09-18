@@ -18,7 +18,7 @@ from ...constants import (
 )
 from ..factories import (
     DetrProjetFactory,
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProjetFactory,
 )
 
@@ -41,7 +41,7 @@ def test_returns_404_without_accepted_dotation(dotation_status):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    DotationProjetFactory(projet=projet, status=dotation_status)
+    EnveloppeProjetFactory(projet=projet, status=dotation_status)
 
     response = ClientWithLoggedUserFactory(user=user).get(url(projet))
     assert response.status_code == 404

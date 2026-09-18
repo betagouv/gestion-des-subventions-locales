@@ -37,7 +37,7 @@
                 <button class="fr-btn fr-btn--sm" type="submit" form="{{ form_id }}">Enregistrer</button>
             </form>
         {% else %}
-            {% include "includes/projet_detail/dotation_montant_info.html" with assiette=dotation_projet.assiette montant=simu.montant taux=simu.taux %}
+            {% include "includes/projet_detail/dotation_montant_info.html" with assiette=enveloppe_projet.assiette montant=simu.montant taux=simu.taux %}
         {% endif %}
     </div>
 </div>

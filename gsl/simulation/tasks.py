@@ -29,9 +29,9 @@ def run_bulk_status_job(job_id: str) -> None:
                 id__in=job.simulation_projet_ids,
             )
             .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
+                "enveloppe_projet",
+                "enveloppe_projet__projet",
+                "enveloppe_projet__projet__dossier_ds",
                 "simulation",
                 "simulation__enveloppe",
             )

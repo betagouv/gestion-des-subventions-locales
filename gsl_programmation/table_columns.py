@@ -37,7 +37,7 @@ from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
 
 
 def _intitule_url(ctx):
-    base = ctx["dotation_projet"].projet.get_absolute_url()
+    base = ctx["enveloppe_projet"].projet.get_absolute_url()
     request = ctx.get("request")
     if request:
         return f"{base}?{urlencode({'back': request.get_full_path()})}"
@@ -47,7 +47,7 @@ def _intitule_url(ctx):
 COLUMN_INTITULE = Column(
     key="intitule",
     label="Intitulé du projet",
-    getter=lambda ctx: ctx["dotation_projet"].projet.dossier_ds.projet_intitule,
+    getter=lambda ctx: ctx["enveloppe_projet"].projet.dossier_ds.projet_intitule,
     other_dotation_getter=lambda ctx: (
         f"Informations pour la dotation {ctx['other_dotation'].dotation}"
     ),
@@ -70,7 +70,7 @@ COLUMN_COUT_TOTAL = Column(
 
 
 def _get_montant_taux_demandes(context):
-    dp = context.get("dotation_projet")
+    dp = context.get("enveloppe_projet")
     montant = dp.projet.dossier_ds.demande_montant if dp else None
     taux = dp.taux_de_subvention_sollicite if dp else None
     return format_html("{}<br>{}", euro_value(montant), percent(taux, 2))
@@ -86,7 +86,7 @@ COLUMN_MONTANT_TAUX_DEMANDES = Column(
 
 
 def _get_montant_retenu(context):
-    dp = context.get("dotation_projet")
+    dp = context.get("enveloppe_projet")
     montant = dp.montant if dp else None
     return euro_value(montant)
 
@@ -130,7 +130,7 @@ def _get_other_dotation_statut(context):
 COLUMN_ASSIETTE = Column(
     key="assiette",
     label="Assiette (€)",
-    getter=lambda ctx: euro_value(ctx["dotation_projet"].assiette),
+    getter=lambda ctx: euro_value(ctx["enveloppe_projet"].assiette),
     other_dotation_getter=_get_other_dotation_assiette,
     text_align=TextAlign.RIGHT,
     sort_param="assiette",
@@ -148,7 +148,7 @@ COLUMN_MONTANT_RETENU = Column(
 COLUMN_TAUX = Column(
     key="taux",
     label="Taux de subvention (%)",
-    getter=lambda ctx: percent_value(ctx["dotation_projet"].taux_retenu, 2),
+    getter=lambda ctx: percent_value(ctx["enveloppe_projet"].taux_retenu, 2),
     other_dotation_getter=_get_other_dotation_taux,
     text_align=TextAlign.RIGHT,
     width=ColumnWidth.MIN_105,
@@ -166,7 +166,7 @@ COLUMN_DOCUMENTS = Column(
 COLUMN_STATUT = Column(
     key="statut",
     label="Statut",
-    getter=lambda ctx: _wrap_emoji(ctx["dotation_projet"].get_status_display()),
+    getter=lambda ctx: _wrap_emoji(ctx["enveloppe_projet"].get_status_display()),
     other_dotation_getter=_get_other_dotation_statut,
     sticky=StickyPosition.RIGHT_1,
     text_align=TextAlign.CENTER,

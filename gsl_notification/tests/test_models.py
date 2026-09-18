@@ -14,7 +14,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl_notification.models import ModeleArrete
 from gsl_notification.tests.factories import (
@@ -44,13 +44,13 @@ from gsl_notification.tests.factories import (
 )
 def generated_document_properties(type, modele_factory, factory):
     collegue = CollegueFactory()
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     file_content = {"key": "value"}
     arrete = factory(
         created_by=collegue,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         content=file_content,
         modele=modele,
     )
@@ -64,7 +64,7 @@ def generated_document_properties(type, modele_factory, factory):
     assert arrete.created_by == collegue
     assert arrete.created_at is not None
     assert arrete.updated_at is not None
-    assert arrete.dotation_projet == dotation_projet
+    assert arrete.enveloppe_projet == enveloppe_projet
     assert arrete.modele == modele
 
 
@@ -81,13 +81,13 @@ def generated_document_properties(type, modele_factory, factory):
 )
 def test_generated_document_save_calculates_size(modele_factory, factory):
     """Test that the save method calculates and saves the size field"""
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             content="<p>Test content</p>",
             modele=modele,
         )
@@ -122,13 +122,13 @@ def test_generated_document_save_updates_size_on_content_change(
     mock_get_logo_base64, modele_factory, factory
 ):
     """Test that the save method recalculates size when content changes"""
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests - keep it active for both saves
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             content="<p>Short content</p>",
             modele=modele,
         )
@@ -168,16 +168,16 @@ def test_generated_document_save_with_different_content_sizes(
     mock_get_logo_base64, modele_factory, factory
 ):
     """Test that size calculation works correctly with different content sizes"""
-    # Create separate dotation projets since Arrete/LettreNotification have OneToOneField
-    dotation_projet1 = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    dotation_projet2 = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    # Create separate enveloppe projets since Arrete/LettreNotification have OneToOneField
+    enveloppe_projet1 = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet2 = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests - keep it active for both document creations
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         # Create document with minimal content
         document1 = factory(
-            dotation_projet=dotation_projet1,
+            enveloppe_projet=enveloppe_projet1,
             content="<p>Minimal</p>",
             modele=modele,
         )
@@ -185,7 +185,7 @@ def test_generated_document_save_with_different_content_sizes(
 
         # Create another document with more content
         document2 = factory(
-            dotation_projet=dotation_projet2,
+            enveloppe_projet=enveloppe_projet2,
             content="<p>" + "Long content " * 1000 + "</p>",
             modele=modele,
         )
@@ -217,13 +217,13 @@ def test_generated_document_save_with_different_content_sizes(
 def test_generate_document_validation_error_when_pp_and_model_have_different_dotation(
     modele_factory, factory
 ):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
     )
     modele = modele_factory(dotation=DOTATION_DETR)
     # Mock the logo base64 to avoid external requests during save()
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = factory(dotation_projet=dotation_projet, modele=modele)
+        document = factory(enveloppe_projet=enveloppe_projet, modele=modele)
     with pytest.raises(ValidationError) as exc_info:
         document.clean()
 
@@ -252,10 +252,10 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
 def test_generated_document_validation_error_when_pp_status_mismatch(
     modele_factory, factory, message
 ):
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
-    modele = modele_factory(dotation=dotation_projet.dotation)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    modele = modele_factory(dotation=enveloppe_projet.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = factory(dotation_projet=dotation_projet, modele=modele)
+        document = factory(enveloppe_projet=enveloppe_projet, modele=modele)
     with pytest.raises(ValidationError) as exc_info:
         document.clean()
 
@@ -264,10 +264,10 @@ def test_generated_document_validation_error_when_pp_status_mismatch(
 
 @pytest.mark.django_db
 def test_lettre_refus_validation_error_when_pp_status_mismatch():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    modele = ModeleLettreRefusFactory(dotation=dotation_projet.dotation)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    modele = ModeleLettreRefusFactory(dotation=enveloppe_projet.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = LettreRefusFactory(dotation_projet=dotation_projet, modele=modele)
+        document = LettreRefusFactory(enveloppe_projet=enveloppe_projet, modele=modele)
     with pytest.raises(ValidationError) as exc_info:
         document.clean()
 
@@ -286,10 +286,10 @@ def test_lettre_refus_validation_error_when_pp_status_mismatch():
     ),
 )
 def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    modele = modele_factory(dotation=dotation_projet.dotation)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    modele = modele_factory(dotation=enveloppe_projet.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = factory(dotation_projet=dotation_projet, modele=modele)
+        document = factory(enveloppe_projet=enveloppe_projet, modele=modele)
     document.clean()  # should not raise
 
 
@@ -299,10 +299,10 @@ def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
     (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
 )
 def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
-    dotation_projet = DotationProjetFactory(status=status)
-    modele = ModeleLettreRefusFactory(dotation=dotation_projet.dotation)
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
+    modele = ModeleLettreRefusFactory(dotation=enveloppe_projet.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
-        document = LettreRefusFactory(dotation_projet=dotation_projet, modele=modele)
+        document = LettreRefusFactory(enveloppe_projet=enveloppe_projet, modele=modele)
     document.clean()  # should not raise
 
 
@@ -310,7 +310,7 @@ def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_properties(factory):
     collegue = CollegueFactory()
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
 
     file_content = b"dummy content"
     file = SimpleUploadedFile(
@@ -320,7 +320,7 @@ def test_lettre_et_arrete_signes_properties(factory):
     doc = factory(
         file=file,
         created_by=collegue,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
     )
 
     if factory == LettreEtArreteSignesFactory:
@@ -335,7 +335,7 @@ def test_lettre_et_arrete_signes_properties(factory):
     assert doc.size == len(file_content)
     assert doc.created_at is not None
     assert doc.created_by is collegue
-    assert doc.dotation_projet == dotation_projet
+    assert doc.enveloppe_projet == enveloppe_projet
 
 
 @pytest.mark.parametrize(
@@ -387,8 +387,8 @@ def test_two_models_have_different_logos():
 
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
-    doc = LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
 
@@ -400,8 +400,8 @@ def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
 
 @pytest.mark.django_db
 def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    doc = LettreRefusSigneeFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    doc = LettreRefusSigneeFactory(enveloppe_projet=enveloppe_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
 
@@ -421,15 +421,15 @@ def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
 )
 @pytest.mark.django_db
 def test_annexe_no_error_regardless_of_pp_status(status):
-    dotation_projet = DotationProjetFactory(status=status)
-    doc = AnnexeFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
+    doc = AnnexeFactory(enveloppe_projet=enveloppe_projet)
     doc.clean()  # should not raise
 
 
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    doc = LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
     doc.clean()  # should not raise
 
 
@@ -439,31 +439,32 @@ def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
     (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
 )
 def test_lettre_refus_signee_no_error_when_pp_refused_or_dismissed(status):
-    dotation_projet = DotationProjetFactory(status=status)
-    doc = LettreRefusSigneeFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(status=status)
+    doc = LettreRefusSigneeFactory(enveloppe_projet=enveloppe_projet)
     doc.clean()  # should not raise
 
 
 @pytest.mark.django_db
-def test_uploaded_document_is_stored_in_its_dotation_projet_folder():
-    dotation_projet = DotationProjetFactory()
+def test_uploaded_document_is_stored_in_its_enveloppe_projet_folder():
+    enveloppe_projet = EnveloppeProjetFactory()
 
     annexe = AnnexeFactory(
-        dotation_projet=dotation_projet, file__filename="rangement.pdf"
+        enveloppe_projet=enveloppe_projet, file__filename="rangement.pdf"
     )
 
     assert (
-        annexe.file.name == f"annexe/dotation_projet_{dotation_projet.id}/rangement.pdf"
+        annexe.file.name
+        == f"annexe/enveloppe_projet_{enveloppe_projet.id}/rangement.pdf"
     )
 
 
 @pytest.mark.django_db
 def test_second_annexe_with_the_same_name_is_suffixed():
-    dotation_projet = DotationProjetFactory()
-    AnnexeFactory(dotation_projet=dotation_projet, file__filename="doublon.pdf")
+    enveloppe_projet = EnveloppeProjetFactory()
+    AnnexeFactory(enveloppe_projet=enveloppe_projet, file__filename="doublon.pdf")
 
     annexe = AnnexeFactory(
-        dotation_projet=dotation_projet, file__filename="doublon.pdf"
+        enveloppe_projet=enveloppe_projet, file__filename="doublon.pdf"
     )
 
     assert annexe.name == "doublon_2.pdf"
@@ -473,13 +474,13 @@ def test_second_annexe_with_the_same_name_is_suffixed():
 def test_replacing_a_single_document_keeps_its_name():
     """Only documents that legitimately coexist collide: deleting the previous
     one frees its stored file, so a replacement is not suffixed."""
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
     LettreEtArreteSignesFactory(
-        dotation_projet=dotation_projet, file__filename="remplacement.pdf"
+        enveloppe_projet=enveloppe_projet, file__filename="remplacement.pdf"
     ).delete()
 
     document = LettreEtArreteSignesFactory(
-        dotation_projet=dotation_projet, file__filename="remplacement.pdf"
+        enveloppe_projet=enveloppe_projet, file__filename="remplacement.pdf"
     )
 
     assert document.name == "remplacement.pdf"

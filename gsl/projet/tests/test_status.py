@@ -10,13 +10,13 @@ from ..constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from ..models import DotationProjet, Projet
-from .factories import DotationProjetFactory, ProjetFactory
+from ..models import EnveloppeProjet, Projet
+from .factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
 
-def test_projet_without_dotation_projet_has_no_status():
+def test_projet_without_enveloppe_projet_has_no_status():
     projet = ProjetFactory()
     assert projet.status is None
 
@@ -24,39 +24,39 @@ def test_projet_without_dotation_projet_has_no_status():
 def test_update_projet_status_on_post_save():
     projet: Projet = ProjetFactory()
     enveloppe = DetrEnveloppeFactory()
-    dotation_projet: DotationProjet = DotationProjetFactory(
+    enveloppe_projet: EnveloppeProjet = EnveloppeProjetFactory(
         projet=projet,
         status=PROJET_STATUS_DISMISSED,
         dotation=DOTATION_DETR,
         enveloppe=enveloppe,
     )
 
-    dotation_projet.save()
+    enveloppe_projet.save()
     assert projet.status == PROJET_STATUS_DISMISSED
 
-    dotation_projet.refuse(enveloppe=enveloppe)
-    dotation_projet.save()
+    enveloppe_projet.refuse(enveloppe=enveloppe)
+    enveloppe_projet.save()
     assert projet.status == PROJET_STATUS_REFUSED
 
-    dotation_projet.set_back_status_to_processing_without_ds()
-    dotation_projet.save()
+    enveloppe_projet.set_back_status_to_processing_without_ds()
+    enveloppe_projet.save()
     assert projet.status == PROJET_STATUS_PROCESSING
 
-    dotation_projet.accept_without_ds_update(montant=1_000, enveloppe=enveloppe)
-    dotation_projet.save()
+    enveloppe_projet.accept_without_ds_update(montant=1_000, enveloppe=enveloppe)
+    enveloppe_projet.save()
     assert projet.status == PROJET_STATUS_ACCEPTED
 
 
 def test_update_projet_status_on_post_delete():
     projet = ProjetFactory()
-    accepted_dotation_projet = DotationProjetFactory(
+    accepted_enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet, status=PROJET_STATUS_REFUSED, dotation=DOTATION_DSIL
     )
 
-    accepted_dotation_projet.delete()
+    accepted_enveloppe_projet.delete()
     assert projet.status is PROJET_STATUS_REFUSED
 
 
@@ -82,28 +82,28 @@ def test_status_mixed_dotations(
     current_dotation = DOTATION_DETR
 
     if accepted:
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             projet=projet,
             status=PROJET_STATUS_ACCEPTED,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if processing:
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             projet=projet,
             status=PROJET_STATUS_PROCESSING,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if refused:
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             projet=projet,
             status=PROJET_STATUS_REFUSED,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if dismissed:
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             projet=projet,
             status=PROJET_STATUS_DISMISSED,
             dotation=current_dotation,

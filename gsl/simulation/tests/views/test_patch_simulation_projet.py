@@ -12,8 +12,8 @@ from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
-from gsl.projet.models import DotationProjet
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.models import EnveloppeProjet
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -63,7 +63,7 @@ def client_with_user_logged(collegue):
 
 @pytest.fixture
 def simulation_projet(collegue, simulation):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
@@ -72,7 +72,7 @@ def simulation_projet(collegue, simulation):
     return cast(
         SimulationProjet,
         SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=1000,
             simulation=simulation,
@@ -100,14 +100,14 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         )
 
     updated_simulation_projet = SimulationProjet.objects.get(id=simulation_projet.id)
-    dotation_projet = DotationProjet.objects.get(
-        id=updated_simulation_projet.dotation_projet.id
+    enveloppe_projet = EnveloppeProjet.objects.get(
+        id=updated_simulation_projet.enveloppe_projet.id
     )
 
     assert response.status_code == 200
     assert "HX-Redirect" in response.headers
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
 
 
 data_test = (
@@ -143,11 +143,11 @@ def test_patch_status_simulation_projet_gives_message(
 ):
     if status == SimulationProjet.STATUS_PROCESSING:
         simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
-        simulation_projet.dotation_projet.accept_without_ds_update(
+        simulation_projet.enveloppe_projet.accept_without_ds_update(
             montant=simulation_projet.montant,
             enveloppe=simulation_projet.enveloppe.delegation_root,
         )
-        simulation_projet.dotation_projet.save()
+        simulation_projet.enveloppe_projet.save()
         simulation_projet.save()
 
     page_url = reverse(
@@ -171,7 +171,7 @@ def test_patch_status_simulation_projet_gives_message(
             user=client_with_user_logged.user,
             annotations_dotation_to_update=simulation_projet.dotation,
             dotations_to_be_checked=[simulation_projet.dotation],
-            assiette=simulation_projet.dotation_projet.assiette,
+            assiette=simulation_projet.enveloppe_projet.assiette,
             montant=Decimal(simulation_projet.montant),
             taux=Decimal(simulation_projet.taux),
         )
@@ -212,7 +212,7 @@ def test_patch_status_simulation_projet_invalid_status(
 
 @pytest.fixture
 def accepted_simulation_projet(collegue, simulation):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__dossier_ds__perimetre=collegue.perimetre,
@@ -223,7 +223,7 @@ def accepted_simulation_projet(collegue, simulation):
     return cast(
         SimulationProjet,
         SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=1_000,
             simulation=simulation,
@@ -265,7 +265,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING  # Not updated
     assert (
-        simulation_projet.dotation_projet.status == PROJET_STATUS_PROCESSING
+        simulation_projet.enveloppe_projet.status == PROJET_STATUS_PROCESSING
     )  # Not updated
 
 
@@ -310,7 +310,7 @@ def test_edit_taux_post_saves_and_returns_oob(
         user=client_with_user_logged.user,
         annotations_dotation_to_update=accepted_simulation_projet.dotation,
         dotations_to_be_checked=[accepted_simulation_projet.dotation],
-        assiette=accepted_simulation_projet.dotation_projet.assiette,
+        assiette=accepted_simulation_projet.enveloppe_projet.assiette,
         montant=7_500,
         taux=75.0,
     )
@@ -493,8 +493,8 @@ def test_edit_assiette_post_saves(
     )
 
     assert response.status_code == 200
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-    assert accepted_simulation_projet.dotation_projet.assiette == Decimal("8000")
+    accepted_simulation_projet.enveloppe_projet.refresh_from_db()
+    assert accepted_simulation_projet.enveloppe_projet.assiette == Decimal("8000")
 
 
 def test_edit_assiette_post_keeps_bulk_status_checkbox_in_row(
@@ -537,8 +537,8 @@ def test_edit_assiette_post_with_wrong_value_returns_form_with_errors(
     content = response.content.decode()
     assert "fr-input-group--error" in content or "fr-error-text" in content
 
-    accepted_simulation_projet.dotation_projet.refresh_from_db()
-    assert accepted_simulation_projet.dotation_projet.assiette == 10_000
+    accepted_simulation_projet.enveloppe_projet.refresh_from_db()
+    assert accepted_simulation_projet.enveloppe_projet.assiette == 10_000
 
 
 def test_refresh_simulation_row(

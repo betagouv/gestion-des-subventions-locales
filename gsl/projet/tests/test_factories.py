@@ -1,8 +1,8 @@
 import pytest
 
-from ..models import DotationProjet, Projet, ProjetNote
+from ..models import EnveloppeProjet, Projet, ProjetNote
 from .factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
     ProjetNoteFactory,
@@ -15,7 +15,7 @@ test_data = (
     (ProjetFactory, Projet),
     (SubmittedProjetFactory, Projet),
     (ProcessedProjetFactory, Projet),
-    (DotationProjetFactory, DotationProjet),
+    (EnveloppeProjetFactory, EnveloppeProjet),
     (ProjetNoteFactory, ProjetNote),
 )
 

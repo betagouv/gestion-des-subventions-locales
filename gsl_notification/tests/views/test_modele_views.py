@@ -12,7 +12,7 @@ from gsl.projet.constants import (
     LETTRE_REFUS,
     PROJET_STATUS_ACCEPTED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -42,15 +42,15 @@ def perimetre():
 
 
 @pytest.fixture
-def dotation_projet(perimetre):
-    return DotationProjetFactory(
+def enveloppe_projet(perimetre):
+    return EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
 
 
 @pytest.fixture
-def lettre_et_arrete_signes(dotation_projet):
-    return LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
+def lettre_et_arrete_signes(enveloppe_projet):
+    return LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
 
 
 @pytest.fixture

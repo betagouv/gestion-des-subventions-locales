@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 
 from gsl.projet.constants import DOTATION_DETR
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -228,7 +228,7 @@ class TestSimulationCreateExcludesPreviouslyProgrammedProjets:
 
         arr_perimetre, dep_perimetre = self._setup_perimetres()
 
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             projet__dossier_ds__perimetre=arr_perimetre,
         )
@@ -236,10 +236,10 @@ class TestSimulationCreateExcludesPreviouslyProgrammedProjets:
             annee=date.today().year - 1,
             perimetre=dep_perimetre,
         )
-        dotation_projet.accept_without_ds_update(
+        enveloppe_projet.accept_without_ds_update(
             montant=1_000, enveloppe=previous_year_enveloppe
         )
-        dotation_projet.save()
+        enveloppe_projet.save()
 
         current_year_enveloppe = DetrEnveloppeFactory(
             annee=date.today().year,
@@ -257,7 +257,7 @@ class TestSimulationCreateExcludesPreviouslyProgrammedProjets:
     def test_includes_projet_not_programmed_in_previous_year(self):
         arr_perimetre, dep_perimetre = self._setup_perimetres()
 
-        DotationProjetFactory(
+        EnveloppeProjetFactory(
             dotation=DOTATION_DETR,
             projet__dossier_ds__perimetre=arr_perimetre,
         )

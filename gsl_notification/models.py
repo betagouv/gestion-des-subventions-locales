@@ -166,7 +166,7 @@ GENERATED_DOCUMENTS = {}
 class GeneratedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
     is_feminine: bool = False
-    required_dotation_projet_statuses: tuple[str, ...] = ()
+    required_enveloppe_projet_statuses: tuple[str, ...] = ()
     status_mismatch_message: str = ""
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
@@ -182,10 +182,10 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         null=True,
         blank=True,
     )
-    dotation_projet = models.OneToOneField(
-        "gsl_projet.DotationProjet",
+    enveloppe_projet = models.OneToOneField(
+        "gsl_projet.EnveloppeProjet",
         on_delete=models.CASCADE,
-        verbose_name="Dotation projet",
+        verbose_name="Enveloppe projet",
         related_name="%(class)s",
     )
     with_qr_code = models.BooleanField(default=True)
@@ -212,18 +212,18 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if hasattr(self, "dotation_projet"):
+        if hasattr(self, "enveloppe_projet"):
             if (
                 hasattr(self, "modele")
-                and self.dotation_projet.dotation != self.modele.dotation
+                and self.enveloppe_projet.dotation != self.modele.dotation
             ):
                 raise ValidationError(
                     "Le modèle doit avoir la même dotation que le projet de programmation."
                 )
             if (
-                self.required_dotation_projet_statuses
-                and self.dotation_projet.status
-                not in self.required_dotation_projet_statuses
+                self.required_enveloppe_projet_statuses
+                and self.enveloppe_projet.status
+                not in self.required_enveloppe_projet_statuses
             ):
                 raise ValidationError(self.status_mismatch_message)
         return super().clean()
@@ -250,7 +250,7 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
 
     @property
     def name(self):
-        return f"{self.short_name} {self.dotation_projet.dotation} - {self.dotation_projet.dossier_ds.name_for_document}.pdf"
+        return f"{self.short_name} {self.enveloppe_projet.dotation} - {self.enveloppe_projet.dossier_ds.name_for_document}.pdf"
 
     @property
     def article_name(self):
@@ -267,7 +267,7 @@ class Arrete(GeneratedDocument):
     delete_question = "Êtes-vous sûr de vouloir supprimer cet arrêté ?"
     short_name = "Arrêté"
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
-    required_dotation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_enveloppe_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     status_mismatch_message = (
         "Un arrêté ne peut être associé qu'à un projet de programmation accepté."
     )
@@ -286,7 +286,7 @@ class LettreNotification(GeneratedDocument):
     )
     short_name = "Lettre"
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
-    required_dotation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_enveloppe_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     status_mismatch_message = (
         "Une lettre de notification ne peut être associée qu'à un projet de "
         "programmation accepté."
@@ -304,7 +304,7 @@ class LettreRefus(GeneratedDocument):
     delete_question = "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou classement sans suite ?"
     short_name = "Lettre de refus"
     modele = models.ForeignKey(ModeleLettreRefus, on_delete=models.PROTECT)
-    required_dotation_projet_statuses = (
+    required_enveloppe_projet_statuses = (
         PROJET_STATUS_REFUSED,
         PROJET_STATUS_DISMISSED,
     )
@@ -323,16 +323,16 @@ UPLOADED_DOCUMENTS = {}
 
 def uploaded_document_upload_to(instance, filename):
     # Named (module-level) so it stays migration-serializable, unlike a lambda.
-    folder = f"dotation_projet_{instance.dotation_projet_id}"
+    folder = f"enveloppe_projet_{instance.enveloppe_projet_id}"
     return f"{instance.document_type}/{folder}/{filename}"
 
 
 class UploadedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
-    # DotationProjet statuses for which this document can be uploaded.
-    required_dotation_projet_statuses: tuple[str, ...] = ()
+    # EnveloppeProjet statuses for which this document can be uploaded.
+    required_enveloppe_projet_statuses: tuple[str, ...] = ()
     status_mismatch_message: str = ""
-    # False => OneToOne to DotationProjet: a single document, the choice is
+    # False => OneToOne to EnveloppeProjet: a single document, the choice is
     # disabled once one exists. True => several allowed (e.g. annexes).
     allow_multiple = False
     reattach_source_document_types: tuple[str, ...] = ()
@@ -369,17 +369,17 @@ class UploadedDocument(VerboseNameMixin, models.Model):
         return kebab_case(cls.__name__)
 
     @classmethod
-    def can_upload(cls, dotation_projet) -> bool:
+    def can_upload(cls, enveloppe_projet) -> bool:
         if cls.allow_multiple:
             return True
-        return not cls.objects.filter(dotation_projet=dotation_projet).exists()
+        return not cls.objects.filter(enveloppe_projet=enveloppe_projet).exists()
 
     def clean(self):
         if (
-            self.required_dotation_projet_statuses
-            and hasattr(self, "dotation_projet")
-            and self.dotation_projet.status
-            not in self.required_dotation_projet_statuses
+            self.required_enveloppe_projet_statuses
+            and hasattr(self, "enveloppe_projet")
+            and self.enveloppe_projet.status
+            not in self.required_enveloppe_projet_statuses
         ):
             raise ValidationError(self.status_mismatch_message)
         return super().clean()
@@ -417,7 +417,7 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
 class LettreEtArreteSignes(UploadedDocument):
     document_type = "lettre_et_arrete_signes"
-    required_dotation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_enveloppe_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     reattach_source_document_types = (ARRETE, LETTRE)
     status_mismatch_message = (
         "La lettre et l'arrêté signés ne peuvent être importés que pour un "
@@ -428,8 +428,8 @@ class LettreEtArreteSignes(UploadedDocument):
         "Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?"
     )
 
-    dotation_projet = models.OneToOneField(
-        "gsl_projet.DotationProjet",
+    enveloppe_projet = models.OneToOneField(
+        "gsl_projet.EnveloppeProjet",
         on_delete=models.CASCADE,
         related_name="lettre_et_arrete_signes",
     )
@@ -444,7 +444,7 @@ class LettreEtArreteSignes(UploadedDocument):
 
 class LettreRefusSignee(UploadedDocument):
     document_type = "lettre_refus_signee"
-    required_dotation_projet_statuses = (
+    required_enveloppe_projet_statuses = (
         PROJET_STATUS_REFUSED,
         PROJET_STATUS_DISMISSED,
     )
@@ -458,8 +458,8 @@ class LettreRefusSignee(UploadedDocument):
         "Êtes-vous sûr de vouloir supprimer cette lettre de refus signée ?"
     )
 
-    dotation_projet = models.OneToOneField(
-        "gsl_projet.DotationProjet",
+    enveloppe_projet = models.OneToOneField(
+        "gsl_projet.EnveloppeProjet",
         on_delete=models.CASCADE,
         related_name="lettre_refus_signee",
     )
@@ -474,7 +474,7 @@ class LettreRefusSignee(UploadedDocument):
 
 class Annexe(UploadedDocument):
     document_type = "annexe"
-    required_dotation_projet_statuses = (
+    required_enveloppe_projet_statuses = (
         PROJET_STATUS_ACCEPTED,
         PROJET_STATUS_REFUSED,
         PROJET_STATUS_DISMISSED,
@@ -483,8 +483,8 @@ class Annexe(UploadedDocument):
     delete_label = "Suppression de l’annexe"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
 
-    dotation_projet = models.ForeignKey(
-        "gsl_projet.DotationProjet",
+    enveloppe_projet = models.ForeignKey(
+        "gsl_projet.EnveloppeProjet",
         on_delete=models.CASCADE,
         related_name="annexes",
     )
@@ -502,7 +502,7 @@ class DocumentImportJob(BaseModel):
     Tracks an async re-import of scanned, signed documents. The browser uploads
     one or more PDFs straight to a temporary S3 prefix (presigned POST), then a
     Celery task downloads each one, virus-scans it, decodes the per-page GSL QR
-    codes, and reattaches each page-group to its DotationProjet as a
+    codes, and reattaches each page-group to its EnveloppeProjet as a
     LettreEtArreteSignes. The row is the single source of truth for progress:
     the browser polls a view that reads this model.
     """
@@ -593,7 +593,7 @@ class ExportJob(BaseModel):
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
 
     # Task parameters — stored so the task only needs job_id
-    dotation_projet_ids = models.JSONField(default=list)
+    enveloppe_projet_ids = models.JSONField(default=list)
     attr_names = models.JSONField(default=list)
     export_format = models.CharField(max_length=64, choices=EXPORT_FORMAT_CHOICES)
     document_type = models.CharField(max_length=32, choices=DOCUMENT_TYPE_CHOICES)

@@ -17,7 +17,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -78,7 +78,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
     def test_accepted_status(self, collegue, client_with_user_logged, dotation):
         """Test message when projet status is ACCEPTED."""
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -88,7 +88,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("5000.00"),
@@ -129,7 +129,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
     ):
         """Test message when projet status is REFUSED or DISMISSED."""
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -139,7 +139,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("5000.00"),
@@ -173,12 +173,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         self, collegue, client_with_user_logged, dotation
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_ACCEPTED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -188,7 +188,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("7500.50"),
@@ -228,12 +228,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         verbe,
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_ACCEPTED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -243,7 +243,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("7500.50"),
@@ -271,12 +271,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         self, collegue, client_with_user_logged, dotation
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_REFUSED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -286,7 +286,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("7500.50"),
@@ -314,12 +314,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         self, collegue, client_with_user_logged, dotation
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_REFUSED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -329,7 +329,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("7500.50"),
@@ -360,12 +360,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         dotation,
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_REFUSED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -375,7 +375,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("7500.50"),
@@ -403,12 +403,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         self, collegue, client_with_user_logged, dotation
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_DISMISSED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -418,7 +418,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("7500.50"),
@@ -449,12 +449,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         self, collegue, client_with_user_logged, dotation
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_DISMISSED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -464,7 +464,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=Decimal("7500.50"),
@@ -492,12 +492,12 @@ class TestGetSuccessMessageWhenDoubleDotation:
         self, collegue, client_with_user_logged, dotation
     ):
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-        _other_dotation_projet = DotationProjetFactory(
+        _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
             status=PROJET_STATUS_DISMISSED,
         )
-        dotation_projet = DotationProjetFactory(
+        enveloppe_projet = EnveloppeProjetFactory(
             projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
         )
         enveloppe = (
@@ -507,7 +507,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
         simulation_projet = SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             status=SimulationProjet.STATUS_DISMISSED,
             montant=Decimal("7500.50"),

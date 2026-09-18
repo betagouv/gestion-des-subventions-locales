@@ -29,10 +29,10 @@ class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "updated_at",
     )
     readonly_fields = ("dossier_link",)
-    list_select_related = ("dotation_projet__projet__dossier_ds",)
+    list_select_related = ("enveloppe_projet__projet__dossier_ds",)
 
     def dossier_link(self, obj):
-        dossier = obj.dotation_projet.projet.dossier_ds
+        dossier = obj.enveloppe_projet.projet.dossier_ds
         if dossier:
             url = reverse(
                 "admin:gsl_demarches_simplifiees_dossier_change",
@@ -42,7 +42,7 @@ class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return None
 
     dossier_link.short_description = "Dossier"
-    dossier_link.admin_order_field = "dotation_projet__projet__dossier_ds__ds_number"
+    dossier_link.admin_order_field = "enveloppe_projet__projet__dossier_ds__ds_number"
 
 
 @admin.register(LettreNotification)
@@ -83,10 +83,10 @@ class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "is_infected",
     )
     actions = [relaunch_antivirus_scan]
-    list_select_related = ("dotation_projet__projet__dossier_ds",)
+    list_select_related = ("enveloppe_projet__projet__dossier_ds",)
 
     def dossier_link(self, obj):
-        dossier = obj.dotation_projet.projet.dossier_ds
+        dossier = obj.enveloppe_projet.projet.dossier_ds
         if dossier:
             url = reverse(
                 "admin:gsl_demarches_simplifiees_dossier_change",
@@ -96,7 +96,7 @@ class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return None
 
     dossier_link.short_description = "Dossier"
-    dossier_link.admin_order_field = "dotation_projet__projet__dossier_ds__ds_number"
+    dossier_link.admin_order_field = "enveloppe_projet__projet__dossier_ds__ds_number"
 
 
 @admin.register(Annexe)

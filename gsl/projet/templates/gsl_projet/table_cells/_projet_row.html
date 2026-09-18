@@ -1,6 +1,6 @@
 {% load gsl_filters %}
 
-{% with projet.dotationprojet_set.all|sort:"dotation" as dotation_projets %}
+{% with projet.enveloppeprojet_set.all|sort:"dotation" as enveloppe_projets %}
     {% with is_sans_pieces=projet.dossier_ds.is_sans_pieces %}
         {% with has_dispositif=projet.dossier_ds.demande_dispositif_sollicite %}
             {% with row_url=projet.get_absolute_url %}
@@ -17,7 +17,7 @@
                             <td class="{{ column.td_classes }}"></td>
                         {% elif column.per_dotation %}
                             <td class="{{ column.td_classes }}{% if column.key != 'categorie' %} gsl-projet-table__cell--dotation{% endif %}{% if column.key == 'montant_retenu' and projet.montant_retenu is not None %} gsl-projet-table__montant-retenu{% endif %}{% if column.key == 'statut' %} gsl-nowrap{% endif %}">
-                                {% for dotation_projet in dotation_projets %}
+                                {% for enveloppe_projet in enveloppe_projets %}
                                     <div>{% include column.resolved_template_name %}</div>
                                 {% endfor %}
                             </td>

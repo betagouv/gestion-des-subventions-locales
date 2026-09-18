@@ -142,7 +142,7 @@ class TestDossierReporteSansPieceForm:
         assert form.is_valid(), form.errors
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             saved_dossier = form.save()
 
@@ -151,7 +151,7 @@ class TestDossierReporteSansPieceForm:
         assert saved_dossier.finance_cout_total == Decimal("100000.00")
         assert saved_dossier.demande_montant == Decimal("50000.00")
 
-    def test_form_save_calls_dotation_projet_service(self):
+    def test_form_save_calls_enveloppe_projet_service(self):
         dossier = DossierFactory()
         projet = ProjetFactory(dossier_ds=dossier)
 
@@ -164,7 +164,7 @@ class TestDossierReporteSansPieceForm:
         assert form.is_valid(), form.errors
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ) as mock_service:
             form.save()
             mock_service.assert_called_once_with(projet)
@@ -186,7 +186,7 @@ class TestDossierReporteSansPieceForm:
         assert form.is_valid(), form.errors
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             form.save()
 
@@ -206,7 +206,7 @@ class TestDossierReporteSansPieceForm:
         assert form.is_valid(), form.errors
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             saved_dossier = form.save()
 
@@ -214,7 +214,7 @@ class TestDossierReporteSansPieceForm:
         assert DOTATION_DETR in saved_dossier.demande_dispositif_sollicite
         assert DOTATION_DSIL in saved_dossier.demande_dispositif_sollicite
 
-    def test_form_save_creates_dotation_projet_with_assiette_from_finance_cout_total(
+    def test_form_save_creates_enveloppe_projet_with_assiette_from_finance_cout_total(
         self,
     ):
         dossier = DossierFactory(
@@ -234,9 +234,9 @@ class TestDossierReporteSansPieceForm:
 
         form.save()
 
-        from gsl.projet.models import DotationProjet
+        from gsl.projet.models import EnveloppeProjet
 
-        dp = DotationProjet.objects.get(
+        dp = EnveloppeProjet.objects.get(
             projet__dossier_ds=dossier, dotation=DOTATION_DETR
         )
         assert dp.assiette == Decimal("100000.00")
@@ -328,7 +328,7 @@ class TestDossierReporteSansPieceFormCategories:
         assert form.is_valid(), form.errors
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             saved_dossier = form.save()
 
@@ -355,7 +355,7 @@ class TestDossierReporteSansPieceFormCategories:
         assert form.is_valid(), form.errors
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             saved_dossier = form.save()
 
@@ -378,7 +378,7 @@ class TestDossierReporteSansPieceFormCategories:
         assert form.is_valid(), form.errors
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             saved_dossier = form.save()
 

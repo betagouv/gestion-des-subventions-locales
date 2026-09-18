@@ -50,7 +50,7 @@ def test_projet_note_form_validation():
 
 
 @pytest.mark.django_db
-def test_dotation_projet_form_save():
+def test_enveloppe_projet_form_save():
     user = CollegueFactory()
     valid_data = {
         "title": "titre",

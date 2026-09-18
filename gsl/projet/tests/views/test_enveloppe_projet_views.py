@@ -14,7 +14,7 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from ..factories import DotationProjetFactory
+from ..factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -40,7 +40,7 @@ def accepted_simulation_projet(collegue, perimetre_departemental):
         perimetre=perimetre_departemental, annee=2025, montant=1_000_000
     )
     simulation = SimulationFactory(enveloppe=detr_enveloppe)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
         projet__dossier_ds__perimetre=collegue.perimetre,
@@ -48,7 +48,7 @@ def accepted_simulation_projet(collegue, perimetre_departemental):
         dotation=DOTATION_DETR,
     )
     return SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
         simulation=simulation,
@@ -56,8 +56,8 @@ def accepted_simulation_projet(collegue, perimetre_departemental):
 
 
 @pytest.fixture
-def processing_dotation_projet(perimetre_departemental):
-    return DotationProjetFactory(
+def processing_enveloppe_projet(perimetre_departemental):
+    return EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
@@ -71,54 +71,54 @@ def _assiette_url(dp):
 
 
 def test_patch_assiette_saves_value_and_returns_updated_fragment(
-    client_with_user_logged, processing_dotation_projet
+    client_with_user_logged, processing_enveloppe_projet
 ):
     response = client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet),
+        _assiette_url(processing_enveloppe_projet),
         {"assiette": "50000"},
         headers={"HX-Request": "true"},
     )
-    processing_dotation_projet.refresh_from_db()
-    assert processing_dotation_projet.assiette == 50_000
+    processing_enveloppe_projet.refresh_from_db()
+    assert processing_enveloppe_projet.assiette == 50_000
 
     assert response.status_code == 200
     content = response.content.decode()
-    assert _assiette_url(processing_dotation_projet) in content
+    assert _assiette_url(processing_enveloppe_projet) in content
     assert 'value="50000"' in content
     assert "Modifications enregistrées" in content
     assert "fr-input-group--error" not in content
 
 
 def test_patch_assiette_accepts_french_formatted_value(
-    client_with_user_logged, processing_dotation_projet
+    client_with_user_logged, processing_enveloppe_projet
 ):
     response = client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet),
+        _assiette_url(processing_enveloppe_projet),
         {"assiette": "50 000,50"},
         headers={"HX-Request": "true"},
     )
-    processing_dotation_projet.refresh_from_db()
-    assert processing_dotation_projet.assiette == Decimal("50000.50")
+    processing_enveloppe_projet.refresh_from_db()
+    assert processing_enveloppe_projet.assiette == Decimal("50000.50")
     assert response.status_code == 200
 
 
 def test_patch_assiette_invalid_does_not_save(
-    client_with_user_logged, processing_dotation_projet
+    client_with_user_logged, processing_enveloppe_projet
 ):
     client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet),
+        _assiette_url(processing_enveloppe_projet),
         {"assiette": ""},
         headers={"HX-Request": "true"},
     )
-    processing_dotation_projet.refresh_from_db()
-    assert processing_dotation_projet.assiette == 10_000
+    processing_enveloppe_projet.refresh_from_db()
+    assert processing_enveloppe_projet.assiette == 10_000
 
 
 def test_patch_assiette_invalid_returns_errors_inline(
-    client_with_user_logged, processing_dotation_projet
+    client_with_user_logged, processing_enveloppe_projet
 ):
     response = client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet),
+        _assiette_url(processing_enveloppe_projet),
         {"assiette": ""},
         headers={"HX-Request": "true"},
     )
@@ -130,19 +130,19 @@ def test_patch_assiette_invalid_returns_errors_inline(
 
 
 def test_patch_assiette_get_returns_405(
-    client_with_user_logged, processing_dotation_projet
+    client_with_user_logged, processing_enveloppe_projet
 ):
     response = client_with_user_logged.get(
-        _assiette_url(processing_dotation_projet), headers={"HX-Request": "true"}
+        _assiette_url(processing_enveloppe_projet), headers={"HX-Request": "true"}
     )
     assert response.status_code == 405
 
 
 def test_patch_assiette_non_htmx_returns_400(
-    client_with_user_logged, processing_dotation_projet
+    client_with_user_logged, processing_enveloppe_projet
 ):
     response = client_with_user_logged.post(
-        _assiette_url(processing_dotation_projet), {"assiette": "50000"}
+        _assiette_url(processing_enveloppe_projet), {"assiette": "50000"}
     )
     assert response.status_code == 400
 
@@ -150,7 +150,7 @@ def test_patch_assiette_non_htmx_returns_400(
 def test_patch_assiette_notified_projet_returns_404(
     client_with_user_logged, perimetre_departemental
 ):
-    dp = DotationProjetFactory(
+    dp = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=perimetre_departemental,
@@ -164,7 +164,7 @@ def test_patch_assiette_notified_projet_returns_404(
 
 def test_patch_assiette_out_of_perimeter_returns_404(client_with_user_logged):
     other_perimetre = PerimetreDepartementalFactory()
-    dp = DotationProjetFactory(
+    dp = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=other_perimetre,
@@ -182,7 +182,7 @@ def test_patch_assiette_out_of_perimeter_returns_404(client_with_user_logged):
 def test_patch_detr_avis_commission_saves_value_and_returns_updated_fragment(
     client_with_user_logged, accepted_simulation_projet, value, expected_value
 ):
-    dp = accepted_simulation_projet.dotation_projet
+    dp = accepted_simulation_projet.enveloppe_projet
     url = reverse("fragment:gsl_projet:detr_avis_commission_form", kwargs={"pk": dp.pk})
     response = client_with_user_logged.post(
         url,
@@ -204,7 +204,7 @@ def test_patch_detr_avis_commission_non_htmx_returns_400(
 ):
     url = reverse(
         "fragment:gsl_projet:detr_avis_commission_form",
-        kwargs={"pk": accepted_simulation_projet.dotation_projet.pk},
+        kwargs={"pk": accepted_simulation_projet.enveloppe_projet.pk},
     )
     response = client_with_user_logged.post(url, {"detr_avis_commission": "True"})
     assert response.status_code == 400

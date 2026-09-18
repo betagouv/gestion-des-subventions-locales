@@ -9,7 +9,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import DotationProjet
+from gsl.projet.models import EnveloppeProjet
 
 from ..models import Simulation, SimulationProjet
 
@@ -18,18 +18,18 @@ logger = logging.getLogger(__name__)
 
 class SimulationProjetService:
     @classmethod
-    def create_or_update_simulation_projet_from_dotation_projet(
-        cls, dotation_projet: DotationProjet, simulation: Simulation
+    def create_or_update_simulation_projet_from_enveloppe_projet(
+        cls, enveloppe_projet: EnveloppeProjet, simulation: Simulation
     ):
         """
-        Create or update a SimulationProjet from a Dotation Projet and a Simulation.
+        Create or update a SimulationProjet from a Enveloppe Projet and a Simulation.
         """
-        simulation_projet_status = cls.get_simulation_projet_status(dotation_projet)
-        montant = cls.get_initial_montant_from_dotation_projet(
-            dotation_projet, simulation_projet_status
+        simulation_projet_status = cls.get_simulation_projet_status(enveloppe_projet)
+        montant = cls.get_initial_montant_from_enveloppe_projet(
+            enveloppe_projet, simulation_projet_status
         )
         simulation_projet, _ = SimulationProjet.objects.update_or_create(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             simulation=simulation,
             defaults={
                 "montant": montant,
@@ -40,8 +40,8 @@ class SimulationProjetService:
         return simulation_projet
 
     @classmethod
-    def get_initial_montant_from_dotation_projet(
-        cls, dotation_projet: DotationProjet, status: str
+    def get_initial_montant_from_enveloppe_projet(
+        cls, enveloppe_projet: EnveloppeProjet, status: str
     ) -> Decimal:
         if status in (
             SimulationProjet.STATUS_DISMISSED,
@@ -49,27 +49,27 @@ class SimulationProjetService:
         ):
             return Decimal(0)
 
-        if dotation_projet.montant is not None:
-            return dotation_projet.montant
+        if enveloppe_projet.montant is not None:
+            return enveloppe_projet.montant
 
-        dossier = dotation_projet.projet.dossier_ds
+        dossier = enveloppe_projet.projet.dossier_ds
 
-        if dotation_projet.dotation == DOTATION_DETR:
+        if enveloppe_projet.dotation == DOTATION_DETR:
             dossier_montant_annotations = dossier.annotations_montant_accorde_detr
-        elif dotation_projet.dotation == DOTATION_DSIL:
+        elif enveloppe_projet.dotation == DOTATION_DSIL:
             dossier_montant_annotations = dossier.annotations_montant_accorde_dsil
 
         if dossier_montant_annotations:
             return cls._select_minimum_between_value_and_assiette_or_cout_total(
                 dossier_montant_annotations,
-                dotation_projet,
+                enveloppe_projet,
                 "le montant accordé issu des annotations",
             )
 
         if dossier.demande_montant:
             return cls._select_minimum_between_value_and_assiette_or_cout_total(
                 dossier.demande_montant,
-                dotation_projet,
+                enveloppe_projet,
                 "le montant demandé",
             )
 
@@ -77,22 +77,22 @@ class SimulationProjetService:
 
     @classmethod
     def _select_minimum_between_value_and_assiette_or_cout_total(
-        cls, value: Decimal, dotation_projet: DotationProjet, value_label: str
+        cls, value: Decimal, enveloppe_projet: EnveloppeProjet, value_label: str
     ):
-        if dotation_projet.assiette_or_cout_total is None:
+        if enveloppe_projet.assiette_or_cout_total is None:
             logger.warning(
-                f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) n'a ni assiette ni coût total."
+                f"Le projet de dotation {enveloppe_projet.dotation} (id: {enveloppe_projet.pk}) n'a ni assiette ni coût total."
             )
             return value
 
-        if value and value > dotation_projet.assiette_or_cout_total:
+        if value and value > enveloppe_projet.assiette_or_cout_total:
             logger.warning(
-                f"Le projet de dotation {dotation_projet.dotation} (id: {dotation_projet.pk}) a une assiette plus petite que {value_label}."
+                f"Le projet de dotation {enveloppe_projet.dotation} (id: {enveloppe_projet.pk}) a une assiette plus petite que {value_label}."
             )
 
         return min(
             value,
-            dotation_projet.assiette_or_cout_total,
+            enveloppe_projet.assiette_or_cout_total,
         )
 
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
@@ -103,5 +103,7 @@ class SimulationProjetService:
     }
 
     @classmethod
-    def get_simulation_projet_status(cls, dotation_projet: DotationProjet):
-        return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(dotation_projet.status)
+    def get_simulation_projet_status(cls, enveloppe_projet: EnveloppeProjet):
+        return cls.PROJET_STATUS_TO_SIMULATION_PROJET_STATUS.get(
+            enveloppe_projet.status
+        )

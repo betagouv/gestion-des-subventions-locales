@@ -14,7 +14,7 @@
             <b>Modèle choisi :</b> {{ modele.name }}
         </p>
         <button class="fr-btn fr-btn--secondary">
-            <a href="{% url 'gsl_notification:select-modele' dotation_projet.projet.id modele.dotation document_type %}">Modifier
+            <a href="{% url 'gsl_notification:select-modele' enveloppe_projet.projet.id modele.dotation document_type %}">Modifier
             le modèle</a>
         </button>
         {% include "includes/_generated_document_form.html" %}
