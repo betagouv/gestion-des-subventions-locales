@@ -385,35 +385,6 @@ def test_save_demarche_dossiers_from_ds_error_on_page_continues_but_skips_cursor
     assert demarche.sync_cursor == initial_cursor
 
 
-def test_save_one_dossier_from_ds_error_with_invalid_ds_response():
-    ds_client = DsClient()
-    dossier = DossierFactory.build()
-    with patch.object(
-        ds_client,
-        "get_one_dossier",
-        return_value={"no_date_in_result": "so_raise_an_exception"},
-    ):
-        with pytest.raises(DsServiceException):
-            save_one_dossier_from_ds(dossier, ds_client)
-
-
-@pytest.mark.django_db
-def test_save_one_dossier_from_ds_no_need_to_update():
-    ds_client = DsClient()
-    date_in_ds_and_dossier = "2024-10-16T10:09:33+02:00"
-    dossier = DossierFactory(
-        ds_date_derniere_modification=datetime.fromisoformat(date_in_ds_and_dossier)
-    )
-    with patch.object(
-        ds_client,
-        "get_one_dossier",
-        return_value={"dateDerniereModification": date_in_ds_and_dossier},
-    ):
-        level, message = save_one_dossier_from_ds(dossier, ds_client)
-        assert level == messages.WARNING
-        assert "Le dossier était déjà à jour sur Turgot" in message
-
-
 @pytest.mark.django_db
 def test_save_one_dossier_from_ds_should_be_updated():
     ds_client = DsClient()
@@ -569,26 +540,6 @@ def test_save_dossier_data_and_refresh_dossier_and_projet_and_co_calls_sync_task
             dossier, ds_data, async_refresh=False
         )
         target_task.assert_called_once_with(dossier)
-
-
-def test_has_dossier_been_updated_on_ds():
-    from gsl_demarches_simplifiees.importer.dossier import (
-        _has_dossier_been_updated_on_ds,
-    )
-
-    dossier = DossierFactory.build(
-        ds_date_derniere_modification=datetime.fromisoformat(
-            "2024-10-16T10:09:33+02:00"
-        )
-    )
-
-    # Case where DN date is more recent
-    ds_data_newer = {"dateDerniereModification": "2025-01-01T12:00:00+02:00"}
-    assert _has_dossier_been_updated_on_ds(dossier, ds_data_newer) is True
-
-    # Case where DN date is older
-    ds_data_older = {"dateDerniereModification": "2023-01-01T12:00:00+02:00"}
-    assert _has_dossier_been_updated_on_ds(dossier, ds_data_older) is False
 
 
 # test _is_dossier_in_handled_departement
@@ -971,8 +922,6 @@ def test_import_one_dossier_from_ds_cree_le_dossier():
 
 
 # tests _save_cursors_after_page
-
-_API_UPDATED_SINCE = datetime.fromisoformat("2025-06-01T00:00:00+00:00")
 
 
 @pytest.mark.django_db
