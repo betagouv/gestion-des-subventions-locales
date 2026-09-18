@@ -36,22 +36,22 @@
                 </ul>
                 <h6>Financements :</h6>
 
-                {% if dotation_projets|length > 1 %}
+                {% if enveloppe_projets|length > 1 %}
                     <ul class="no-list-style">
                         {% include "includes/projet_detail/_projet_financial_informations.html" %}
                     </ul>
-                    {% for dotation_projet in dotation_projets %}
+                    {% for enveloppe_projet in enveloppe_projets %}
                         <p>
-                            <b>{{ dotation_projet.dotation }}</b>
+                            <b>{{ enveloppe_projet.dotation }}</b>
                         </p>
                         <ul class="no-list-style">
-                            {% include "includes/projet_detail/_dotation_projet_financial_informations.html" %}
+                            {% include "includes/projet_detail/_enveloppe_projet_financial_informations.html" %}
                         </ul>
                     {% endfor %}
                 {% else %}
                     <ul class="no-list-style">
                         {% include "includes/projet_detail/_projet_financial_informations.html" %}
-                        {% include "includes/projet_detail/_dotation_projet_financial_informations.html" with dotation_projet=projet.dotationprojet_set.first %}
+                        {% include "includes/projet_detail/_enveloppe_projet_financial_informations.html" with enveloppe_projet=projet.enveloppeprojet_set.first %}
                     </ul>
                 {% endif %}
             </div>
@@ -309,7 +309,7 @@
                         {% if not projet.notified_at %}
                             {% include "includes/forms/_dotations_form.html" %}
                         {% else %}
-                            {% for dp in dotation_projets %}
+                            {% for dp in enveloppe_projets %}
                                 <input type="hidden"
                                        name="dotations"
                                        value="{{ dp.dotation }}"
@@ -318,20 +318,20 @@
                         {% endif %}
                     {% endif %}
 
-                    {% for dotation_projet in dotation_projets %}
-                        {% if dotation_projet.dotation == "DSIL" and dotation_projet.projet.dossier_ds.demande_categorie_dsil %}
+                    {% for enveloppe_projet in enveloppe_projets %}
+                        {% if enveloppe_projet.dotation == "DSIL" and enveloppe_projet.projet.dossier_ds.demande_categorie_dsil %}
                             <p>
                                 <b>Catégorie d'opération DSIL</b> :
-                                {{ dotation_projet.projet.dossier_ds.demande_categorie_dsil.label }}
+                                {{ enveloppe_projet.projet.dossier_ds.demande_categorie_dsil.label }}
                             </p>
-                        {% elif dotation_projet.dotation == "DETR" and dotation_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
+                        {% elif enveloppe_projet.dotation == "DETR" and enveloppe_projet.projet.dossier_ds.demande_has_categorie_detr == False %}
                             <p>
                                 <b>Catégorie d'opération DETR</b> : Hors catégorie
                             </p>
-                        {% elif dotation_projet.dotation == "DETR" and dotation_projet.projet.dossier_ds.demande_categorie_detr %}
+                        {% elif enveloppe_projet.dotation == "DETR" and enveloppe_projet.projet.dossier_ds.demande_categorie_detr %}
                             <p>
                                 <b>Catégorie d'opération DETR</b> :
-                                {{ dotation_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
+                                {{ enveloppe_projet.projet.dossier_ds.demande_categorie_detr.complete_label }}
                             </p>
                         {% endif %}
                     {% endfor %}
@@ -364,11 +364,11 @@
                             ({{ dossier.taux_demande|percent:3 }} du coût total)
                         </p>
                     </div>
-                    {% for dp in dotation_projets %}
+                    {% for dp in enveloppe_projets %}
                         {% if dp.status == 'processing' and not projet.notified_at %}
                             {% render_fragment "gsl_projet:assiette_dotation_form" dp %}
                         {% else %}
-                            {% include "includes/projet_detail/_dotation_projet_readonly_block.html" %}
+                            {% include "includes/projet_detail/_enveloppe_projet_readonly_block.html" %}
                         {% endif %}
                     {% endfor %}
                 </section>

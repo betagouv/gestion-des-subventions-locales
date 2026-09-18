@@ -59,7 +59,7 @@ class TestDossierSansPieceUpdateViewCategories:
         }
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             response = client.post(url, data=form_data)
 
@@ -136,7 +136,7 @@ class TestDossierSansPieceUpdateView:
         }
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             response = client.post(url, data=form_data)
 
@@ -159,7 +159,7 @@ class TestDossierSansPieceUpdateView:
         }
 
         with patch(
-            "gsl_demarches_simplifiees.forms.DotationProjetService.create_or_update_dotation_projet_from_projet"
+            "gsl_demarches_simplifiees.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
         ):
             client.post(url, data=form_data)
 

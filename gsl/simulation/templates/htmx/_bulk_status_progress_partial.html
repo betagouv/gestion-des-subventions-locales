@@ -68,7 +68,7 @@
            hx-swap-oob="true">
     <template>
         {% for simu in simulation_projets_to_refresh %}
-            {% include "includes/_simulation_detail_row.html" with simu=simu projet=simu.projet dotation_projet=simu.dotation_projet %}
+            {% include "includes/_simulation_detail_row.html" with simu=simu projet=simu.projet enveloppe_projet=simu.enveloppe_projet %}
         {% endfor %}
     </template>
 {% endif %}

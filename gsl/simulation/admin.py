@@ -110,19 +110,19 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "status",
     )
     search_fields = (
-        "dotation_projet__projet__dossier_ds__projet_intitule",
-        "dotation_projet__projet__id",
-        "dotation_projet__projet__dossier_ds__ds_number",
+        "enveloppe_projet__projet__dossier_ds__projet_intitule",
+        "enveloppe_projet__projet__id",
+        "enveloppe_projet__projet__dossier_ds__ds_number",
     )
-    list_filter = ("status", "dotation_projet__projet__dossier_ds__is_active")
+    list_filter = ("status", "enveloppe_projet__projet__dossier_ds__is_active")
     raw_id_fields = (
-        "dotation_projet",
+        "enveloppe_projet",
         "simulation",
     )
     fields = (
         "dossier_link",
         "projet_link",
-        "dotation_projet",
+        "enveloppe_projet",
         "intitule",
         "simulation",
         "montant",
@@ -140,43 +140,43 @@ class SimulationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "updated_at",
     )
     list_select_related = (
-        "dotation_projet__projet",
-        "dotation_projet__projet__dossier_ds",
+        "enveloppe_projet__projet",
+        "enveloppe_projet__projet__dossier_ds",
         "simulation",
     )
 
     @admin.display(boolean=True, description="Actif")
     def is_active(self, obj):
-        return obj.dotation_projet.projet.dossier_ds.is_active
+        return obj.enveloppe_projet.projet.dossier_ds.is_active
 
     def intitule(self, obj):
-        return obj.dotation_projet.projet.dossier_ds.projet_intitule
+        return obj.enveloppe_projet.projet.dossier_ds.projet_intitule
 
     def dossier_link(self, obj):
-        if obj.dotation_projet.projet.dossier_ds:
+        if obj.enveloppe_projet.projet.dossier_ds:
             url = reverse(
                 "admin:gsl_demarches_simplifiees_dossier_change",
-                args=[obj.dotation_projet.projet.dossier_ds.id],
+                args=[obj.enveloppe_projet.projet.dossier_ds.id],
             )
             return mark_safe(
-                f'<a href="{url}">{obj.dotation_projet.projet.dossier_ds.ds_number}</a>'
+                f'<a href="{url}">{obj.enveloppe_projet.projet.dossier_ds.ds_number}</a>'
             )
         return None
 
     dossier_link.short_description = "Dossier"
-    dossier_link.admin_order_field = "dotation_projet__projet__dossier_ds__ds_number"
+    dossier_link.admin_order_field = "enveloppe_projet__projet__dossier_ds__ds_number"
 
     def projet_link(self, obj):
-        if obj.dotation_projet.projet.dossier_ds:
+        if obj.enveloppe_projet.projet.dossier_ds:
             url = reverse(
                 "admin:gsl_projet_projet_change",
-                args=[obj.dotation_projet.projet.id],
+                args=[obj.enveloppe_projet.projet.id],
             )
-            return mark_safe(f'<a href="{url}">{obj.dotation_projet.projet.id}</a>')
+            return mark_safe(f'<a href="{url}">{obj.enveloppe_projet.projet.id}</a>')
         return None
 
     projet_link.short_description = "Projet"
-    projet_link.admin_order_field = "dotation_projet__projet__id"
+    projet_link.admin_order_field = "enveloppe_projet__projet__id"
 
 
 @admin.register(BulkStatusJob)

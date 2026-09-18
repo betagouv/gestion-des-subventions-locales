@@ -36,7 +36,7 @@ from gsl_core.templatetags.gsl_filters import euro_value, percent_value
 COLUMN_DOTATION = Column(
     key="dotation",
     label="Dotation",
-    getter=lambda ctx: ctx["dotation_projet"].dotation,
+    getter=lambda ctx: ctx["enveloppe_projet"].dotation,
     per_dotation=True,
 )
 
@@ -61,7 +61,7 @@ COLUMN_MONTANT_SOLLICITE = Column(
 COLUMN_ASSIETTE = Column(
     key="assiette",
     label="Assiette (€)",
-    getter=lambda ctx: euro_value(ctx["dotation_projet"].assiette),
+    getter=lambda ctx: euro_value(ctx["enveloppe_projet"].assiette),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
     sort_param="assiette",
@@ -70,7 +70,7 @@ COLUMN_ASSIETTE = Column(
 COLUMN_MONTANT_RETENU = Column(
     key="montant_retenu",
     label="Montant retenu (€)",
-    getter=lambda ctx: euro_value(ctx["dotation_projet"].montant_retenu),
+    getter=lambda ctx: euro_value(ctx["enveloppe_projet"].montant_retenu),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
     aggregate_key="total_amount_granted",
@@ -80,7 +80,7 @@ COLUMN_MONTANT_RETENU = Column(
 COLUMN_TAUX = Column(
     key="taux",
     label="Taux de subvention (%)",
-    getter=lambda ctx: percent_value(ctx["dotation_projet"].taux_retenu, 2),
+    getter=lambda ctx: percent_value(ctx["enveloppe_projet"].taux_retenu, 2),
     per_dotation=True,
     text_align=TextAlign.RIGHT,
     header_help_text="Le taux de subvention est calculé en fonction de l'assiette (ou du coût total du projet si l'assiette n'est pas renseignée) et du montant retenu.",
@@ -99,7 +99,7 @@ COLUMN_CATEGORIE = Column(
 
 
 def _get_projet_statut(context):
-    dp = context.get("dotation_projet")
+    dp = context.get("enveloppe_projet")
     if not dp:
         return ""
     return format_html(

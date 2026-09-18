@@ -5,9 +5,9 @@ import pytest
 from django.urls import resolve, reverse
 
 from gsl.projet.models import Projet
-from gsl.projet.services.dotation_projet_services import DotationProjetService
+from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl.projet.tests.factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProjetFactory,
 )
 from gsl_core.tests.factories import (
@@ -167,7 +167,7 @@ def projets(simulation, perimetre_departemental):
                 )
                 projets.append(projet_current_year)
     for projet in projets:
-        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+        EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet(projet)
     return projets
 
 
@@ -213,25 +213,25 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
     assert projets.count() == 7
     assert (
         projets.filter(
-            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+            enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
         ).count()
         == 1
     )
     assert (
         projets.filter(
-            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 4
     )
     assert (
         projets.filter(
-            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_REFUSED
+            enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_REFUSED
         ).count()
         == 1
     )
     assert (
         projets.filter(
-            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_DISMISSED
+            enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_DISMISSED
         ).count()
         == 1
     )
@@ -246,7 +246,7 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
     assert projets.count() == 4
     assert (
         projets.filter(
-            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 4
     )
@@ -267,20 +267,20 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
 
     assert (
         projets.filter(
-            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
+            enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
         ).count()
         == 1
     )
     assert (
         projets.filter(
-            dotationprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
+            enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
         == 2
     )
     for projet in projets:
         assert (
             120_000
-            <= projet.dotationprojet_set.first().simulationprojet_set.first().montant
+            <= projet.enveloppeprojet_set.first().simulationprojet_set.first().montant
             <= 400_000
         )
 
@@ -293,7 +293,7 @@ def test_view_with_order(req, simulation, create_simulation_projets):
 
     assert projets.count() == 7
     assert (
-        projets.first().dotationprojet_set.first().simulationprojet_set.first().montant
+        projets.first().enveloppeprojet_set.first().simulationprojet_set.first().montant
         == 500_000
     )
 
@@ -322,7 +322,7 @@ def test_view_with_multiple_simulations(req, perimetre_departemental):
     simulation_1 = SimulationFactory(enveloppe=enveloppe)
     simulation_2 = SimulationFactory(enveloppe=enveloppe)
 
-    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+    EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet(projet)
     _add_enveloppe_projets_to_simulation(simulation_1)
     _add_enveloppe_projets_to_simulation(simulation_2)
 
@@ -400,13 +400,13 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
         assert (
-            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            projets.filter(enveloppeprojet__simulationprojet__status=status).count()
             == count
         )
 
     for projet in projets:
-        for dotation_projet in projet.dotationprojet_set.all():
-            assert 2_000_000 <= dotation_projet.assiette_or_cout_total <= 3_000_000
+        for enveloppe_projet in projet.enveloppeprojet_set.all():
+            assert 2_000_000 <= enveloppe_projet.assiette_or_cout_total <= 3_000_000
 
 
 def test_view_with_montant_demande_filter(req, simulation, create_simulation_projets):
@@ -425,7 +425,7 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
         assert (
-            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            projets.filter(enveloppeprojet__simulationprojet__status=status).count()
             == count
         )
 
@@ -448,7 +448,7 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         (SimulationProjet.STATUS_DISMISSED, 0),
     ]:
         assert (
-            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            projets.filter(enveloppeprojet__simulationprojet__status=status).count()
             == count
         )
 
@@ -469,7 +469,7 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
         (SimulationProjet.STATUS_DISMISSED, 1),
     ]:
         assert (
-            projets.filter(dotationprojet__simulationprojet__status=status).count()
+            projets.filter(enveloppeprojet__simulationprojet__status=status).count()
             == count
         )
 
@@ -522,26 +522,26 @@ def test_view_with_territory_filter():
     enveloppe = DetrEnveloppeFactory(perimetre=perimetre_departement_A)
     simulation = SimulationFactory(enveloppe=enveloppe)
 
-    dotation_projets_A = DotationProjetFactory.create_batch(
+    enveloppe_projets_A = EnveloppeProjetFactory.create_batch(
         2,
         dotation=enveloppe.dotation,
         projet__dossier_ds__perimetre=perimetre_arrondissement_A,
     )
-    for dotation_projet_A in dotation_projets_A:
+    for enveloppe_projet_A in enveloppe_projets_A:
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet=dotation_projet_A,
+            enveloppe_projet=enveloppe_projet_A,
         )
-    dotation_projets_B = DotationProjetFactory.create_batch(
+    enveloppe_projets_B = EnveloppeProjetFactory.create_batch(
         3,
         dotation=enveloppe.dotation,
         projet__dossier_ds__perimetre=perimetre_arrondissement_B,
     )
 
-    for dotation_projet_B in dotation_projets_B:
+    for enveloppe_projet_B in enveloppe_projets_B:
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet=dotation_projet_B,
+            enveloppe_projet=enveloppe_projet_B,
         )
 
     assert Projet.objects.count() == 5

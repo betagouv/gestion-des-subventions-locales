@@ -16,8 +16,8 @@
                 <div class="fr-col-12 fr-col-md-6">
                     <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
                         <h4 class="fr-callout__title">{{ dotation }}</h4>
-                        {% ui_status_badge type=dotation_data.dotation_projet.status dotation=dotation %}
-                        {% ui_status_badge type=dotation_data.dotation_projet.notification_status %}
+                        {% ui_status_badge type=dotation_data.enveloppe_projet.status dotation=dotation %}
+                        {% ui_status_badge type=dotation_data.enveloppe_projet.notification_status %}
 
                         {% for modele_type, fields in dotation_data.fields.items %}
                             <div class="fr-callout__text fr-mt-4w"

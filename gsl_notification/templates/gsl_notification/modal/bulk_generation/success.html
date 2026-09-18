@@ -1,8 +1,8 @@
 {% extends "gsl_notification/modal/step_base.html" %}
 {% load dsfr_tags %}
 {% block oob_swaps %}
-    {% for dotation_projet in refreshed_dotation_projets %}
-        <td id="pp-documents-cell-{{ dotation_projet.id }}"
+    {% for enveloppe_projet in refreshed_enveloppe_projets %}
+        <td id="pp-documents-cell-{{ enveloppe_projet.id }}"
             hx-swap-oob="outerHTML">
             {% include "gsl_programmation/table_cells/documents.html" %}
         </td>

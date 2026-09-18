@@ -1,10 +1,10 @@
 {% extends "includes/forms/_htmx_fragment_form.html" %}
 
 {% block post_url %}
-    {% url 'fragment:gsl_projet:assiette_dotation_form' dotation_projet.pk %}
+    {% url 'fragment:gsl_projet:assiette_dotation_form' enveloppe_projet.pk %}
 {% endblock post_url %}
 
 {% block fields %}
-    <h5 class="fr-callout__title">{{ dotation_projet.dotation }}</h5>
+    <h5 class="fr-callout__title">{{ enveloppe_projet.dotation }}</h5>
     {{ block.super }}
 {% endblock fields %}

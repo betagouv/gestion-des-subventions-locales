@@ -58,7 +58,7 @@ def dsil_envelope(user_with_departement_perimetre):
 
 
 @pytest.fixture
-def double_dotation_projet(user_with_departement_perimetre):
+def double_enveloppe_projet(user_with_departement_perimetre):
     """Project eligible for both DETR and DSIL (double dotation)"""
     projet = ProjetFactory(
         dossier_ds__perimetre=user_with_departement_perimetre.perimetre
@@ -73,13 +73,13 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
     """Tests for displaying DSIL info under DETR programming projects"""
 
     def test_detr_programming_page_displays_dsil_information(
-        self, client_logged_in, detr_envelope, dsil_envelope, double_dotation_projet
+        self, client_logged_in, detr_envelope, dsil_envelope, double_enveloppe_projet
     ):
         """
         When viewing DETR programming page, DSIL information should be displayed
         under each project line for user information
         """
-        projet, detr_dotation, dsil_dotation = double_dotation_projet
+        projet, detr_dotation, dsil_dotation = double_enveloppe_projet
 
         # Create programming for both dotations
         detr_dotation.accept_without_ds_update(montant=0, enveloppe=detr_envelope)
@@ -103,15 +103,15 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
         assert "Informations pour la dotation DSIL" in content
 
     def test_detr_programming_page_shows_dsil_amount(
-        self, client_logged_in, detr_envelope, dsil_envelope, double_dotation_projet
+        self, client_logged_in, detr_envelope, dsil_envelope, double_enveloppe_projet
     ):
         """DSIL amount should be displayed in the other dotation row"""
-        projet, detr_dotation, dsil_dotation = double_dotation_projet
+        projet, detr_dotation, dsil_dotation = double_enveloppe_projet
 
         detr_dotation.accept_without_ds_update(montant=5000, enveloppe=detr_envelope)
         detr_dotation.save()
         SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=SimulationFactory(enveloppe=dsil_envelope),
             montant=3000,  # DSIL amount
         )

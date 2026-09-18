@@ -103,7 +103,7 @@ class SimulationTableCellEditMixin(UpdateView):
             slug=simulation.slug,
         )
         return filterset.qs.filter(
-            dotationprojet__simulationprojet__simulation=simulation
+            enveloppeprojet__simulationprojet__simulation=simulation
         )
 
     def render_success_partial(self):
@@ -115,14 +115,14 @@ class SimulationTableCellEditMixin(UpdateView):
             .filter(
                 simulation=self.object.simulation,
                 status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
-                dotation_projet__projet__notified_at__isnull=True,
+                enveloppe_projet__projet__notified_at__isnull=True,
             )
             .values_list("id", flat=True)
         )
 
         context = {
             "simu": self.object,
-            "dotation_projet": self.object.dotation_projet,
+            "enveloppe_projet": self.object.enveloppe_projet,
             "projet": self.object.projet,
             "status_summary": self.object.simulation.get_projet_status_summary(),
             "total_amount_granted": total_amount_granted,
@@ -147,7 +147,7 @@ class EditAssietteView(SimulationTableCellEditMixin):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["instance"] = self.object.dotation_projet
+        kwargs["instance"] = self.object.enveloppe_projet
         kwargs["simulation_projet"] = self.object
         return kwargs
 
@@ -217,11 +217,11 @@ class RefreshSimulationRowView(DetailView):
             .select_related(
                 "simulation",
                 "simulation__enveloppe",
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
+                "enveloppe_projet",
+                "enveloppe_projet__projet",
+                "enveloppe_projet__projet__dossier_ds",
             )
-            .prefetch_related("dotation_projet__projet__dotationprojet_set")
+            .prefetch_related("enveloppe_projet__projet__enveloppeprojet_set")
         )
 
     def get_context_data(self, **kwargs):
@@ -230,7 +230,7 @@ class RefreshSimulationRowView(DetailView):
         context.update(
             {
                 "simu": simulation_projet,
-                "dotation_projet": simulation_projet.dotation_projet,
+                "enveloppe_projet": simulation_projet.enveloppe_projet,
                 "projet": simulation_projet.projet,
                 "columns": SIMULATION_TABLE_COLUMNS,
                 "dotations": DOTATIONS,
@@ -277,7 +277,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return (
             SimulationProjet.objects.active()
             .in_user_perimeter(self.request.user)
-            .filter(dotation_projet__projet__notified_at__isnull=True)
+            .filter(enveloppe_projet__projet__notified_at__isnull=True)
         )
 
     def get_form_kwargs(self):
@@ -300,9 +300,9 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             messages.info(
                 self.request,
                 {
-                    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: f"La dotation {self.object.dotation_projet.dotation} est acceptée provisoirement dans cette simulation.",
-                    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: f"La dotation {self.object.dotation_projet.dotation} est refusée provisoirement dans cette simulation.",
-                    SimulationProjet.STATUS_PROCESSING: f"La demande de financement avec la dotation {self.object.dotation_projet.dotation} est bien repassée en traitement.",
+                    SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: f"La dotation {self.object.enveloppe_projet.dotation} est acceptée provisoirement dans cette simulation.",
+                    SimulationProjet.STATUS_PROVISIONALLY_REFUSED: f"La dotation {self.object.enveloppe_projet.dotation} est refusée provisoirement dans cette simulation.",
+                    SimulationProjet.STATUS_PROCESSING: f"La demande de financement avec la dotation {self.object.enveloppe_projet.dotation} est bien repassée en traitement.",
                 }[self.kwargs["status"]],
                 extra_tags=self.kwargs["status"],
             )
@@ -343,7 +343,7 @@ class SimulationProjetCardUpdateView(UpdateView):
 
     def form_valid(self, form):
         if (
-            self.object.dotation_projet.status == PROJET_STATUS_ACCEPTED
+            self.object.enveloppe_projet.status == PROJET_STATUS_ACCEPTED
             and not self.request.POST.get("confirmed")
         ):
             refresh_url = reverse(
@@ -367,13 +367,13 @@ class SimulationProjetCardUpdateView(UpdateView):
             self.request,
             MATOMO_CATEGORY_PROGRAMMATION,
             MATOMO_ACTION_MODIFICATION_MONTANTS,
-            form.instance.dotation_projet.dotation,
+            form.instance.enveloppe_projet.dotation,
         )
 
         simu = self.object
         url = reverse(
             "projet:get-projet-simulations",
-            kwargs={"projet_id": simu.dotation_projet.projet_id},
+            kwargs={"projet_id": simu.enveloppe_projet.projet_id},
         )
         current_url = self.request.headers.get("HX-Current-URL", "")
         if current_url:
@@ -402,7 +402,7 @@ class SimulationProjetCardUpdateView(UpdateView):
                 "simu": simu,
                 "simulation_projet_form": form,
                 "form_id": form_id,
-                "dotation_projet": simu.dotation_projet,
+                "enveloppe_projet": simu.enveloppe_projet,
                 "dossier": simu.dossier,
                 "projet": simu.projet,
             },
@@ -492,9 +492,9 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
             .in_user_perimeter(request.user)
             .filter(id__in=ids)
             .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
+                "enveloppe_projet",
+                "enveloppe_projet__projet",
+                "enveloppe_projet__projet__dossier_ds",
                 "simulation",
                 "simulation__enveloppe",
             )
@@ -507,7 +507,9 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
                 )
             )
 
-        if any(sp.dotation_projet.projet.notified_at is not None for sp in all_projets):
+        if any(
+            sp.enveloppe_projet.projet.notified_at is not None for sp in all_projets
+        ):
             raise Http404(
                 user_message=(
                     "Un ou plusieurs des projets sélectionnés a déjà été notifié "
@@ -599,7 +601,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
         if target_status == SimulationProjet.STATUS_ACCEPTED:
             return True
         return any(
-            sp.dotation_projet.status == PROJET_STATUS_ACCEPTED
+            sp.enveloppe_projet.status == PROJET_STATUS_ACCEPTED
             for sp in simulation_projets
         )
 
@@ -675,7 +677,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         self.new_project_status = projet_status_from_dotation_statuses(
             (
                 self.kwargs["status"],
-                *(d.status for d in obj.dotation_projet.other_dotations),
+                *(d.status for d in obj.enveloppe_projet.other_dotations),
             )
         )
         return obj
@@ -732,15 +734,15 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             SimulationProjet.objects.active()
             .in_user_perimeter(self.request.user)
             # On exclut les simulations-projet liés à une programmation-projet déjà notifiée.
-            .exclude(dotation_projet__projet__notified_at__isnull=False)
+            .exclude(enveloppe_projet__projet__notified_at__isnull=False)
             .select_related(
                 "simulation",
                 "simulation__enveloppe",
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
+                "enveloppe_projet",
+                "enveloppe_projet__projet",
+                "enveloppe_projet__projet__dossier_ds",
             )
-            .prefetch_related("dotation_projet__projet__dossier_ds__ds_instructeurs")
+            .prefetch_related("enveloppe_projet__projet__dossier_ds__ds_instructeurs")
         )
 
     def get_success_message(self):

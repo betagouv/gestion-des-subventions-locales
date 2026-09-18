@@ -35,7 +35,7 @@ from ..constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from ..models import DotationProjet, Projet
+from ..models import EnveloppeProjet, Projet
 from .django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -124,8 +124,8 @@ def filter_dotation(queryset, _name, values):
     query = Q()
 
     queryset = queryset.annotate(
-        detr_count=Count("dotationprojet", filter=Q(dotationprojet__dotation="DETR")),
-        dsil_count=Count("dotationprojet", filter=Q(dotationprojet__dotation="DSIL")),
+        detr_count=Count("enveloppeprojet", filter=Q(enveloppeprojet__dotation="DETR")),
+        dsil_count=Count("enveloppeprojet", filter=Q(enveloppeprojet__dotation="DSIL")),
     )
 
     if DOTATION_DETR in values:
@@ -288,7 +288,7 @@ class FixedFilterFieldsMixin:
 class CommonFiltersFields(FixedFilterFieldsMixin, FilterSet):
     """Shared fields for ProjetFilters, SimulationProjetFilters (both
     Meta.model = Projet) and ProgrammationFilters (Meta.model =
-    DotationProjet). `field_name`s below are declared relative to
+    EnveloppeProjet). `field_name`s below are declared relative to
     Projet; ProgrammationFilters sets `dossier_field_prefix` to reach
     Projet through its own relation, prepended in `__init__`."""
 
@@ -524,7 +524,7 @@ class ProjetFilters(CommonFiltersFields):
     )
 
     def filter_montant_retenu(self, queryset, _name, value):
-        dotation_qs = DotationProjet.objects.filter(projet=OuterRef("pk"))
+        dotation_qs = EnveloppeProjet.objects.filter(projet=OuterRef("pk"))
         if value.start is not None:
             dotation_qs = dotation_qs.filter(montant__gte=value.start)
         if value.stop is not None:
@@ -538,7 +538,7 @@ class ProjetFilters(CommonFiltersFields):
         # Unlike `status`, this matches a projet as soon as ONE of its
         # dotations has the selected notification status, rather than
         # reducing to a single aggregated value first.
-        dotation_qs = DotationProjet.objects.annotate_notification_status().filter(
+        dotation_qs = EnveloppeProjet.objects.annotate_notification_status().filter(
             projet=OuterRef("pk"), _notification_status__in=values
         )
         return queryset.filter(Exists(dotation_qs))

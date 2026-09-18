@@ -21,7 +21,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
 from gsl_programmation.tests.factories import (
@@ -42,16 +42,16 @@ def user() -> Collegue:
 
 
 @pytest.fixture
-def double_dotation_projet_detr_dsil():
+def double_enveloppe_projet_detr_dsil():
     """Create a projet with both DETR and DSIL dotations in PROCESSING state."""
     projet = ProjetFactory()
-    detr_dotation = DotationProjetFactory(
+    detr_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
     )
-    dsil_dotation = DotationProjetFactory(
+    dsil_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_PROCESSING,
@@ -68,16 +68,16 @@ class TestRefuseOneDoubleDotation:
     """Refusing one dotation never notifies DN at status-change time."""
 
     def test_refuse_detr_when_dsil_processing(
-        self, double_dotation_projet_detr_dsil, user
+        self, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -98,12 +98,12 @@ class TestRefuseOneDoubleDotation:
         assert projet.notified_at is None
 
     def test_refuse_detr_when_dsil_already_refused(
-        self, double_dotation_projet_detr_dsil, user
+        self, double_enveloppe_projet_detr_dsil, user
     ):
         """Even when both dotations end up refused, no DS push at status time."""
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
@@ -111,7 +111,7 @@ class TestRefuseOneDoubleDotation:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -137,11 +137,11 @@ class TestRefuseOneDoubleDotation:
         assert projet.notified_at is None
 
     def test_refuse_detr_when_dsil_accepted(
-        self, double_dotation_projet_detr_dsil, user
+        self, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         dsil_dotation.accept_without_ds_update(
             montant=7_500, enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre)
@@ -151,7 +151,7 @@ class TestRefuseOneDoubleDotation:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -176,16 +176,16 @@ class TestDismissOneDoubleDotation:
     """Dismissing one dotation never notifies DN at status-change time."""
 
     def test_dismiss_dsil_when_detr_processing(
-        self, double_dotation_projet_detr_dsil, user
+        self, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=dsil_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
@@ -206,11 +206,11 @@ class TestDismissOneDoubleDotation:
         assert projet.notified_at is None
 
     def test_dismiss_dsil_when_detr_dismissed(
-        self, double_dotation_projet_detr_dsil, user
+        self, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_dotation.dismiss(enveloppe=detr_enveloppe)
@@ -219,7 +219,7 @@ class TestDismissOneDoubleDotation:
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=dsil_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
@@ -245,11 +245,11 @@ class TestDismissOneDoubleDotation:
         assert projet.notified_at is None
 
     def test_dismiss_dsil_when_detr_refused(
-        self, double_dotation_projet_detr_dsil, user
+        self, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_dotation.refuse(enveloppe=detr_enveloppe)
@@ -258,7 +258,7 @@ class TestDismissOneDoubleDotation:
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=dsil_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
@@ -292,16 +292,16 @@ class TestAcceptOneDoubleDotation:
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_accept_detr_leaves_dsil_processing(
-        self, mock_ds_update, double_dotation_projet_detr_dsil, user
+        self, mock_ds_update, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -337,16 +337,16 @@ class TestAcceptOneDoubleDotation:
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_accept_both_dotations_separately(
-        self, mock_ds_update, double_dotation_projet_detr_dsil, user
+        self, mock_ds_update, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -355,7 +355,7 @@ class TestAcceptOneDoubleDotation:
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=dsil_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
@@ -391,11 +391,11 @@ class TestAcceptOneDoubleDotation:
         "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
     )
     def test_accept_detr_when_dsil_refused_projet_becomes_accepted(
-        self, mock_ds_update, double_dotation_projet_detr_dsil, user
+        self, mock_ds_update, double_enveloppe_projet_detr_dsil, user
     ):
-        detr_dotation = double_dotation_projet_detr_dsil["detr_dotation"]
-        dsil_dotation = double_dotation_projet_detr_dsil["dsil_dotation"]
-        projet = double_dotation_projet_detr_dsil["projet"]
+        detr_dotation = double_enveloppe_projet_detr_dsil["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet_detr_dsil["dsil_dotation"]
+        projet = double_enveloppe_projet_detr_dsil["projet"]
 
         dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
@@ -403,7 +403,7 @@ class TestAcceptOneDoubleDotation:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -424,4 +424,4 @@ class TestAcceptOneDoubleDotation:
 
 
 # Silence unused-import warnings for the factory used only in fixtures above.
-_ = DotationProjetFactory
+_ = EnveloppeProjetFactory

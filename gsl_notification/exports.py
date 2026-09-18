@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from pikepdf import Pdf
 
-from gsl.projet.models import DotationProjet
+from gsl.projet.models import EnveloppeProjet
 from gsl_notification.forms import (
     ARRETE_ET_LETTRE,
     EXPORT_FORMAT_ONE_PDF_ALL,
@@ -34,9 +34,9 @@ EXPORT_URL_TTL = 900  # 15 minutes
 
 def build_export(job) -> tuple[str, str, bytes]:
     by_pk = {
-        dotation_projet.pk: dotation_projet
-        for dotation_projet in DotationProjet.objects.filter(
-            pk__in=job.dotation_projet_ids
+        enveloppe_projet.pk: enveloppe_projet
+        for enveloppe_projet in EnveloppeProjet.objects.filter(
+            pk__in=job.enveloppe_projet_ids
         ).select_related(
             "arrete__modele",
             "lettrenotification__modele",
@@ -44,9 +44,9 @@ def build_export(job) -> tuple[str, str, bytes]:
             "projet__dossier_ds__ds_demandeur",
         )
     }
-    dotation_projets = [by_pk[pk] for pk in job.dotation_projet_ids]
+    enveloppe_projets = [by_pk[pk] for pk in job.enveloppe_projet_ids]
     documents = [
-        getattr(dp, attr) for attr in job.attr_names for dp in dotation_projets
+        getattr(dp, attr) for attr in job.attr_names for dp in enveloppe_projets
     ]
     total = len(documents)
     total_steps = 3 if job.with_qr_code else 2
@@ -63,7 +63,7 @@ def build_export(job) -> tuple[str, str, bytes]:
         )
 
         return _assemble_export(
-            dotation_projets,
+            enveloppe_projets,
             job.attr_names,
             job.export_format,
             job.document_type,
@@ -118,24 +118,24 @@ def _render_pdfs_to_disk(job, documents, tmp_path: Path) -> dict[int, Path]:
 
 
 def _assemble_export(
-    dotation_projets, attrs, export_format, document_type, pdf_paths: dict[str, Path]
+    enveloppe_projets, attrs, export_format, document_type, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
         return _build_single_merged_pdf(
-            dotation_projets, attrs, document_type, pdf_paths
+            enveloppe_projets, attrs, document_type, pdf_paths
         )
     if export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT:
-        return _build_one_pdf_per_project(dotation_projets, attrs, pdf_paths)
+        return _build_one_pdf_per_project(enveloppe_projets, attrs, pdf_paths)
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED:
-        return _build_grouped_merged_pdf(dotation_projets, attrs, pdf_paths)
-    return _build_one_pdf_per_doc(dotation_projets, attrs, pdf_paths)
+        return _build_grouped_merged_pdf(enveloppe_projets, attrs, pdf_paths)
+    return _build_one_pdf_per_doc(enveloppe_projets, attrs, pdf_paths)
 
 
 def _build_one_pdf_per_doc(
-    dotation_projets, attrs, pdf_paths: dict[str, Path]
+    enveloppe_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     documents = [
-        doc for attr in attrs for doc in (getattr(dp, attr) for dp in dotation_projets)
+        doc for attr in attrs for doc in (getattr(dp, attr) for dp in enveloppe_projets)
     ]
 
     if len(documents) == 1:
@@ -156,13 +156,13 @@ def _build_one_pdf_per_doc(
 
 
 def _build_single_merged_pdf(
-    dotation_projets,
+    enveloppe_projets,
     attrs,
     document_type,
     pdf_paths: dict[str, Path],
 ) -> tuple[str, str, bytes]:
     paths = []
-    for dp in dotation_projets:
+    for dp in enveloppe_projets:
         for attr in attrs:
             doc = getattr(dp, attr)
             paths.append(pdf_paths[f"{type(doc).__name__}_{doc.pk}"])
@@ -177,10 +177,10 @@ def _build_single_merged_pdf(
 
 
 def _build_one_pdf_per_project(
-    dotation_projets, attrs, pdf_paths: dict[str, Path]
+    enveloppe_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
-    if len(dotation_projets) == 1:
-        dp = dotation_projets[0]
+    if len(enveloppe_projets) == 1:
+        dp = enveloppe_projets[0]
         paths = [
             pdf_paths[f"{type(getattr(dp, attr)).__name__}_{getattr(dp, attr).pk}"]
             for attr in attrs
@@ -195,7 +195,7 @@ def _build_one_pdf_per_project(
     date_str = timezone.now().strftime("%d-%m-%Y")
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for dp in dotation_projets:
+        for dp in enveloppe_projets:
             paths = [
                 pdf_paths[f"{type(getattr(dp, attr)).__name__}_{getattr(dp, attr).pk}"]
                 for attr in attrs
@@ -213,10 +213,10 @@ def _build_one_pdf_per_project(
 
 
 def _build_grouped_merged_pdf(
-    dotation_projets, attrs, pdf_paths: dict[str, Path]
+    enveloppe_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     paths = []
-    for dp in dotation_projets:
+    for dp in enveloppe_projets:
         for attr in attrs:
             doc = getattr(dp, attr)
             paths.append(pdf_paths[f"{type(doc).__name__}_{doc.pk}"])

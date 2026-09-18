@@ -76,7 +76,7 @@ class Column:
     # Link rendering (alternative to custom template for linked values)
     link: Optional[CellLink] = None
 
-    # Per-dotation rendering: row template loops over dotation_projets
+    # Per-dotation rendering: row template loops over enveloppe_projets
     per_dotation: bool = False
 
     # Styling
@@ -223,11 +223,11 @@ COLUMN_NOTIFICATION = Column(
 )
 
 
-def _categorie_for_dotation_projet(dotation_projet):
-    if not dotation_projet:
+def _categorie_for_enveloppe_projet(enveloppe_projet):
+    if not enveloppe_projet:
         return ""
-    dotation = dotation_projet.dotation
-    dossier_ds = dotation_projet.projet.dossier_ds
+    dotation = enveloppe_projet.dotation
+    dossier_ds = enveloppe_projet.projet.dossier_ds
     if dotation == "DSIL":
         categorie = getattr(dossier_ds, "demande_categorie_dsil", None)
         return categorie.label if categorie else ""
@@ -240,14 +240,14 @@ def _categorie_for_dotation_projet(dotation_projet):
 
 
 def get_categorie(context):
-    return _categorie_for_dotation_projet(context.get("dotation_projet"))
+    return _categorie_for_enveloppe_projet(context.get("enveloppe_projet"))
 
 
 COLUMN_CATEGORIE = Column(
     key="categorie",
     label="Catégorie d'opération",
     getter=get_categorie,
-    other_dotation_getter=lambda ctx: _categorie_for_dotation_projet(
+    other_dotation_getter=lambda ctx: _categorie_for_enveloppe_projet(
         ctx["other_dotation"]
     ),
     max_3_lines=True,

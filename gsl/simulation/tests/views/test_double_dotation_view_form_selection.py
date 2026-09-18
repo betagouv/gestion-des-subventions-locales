@@ -20,7 +20,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import DotationProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -50,17 +50,17 @@ def client_with_user_logged(collegue):
 
 
 @pytest.fixture
-def double_dotation_projet(collegue):
+def double_enveloppe_projet(collegue):
     projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
     projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)
 
-    detr_dotation = DotationProjetFactory(
+    detr_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         assiette=10_000,
     )
-    dsil_dotation = DotationProjetFactory(
+    dsil_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_PROCESSING,
@@ -82,15 +82,15 @@ def _assert_uses_notify_later_modal(response):
 
 class TestModalForRefusing:
     def test_refuse_detr_with_dsil_processing(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -109,11 +109,11 @@ class TestModalForRefusing:
         )
 
     def test_refuse_detr_with_dsil_already_refused(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        dsil_dotation = double_dotation_projet["dsil_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet["dsil_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
@@ -121,7 +121,7 @@ class TestModalForRefusing:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -137,11 +137,11 @@ class TestModalForRefusing:
         assert response.context["new_projet_status"] == PROJET_STATUS_REFUSED
 
     def test_refuse_detr_with_dsil_accepted(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        dsil_dotation = double_dotation_projet["dsil_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet["dsil_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         dsil_dotation.accept_without_ds_update(
             montant=7_500, enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre)
@@ -151,7 +151,7 @@ class TestModalForRefusing:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -169,15 +169,15 @@ class TestModalForRefusing:
 
 class TestModalForDismissing:
     def test_dismiss_dsil_with_detr_processing(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        dsil_dotation = double_dotation_projet["dsil_dotation"]
-        projet = double_dotation_projet["projet"]
+        dsil_dotation = double_enveloppe_projet["dsil_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=dsil_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
@@ -193,11 +193,11 @@ class TestModalForDismissing:
         assert response.context["new_projet_status"] == PROJET_STATUS_PROCESSING
 
     def test_dismiss_dsil_with_detr_dismissed(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        dsil_dotation = double_dotation_projet["dsil_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet["dsil_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         detr_dotation.dismiss(
             enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre)
@@ -207,7 +207,7 @@ class TestModalForDismissing:
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=dsil_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
@@ -223,11 +223,11 @@ class TestModalForDismissing:
         assert response.context["new_projet_status"] == PROJET_STATUS_DISMISSED
 
     def test_dismiss_dsil_with_detr_refused(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        dsil_dotation = double_dotation_projet["dsil_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet["dsil_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         detr_dotation.refuse(enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre))
         detr_dotation.save()
@@ -235,7 +235,7 @@ class TestModalForDismissing:
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
         dsil_simulation = SimulationFactory(enveloppe=dsil_enveloppe)
         dsil_simulation_projet = SimulationProjetFactory(
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             simulation=dsil_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=7_500,
@@ -253,15 +253,15 @@ class TestModalForDismissing:
 
 class TestModalForAccepting:
     def test_accept_detr_with_dsil_processing(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -278,11 +278,11 @@ class TestModalForAccepting:
 
 class TestPostNoLongerPushesDsAtStatusChange:
     def test_post_refuse_with_both_refused_does_not_call_ds(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        dsil_dotation = double_dotation_projet["dsil_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet["dsil_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
@@ -290,7 +290,7 @@ class TestPostNoLongerPushesDsAtStatusChange:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,
@@ -313,15 +313,15 @@ class TestPostNoLongerPushesDsAtStatusChange:
         assert projet.notified_at is None
 
     def test_post_refuse_with_dsil_processing_no_ds_call(
-        self, client_with_user_logged, double_dotation_projet
+        self, client_with_user_logged, double_enveloppe_projet
     ):
-        detr_dotation = double_dotation_projet["detr_dotation"]
-        projet = double_dotation_projet["projet"]
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        projet = double_enveloppe_projet["projet"]
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
         detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
         detr_simulation_projet = SimulationProjetFactory(
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             simulation=detr_simulation,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=5_000,

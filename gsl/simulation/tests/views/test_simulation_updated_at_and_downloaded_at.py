@@ -7,7 +7,7 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 
 from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -59,7 +59,7 @@ def client_with_user_logged(collegue):
 
 @pytest.fixture
 def simulation_projet(collegue, simulation):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
@@ -68,7 +68,7 @@ def simulation_projet(collegue, simulation):
     return cast(
         SimulationProjet,
         SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             status=SimulationProjet.STATUS_PROCESSING,
             montant=1_000,
             simulation=simulation,
@@ -78,7 +78,7 @@ def simulation_projet(collegue, simulation):
 
 @pytest.fixture
 def accepted_simulation_projet(collegue, simulation):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
@@ -87,7 +87,7 @@ def accepted_simulation_projet(collegue, simulation):
     return cast(
         SimulationProjet,
         SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=1_000,
             simulation=simulation,
@@ -206,13 +206,13 @@ class TestSimulationUpdatedAtOnStatusChange:
         self, _mock_ds, client_with_user_logged, simulation_projet
     ):
         """Quand on accepte un simulation_projet, la cascade met à jour tous les
-        SimulationProjet liés au même DotationProjet, mais on ne doit mettre à
+        SimulationProjet liés au même EnveloppeProjet, mais on ne doit mettre à
         jour l'updated_at que de la simulation à l'origine de l'action."""
         other_simulation = SimulationFactory(
             enveloppe=simulation_projet.simulation.enveloppe
         )
         SimulationProjetFactory(
-            dotation_projet=simulation_projet.dotation_projet,
+            enveloppe_projet=simulation_projet.enveloppe_projet,
             simulation=other_simulation,
             montant=1_000,
             status=SimulationProjet.STATUS_PROCESSING,

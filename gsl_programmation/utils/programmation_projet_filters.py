@@ -12,7 +12,7 @@ from gsl.projet.constants import (
     PROJET_FINAL_STATUSES,
     PROJET_STATUS_CHOICES,
 )
-from gsl.projet.models import DotationProjet
+from gsl.projet.models import EnveloppeProjet
 from gsl.projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -53,7 +53,7 @@ PROGRAMMATION_ORDERING_MAP = {
 
 
 class ProgrammationFilters(CommonFiltersFields):
-    # DotationProjet reaches Projet via `projet__`, unlike ProjetFilters/
+    # EnveloppeProjet reaches Projet via `projet__`, unlike ProjetFilters/
     # SimulationProjetFilters whose Meta.model is Projet directly; the common
     # fields' field_name is prefixed accordingly.
     dossier_field_prefix = "projet__"
@@ -99,7 +99,7 @@ class ProgrammationFilters(CommonFiltersFields):
     )
 
     class Meta:
-        model = DotationProjet
+        model = EnveloppeProjet
         fields = (
             "search",
             "territoire",

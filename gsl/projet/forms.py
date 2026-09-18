@@ -17,7 +17,7 @@ from .constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
-from .models import DotationProjet, Projet, ProjetNote
+from .models import EnveloppeProjet, Projet, ProjetNote
 
 logger = getLogger(__name__)
 
@@ -69,7 +69,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     def update_dotation(
         self, projet: Projet, dotations: list[POSSIBLE_DOTATIONS], user: Collegue
     ):
-        from .services.dotation_projet_services import DotationProjetService
+        from .services.enveloppe_projet_services import EnveloppeProjetService
 
         if len(dotations) == 0:
             logger.warning(
@@ -92,11 +92,11 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         dotations_updated_in_app = new_dotations or dotation_to_remove
 
         for dotation in new_dotations:
-            dotation_projet = DotationProjet.objects.create(
+            enveloppe_projet = EnveloppeProjet.objects.create(
                 projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
             )
-            DotationProjetService.create_simulation_projets_from_dotation_projet(
-                dotation_projet
+            EnveloppeProjetService.create_simulation_projets_from_enveloppe_projet(
+                enveloppe_projet
             )
             ProjetAction.objects.create(
                 projet=projet,
@@ -107,13 +107,13 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
 
-        dotation_projet_to_remove = DotationProjet.objects.filter(
+        enveloppe_projet_to_remove = EnveloppeProjet.objects.filter(
             projet=projet, dotation__in=dotation_to_remove
         )
 
-        if dotation_projet_to_remove.filter(status=PROJET_STATUS_ACCEPTED).exists():
+        if enveloppe_projet_to_remove.filter(status=PROJET_STATUS_ACCEPTED).exists():
             dotations_to_be_checked = (
-                DotationProjet.objects.filter(
+                EnveloppeProjet.objects.filter(
                     projet=projet, status=PROJET_STATUS_ACCEPTED
                 )
                 .exclude(dotation__in=dotation_to_remove)
@@ -137,7 +137,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
 
-        dotation_projet_to_remove.delete()
+        enveloppe_projet_to_remove.delete()
 
         if dotations_updated_in_app:
             projet.dotations_updated_in_app = True
@@ -293,7 +293,7 @@ class ProjetZonageForm(ProjetAnnotationsForm):
         return contrat_local
 
 
-class DotationProjetForm(ModelForm, DsfrBaseForm):
+class EnveloppeProjetForm(ModelForm, DsfrBaseForm):
     DETR_AVIS_CHOICES = [
         (None, "En cours"),
         (True, "Oui"),
@@ -317,7 +317,7 @@ class DotationProjetForm(ModelForm, DsfrBaseForm):
         return value
 
     class Meta:
-        model = DotationProjet
+        model = EnveloppeProjet
         fields = [
             "detr_avis_commission",
         ]
@@ -330,7 +330,7 @@ class FrenchDecimalField(forms.DecimalField):
         return super().to_python(value)
 
 
-class DotationProjetAssietteForm(ModelForm, DsfrBaseForm):
+class EnveloppeProjetAssietteForm(ModelForm, DsfrBaseForm):
     assiette = FrenchDecimalField(
         label="Montant des dépenses éligibles retenues (€)",
         required=True,
@@ -347,7 +347,7 @@ class DotationProjetAssietteForm(ModelForm, DsfrBaseForm):
     )
 
     class Meta:
-        model = DotationProjet
+        model = EnveloppeProjet
         fields = ["assiette"]
 
 

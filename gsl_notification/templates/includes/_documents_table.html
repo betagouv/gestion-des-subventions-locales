@@ -21,7 +21,7 @@
                             {% for document in documents %}
                                 <tr>
                                     <td>{{ document.created_at|date:"d/m/Y H\hi" }}</td>
-                                    <td>{{ document.dotation_projet.dotation }}</td>
+                                    <td>{{ document.enveloppe_projet.dotation }}</td>
                                     <td>
                                         <span class="document-name-cell" title="{{ document.name }}">{{ document.name }}</span>
                                     </td>
@@ -53,7 +53,7 @@
                                                    class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line">
                                                     Télécharger ({{ document.size|filesizeformat }})
                                                 </a>
-                                                <a href="{% url "notification:modifier-document" document.dotation_projet.projet.id document.dotation_projet.dotation document.document_type %}"
+                                                <a href="{% url "notification:modifier-document" document.enveloppe_projet.projet.id document.enveloppe_projet.dotation document.document_type %}"
                                                    class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-edit-line">
                                                     Modifier
                                                 </a>

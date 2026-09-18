@@ -63,7 +63,7 @@ def dsil_envelope(user_with_departement_perimetre):
 
 
 @pytest.fixture
-def double_dotation_projet(user_with_departement_perimetre):
+def double_enveloppe_projet(user_with_departement_perimetre):
     """Project eligible for both DETR and DSIL (double dotation)"""
     projet = ProjetFactory(
         dossier_ds__perimetre=user_with_departement_perimetre.perimetre
@@ -97,13 +97,13 @@ def test_get_filter_projets_export_view(export_type, content_type):
     )
     SimulationProjetFactory.create_batch(
         2,
-        dotation_projet__dotation=DOTATION_DSIL,
+        enveloppe_projet__dotation=DOTATION_DSIL,
         simulation=simulation,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
     SimulationProjetFactory.create_batch(
         3,
-        dotation_projet__dotation=DOTATION_DSIL,
+        enveloppe_projet__dotation=DOTATION_DSIL,
         simulation=simulation,
         status=SimulationProjet.STATUS_REFUSED,
     )
@@ -139,23 +139,23 @@ class TestDoubleDotationDisplayOnDetrSimulation:
     """Tests for displaying DSIL info under DETR simulation projects"""
 
     def test_detr_simulation_page_displays_dsil_information(
-        self, client_logged_in, detr_envelope, double_dotation_projet, dsil_envelope
+        self, client_logged_in, detr_envelope, double_enveloppe_projet, dsil_envelope
     ):
         """
         When viewing DETR simulation page, DSIL information should be displayed
         under each project line for user information
         """
-        projet, detr_dotation, dsil_dotation = double_dotation_projet
+        projet, detr_dotation, dsil_dotation = double_enveloppe_projet
 
         # Create DETR simulation with the DETR-specific envelope
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
         dsil_simulation = SimulationFactory(enveloppe=dsil_envelope)
 
         SimulationProjetFactory(
-            simulation=detr_simulation, dotation_projet=detr_dotation
+            simulation=detr_simulation, enveloppe_projet=detr_dotation
         )
         SimulationProjetFactory(
-            simulation=dsil_simulation, dotation_projet=dsil_dotation
+            simulation=dsil_simulation, enveloppe_projet=dsil_dotation
         )
 
         # Access DETR simulation detail page
@@ -175,24 +175,24 @@ class TestDoubleDotationDisplayOnDetrSimulation:
         assert "Informations pour la dotation DSIL" in content
 
     def test_detr_simulation_shows_both_dotation_amounts(
-        self, client_logged_in, detr_envelope, double_dotation_projet, dsil_envelope
+        self, client_logged_in, detr_envelope, double_enveloppe_projet, dsil_envelope
     ):
         """
         DETR simulation should show DETR amounts in main row and DSIL amounts
         in other-dotation row
         """
-        projet, detr_dotation, dsil_dotation = double_dotation_projet
+        projet, detr_dotation, dsil_dotation = double_enveloppe_projet
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
         dsil_simulation = SimulationFactory(enveloppe=dsil_envelope)
 
         SimulationProjetFactory(
             simulation=detr_simulation,
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             montant=5000,
         )
         SimulationProjetFactory(
             simulation=dsil_simulation,
-            dotation_projet=dsil_dotation,
+            enveloppe_projet=dsil_dotation,
             montant=3000,
         )
 
@@ -207,7 +207,7 @@ class TestDoubleDotationDisplayOnDetrSimulation:
         assert "5\xa0000" in content
         assert "3\xa0000" in content
 
-    def test_single_dotation_projet_no_secondary_row(
+    def test_single_enveloppe_projet_no_secondary_row(
         self, client_logged_in, detr_envelope
     ):
         """
@@ -219,7 +219,7 @@ class TestDoubleDotationDisplayOnDetrSimulation:
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
-            simulation=detr_simulation, dotation_projet=detr_dotation
+            simulation=detr_simulation, enveloppe_projet=detr_dotation
         )
 
         url = reverse(
@@ -251,7 +251,7 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
         simu = SimulationProjetFactory(
             simulation=detr_simulation,
-            dotation_projet=detr_dotation,
+            enveloppe_projet=detr_dotation,
             montant=5000,
         )
 
@@ -282,7 +282,7 @@ class TestNotifiedProjectDisplayOnSimulationTable:
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
         simu = SimulationProjetFactory(
-            simulation=detr_simulation, dotation_projet=detr_dotation
+            simulation=detr_simulation, enveloppe_projet=detr_dotation
         )
 
         url = reverse(
@@ -331,7 +331,7 @@ class TestExportColumnsVisibility:
             },
         )
         SimulationProjetFactory(
-            dotation_projet__dotation=DOTATION_DSIL,
+            enveloppe_projet__dotation=DOTATION_DSIL,
             simulation=simulation,
         )
 
@@ -353,7 +353,7 @@ class TestExportColumnsVisibility:
             columns_visibility=None,
         )
         SimulationProjetFactory(
-            dotation_projet__dotation=DOTATION_DSIL,
+            enveloppe_projet__dotation=DOTATION_DSIL,
             simulation=simulation,
         )
 
@@ -387,7 +387,7 @@ class TestExportColumnsVisibility:
             },
         )
         SimulationProjetFactory(
-            dotation_projet__dotation=DOTATION_DSIL,
+            enveloppe_projet__dotation=DOTATION_DSIL,
             simulation=simulation,
         )
 
@@ -408,7 +408,7 @@ class TestExportColumnsVisibility:
             },
         )
         SimulationProjetFactory(
-            dotation_projet__dotation=DOTATION_DSIL,
+            enveloppe_projet__dotation=DOTATION_DSIL,
             simulation=simulation,
         )
 
@@ -427,7 +427,7 @@ class TestExportColumnsVisibility:
             columns_visibility={"date-depot": False},
         )
         SimulationProjetFactory(
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
             simulation=simulation,
         )
 
@@ -448,7 +448,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -469,7 +469,7 @@ class TestFilterPersistence:
         )
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -484,7 +484,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -500,7 +500,7 @@ class TestFilterPersistence:
         )
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -516,7 +516,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -534,7 +534,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -550,7 +550,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -568,7 +568,7 @@ class TestFilterPersistence:
         )
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -583,7 +583,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -604,7 +604,7 @@ class TestFilterPersistence:
         )
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -620,7 +620,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -636,10 +636,10 @@ class TestFilterPersistence:
         sim1 = SimulationFactory(enveloppe=detr_envelope)
         sim2 = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
-            simulation=sim1, dotation_projet__dotation=DOTATION_DETR
+            simulation=sim1, enveloppe_projet__dotation=DOTATION_DETR
         )
         SimulationProjetFactory(
-            simulation=sim2, dotation_projet__dotation=DOTATION_DETR
+            simulation=sim2, enveloppe_projet__dotation=DOTATION_DETR
         )
 
         url1 = reverse("gsl_simulation:simulation-detail", kwargs={"slug": sim1.slug})
@@ -659,7 +659,7 @@ class TestFilterPersistence:
         simulation = SimulationFactory(enveloppe=detr_envelope)
         SimulationProjetFactory(
             simulation=simulation,
-            dotation_projet__dotation=DOTATION_DETR,
+            enveloppe_projet__dotation=DOTATION_DETR,
         )
         url = reverse(
             "gsl_simulation:simulation-detail",
@@ -689,14 +689,14 @@ def test_simulation_detail_view_excludes_projets_with_inactive_dossier(
     )
     active_simu_projet = SimulationProjetFactory(
         simulation=simulation,
-        dotation_projet__projet__dossier_ds__perimetre=user_with_departement_perimetre.perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__projet__dossier_ds__perimetre=user_with_departement_perimetre.perimetre,
+        enveloppe_projet__dotation=DOTATION_DETR,
     )
     SimulationProjetFactory(
         simulation=simulation,
-        dotation_projet__projet__dossier_ds__perimetre=user_with_departement_perimetre.perimetre,
-        dotation_projet__projet__dossier_ds__is_active=False,
-        dotation_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__projet__dossier_ds__perimetre=user_with_departement_perimetre.perimetre,
+        enveloppe_projet__projet__dossier_ds__is_active=False,
+        enveloppe_projet__dotation=DOTATION_DETR,
     )
 
     url = reverse("gsl_simulation:simulation-detail", kwargs={"slug": simulation.slug})

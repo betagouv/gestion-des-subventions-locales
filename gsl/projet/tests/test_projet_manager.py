@@ -18,7 +18,7 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnvelopp
 
 from ..models import Projet
 from .factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
     SubmittedProjetFactory,
@@ -53,14 +53,14 @@ def test_dossier_ds_join(django_assert_num_queries):
         assert "dossier_ds" in projets.query.select_related
         for projet in projets:
             _ = projet.dossier_ds.ds_number
-            _ = projet.dotationprojet_set.count()
+            _ = projet.enveloppeprojet_set.count()
 
     first_sql_query = connection.queries[0]["sql"]
     assert "INNER JOIN" in first_sql_query
     assert "dossier_ds" in first_sql_query
 
     second_sql_query = connection.queries[1]["sql"]
-    assert "dotationprojet" in second_sql_query
+    assert "enveloppeprojet" in second_sql_query
 
 
 # Filter on perimetre ==================================================================
@@ -276,7 +276,7 @@ def test_for_enveloppe_with_projet_type_and_enveloppe_dotation(
         dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
         dossier_ds__ds_date_traitement=datetime(2024, 5, 1, tzinfo=UTC),
     )
-    DotationProjetFactory(projet=projet, dotation=projet_dotation)
+    EnveloppeProjetFactory(projet=projet, dotation=projet_dotation)
 
     qs = Projet.objects.included_in_enveloppe(enveloppe=enveloppe)
 
@@ -304,7 +304,7 @@ def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
         dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
         dossier_ds__perimetre=perimetre,
     )
-    DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
+    EnveloppeProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
 
     qs = Projet.objects.included_in_enveloppe(enveloppe)
@@ -337,7 +337,7 @@ def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, 
         dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
         dossier_ds__perimetre=perimetre,
     )
-    DotationProjetFactory(projet=projet, dotation=enveloppe.dotation)
+    EnveloppeProjetFactory(projet=projet, dotation=enveloppe.dotation)
     print(f"Test with {projet.dossier_ds.ds_state}")
 
     qs = Projet.objects.included_in_enveloppe(enveloppe)

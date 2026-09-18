@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 
 from gsl.projet.constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING
-from gsl.projet.tests.factories import DetrProjetFactory, DotationProjetFactory
+from gsl.projet.tests.factories import DetrProjetFactory, EnveloppeProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
 
@@ -24,18 +24,18 @@ def user() -> Collegue:
     return cast(Collegue, CollegueFactory())
 
 
-# -- AssietteSingleFieldForm: assiette validation (via DotationProjet.clean_fields) --
+# -- AssietteSingleFieldForm: assiette validation (via EnveloppeProjet.clean_fields) --
 
 
 def test_clean_assiette_rejects_above_cout_total(user):
-    dotation_projet = DetrProjetFactory(
+    enveloppe_projet = DetrProjetFactory(
         projet__dossier_ds__finance_cout_total=100_000,
         detr_avis_commission=None,
     )
-    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
+    simulation_projet = SimulationProjetFactory(enveloppe_projet=enveloppe_projet)
     form = AssietteSingleFieldForm(
         data={"assiette": 100_001},
-        instance=dotation_projet,
+        instance=enveloppe_projet,
         simulation_projet=simulation_projet,
         user=user,
     )
@@ -44,14 +44,14 @@ def test_clean_assiette_rejects_above_cout_total(user):
 
 
 def test_clean_assiette_accepts_within_cout_total(user):
-    dotation_projet = DetrProjetFactory(
+    enveloppe_projet = DetrProjetFactory(
         projet__dossier_ds__finance_cout_total=100_000,
         detr_avis_commission=None,
     )
-    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
+    simulation_projet = SimulationProjetFactory(enveloppe_projet=enveloppe_projet)
     form = AssietteSingleFieldForm(
         data={"assiette": 100_000},
-        instance=dotation_projet,
+        instance=enveloppe_projet,
         simulation_projet=simulation_projet,
         user=user,
     )
@@ -65,25 +65,25 @@ def test_clean_assiette_accepts_within_cout_total(user):
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_assiette_form_save_accepted_triggers_accept(mock_ds_update, user):
-    dotation_projet = DetrProjetFactory(
+    enveloppe_projet = DetrProjetFactory(
         projet__dossier_ds__finance_cout_total=100_000,
         detr_avis_commission=None,
         assiette=80_000,
         status=PROJET_STATUS_ACCEPTED,
     )
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=40_000,
     )
-    dotation_projet.accept_without_ds_update(
+    enveloppe_projet.accept_without_ds_update(
         montant=40_000, enveloppe=simulation_projet.enveloppe.delegation_root
     )
-    dotation_projet.save()
+    enveloppe_projet.save()
 
     form = AssietteSingleFieldForm(
         data={"assiette": 90_000},
-        instance=dotation_projet,
+        instance=enveloppe_projet,
         simulation_projet=simulation_projet,
         user=user,
     )
@@ -100,9 +100,9 @@ def test_assiette_form_save_accepted_triggers_accept(mock_ds_update, user):
 
 
 def test_clean_montant_rejects_above_assiette(user):
-    dotation_projet = DotationProjetFactory(assiette=100)
+    enveloppe_projet = EnveloppeProjetFactory(assiette=100)
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
     form = MontantSingleFieldForm(
@@ -115,8 +115,8 @@ def test_clean_montant_rejects_above_assiette(user):
 
 
 def test_clean_montant_accepts_within_assiette(user):
-    dotation_projet = DotationProjetFactory(assiette=100)
-    simulation_projet = SimulationProjetFactory(dotation_projet=dotation_projet)
+    enveloppe_projet = EnveloppeProjetFactory(assiette=100)
+    simulation_projet = SimulationProjetFactory(enveloppe_projet=enveloppe_projet)
     form = MontantSingleFieldForm(
         data={"montant": 100},
         instance=simulation_projet,
@@ -129,9 +129,9 @@ def test_clean_montant_accepts_within_assiette(user):
 
 
 def test_montant_form_save_updates_montant(user):
-    dotation_projet = DotationProjetFactory(assiette=1000)
+    enveloppe_projet = EnveloppeProjetFactory(assiette=1000)
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         montant=1000,
     )
     form = MontantSingleFieldForm(
@@ -150,18 +150,18 @@ def test_montant_form_save_updates_montant(user):
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_montant_form_save_accepted_triggers_accept(mock_ds_update, user):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=1000, status=PROJET_STATUS_PROCESSING
     )
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )
-    dotation_projet.accept_without_ds_update(
+    enveloppe_projet.accept_without_ds_update(
         montant=1_000, enveloppe=simulation_projet.enveloppe.delegation_root
     )
-    dotation_projet.save()
+    enveloppe_projet.save()
 
     form = MontantSingleFieldForm(
         data={"montant": 500},
@@ -185,9 +185,9 @@ def test_montant_form_save_accepted_triggers_accept(mock_ds_update, user):
 
 def test_taux_form_accepts_when_old_montant_above_assiette(user):
     """Remplir le taux doit être valide même si l'ancien montant dépasse l'assiette."""
-    dotation_projet = DotationProjetFactory(assiette=1000)
+    enveloppe_projet = EnveloppeProjetFactory(assiette=1000)
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         montant=2000,  # montant > assiette : état invalide à corriger
     )
     form = TauxSingleFieldForm(
@@ -199,9 +199,9 @@ def test_taux_form_accepts_when_old_montant_above_assiette(user):
 
 
 def test_taux_form_rejects_above_100(user):
-    dotation_projet = DotationProjetFactory(assiette=1000)
+    enveloppe_projet = EnveloppeProjetFactory(assiette=1000)
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet, montant=100
+        enveloppe_projet=enveloppe_projet, montant=100
     )
     form = TauxSingleFieldForm(
         data={"taux": 101},
@@ -213,9 +213,9 @@ def test_taux_form_rejects_above_100(user):
 
 
 def test_taux_form_rejects_below_0(user):
-    dotation_projet = DotationProjetFactory(assiette=1000)
+    enveloppe_projet = EnveloppeProjetFactory(assiette=1000)
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet, montant=100
+        enveloppe_projet=enveloppe_projet, montant=100
     )
     form = TauxSingleFieldForm(
         data={"taux": -1},
@@ -230,9 +230,9 @@ def test_taux_form_rejects_below_0(user):
 
 
 def test_taux_form_save_updates_montant_from_taux(user):
-    dotation_projet = DotationProjetFactory(assiette=1000)
+    enveloppe_projet = EnveloppeProjetFactory(assiette=1000)
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         montant=100,
     )
     form = TauxSingleFieldForm(
@@ -250,18 +250,18 @@ def test_taux_form_save_updates_montant_from_taux(user):
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_taux_form_save_accepted_triggers_accept(mock_ds_update, user):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         assiette=1000, status=PROJET_STATUS_PROCESSING
     )
     simulation_projet = SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=200,
     )
-    dotation_projet.accept_without_ds_update(
+    enveloppe_projet.accept_without_ds_update(
         montant=200, enveloppe=simulation_projet.enveloppe.delegation_root
     )
-    dotation_projet.save()
+    enveloppe_projet.save()
 
     form = TauxSingleFieldForm(
         data={"taux": 15},

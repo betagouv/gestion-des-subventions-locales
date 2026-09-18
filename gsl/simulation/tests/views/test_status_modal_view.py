@@ -5,7 +5,7 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 
 from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -48,7 +48,7 @@ def client_with_user_logged(collegue):
 
 @pytest.fixture
 def simulation_projet(collegue, simulation):
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
@@ -56,7 +56,7 @@ def simulation_projet(collegue, simulation):
     )
     # Create a SimulationProjet within the user's perimeter. Let the factory handle creating a matching Simulation
     return SimulationProjetFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=1000,
         simulation=simulation,
@@ -67,8 +67,8 @@ def test_refuse_modal_excludes_notified_projects(
     client_with_user_logged, simulation_projet
 ):
     # Mark the related programmation as notified
-    simulation_projet.dotation_projet.projet.notified_at = date.today()
-    simulation_projet.dotation_projet.projet.save()
+    simulation_projet.enveloppe_projet.projet.notified_at = date.today()
+    simulation_projet.enveloppe_projet.projet.save()
 
     url = reverse(
         "simulation:simulation-projet-update-programmed-status",
@@ -119,5 +119,5 @@ def test_dismiss_projet(
 
     # The status changed but notification is now decoupled: no DS update here.
     simulation_projet.refresh_from_db()
-    assert simulation_projet.dotation_projet.status == "dismissed"
+    assert simulation_projet.enveloppe_projet.status == "dismissed"
     assert simulation_projet.projet.notified_at is None

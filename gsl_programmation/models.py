@@ -12,7 +12,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.models import EnveloppeProjet, Projet
 from gsl_core.models import BaseModel, Perimetre
 
 
@@ -125,11 +125,11 @@ class Enveloppe(BaseModel):
     @cached_property
     def enveloppe_projets_processed(self):
         if self.is_deleguee:
-            return DotationProjet.objects.active().filter(
+            return EnveloppeProjet.objects.active().filter(
                 enveloppe=self.delegation_root,
                 projet__in=self.enveloppe_projets_included,
             )
-        return DotationProjet.objects.active().filter(enveloppe=self)
+        return EnveloppeProjet.objects.active().filter(enveloppe=self)
 
     @property
     def accepted_montant(self):

@@ -15,7 +15,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
-from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.models import EnveloppeProjet, Projet
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
@@ -113,8 +113,8 @@ class NotificationMessageFragment(BaseProjetFragment):
         return {
             **super().get_context(),
             "is_instructor": self.object.dossier_ds.is_instructeur(self.request.user),
-            "dotation_projets_without_signed_document": list(
-                self.object.dotationprojet_set.without_signed_document()
+            "enveloppe_projets_without_signed_document": list(
+                self.object.enveloppeprojet_set.without_signed_document()
             ),
         }
 
@@ -190,7 +190,7 @@ class BaseImportStepFragment(BaseProjetFragment):
         return HttpResponse(html + self.render_oob())
 
     def _log_import(self, document):
-        dotation = document.dotation_projet.dotation
+        dotation = document.enveloppe_projet.dotation
         queue_matomo_event(
             self.request,
             MATOMO_CATEGORY_DOCUMENT,
@@ -258,7 +258,7 @@ class UploadedDocumentAnalyzeFragment(BaseImportStepFragment):
         report = ImportReport()
         documents = []
         files = [uploaded_file]
-        queryset = DotationProjet.objects.programmees().visible_to_user(
+        queryset = EnveloppeProjet.objects.programmees().visible_to_user(
             self.request.user
         )
         try:

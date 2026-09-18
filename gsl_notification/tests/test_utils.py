@@ -8,7 +8,7 @@ from django.utils import timezone
 from pikepdf import Pdf
 
 from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
@@ -37,7 +37,7 @@ from gsl_notification.utils import (
 
 
 @pytest.fixture
-def dotation_projet():
+def enveloppe_projet():
     perimetre = PerimetreDepartementalFactory(
         departement__name="Haute-Garonne",
     )
@@ -47,7 +47,7 @@ def dotation_projet():
         postal_code="75001",
         commune__name="Paris",
     )
-    return DotationProjetFactory(
+    return EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             raison_sociale="Commune de Bagnères-de-Luchon",
@@ -104,11 +104,11 @@ def dotation_projet():
     ),
 )
 @pytest.mark.django_db
-def test_replace_mentions_in_html(key, label, expected_value, dotation_projet):
+def test_replace_mentions_in_html(key, label, expected_value, enveloppe_projet):
     html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{key}" data-label="{label}" data-mention-suggestion-char="@">@{label}</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
     expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
 
-    assert expected_text == replace_mentions_in_html(html_content, dotation_projet)
+    assert expected_text == replace_mentions_in_html(html_content, enveloppe_projet)
 
 
 @pytest.mark.django_db
@@ -120,7 +120,7 @@ def test_replace_mentions_in_html_multiline_address():
         postal_code="75008",
         commune__name="PARIS",
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             address=adresse,
@@ -128,7 +128,7 @@ def test_replace_mentions_in_html_multiline_address():
         projet__dossier_ds__perimetre=perimetre,
     )
     html_content = '<p><span class="mention" data-type="mention" data-id="adresse-demandeur" data-label="Adresse du demandeur" data-mention-suggestion-char="@">@Adresse du demandeur</span></p>'
-    result = replace_mentions_in_html(html_content, dotation_projet)
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
     assert result == "<p>2 PLACE DES SAUSSAIES<br/>75008 PARIS</p>"
 
 
@@ -140,7 +140,7 @@ def test_replace_mentions_in_html_uses_address_two_lines():
         postal_code="75001",
         commune__name="Paris",
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             address=adresse,
@@ -149,16 +149,16 @@ def test_replace_mentions_in_html_uses_address_two_lines():
     )
     html_content = '<p><span class="mention" data-type="mention" data-id="adresse-demandeur" data-label="Adresse du demandeur" data-mention-suggestion-char="@">@Adresse du demandeur</span></p>'
 
-    result = replace_mentions_in_html(html_content, dotation_projet)
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
 
     assert result == "<p>1 rue de la Paix<br/>75001 Paris</p>"
 
 
 @pytest.mark.django_db
-def test_replace_mention_date_arrete_uses_current_date(dotation_projet):
+def test_replace_mention_date_arrete_uses_current_date(enveloppe_projet):
     html_content = '<span class="mention" data-type="mention" data-id="date-arrete" data-label="Date d\'édition de l\'arrêté" data-mention-suggestion-char="@">@Date d\'édition de l\'arrêté</span>'
     expected_date = timezone.now().strftime("%d/%m/%Y")
-    assert expected_date == replace_mentions_in_html(html_content, dotation_projet)
+    assert expected_date == replace_mentions_in_html(html_content, enveloppe_projet)
 
 
 @pytest.mark.django_db
@@ -458,13 +458,13 @@ class TestMergeGeneratedDocumentsIntoPdf:
 
 
 @pytest.mark.django_db
-def test_generate_pdf_for_generated_document(dotation_projet):
+def test_generate_pdf_for_generated_document(enveloppe_projet):
     modele = ModeleLettreNotificationFactory(
         dotation=DOTATION_DETR,
-        perimetre=dotation_projet.projet.dossier_ds.perimetre,
+        perimetre=enveloppe_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         modele=modele,
         content="<p>Test PDF</p>",
     )

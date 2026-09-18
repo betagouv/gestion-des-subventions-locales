@@ -7,7 +7,7 @@ from django.urls import reverse
 from pikepdf import Pdf
 
 from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -45,9 +45,9 @@ def client(user):
     return ClientWithLoggedUserFactory(user)
 
 
-def _build_pdf_for_dotation_projet(ds_number, content_blocks=200, perimetre=None):
+def _build_pdf_for_enveloppe_projet(ds_number, content_blocks=200, perimetre=None):
     """Create a programmed dotation (with the given ds_number) and return
-    (dotation projet, pdf bytes).
+    (enveloppe projet, pdf bytes).
 
     Pass `perimetre` to place the underlying projet in a specific perimetre so
     the now-scoped web import can (or cannot) see it.
@@ -58,22 +58,22 @@ def _build_pdf_for_dotation_projet(ds_number, content_blocks=200, perimetre=None
     if perimetre is not None:
         extra["projet__dossier_ds__perimetre"] = perimetre
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__ds_number=ds_number,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         **extra,
     )
     modele = ModeleLettreNotificationFactory(
-        dotation=dotation_projet.dotation,
-        perimetre=dotation_projet.projet.dossier_ds.perimetre,
+        dotation=enveloppe_projet.dotation,
+        perimetre=enveloppe_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * content_blocks) + "</p>",
     )
-    return dotation_projet, generate_pdf_for_generated_document(document)
+    return enveloppe_projet, generate_pdf_for_generated_document(document)
 
 
 def _split_pdf(pdf_bytes: bytes, at: int) -> tuple[bytes, bytes]:
@@ -203,7 +203,7 @@ def test_start_view_e2e_attaches_signed_document(client, user, perimetre):
 
     # The web import is scoped to the importer's perimetre, so the PP must live
     # inside it for the attach to succeed.
-    dotation_projet, pdf_bytes = _build_pdf_for_dotation_projet(
+    enveloppe_projet, pdf_bytes = _build_pdf_for_enveloppe_projet(
         ds_number=1234567, perimetre=perimetre
     )
     expected_pages = len(Pdf.open(io.BytesIO(pdf_bytes)).pages)
@@ -234,8 +234,8 @@ def test_start_view_e2e_attaches_signed_document(client, user, perimetre):
     # Temp object cleaned up after processing.
     fake_s3.delete_object.assert_called_once()
 
-    attached = LettreEtArreteSignes.objects.get(dotation_projet=dotation_projet)
-    assert f"dotation_projet_{dotation_projet.id}/" in attached.file.name
+    attached = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
+    assert f"enveloppe_projet_{enveloppe_projet.id}/" in attached.file.name
 
 
 def test_start_view_merges_pages_of_same_project_across_files(client, user, perimetre):
@@ -245,7 +245,7 @@ def test_start_view_merges_pages_of_same_project_across_files(client, user, peri
     # Two files of the *same* import that both carry pages for the same project
     # (e.g. an arrêté file + a lettre file) must merge into a single combined
     # LettreEtArreteSignes, not have the second file replace the first.
-    dotation_projet, pdf_bytes = _build_pdf_for_dotation_projet(
+    enveloppe_projet, pdf_bytes = _build_pdf_for_enveloppe_projet(
         ds_number=2223334, perimetre=perimetre, content_blocks=1000
     )
     total_pages = len(Pdf.open(io.BytesIO(pdf_bytes)).pages)
@@ -273,7 +273,7 @@ def test_start_view_merges_pages_of_same_project_across_files(client, user, peri
     assert job.result["errors"] == []
 
     # One combined document holding every page from both files.
-    docs = LettreEtArreteSignes.objects.filter(dotation_projet=dotation_projet)
+    docs = LettreEtArreteSignes.objects.filter(enveloppe_projet=enveloppe_projet)
     assert docs.count() == 1
     with docs.get().file.open("rb") as fh:
         assert len(Pdf.open(io.BytesIO(fh.read())).pages) == total_pages
@@ -285,7 +285,7 @@ def test_start_view_does_not_attach_out_of_perimetre(client, user):
 
     # PP built in a different perimetre than the importer's: the scoped lookup
     # misses it, so nothing is attached and the group is reported as failed.
-    dotation_projet, pdf_bytes = _build_pdf_for_dotation_projet(
+    enveloppe_projet, pdf_bytes = _build_pdf_for_enveloppe_projet(
         ds_number=7654321, perimetre=PerimetreFactory()
     )
 
@@ -304,7 +304,7 @@ def test_start_view_does_not_attach_out_of_perimetre(client, user):
     assert job.result["documents_attached"] == 0
     assert any(e["type"] == "group_failed" for e in job.result["errors"])
     assert not LettreEtArreteSignes.objects.filter(
-        dotation_projet=dotation_projet
+        enveloppe_projet=enveloppe_projet
     ).exists()
 
 

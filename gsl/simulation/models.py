@@ -6,7 +6,7 @@ from django.db.models import Count, Q, QuerySet, Sum
 from django.forms import ValidationError
 from django_extensions.db.fields import AutoSlugField
 
-from gsl.projet.models import DotationProjet, Projet
+from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.utils import compute_taux
 from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_programmation.models import Enveloppe
@@ -120,7 +120,7 @@ class Simulation(BaseModel):
             SimulationProjet.objects.active()
             .filter(
                 simulation=self,
-                dotation_projet__projet__notified_at__isnull=False,
+                enveloppe_projet__projet__notified_at__isnull=False,
             )
             .count()
         )
@@ -134,10 +134,10 @@ class Simulation(BaseModel):
         )
         return (
             qs.filter(
-                dotationprojet__simulationprojet__simulation=self,
-                dotationprojet__simulationprojet__status__in=statuses_to_include,
-            ).aggregate(Sum("dotationprojet__simulationprojet__montant"))[
-                "dotationprojet__simulationprojet__montant__sum"
+                enveloppeprojet__simulationprojet__simulation=self,
+                enveloppeprojet__simulationprojet__status__in=statuses_to_include,
+            ).aggregate(Sum("enveloppeprojet__simulationprojet__montant"))[
+                "enveloppeprojet__simulationprojet__montant__sum"
             ]
             or 0.0
         )
@@ -145,7 +145,7 @@ class Simulation(BaseModel):
 
 class SimulationProjetQuerySet(models.QuerySet):
     def active(self):
-        return self.filter(dotation_projet__projet__dossier_ds__is_active=True)
+        return self.filter(enveloppe_projet__projet__dossier_ds__is_active=True)
 
     def in_user_perimeter(self, user: Collegue):
         if user.is_staff:
@@ -184,8 +184,8 @@ class SimulationProjet(BaseModel):
         STATUS_PROVISIONALLY_REFUSED,
     )
 
-    dotation_projet = models.ForeignKey(
-        DotationProjet, on_delete=models.CASCADE, null=True
+    enveloppe_projet = models.ForeignKey(
+        EnveloppeProjet, on_delete=models.CASCADE, null=True
     )
     simulation = models.ForeignKey(
         Simulation, on_delete=models.CASCADE, null=True, blank=True
@@ -208,7 +208,7 @@ class SimulationProjet(BaseModel):
         verbose_name_plural = "Projets de simulation"
         constraints = (
             models.UniqueConstraint(
-                fields=("dotation_projet", "simulation"),
+                fields=("enveloppe_projet", "simulation"),
                 name="unique_projet_simulation",
                 nulls_distinct=True,
             ),
@@ -219,7 +219,7 @@ class SimulationProjet(BaseModel):
 
     @property
     def projet(self):
-        return self.dotation_projet.projet
+        return self.enveloppe_projet.projet
 
     @property
     def dossier(self):
@@ -231,11 +231,11 @@ class SimulationProjet(BaseModel):
 
     @property
     def dotation(self):
-        return self.dotation_projet.dotation
+        return self.enveloppe_projet.dotation
 
     @property
     def taux(self):
-        return compute_taux(self.montant, self.dotation_projet.assiette_or_cout_total)
+        return compute_taux(self.montant, self.enveloppe_projet.assiette_or_cout_total)
 
     def clean(self):
         errors = []
@@ -247,8 +247,8 @@ class SimulationProjet(BaseModel):
             raise ValidationError(errors)
 
     def _validate_montant(self, errors):
-        if self.dotation_projet.assiette is not None:
-            if self.montant and self.montant > self.dotation_projet.assiette:
+        if self.enveloppe_projet.assiette is not None:
+            if self.montant and self.montant > self.enveloppe_projet.assiette:
                 errors.append(
                     "Le montant doit être inférieur ou égal à l'assiette du projet pour cette dotation."
                 )
@@ -263,7 +263,7 @@ class SimulationProjet(BaseModel):
                 )
 
     def _validate_dotation(self, errors):
-        if self.dotation_projet.dotation != self.simulation.enveloppe.dotation:
+        if self.enveloppe_projet.dotation != self.simulation.enveloppe.dotation:
             errors.append(
                 "La dotation du projet doit être la même que la dotation de la simulation."
             )

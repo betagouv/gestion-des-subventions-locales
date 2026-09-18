@@ -12,7 +12,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
 )
 from gsl.projet.models import (
-    DotationProjet,
+    EnveloppeProjet,
     Projet,
 )
 from gsl.projet.utils.utils import compute_taux
@@ -31,8 +31,8 @@ def _add_enveloppe_projets_to_simulation(simulation: Simulation):
     simulation_dotation = simulation.enveloppe.dotation
     selected_projets = Projet.objects.active().for_perimetre(simulation_perimetre)
     selected_projets = selected_projets.for_current_year()
-    selected_dotation_projet = (
-        DotationProjet.objects.active()
+    selected_enveloppe_projet = (
+        EnveloppeProjet.objects.active()
         .filter(projet__in=selected_projets, dotation=simulation_dotation)
         .exclude(enveloppe__annee__lt=simulation.enveloppe.annee)
         .select_related(
@@ -41,9 +41,9 @@ def _add_enveloppe_projets_to_simulation(simulation: Simulation):
         )
     )
 
-    for dotation_projet in selected_dotation_projet:
-        SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
-            dotation_projet, simulation
+    for enveloppe_projet in selected_enveloppe_projet:
+        SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
+            enveloppe_projet, simulation
         )
 
 
@@ -143,13 +143,13 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         self.user = user
         self.fields["taux"].initial = self.instance.taux
 
-        dotation_projet = (
-            self.instance.dotation_projet
-            if self.instance and self.instance.dotation_projet
+        enveloppe_projet = (
+            self.instance.enveloppe_projet
+            if self.instance and self.instance.enveloppe_projet
             else None
         )
-        if dotation_projet:
-            self.fields["assiette"].initial = dotation_projet.assiette
+        if enveloppe_projet:
+            self.fields["assiette"].initial = enveloppe_projet.assiette
 
     def clean(self):
         """
@@ -158,9 +158,9 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         """
         cleaned_data = super().clean()
         simulation_projet = self.instance
-        dotation_projet: DotationProjet = self.instance.dotation_projet
+        enveloppe_projet: EnveloppeProjet = self.instance.enveloppe_projet
 
-        if dotation_projet.projet.notified_at:
+        if enveloppe_projet.projet.notified_at:
             financial_fields_changed = any(
                 field in self.changed_data for field in ("assiette", "montant", "taux")
             )
@@ -175,7 +175,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         if "assiette" in self.changed_data or "montant" in self.changed_data:
             assiette = cleaned_data.get("assiette")
             if assiette is None:
-                assiette = dotation_projet.dossier_ds.finance_cout_total
+                assiette = enveloppe_projet.dossier_ds.finance_cout_total
 
             computed_taux = compute_taux(
                 cleaned_data.get("montant"), assiette, decimals=3
@@ -189,14 +189,14 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         else:
             if "taux" in self.changed_data:
                 computed_montant = (
-                    simulation_projet.dotation_projet.compute_montant_from_taux(
+                    simulation_projet.enveloppe_projet.compute_montant_from_taux(
                         cleaned_data.get("taux")
                     )
                 )
                 cleaned_data["montant"] = computed_montant
 
-        dotation_projet.assiette = cleaned_data.get("assiette")
-        dotation_projet.full_clean(exclude=["detr_avis_commission"])
+        enveloppe_projet.assiette = cleaned_data.get("assiette")
+        enveloppe_projet.full_clean(exclude=["detr_avis_commission"])
 
         return cleaned_data
 
@@ -206,15 +206,15 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         if not commit:
             return instance
 
-        if instance.dotation_projet.status == PROJET_STATUS_ACCEPTED:
-            instance.dotation_projet.accept(
+        if instance.enveloppe_projet.status == PROJET_STATUS_ACCEPTED:
+            instance.enveloppe_projet.accept(
                 montant=instance.montant,
                 enveloppe=instance.enveloppe,
                 user=self.user,
             )
 
         instance.save()
-        instance.dotation_projet.save()
+        instance.enveloppe_projet.save()
 
         return instance
 
@@ -236,8 +236,8 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
         cleaned_data = super().clean()
         if self.status == SimulationProjet.STATUS_ACCEPTED:
             errors = []
-            dotation_projet = self.instance.dotation_projet
-            assiette = dotation_projet.assiette
+            enveloppe_projet = self.instance.enveloppe_projet
+            assiette = enveloppe_projet.assiette
             montant = self.instance.montant
             if assiette is None:
                 errors.append(
@@ -261,26 +261,26 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
     @transaction.atomic
     def save(self, user: Collegue, commit=True):
         if self.status == SimulationProjet.STATUS_ACCEPTED:
-            self.instance.dotation_projet.accept(
+            self.instance.enveloppe_projet.accept(
                 montant=self.instance.montant,
                 enveloppe=self.instance.enveloppe,
                 user=user,
             )
         elif self.status == SimulationProjet.STATUS_REFUSED:
-            self.instance.dotation_projet.refuse(
+            self.instance.enveloppe_projet.refuse(
                 enveloppe=self.instance.enveloppe, actor=user
             )
         elif self.status == SimulationProjet.STATUS_DISMISSED:
-            self.instance.dotation_projet.dismiss(
+            self.instance.enveloppe_projet.dismiss(
                 enveloppe=self.instance.enveloppe, actor=user
             )
         elif (
             self.status in SimulationProjet.SIMULATION_PENDING_STATUSES
             and self.instance.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
         ):
-            self.instance.dotation_projet.set_back_status_to_processing(user)
+            self.instance.enveloppe_projet.set_back_status_to_processing(user)
 
-        self.instance.dotation_projet.save()
+        self.instance.enveloppe_projet.save()
         self.instance.status = self.status
         self.instance.save()
 
@@ -321,7 +321,7 @@ class AssietteSingleFieldForm(forms.ModelForm):
             )
 
     class Meta:
-        model = DotationProjet
+        model = EnveloppeProjet
         fields = ["assiette"]
         localized_fields = ["assiette"]
 
@@ -336,12 +336,12 @@ class MontantSingleFieldForm(forms.ModelForm):
         super().save(commit=commit)
 
         if self.instance.status == SimulationProjet.STATUS_ACCEPTED:
-            self.instance.dotation_projet.accept(
+            self.instance.enveloppe_projet.accept(
                 montant=self.instance.montant,
                 enveloppe=self.instance.enveloppe,
                 user=self.user,
             )
-            self.instance.dotation_projet.save()
+            self.instance.enveloppe_projet.save()
 
     class Meta:
         model = SimulationProjet
@@ -372,27 +372,27 @@ class TauxSingleFieldForm(forms.ModelForm):
         taux = cleaned_data.get("taux")
         if taux is not None:
             self.instance.montant = (
-                self.instance.dotation_projet.compute_montant_from_taux(taux)
+                self.instance.enveloppe_projet.compute_montant_from_taux(taux)
             )
         return cleaned_data
 
     @transaction.atomic
     def save(self, commit=True):
         simulation_projet = self.instance
-        new_montant = simulation_projet.dotation_projet.compute_montant_from_taux(
+        new_montant = simulation_projet.enveloppe_projet.compute_montant_from_taux(
             self.cleaned_data["taux"]
         )
         simulation_projet.montant = new_montant
         simulation_projet.save()
 
         if simulation_projet.status == SimulationProjet.STATUS_ACCEPTED:
-            dotation_projet = simulation_projet.dotation_projet
-            dotation_projet.accept(
+            enveloppe_projet = simulation_projet.enveloppe_projet
+            enveloppe_projet.accept(
                 montant=simulation_projet.montant,
                 enveloppe=simulation_projet.enveloppe,
                 user=self.user,
             )
-            dotation_projet.save()
+            enveloppe_projet.save()
             simulation_projet.refresh_from_db()
 
     class Meta:

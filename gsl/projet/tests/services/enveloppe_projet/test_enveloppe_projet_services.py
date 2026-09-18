@@ -29,12 +29,12 @@ from ....constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from ....models import DotationProjet
-from ....services.dotation_projet_services import (
-    DotationProjetService as dps,
+from ....models import EnveloppeProjet
+from ....services.enveloppe_projet_services import (
+    EnveloppeProjetService as dps,
 )
 from ...factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProjetFactory,
 )
 
@@ -62,7 +62,7 @@ def perimetres():
     ]
 
 
-# -- create_or_update_dotation_projet_from_projet --
+# -- create_or_update_enveloppe_projet_from_projet --
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
@@ -71,7 +71,7 @@ def perimetres():
     "field", ("annotations_dotation", "demande_dispositif_sollicite")
 )
 @pytest.mark.parametrize(
-    "dotation_value, dotation_projet_count",
+    "dotation_value, enveloppe_projet_count",
     (
         ("DETR", 1),
         ("['DETR']", 1),
@@ -82,10 +82,10 @@ def perimetres():
         ("['DETR', 'DSIL', 'DETR et DSIL']", 2),
     ),
 )
-def test_create_or_update_dotation_projet_from_projet(
+def test_create_or_update_enveloppe_projet_from_projet(
     field,
     dotation_value,
-    dotation_projet_count,
+    enveloppe_projet_count,
     perimetres,
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
@@ -100,46 +100,46 @@ def test_create_or_update_dotation_projet_from_projet(
     )
     setattr(projet.dossier_ds, field, dotation_value)
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_enveloppe_projet_from_projet(projet)
 
-    assert DotationProjet.objects.count() == dotation_projet_count
+    assert EnveloppeProjet.objects.count() == enveloppe_projet_count
 
-    for dotation_projet in DotationProjet.objects.all():
-        assert dotation_projet.projet == projet
-        assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-        assert dotation_projet.assiette == 1_000
-        if dotation_projet.dotation == DOTATION_DSIL:
-            assert dotation_projet.detr_avis_commission is None
+    for enveloppe_projet in EnveloppeProjet.objects.all():
+        assert enveloppe_projet.projet == projet
+        assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+        assert enveloppe_projet.assiette == 1_000
+        if enveloppe_projet.dotation == DOTATION_DSIL:
+            assert enveloppe_projet.detr_avis_commission is None
         else:
-            assert dotation_projet.detr_avis_commission is True
+            assert enveloppe_projet.detr_avis_commission is True
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_from_en_instruction_projet_ignore_annotations():
+def test_create_or_update_enveloppe_projet_from_en_instruction_projet_ignore_annotations():
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         dossier_ds__annotations_dotation="DETR",
     )
-    projet_dotation_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
-    projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert projet_dotation_projets.count() == 1
+    projet_dotation_dsil = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert projet_enveloppe_projets.count() == 1
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_enveloppe_projet_from_projet(projet)
 
     projet_dotation_dsil.refresh_from_db()  # always exists
 
-    projet_dotation_projets = DotationProjet.objects.filter(projet_id=projet.id)
-    assert projet_dotation_projets.count() == 1
+    projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet_id=projet.id)
+    assert projet_enveloppe_projets.count() == 1
 
-    dsil_dotation_projets = projet_dotation_projets.filter(dotation=DOTATION_DSIL)
-    assert dsil_dotation_projets.count() == 1
+    dsil_enveloppe_projets = projet_enveloppe_projets.filter(dotation=DOTATION_DSIL)
+    assert dsil_enveloppe_projets.count() == 1
 
-    detr_dotation_projet = projet_dotation_projets.filter(dotation=DOTATION_DETR)
-    assert detr_dotation_projet.count() == 0
+    detr_enveloppe_projet = projet_enveloppe_projets.filter(dotation=DOTATION_DETR)
+    assert detr_enveloppe_projet.count() == 0
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_projet_even_if_not_in_demande_dispositif_sollicite(
+def test_create_or_update_enveloppe_projet_from_projet_also_refuse_dsil_enveloppe_projet_even_if_not_in_demande_dispositif_sollicite(
     perimetres,
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
@@ -150,16 +150,16 @@ def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_
         dossier_ds__ds_state=Dossier.STATE_REFUSE,
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
-    projet_dotation_detr = DotationProjetFactory(
+    projet_dotation_detr = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
     )
-    projet_dotation_dsil = DotationProjetFactory(
+    projet_dotation_dsil = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
     )
-    projet_dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert projet_dotation_projets.count() == 2
+    projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert projet_enveloppe_projets.count() == 2
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_enveloppe_projet_from_projet(projet)
 
     projet_dotation_detr.refresh_from_db()  # always exists
     assert projet_dotation_detr.status == PROJET_STATUS_REFUSED
@@ -169,7 +169,7 @@ def test_create_or_update_dotation_projet_from_projet_also_refuse_dsil_dotation_
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_construction_detr_to_dsil(
+def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in_construction_detr_to_dsil(
     perimetres,
 ):
     """When _has_dotations_been_updated_on_dn returns True: projet has DETR, dossier has DSIL => one dotation-projet DSIL."""
@@ -180,17 +180,17 @@ def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_
         dossier_ds__perimetre=arr_dijon,
     )
     assert projet.dotations_updated_in_app is False
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_enveloppe_projet_from_projet(projet)
 
-    dotation_projets = projet.dotationprojet_set.all()
-    assert dotation_projets.count() == 1
-    assert dotation_projets.first().dotation == DOTATION_DSIL
+    enveloppe_projets = projet.enveloppeprojet_set.all()
+    assert enveloppe_projets.count() == 1
+    assert enveloppe_projets.first().dotation == DOTATION_DSIL
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_construction_dsil_to_detr_and_dsil(
+def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in_construction_dsil_to_detr_and_dsil(
     perimetres,
 ):
     """When _has_dotations_been_updated_on_dn returns True: projet has DSIL, dossier has DETR et DSIL => two dotation-projets DETR and DSIL."""
@@ -201,17 +201,17 @@ def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_
         dossier_ds__perimetre=arr_dijon,
     )
     assert projet.dotations_updated_in_app is False
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_enveloppe_projet_from_projet(projet)
 
-    dotation_projets = projet.dotationprojet_set.all()
-    assert dotation_projets.count() == 2
+    enveloppe_projets = projet.enveloppeprojet_set.all()
+    assert enveloppe_projets.count() == 2
     assert set(projet.dotations) == {DOTATION_DETR, DOTATION_DSIL}
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_construction_detr_and_dsil_to_dsil(
+def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in_construction_detr_and_dsil_to_dsil(
     perimetres,
 ):
     """When _has_dotations_been_updated_on_dn returns True: projet has DETR and DSIL, dossier has DSIL => one dotation-projet DSIL."""
@@ -222,17 +222,17 @@ def test_create_or_update_dotation_projet_syncs_from_dn_when_dossier_updated_in_
         dossier_ds__perimetre=arr_dijon,
     )
     assert projet.dotations_updated_in_app is False
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
 
-    dps.create_or_update_dotation_projet_from_projet(projet)
+    dps.create_or_update_enveloppe_projet_from_projet(projet)
 
-    dotation_projets = projet.dotationprojet_set.all()
-    assert dotation_projets.count() == 1
-    assert dotation_projets.first().dotation == DOTATION_DSIL
+    enveloppe_projets = projet.enveloppeprojet_set.all()
+    assert enveloppe_projets.count() == 1
+    assert enveloppe_projets.first().dotation == DOTATION_DSIL
 
 
-# -- create_simulation_projets_from_dotation_projet --
+# -- create_simulation_projets_from_enveloppe_projet --
 
 
 # TODO category : useless now. Remove it if we don't allow to set DETR category.
@@ -280,23 +280,23 @@ def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_
 
 
 @pytest.mark.django_db
-def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondissement_projet(
+def test_create_simulation_projets_from_enveloppe_projet_with_a_detr_and_arrondissement_projet(
     perimetres,
     simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_and_dotation,
 ):
     arr_dijon, dep_21, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         montant=0,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
-    dps.create_simulation_projets_from_dotation_projet(dotation_projet)
+    dps.create_simulation_projets_from_enveloppe_projet(enveloppe_projet)
 
     # We only have a simulation_projets for enveloppe DETR of this year + the next year and on arr_dijon and dep_21 (because DETR)
-    assert dotation_projet.simulationprojet_set.count() == 4
+    assert enveloppe_projet.simulationprojet_set.count() == 4
     for annee in [CURRENT_YEAR, 2026]:
         for perimetre in [dep_21, arr_dijon]:
             simulation = Simulation.objects.filter(
@@ -306,12 +306,12 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
             ).first()
 
             simulation_projets = SimulationProjet.objects.filter(
-                simulation=simulation, dotation_projet=dotation_projet
+                simulation=simulation, enveloppe_projet=enveloppe_projet
             )
             assert simulation_projets.count() == 1
 
             simulation_projet = simulation_projets.first()
-            assert simulation_projet.dotation_projet == dotation_projet
+            assert simulation_projet.enveloppe_projet == enveloppe_projet
             assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
             assert simulation_projet.montant == 0
             assert simulation_projet.taux == 0
@@ -323,21 +323,21 @@ def test_create_simulation_projets_from_dotation_projet_with_a_detr_and_arrondis
 
 
 @pytest.mark.django_db
-def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departement_projet(
+def test_create_simulation_projets_from_enveloppe_projet_with_a_dsil_and_departement_projet(
     perimetres,
     simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_and_dotation,
 ):
     _, dep_21, region_bfc, *_ = perimetres
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=dep_21,
     )
 
-    dps.create_simulation_projets_from_dotation_projet(dotation_projet)
+    dps.create_simulation_projets_from_enveloppe_projet(enveloppe_projet)
 
     # We only have a simulation_projets for enveloppe DSIL of this year + the next year and on dep_21 and region_bfc
-    assert dotation_projet.simulationprojet_set.count() == 4
+    assert enveloppe_projet.simulationprojet_set.count() == 4
     for annee in [CURRENT_YEAR, 2026]:
         for perimetre in [region_bfc, dep_21]:
             simulation = Simulation.objects.filter(
@@ -347,12 +347,12 @@ def test_create_simulation_projets_from_dotation_projet_with_a_dsil_and_departem
             ).first()
 
             simulation_projets = SimulationProjet.objects.filter(
-                simulation=simulation, dotation_projet=dotation_projet
+                simulation=simulation, enveloppe_projet=enveloppe_projet
             )
             assert simulation_projets.count() == 1
 
             simulation_projet = simulation_projets.first()
-            assert simulation_projet.dotation_projet == dotation_projet
+            assert simulation_projet.enveloppe_projet == enveloppe_projet
             assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
             assert simulation_projet.montant == 0
             assert simulation_projet.taux == 0
@@ -397,7 +397,7 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_updated_in_app():
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
         dotations_updated_in_app=True,
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     assert (
         dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
@@ -411,7 +411,7 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_not_en_construction
         dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     assert (
         dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
@@ -425,7 +425,7 @@ def test_has_dotations_been_updated_on_dn_returns_true_when_projet_has_dotation_
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     assert dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is True
 
@@ -437,7 +437,7 @@ def test_has_dotations_been_updated_on_dn_returns_true_when_dossier_has_dotation
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     assert dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is True
 
@@ -449,7 +449,7 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_dotations_match():
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     assert (
         dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
@@ -463,8 +463,8 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_both_have_detr_and_
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
 
     assert (
         dps._should_dotations_be_updated_from_dn_construction_dossier(projet) is False
@@ -476,33 +476,33 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_both_have_detr_and_
 
 @pytest.mark.django_db
 def test_remove_or_add_dotations_removes_dotation_not_in_dossier():
-    """Removes dotation_projet when projet has dotation not in demande_dispositif_sollicite."""
+    """Removes enveloppe_projet when projet has dotation not in demande_dispositif_sollicite."""
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
-    detr_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    dsil_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    dsil_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
-    assert not DotationProjet.objects.filter(pk=detr_dp.pk).exists()
-    assert DotationProjet.objects.filter(pk=dsil_dp.pk).exists()
+    assert not EnveloppeProjet.objects.filter(pk=detr_dp.pk).exists()
+    assert EnveloppeProjet.objects.filter(pk=dsil_dp.pk).exists()
     assert projet.dotations == [DOTATION_DSIL]
 
 
 @pytest.mark.django_db
 def test_remove_or_add_dotations_adds_dotation_from_dossier():
-    """Adds dotation_projet when dossier has dotation not in projet."""
+    """Adds enveloppe_projet when dossier has dotation not in projet."""
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
-    assert projet.dotationprojet_set.count() == 2
+    assert projet.enveloppeprojet_set.count() == 2
     assert set(projet.dotations) == {DOTATION_DETR, DOTATION_DSIL}
 
 
@@ -513,12 +513,12 @@ def test_remove_or_add_dotations_removes_and_adds_when_differing():
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
-    detr_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
-    assert not DotationProjet.objects.filter(pk=detr_dp.pk).exists()
-    assert projet.dotationprojet_set.count() == 1
+    assert not EnveloppeProjet.objects.filter(pk=detr_dp.pk).exists()
+    assert projet.enveloppeprojet_set.count() == 1
     assert projet.dotations == [DOTATION_DSIL]
 
 
@@ -529,28 +529,28 @@ def test_remove_or_add_dotations_does_nothing_when_matching():
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
-    detr_dp = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
-    assert DotationProjet.objects.filter(pk=detr_dp.pk).exists()
+    assert EnveloppeProjet.objects.filter(pk=detr_dp.pk).exists()
     assert projet.dotations == [DOTATION_DETR]
 
 
 @pytest.mark.django_db
-def test_remove_or_add_dotations_creates_dotation_projet_with_assiette_from_dossier():
-    """New dotation_projet gets assiette from dossier annotations when available."""
+def test_remove_or_add_dotations_creates_enveloppe_projet_with_assiette_from_dossier():
+    """New enveloppe_projet gets assiette from dossier annotations when available."""
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=20_000,
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
-    dsil_dp = projet.dotationprojet_set.get(dotation=DOTATION_DSIL)
+    dsil_dp = projet.enveloppeprojet_set.get(dotation=DOTATION_DSIL)
     assert dsil_dp.assiette == 20_000
 
 
@@ -563,8 +563,8 @@ def test_remove_or_add_dotations_creates_removed_action_when_dotation_deleted():
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
@@ -584,7 +584,7 @@ def test_remove_or_add_dotations_creates_added_action_when_dotation_created():
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
@@ -604,7 +604,7 @@ def test_remove_or_add_dotations_does_not_create_action_when_no_change():
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
-    DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
@@ -616,47 +616,47 @@ def test_remove_or_add_dotations_does_not_create_action_when_no_change():
 
 @pytest.mark.django_db
 def test_update_assiette_from_dossier_single_detr():
-    """Updates DETR dotation_projet assiette from dossier annotations_assiette_detr."""
+    """Updates DETR enveloppe_projet assiette from dossier annotations_assiette_detr."""
     projet = ProjetFactory(
         dossier_ds__annotations_assiette_detr=15_000,
         dossier_ds__annotations_assiette_dsil=20_000,
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, assiette=0
     )
 
     dps._update_assiette_from_dossier(projet)
 
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.assiette == 15_000
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.assiette == 15_000
 
 
 @pytest.mark.django_db
 def test_update_assiette_from_dossier_single_dsil():
-    """Updates DSIL dotation_projet assiette from dossier annotations_assiette_dsil."""
+    """Updates DSIL enveloppe_projet assiette from dossier annotations_assiette_dsil."""
     projet = ProjetFactory(
         dossier_ds__annotations_assiette_detr=15_000,
         dossier_ds__annotations_assiette_dsil=25_000,
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DSIL, assiette=0
     )
 
     dps._update_assiette_from_dossier(projet)
 
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.assiette == 25_000
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.assiette == 25_000
 
 
 @pytest.mark.django_db
 def test_update_assiette_from_dossier_both_dotations():
-    """Updates both DETR and DSIL dotation_projets with correct dossier values."""
+    """Updates both DETR and DSIL enveloppe_projets with correct dossier values."""
     projet = ProjetFactory(
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=30_000,
     )
-    dp_detr = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR, assiette=0)
-    dp_dsil = DotationProjetFactory(projet=projet, dotation=DOTATION_DSIL, assiette=0)
+    dp_detr = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR, assiette=0)
+    dp_dsil = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL, assiette=0)
 
     dps._update_assiette_from_dossier(projet)
 
@@ -673,43 +673,43 @@ def test_update_assiette_from_dossier_keeps_existing_assiette_when_missing_in_do
         dossier_ds__annotations_assiette_detr=None,
         dossier_ds__annotations_assiette_dsil=20_000,
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, assiette=5_000
     )
 
     dps._update_assiette_from_dossier(projet)
 
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.assiette == 5_000
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.assiette == 5_000
 
 
 @pytest.mark.django_db
-def test_update_assiette_from_dossier_no_dotation_projets():
-    """Does nothing when projet has no dotation_projets (no error)."""
+def test_update_assiette_from_dossier_no_enveloppe_projets():
+    """Does nothing when projet has no enveloppe_projets (no error)."""
     projet = ProjetFactory(
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=20_000,
     )
-    assert projet.dotationprojet_set.count() == 0
+    assert projet.enveloppeprojet_set.count() == 0
 
     dps._update_assiette_from_dossier(projet)
 
-    assert projet.dotationprojet_set.count() == 0
+    assert projet.enveloppeprojet_set.count() == 0
 
 
-# -- _get_all_concerned_simulations_for_dotation_projet --
+# -- _get_all_concerned_simulations_for_enveloppe_projet --
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_filters_by_perimetre(
+def test_get_all_concerned_simulations_for_enveloppe_projet_filters_by_perimetre(
     perimetres,
 ):
     """Test that the function returns simulations containing the projet's perimetre."""
     arr_dijon, dep_21, region_bfc, arr_nanterre, dep_92, region_idf = perimetres
 
     # Create a projet with arrondissement perimetre
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
@@ -732,7 +732,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_filters_by_perimetre(
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     # Should include simulations with arr_dijon and dep_21 (ancestor)
     assert sim_arr_dijon in results
@@ -743,13 +743,13 @@ def test_get_all_concerned_simulations_for_dotation_projet_filters_by_perimetre(
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_filters_by_dotation(
+def test_get_all_concerned_simulations_for_enveloppe_projet_filters_by_dotation(
     perimetres,
 ):
     """Test that the function only returns simulations with matching dotation."""
     arr_dijon, dep_21, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
@@ -766,7 +766,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_filters_by_dotation(
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert sim_detr in results
     assert sim_dsil not in results
@@ -774,13 +774,13 @@ def test_get_all_concerned_simulations_for_dotation_projet_filters_by_dotation(
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_filters_by_year(
+def test_get_all_concerned_simulations_for_enveloppe_projet_filters_by_year(
     perimetres,
 ):
     """Test that the function only returns simulations with year >= current year."""
     arr_dijon, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -803,7 +803,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_filters_by_year(
         enveloppe__annee=CURRENT_YEAR - 1,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert sim_current_year in results
     assert sim_next_year in results
@@ -812,13 +812,13 @@ def test_get_all_concerned_simulations_for_dotation_projet_filters_by_year(
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_with_department_perimetre(
+def test_get_all_concerned_simulations_for_enveloppe_projet_with_department_perimetre(
     perimetres,
 ):
     """Test that the function works correctly with department-level perimetres."""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         projet__dossier_ds__perimetre=dep_21,
     )
@@ -840,7 +840,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_with_department_perim
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     # Should include both department and region (ancestor)
     assert sim_dep_21 in results
@@ -852,13 +852,13 @@ def test_get_all_concerned_simulations_for_dotation_projet_with_department_perim
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_with_region_perimetre(
+def test_get_all_concerned_simulations_for_enveloppe_projet_with_region_perimetre(
     perimetres,
 ):
     """Test that the function works correctly with region-level perimetres."""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         projet__dossier_ds__perimetre=region_bfc,
     )
@@ -887,7 +887,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_with_region_perimetre
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     # Only region should be included
     assert sim_region_bfc in results
@@ -899,13 +899,13 @@ def test_get_all_concerned_simulations_for_dotation_projet_with_region_perimetre
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_combines_all_filters(
+def test_get_all_concerned_simulations_for_enveloppe_projet_combines_all_filters(
     perimetres,
 ):
     """Test that the function correctly combines all filters."""
     arr_dijon, dep_21, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
@@ -934,7 +934,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_combines_all_filters(
         enveloppe__annee=CURRENT_YEAR,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert sim_valid in results
     assert sim_wrong_dotation not in results
@@ -950,14 +950,14 @@ def test_get_all_concerned_simulations_for_dotation_projet_combines_all_filters(
     "dossier_state",
     [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE],
 )
-def test_get_all_concerned_simulations_for_dotation_projet_excludes_future_years_for_terminal_state_with_treatment_date(
+def test_get_all_concerned_simulations_for_enveloppe_projet_excludes_future_years_for_terminal_state_with_treatment_date(
     perimetres, dossier_state
 ):
     """Test that the function excludes simulations for years >= (treatment_year + 1) when dossier is in terminal state with treatment date."""
     arr_dijon, *_ = perimetres
     last_year = CURRENT_YEAR - 1
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=dossier_state,
@@ -983,7 +983,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_future_years
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert results.count() == 0, (
         "Should not include any simulations, because the dossier has been treated in the last year"
@@ -992,13 +992,13 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_future_years
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when_terminal_state_without_treatment_date(
+def test_get_all_concerned_simulations_for_enveloppe_projet_does_not_exclude_when_terminal_state_without_treatment_date(
     perimetres,
 ):
     """Test that the function does not exclude future years when dossier is in terminal state but has no treatment date."""
     arr_dijon, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -1023,7 +1023,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
     assert results.count() == 2, (
         "Should include all future years since there's no treatment date"
     )
@@ -1038,14 +1038,14 @@ def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when_not_terminal_state(
+def test_get_all_concerned_simulations_for_enveloppe_projet_does_not_exclude_when_not_terminal_state(
     perimetres,
 ):
     """Test that the function does not exclude future years when dossier is not in terminal state."""
     arr_dijon, *_ = perimetres
     treatment_year = CURRENT_YEAR - 1
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -1072,7 +1072,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert results.count() == 2, (
         "Should include all future years since dossier is not in terminal state"
@@ -1088,14 +1088,14 @@ def test_get_all_concerned_simulations_for_dotation_projet_does_not_exclude_when
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_excludes_correctly_when_treatment_year_is_current_year(
+def test_get_all_concerned_simulations_for_enveloppe_projet_excludes_correctly_when_treatment_year_is_current_year(
     perimetres,
 ):
     """Test that the function correctly excludes when treatment year is current year."""
     arr_dijon, *_ = perimetres
     treatment_year = CURRENT_YEAR
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
@@ -1121,7 +1121,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_correctly_wh
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert results.count() == 1, (
         "Should include only current year since treatment year is current year"
@@ -1133,18 +1133,18 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_correctly_wh
     assert sim_next_year not in results
 
 
-# -- _remove_dotation_projets_from_unconcerned_simulations --
+# -- _remove_enveloppe_projets_from_unconcerned_simulations --
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_remove_dotation_projets_from_unconcerned_simulations_removes_when_perimetre_changed(
+def test_remove_enveloppe_projets_from_unconcerned_simulations_removes_when_perimetre_changed(
     perimetres,
 ):
-    """Supprime les SimulationProjet liés à des simulations hors-périmètre du dotation_projet."""
+    """Supprime les SimulationProjet liés à des simulations hors-périmètre du enveloppe_projet."""
     arr_dijon, dep_21, region_bfc, arr_nanterre, dep_92, region_idf = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
@@ -1163,13 +1163,13 @@ def test_remove_dotation_projets_from_unconcerned_simulations_removes_when_perim
     )
 
     sp_concerned = SimulationProjetFactory(
-        simulation=sim_concerned, dotation_projet=dotation_projet
+        simulation=sim_concerned, enveloppe_projet=enveloppe_projet
     )
     sp_unconcerned = SimulationProjetFactory(
-        simulation=sim_unconcerned, dotation_projet=dotation_projet
+        simulation=sim_unconcerned, enveloppe_projet=enveloppe_projet
     )
 
-    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+    dps._remove_enveloppe_projets_from_unconcerned_simulations([enveloppe_projet])
 
     assert SimulationProjet.objects.filter(pk=sp_concerned.pk).exists()
     assert not SimulationProjet.objects.filter(pk=sp_unconcerned.pk).exists()
@@ -1177,13 +1177,13 @@ def test_remove_dotation_projets_from_unconcerned_simulations_removes_when_perim
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_remove_dotation_projets_from_unconcerned_simulations_keeps_all_when_all_concerned(
+def test_remove_enveloppe_projets_from_unconcerned_simulations_keeps_all_when_all_concerned(
     perimetres,
 ):
     """Ne supprime rien quand toutes les simulations sont dans la bonne hiérarchie."""
     arr_dijon, dep_21, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
@@ -1200,13 +1200,13 @@ def test_remove_dotation_projets_from_unconcerned_simulations_keeps_all_when_all
     )
 
     sp_arr = SimulationProjetFactory(
-        simulation=sim_arr, dotation_projet=dotation_projet
+        simulation=sim_arr, enveloppe_projet=enveloppe_projet
     )
     sp_dep = SimulationProjetFactory(
-        simulation=sim_dep, dotation_projet=dotation_projet
+        simulation=sim_dep, enveloppe_projet=enveloppe_projet
     )
 
-    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+    dps._remove_enveloppe_projets_from_unconcerned_simulations([enveloppe_projet])
 
     assert SimulationProjet.objects.filter(pk=sp_arr.pk).exists()
     assert SimulationProjet.objects.filter(pk=sp_dep.pk).exists()
@@ -1214,13 +1214,13 @@ def test_remove_dotation_projets_from_unconcerned_simulations_keeps_all_when_all
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_remove_dotation_projets_from_unconcerned_simulations_removes_old_year(
+def test_remove_enveloppe_projets_from_unconcerned_simulations_removes_old_year(
     perimetres,
 ):
     """Supprime les SimulationProjet liés à des simulations d'années antérieures."""
     arr_dijon, dep_21, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
@@ -1237,13 +1237,13 @@ def test_remove_dotation_projets_from_unconcerned_simulations_removes_old_year(
     )
 
     sp_current = SimulationProjetFactory(
-        simulation=sim_current, dotation_projet=dotation_projet
+        simulation=sim_current, enveloppe_projet=enveloppe_projet
     )
     sp_old = SimulationProjetFactory(
-        simulation=sim_old, dotation_projet=dotation_projet
+        simulation=sim_old, enveloppe_projet=enveloppe_projet
     )
 
-    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+    dps._remove_enveloppe_projets_from_unconcerned_simulations([enveloppe_projet])
 
     assert SimulationProjet.objects.filter(pk=sp_current.pk).exists()
     assert not SimulationProjet.objects.filter(pk=sp_old.pk).exists()
@@ -1251,20 +1251,22 @@ def test_remove_dotation_projets_from_unconcerned_simulations_removes_old_year(
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_remove_dotation_projets_from_unconcerned_simulations_does_nothing_when_no_simulation_projets(
+def test_remove_enveloppe_projets_from_unconcerned_simulations_does_nothing_when_no_simulation_projets(
     perimetres,
 ):
-    """Ne fait rien quand le dotation_projet n'a aucun SimulationProjet."""
+    """Ne fait rien quand le enveloppe_projet n'a aucun SimulationProjet."""
     arr_dijon, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
-    dps._remove_dotation_projets_from_unconcerned_simulations([dotation_projet])
+    dps._remove_enveloppe_projets_from_unconcerned_simulations([enveloppe_projet])
 
-    assert SimulationProjet.objects.filter(dotation_projet=dotation_projet).count() == 0
+    assert (
+        SimulationProjet.objects.filter(enveloppe_projet=enveloppe_projet).count() == 0
+    )
 
 
 # -- _is_dossier_back_to_instruction --
@@ -1303,60 +1305,60 @@ def test_is_dossier_back_to_instruction(
     assert dps._is_dossier_back_to_instruction(projet) is expected
 
 
-# -- _update_accepted_dotation_projets_montant_from_dn --
+# -- _update_accepted_enveloppe_projets_montant_from_dn --
 
 
 @pytest.mark.django_db
-def test_update_accepted_dotation_projets_montant_from_dn_skips_non_accepted():
-    dotation_projet = DotationProjetFactory(
+def test_update_accepted_enveloppe_projets_montant_from_dn_skips_non_accepted():
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
-    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.montant is None
+    dps._update_accepted_enveloppe_projets_montant_from_dn(enveloppe_projet.projet)
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.montant is None
 
 
 @pytest.mark.django_db
-def test_update_accepted_dotation_projets_montant_from_dn_updates_montant():
-    dotation_projet = DotationProjetFactory(
+def test_update_accepted_enveloppe_projets_montant_from_dn_updates_montant():
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
-    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.montant == 2_000
+    dps._update_accepted_enveloppe_projets_montant_from_dn(enveloppe_projet.projet)
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.montant == 2_000
 
 
 @pytest.mark.django_db
-def test_update_accepted_dotation_projets_montant_from_dn_does_not_update_montant_when_none():
-    dotation_projet = DotationProjetFactory(
+def test_update_accepted_enveloppe_projets_montant_from_dn_does_not_update_montant_when_none():
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=None,
     )
-    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.montant == 1_000
+    dps._update_accepted_enveloppe_projets_montant_from_dn(enveloppe_projet.projet)
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.montant == 1_000
 
 
 @pytest.mark.django_db
-def test_update_accepted_dotation_projets_montant_from_dn_creates_action_when_montant_changes():
-    dotation_projet = DotationProjetFactory(
+def test_update_accepted_enveloppe_projets_montant_from_dn_creates_action_when_montant_changes():
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
 
-    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+    dps._update_accepted_enveloppe_projets_montant_from_dn(enveloppe_projet.projet)
 
     actions = ProjetAction.objects.filter(
-        projet=dotation_projet.projet,
+        projet=enveloppe_projet.projet,
         action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
         dotation=DOTATION_DETR,
     )
@@ -1368,39 +1370,39 @@ def test_update_accepted_dotation_projets_montant_from_dn_creates_action_when_mo
 
 
 @pytest.mark.django_db
-def test_update_accepted_dotation_projets_montant_from_dn_does_not_create_action_when_montant_unchanged():
-    dotation_projet = DotationProjetFactory(
+def test_update_accepted_enveloppe_projets_montant_from_dn_does_not_create_action_when_montant_unchanged():
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
     )
 
-    dps._update_accepted_dotation_projets_montant_from_dn(dotation_projet.projet)
+    dps._update_accepted_enveloppe_projets_montant_from_dn(enveloppe_projet.projet)
 
     assert (
         ProjetAction.objects.filter(
-            projet=dotation_projet.projet,
+            projet=enveloppe_projet.projet,
             action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
         ).count()
         == 0
     )
 
 
-# -- _accept_dotation_projet --
+# -- _accept_enveloppe_projet --
 
 
 @pytest.mark.django_db
-def test_accept_dotation_projet_conserve_enveloppe_existante(perimetres):
+def test_accept_enveloppe_projet_conserve_enveloppe_existante(perimetres):
     """
-    Lors de la mise à jour d'un dossier accepté, si le dotation_projet est déjà programmé
+    Lors de la mise à jour d'un dossier accepté, si le enveloppe_projet est déjà programmé
     sur une enveloppe 2025, il ne doit pas être re-basculé sur l'enveloppe 2026.
     """
     arr_dijon, dep_21, *_ = perimetres
     enveloppe_2025 = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DetrEnveloppeFactory(perimetre=dep_21, annee=2026)
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -1414,18 +1416,18 @@ def test_accept_dotation_projet_conserve_enveloppe_existante(perimetres):
         montant=4_000,
     )
 
-    dps._accept_dotation_projet(dotation_projet.projet, DOTATION_DETR)
+    dps._accept_enveloppe_projet(enveloppe_projet.projet, DOTATION_DETR)
 
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.enveloppe == enveloppe_2025
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe == enveloppe_2025
 
 
-# -- _get_all_concerned_simulations_for_dotation_projet (programmation) --
+# -- _get_all_concerned_simulations_for_enveloppe_projet (programmation) --
 
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_excludes_simulations_after_programmation_year(
+def test_get_all_concerned_simulations_for_enveloppe_projet_excludes_simulations_after_programmation_year(
     perimetres,
 ):
     """Test que les simulations dont l'année > année enveloppe de la programmation sont exclues."""
@@ -1435,7 +1437,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_simulations_
         perimetre=dep_21,
         annee=CURRENT_YEAR,
     )
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -1453,7 +1455,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_simulations_
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert sim_current_year in results
     assert sim_next_year not in results
@@ -1461,13 +1463,13 @@ def test_get_all_concerned_simulations_for_dotation_projet_excludes_simulations_
 
 @freeze_time(f"{CURRENT_YEAR}-05-06")
 @pytest.mark.django_db
-def test_get_all_concerned_simulations_for_dotation_projet_includes_all_years_when_no_programmation(
+def test_get_all_concerned_simulations_for_enveloppe_projet_includes_all_years_when_no_programmation(
     perimetres,
 ):
     """Test que toutes les années >= année courante sont incluses sans programmation."""
     arr_dijon, *_ = perimetres
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -1484,7 +1486,7 @@ def test_get_all_concerned_simulations_for_dotation_projet_includes_all_years_wh
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
-    results = dps._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+    results = dps._get_all_concerned_simulations_for_enveloppe_projet(enveloppe_projet)
 
     assert sim_current_year in results
     assert sim_next_year in results

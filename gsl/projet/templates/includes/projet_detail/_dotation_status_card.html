@@ -3,11 +3,11 @@
     <div>
         <h2 class="fr-callout__title">
             <i class="fr-icon-coin-fill blue-color" aria-hidden="true"></i>
-            {{ dotation_projet.dotation }}
+            {{ enveloppe_projet.dotation }}
         </h2>
     </div>
     <div class="fr-callout__text notification_status_message fr-mb-2w">
-        {% if dotation_projet.dotation == "DETR" and projet.can_have_a_commission_detr_avis %}
+        {% if enveloppe_projet.dotation == "DETR" and projet.can_have_a_commission_detr_avis %}
             <div class="fr-text--sm fr-mb-1w">
                 <span class="fr-icon fr-icon-team-fill blue-color fr-mr-3v"
                       aria-hidden="true"></span>Avis de la commission
@@ -21,9 +21,9 @@
             </div>
         {% endif %}
 
-        {% ui_status_badge type=dotation_projet.status class="fr-mr-1w" %}
-        {% if dotation_projet.notification_status %}
-            {% ui_status_badge type=dotation_projet.notification_status class="fr-mr-1w" %}
+        {% ui_status_badge type=enveloppe_projet.status class="fr-mr-1w" %}
+        {% if enveloppe_projet.notification_status %}
+            {% ui_status_badge type=enveloppe_projet.notification_status class="fr-mr-1w" %}
         {% endif %}
     </div>
 </div>

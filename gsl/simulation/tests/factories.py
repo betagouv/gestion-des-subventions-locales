@@ -5,7 +5,7 @@ from factory import LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
 from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ..models import Simulation, SimulationProjet
@@ -24,18 +24,18 @@ class SimulationProjetFactory(DjangoModelFactory):
     class Meta:
         model = SimulationProjet
 
-    dotation_projet = SubFactory(DotationProjetFactory)
+    enveloppe_projet = SubFactory(EnveloppeProjetFactory)
     simulation = LazyAttribute(
         lambda obj: SimulationFactory(
-            enveloppe__dotation=obj.dotation_projet.dotation,
-            enveloppe__perimetre=obj.dotation_projet.projet.dossier_ds.perimetre,
+            enveloppe__dotation=obj.enveloppe_projet.dotation,
+            enveloppe__perimetre=obj.enveloppe_projet.projet.dossier_ds.perimetre,
         )
     )
     montant = LazyAttribute(
         lambda obj: randint(
             0,
-            obj.dotation_projet.assiette
-            or obj.dotation_projet.projet.dossier_ds.finance_cout_total
+            obj.enveloppe_projet.assiette
+            or obj.enveloppe_projet.projet.dossier_ds.finance_cout_total
             or 1000,
         )
     )
@@ -57,7 +57,7 @@ def make_detr_simu_projet(
     Consolidates the per-test `_make_simu_projet` helpers used across the bulk
     status tests so they share a single signature.
     """
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         status=dotation_status,
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
@@ -66,7 +66,7 @@ def make_detr_simu_projet(
     return cast(
         SimulationProjet,
         SimulationProjetFactory(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             status=simu_status,
             montant=montant,
             simulation=simulation,
