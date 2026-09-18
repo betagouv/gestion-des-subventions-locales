@@ -17,6 +17,7 @@ from pathlib import Path
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 
+from gsl.projet.models import DotationProjet
 from gsl_core.models import Collegue
 from gsl_notification.qr.reattach import (
     DOCUMENT_TYPE_ORDER,
@@ -26,7 +27,6 @@ from gsl_notification.qr.reattach import (
     PageDecoded,
     reattach_signed_docs,
 )
-from gsl_programmation.models import ProgrammationProjet
 
 try:
     from tqdm import tqdm
@@ -67,7 +67,7 @@ class Command(BaseCommand):
 
         pdfs = [ContentFile(pdf_path.read_bytes(), name=pdf_path.name)]
         attached, unreadable, unmatched = self._consume_events(
-            reattach_signed_docs(pdfs, user, ProgrammationProjet.objects.all())
+            reattach_signed_docs(pdfs, user, DotationProjet.objects.programmees())
         )
 
         self._print_summary(attached, unreadable, unmatched)
@@ -108,7 +108,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Skipped {len(unreadable)} unreadable page(s).")
         if unreadable:
             self.stdout.write(f"  pages: {unreadable}")
-        self.stdout.write(f"Matched no ProgrammationProjet: {len(unmatched)}.")
+        self.stdout.write(f"Matched no DotationProjet: {len(unmatched)}.")
         for line in unmatched:
             self.stdout.write(f"  {line}")
 

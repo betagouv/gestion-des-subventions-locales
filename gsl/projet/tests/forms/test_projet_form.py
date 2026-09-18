@@ -10,8 +10,6 @@ from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
-from gsl_programmation.models import ProgrammationProjet
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...constants import (
     DOTATION_DETR,
@@ -196,7 +194,6 @@ def test_update_dotation_from_one_dotation_to_another(
         projet=projet_0, dotation=dotation, status=PROJET_STATUS_PROCESSING
     )
     SimulationProjetFactory.create_batch(3, dotation_projet=original_dotation_projet)
-    ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
 
     new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
     form = ProjetForm(instance=projet_0, data={"dotations": [new_dotation]}, user=user)
@@ -212,7 +209,6 @@ def test_update_dotation_from_one_dotation_to_another(
     # Check that the old dotation_projet is deleted
     assert DotationProjet.objects.filter(pk=original_dotation_projet.pk).count() == 0
     assert SimulationProjet.objects.count() == 0
-    assert ProgrammationProjet.objects.count() == 0
 
 
 @pytest.mark.parametrize("original_dotation", [DOTATION_DETR, DOTATION_DSIL])
@@ -225,7 +221,6 @@ def test_update_dotation_from_one_to_two(
         projet=projet_0, dotation=original_dotation
     )
     SimulationProjetFactory.create_batch(3, dotation_projet=original_dotation_projet)
-    ProgrammationProjetFactory.create(dotation_projet=original_dotation_projet)
 
     form = ProjetForm(
         instance=projet_0, data={"dotations": [DOTATION_DETR, DOTATION_DSIL]}, user=user

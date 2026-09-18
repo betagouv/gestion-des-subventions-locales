@@ -20,7 +20,9 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def simulation_projet() -> SimulationProjet:
-    dotation_projet = DetrProjetFactory(assiette=1_000)
+    dotation_projet = DetrProjetFactory(
+        assiette=1_000, status=PROJET_STATUS_ACCEPTED, montant=200
+    )
     return cast(
         SimulationProjet,
         SimulationProjetFactory(
@@ -239,8 +241,6 @@ def user() -> Collegue:
 
 
 def test_save_with_dn_error(simulation_projet, user):
-    simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
-    simulation_projet.dotation_projet.save()
     data = {"assiette": 400, "montant": 300, "taux": 75}
     form = SimulationProjetForm(instance=simulation_projet, data=data, user=user)
     assert form.is_valid()
@@ -290,7 +290,9 @@ def test_simulation_projet_form_cannot_change_amounts_when_notified():
     """Test that assiette, montant, taux cannot be changed for a notified project"""
     from django.utils import timezone
 
-    dotation_projet = DetrProjetFactory(assiette=1_000)
+    dotation_projet = DetrProjetFactory(
+        assiette=1_000, status=PROJET_STATUS_ACCEPTED, montant=200
+    )
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
         montant=200,

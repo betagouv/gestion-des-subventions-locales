@@ -17,6 +17,7 @@ from django.db.models import (
     Value,
     When,
 )
+from django.utils import timezone
 from django_fsm import FSMField, transition
 
 from gsl.historique.models import ProjetAction
@@ -46,7 +47,7 @@ from .constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from .utils.utils import floatize
+from .utils.utils import compute_taux, floatize
 
 if TYPE_CHECKING:
     from gsl.simulation.models import SimulationProjet
@@ -64,7 +65,6 @@ class ProjetQuerySet(models.QuerySet):
         return self.for_perimetre(user.perimetre)
 
     def annotate_status(self):
-        # Check if all dotations have a programmation_projet
         has_processing = Exists(
             DotationProjet.objects.filter(
                 projet=OuterRef("pk"), status=PROJET_STATUS_PROCESSING
@@ -176,7 +176,8 @@ class ProjetQuerySet(models.QuerySet):
         return self.annotate(
             dotations_count=Count("dotationprojet"),
             programmation_count=Count(
-                "dotationprojet__programmation_projet",
+                "dotationprojet",
+                filter=Q(dotationprojet__enveloppe__isnull=False),
             ),
         ).filter(
             dotations_count__gt=0,
@@ -185,13 +186,11 @@ class ProjetQuerySet(models.QuerySet):
         )
 
     def with_at_least_one_treated_dotation(self):
-        from gsl_programmation.models import ProgrammationProjet
-
         return self.filter(
             Exists(
-                ProgrammationProjet.objects.filter(
-                    dotation_projet__projet=OuterRef("pk"),
-                    dotation_projet__status__in=PROJET_FINAL_STATUSES,
+                DotationProjet.objects.programmees().filter(
+                    projet=OuterRef("pk"),
+                    status__in=PROJET_FINAL_STATUSES,
                 )
             )
         )
@@ -236,7 +235,7 @@ class ProjetQuerySet(models.QuerySet):
                 total_cost=Sum("dossier_ds__finance_cout_total"),
                 total_amount_asked=Sum("dossier_ds__demande_montant"),
                 total_amount_granted=Sum(
-                    "dotationprojet__programmation_projet__montant",
+                    "dotationprojet__montant",
                     filter=Q(dotationprojet__status=PROJET_STATUS_ACCEPTED),
                 ),
             )
@@ -492,9 +491,11 @@ _UPLOADED_DOCUMENT_SELECT_RELATED = ("dotation_projet",)
 
 
 class DotationProjetQuerySet(models.QuerySet):
+    def programmees(self):
+        return self.filter(enveloppe__isnull=False)
+
     def without_signed_document(self):
-        return self.filter(
-            programmation_projet__isnull=False,
+        return self.programmees().filter(
             status=PROJET_STATUS_ACCEPTED,
             lettre_et_arrete_signes__isnull=True,
         )
@@ -502,10 +503,33 @@ class DotationProjetQuerySet(models.QuerySet):
     def active(self):
         return self.filter(projet__dossier_ds__is_active=True)
 
+    def visible_to_user(self, user: Collegue):
+        if user.is_staff:
+            return self.all()
+        return self.filter(projet__in=Projet.objects.for_user(user))
+
+    def for_perimetre(self, perimetre: Perimetre | None):
+        return self.filter(projet__in=Projet.objects.for_perimetre(perimetre))
+
+    def to_notify(self):
+        return self.filter(projet__in=Projet.objects.to_notify())
+
+    def can_generate_accepted_documents(self):
+        return self.programmees().filter(
+            status=PROJET_STATUS_ACCEPTED,
+            projet__notified_at__isnull=True,
+        )
+
+    def can_generate_refus_documents(self):
+        return self.programmees().filter(
+            status__in=(PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+            projet__notified_at__isnull=True,
+        )
+
     def annotate_notification_status(self):
         return self.annotate(
             _notification_status=Case(
-                When(programmation_projet__isnull=True, then=Value(None)),
+                When(enveloppe__isnull=True, then=Value(None)),
                 When(
                     projet__notified_at__isnull=False,
                     then=Value(NOTIFICATION_STATUS_NOTIFIED),
@@ -558,12 +582,35 @@ class DotationProjet(BaseModel):
         help_text="Pour les projets de plus de 100 000 €",
         null=True,
     )
+    enveloppe = models.ForeignKey(
+        "gsl_programmation.Enveloppe",
+        verbose_name="Enveloppe",
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+    )
+    montant = models.DecimalField(
+        "Montant", max_digits=14, decimal_places=2, blank=True, null=True
+    )
+    date_programmation = models.DateTimeField(
+        "Date de programmation", blank=True, null=True
+    )
+
     objects = DotationProjetManager()
 
     class Meta:
         unique_together = ("projet", "dotation")
         verbose_name = "Dotation projet"
         verbose_name_plural = "Dotations projet"
+        constraints = (
+            models.CheckConstraint(
+                condition=Q(status=PROJET_STATUS_PROCESSING, enveloppe__isnull=True)
+                | ~Q(status=PROJET_STATUS_PROCESSING) & Q(enveloppe__isnull=False),
+                name="enveloppe_ssi_dotation_traitee",
+                violation_error_message="Une dotation en traitement ne peut pas porter "
+                "d'enveloppe, et une dotation traitée doit en porter une.",
+            ),
+        )
 
     def __str__(self):
         return f"Projet {self.projet_id} - Dotation {self.dotation}"
@@ -591,6 +638,56 @@ class DotationProjet(BaseModel):
 
         if errors:
             raise ValidationError(errors)
+
+    def clean(self):
+        super().clean()
+        if self.enveloppe_id is None:
+            return
+
+        errors = {}
+        self._validate_montant(errors)
+        self._validate_enveloppe(errors)
+        self._validate_montant_nul_si_refusee(errors)
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_montant(self, errors):
+        if not self.montant:
+            return
+
+        if self.assiette is not None:
+            if self.montant > self.assiette:
+                errors["montant"] = [
+                    "Le montant de la programmation ne peut pas être supérieur à l'assiette du projet pour cette dotation."
+                ]
+        elif (
+            self.dossier_ds.finance_cout_total
+            and self.montant > self.dossier_ds.finance_cout_total
+        ):
+            errors["montant"] = [
+                "Le montant de la programmation ne peut pas être supérieur au coût total du projet pour cette dotation."
+            ]
+
+    def _validate_enveloppe(self, errors):
+        if self.enveloppe.is_deleguee:
+            errors["enveloppe"] = [
+                "Une programmation ne peut pas être faite sur une enveloppe déléguée."
+                "Il faut programmer sur l'enveloppe mère."
+            ]
+
+        if not self.enveloppe.perimetre.contains_or_equal(self.projet.perimetre):
+            errors["enveloppe"] = [
+                "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
+            ]
+
+        if self.enveloppe.dotation != self.dotation:
+            errors["enveloppe"] = [
+                "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
+            ]
+
+    def _validate_montant_nul_si_refusee(self, errors):
+        if self.status == PROJET_STATUS_REFUSED and self.montant != 0:
+            errors["montant"] = ["Un projet refusé doit avoir un montant nul."]
 
     def _validate_detr_avis_commission(self, errors):
         if self.detr_avis_commission is None:
@@ -626,6 +723,10 @@ class DotationProjet(BaseModel):
     @property
     def dossier_ds(self):
         return self.projet.dossier_ds
+
+    @property
+    def is_programmee(self) -> bool:
+        return self.enveloppe_id is not None
 
     @property
     def other_dotations(self) -> List["DotationProjet"]:
@@ -682,15 +783,13 @@ class DotationProjet(BaseModel):
 
     @property
     def montant_retenu(self) -> float | None:
-        if hasattr(self, "programmation_projet"):
-            return self.programmation_projet.montant
-        return None
+        return self.montant
 
     @property
     def taux_retenu(self) -> float | None:
-        if hasattr(self, "programmation_projet"):
-            return self.programmation_projet.taux
-        return None
+        if self.montant is None:
+            return None
+        return compute_taux(self.montant, self.assiette_or_cout_total)
 
     @property
     def notification_status(self) -> str | None:
@@ -746,7 +845,6 @@ class DotationProjet(BaseModel):
         self, montant: float, enveloppe: "Enveloppe", actor=None
     ):
         from gsl.simulation.models import SimulationProjet
-        from gsl_programmation.models import ProgrammationProjet
 
         if self.dotation != enveloppe.dotation:
             raise ValidationError(
@@ -754,26 +852,18 @@ class DotationProjet(BaseModel):
             )
 
         status_is_changing = self.status != PROJET_STATUS_ACCEPTED
-        try:
-            previous_enveloppe = self.programmation_projet.enveloppe
-            previous_montant = self.programmation_projet.montant
-        except ProgrammationProjet.DoesNotExist:
-            previous_enveloppe = None
-            previous_montant = None
+        previous_enveloppe = self.enveloppe
+        previous_montant = self.montant
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_ACCEPTED,
             montant=montant,
         )
 
-        programmation_projet, _ = ProgrammationProjet.objects.update_or_create(
-            dotation_projet=self,
-            defaults={
-                "enveloppe": enveloppe.delegation_root,
-                "montant": montant,
-            },
-        )
-        self.programmation_projet = programmation_projet
+        self.enveloppe = enveloppe.delegation_root
+        self.montant = montant
+        if self.date_programmation is None:
+            self.date_programmation = timezone.now()
 
         if status_is_changing or previous_enveloppe != enveloppe.delegation_root:
             ProjetAction.objects.create(
@@ -825,7 +915,6 @@ class DotationProjet(BaseModel):
     @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
     def refuse(self, enveloppe: "Enveloppe", actor=None):
         from gsl.simulation.models import SimulationProjet
-        from gsl_programmation.models import ProgrammationProjet
 
         if self.dotation != enveloppe.dotation:
             raise ValidationError(
@@ -837,13 +926,10 @@ class DotationProjet(BaseModel):
             montant=0,
         )
 
-        ProgrammationProjet.objects.update_or_create(
-            dotation_projet=self,
-            defaults={
-                "enveloppe": enveloppe.delegation_root,
-                "montant": 0,
-            },
-        )
+        self.enveloppe = enveloppe.delegation_root
+        self.montant = 0
+        if self.date_programmation is None:
+            self.date_programmation = timezone.now()
 
         ProjetAction.objects.create(
             projet=self.projet,
@@ -860,7 +946,6 @@ class DotationProjet(BaseModel):
     @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
     def dismiss(self, enveloppe: "Enveloppe", actor=None):
         from gsl.simulation.models import SimulationProjet
-        from gsl_programmation.models import ProgrammationProjet
 
         if self.dotation != enveloppe.dotation:
             raise ValidationError(
@@ -871,13 +956,10 @@ class DotationProjet(BaseModel):
             status=SimulationProjet.STATUS_DISMISSED, montant=0
         )
 
-        ProgrammationProjet.objects.update_or_create(
-            dotation_projet=self,
-            defaults={
-                "enveloppe": enveloppe.delegation_root,
-                "montant": 0,
-            },
-        )
+        self.enveloppe = enveloppe.delegation_root
+        self.montant = 0
+        if self.date_programmation is None:
+            self.date_programmation = timezone.now()
 
         ProjetAction.objects.create(
             projet=self.projet,
@@ -898,13 +980,14 @@ class DotationProjet(BaseModel):
     )
     def set_back_status_to_processing_without_ds(self, actor=None):
         from gsl.simulation.models import SimulationProjet
-        from gsl_programmation.models import ProgrammationProjet
 
         SimulationProjet.objects.filter(dotation_projet=self).update(
             status=SimulationProjet.STATUS_PROCESSING,
         )
 
-        ProgrammationProjet.objects.filter(dotation_projet=self).delete()
+        self.enveloppe = None
+        self.montant = None
+        self.date_programmation = None
         self.projet.notified_at = None
         self.projet.save()
 

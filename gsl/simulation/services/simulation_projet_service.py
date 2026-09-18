@@ -10,7 +10,6 @@ from gsl.projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.models import DotationProjet
-from gsl_programmation.models import ProgrammationProjet
 
 from ..models import Simulation, SimulationProjet
 
@@ -50,10 +49,8 @@ class SimulationProjetService:
         ):
             return Decimal(0)
 
-        try:
-            return dotation_projet.programmation_projet.montant
-        except ProgrammationProjet.DoesNotExist:
-            pass
+        if dotation_projet.montant is not None:
+            return dotation_projet.montant
 
         dossier = dotation_projet.projet.dossier_ds
 

@@ -2,14 +2,13 @@ from decimal import Decimal
 
 import pytest
 
-from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ..models import SuiviFinancier
 from ..utils import par_dotation
@@ -19,11 +18,8 @@ DS_NUMBER = 28281965
 
 def make_projet_with_accorde(dotation_factory, montant):
     projet = ProjetFactory(dossier_ds=DossierFactory(ds_number=DS_NUMBER))
-    dotation_projet = dotation_factory(projet=projet)
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        montant=Decimal(montant),
+    dotation_factory(
+        projet=projet, status=PROJET_STATUS_ACCEPTED, montant=Decimal(montant)
     )
     return projet
 
@@ -98,7 +94,7 @@ def test_lignes_of_other_projet_are_excluded():
 @pytest.mark.django_db
 def test_accorde_none_when_no_programmation_for_that_dotation():
     projet = make_projet_with_accorde(DetrProjetFactory, "5000")
-    DsilProjetFactory(projet=projet)
+    DsilProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
     make_ligne("DETR", "5000")
     make_ligne("DSIL", "3000")
 

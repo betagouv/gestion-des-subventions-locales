@@ -1,5 +1,7 @@
 import pytest
 
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
+
 from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -21,22 +23,26 @@ def test_projet_without_dotation_projet_has_no_status():
 
 def test_update_projet_status_on_post_save():
     projet: Projet = ProjetFactory()
+    enveloppe = DetrEnveloppeFactory()
     dotation_projet: DotationProjet = DotationProjetFactory(
-        projet=projet, status=PROJET_STATUS_DISMISSED, dotation=DOTATION_DETR
+        projet=projet,
+        status=PROJET_STATUS_DISMISSED,
+        dotation=DOTATION_DETR,
+        enveloppe=enveloppe,
     )
 
     dotation_projet.save()
     assert projet.status == PROJET_STATUS_DISMISSED
 
-    dotation_projet.status = PROJET_STATUS_REFUSED
+    dotation_projet.refuse(enveloppe=enveloppe)
     dotation_projet.save()
     assert projet.status == PROJET_STATUS_REFUSED
 
-    dotation_projet.status = PROJET_STATUS_PROCESSING
+    dotation_projet.set_back_status_to_processing_without_ds()
     dotation_projet.save()
     assert projet.status == PROJET_STATUS_PROCESSING
 
-    dotation_projet.status = PROJET_STATUS_ACCEPTED
+    dotation_projet.accept_without_ds_update(montant=1_000, enveloppe=enveloppe)
     dotation_projet.save()
     assert projet.status == PROJET_STATUS_ACCEPTED
 

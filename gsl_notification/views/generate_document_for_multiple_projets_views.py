@@ -10,6 +10,7 @@ from formtools.wizard.views import SessionWizardView
 
 from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl.projet.constants import DOTATIONS, LETTRE_REFUS
+from gsl.projet.models import DotationProjet
 from gsl_core.decorators import htmx_only
 from gsl_core.exceptions import Http404
 from gsl_notification.forms import (
@@ -27,7 +28,6 @@ from gsl_notification.forms import (
 )
 from gsl_notification.models import ExportJob
 from gsl_notification.tasks import generate_export_task
-from gsl_programmation.models import ProgrammationProjet
 
 
 @dataclass(frozen=True)
@@ -172,7 +172,7 @@ MODELE_SELECTION = Step(
     form_class=GenerateDocumentsModeleSelectionForm,
     template=TEMPLATES + "modele_selection.html",
     title="Choix des modèles",
-    form_kwargs=("document_type", "programmation_projets"),
+    form_kwargs=("document_type", "dotation_projets"),
 )
 FORMAT = Step(
     name="format",
@@ -186,7 +186,7 @@ CREATE = Step(
     form_class=GenerateDocumentsCreateForm,
     template=TEMPLATES + "loading.html",
     title="Téléchargement",
-    form_kwargs=("programmation_projets",),
+    form_kwargs=("dotation_projets",),
     extra_context=("doc_count",),
 )
 
@@ -227,7 +227,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
         return SELECTED_TYPES_BY_CHOICE[self.document_type]
 
     @cached_property
-    def programmation_projets(self):
+    def dotation_projets(self):
         # Resolving the launch step runs an eligibility query over the whole
         # programmation, and every later step is built from its result.
         launch_data = self.get_cleaned_data_for_step(self.steps.first) or {}
@@ -235,7 +235,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
 
     @property
     def doc_count(self) -> int:
-        return len(self.programmation_projets) * len(self.selected_types)
+        return len(self.dotation_projets) * len(self.selected_types)
 
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
@@ -256,7 +256,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
     def done(self, form_list, form_dict, **kwargs):
         merged_data = self.get_merged_cleaned_data(form_dict)
 
-        programmation_projets = form_dict[CREATE.name].save(
+        dotation_projets = form_dict[CREATE.name].save(
             modeles=form_dict[MODELE_SELECTION.name].selected_modeles,
             overwrite_strategy=merged_data.get("overwrite_strategy"),
         )
@@ -265,7 +265,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
         with_qr_code = merged_data.get("with_qr_code")
         job = ExportJob.objects.create(
             created_by=self.request.user,
-            pp_ids=[pp.pk for pp in programmation_projets],
+            dotation_projet_ids=[dp.pk for dp in dotation_projets],
             # attr_names is stored as JSON: selected_types is a frozenset, so
             # pin a deterministic order (lettre before arrêté before refus,
             # matching the display order elsewhere) rather than the set itself.
@@ -380,53 +380,53 @@ class BaseGenerateDocumentsStatusView(DetailView):
         context.update(
             {
                 "download_url": job.download_url,
-                "doc_count": len(job.pp_ids) * len(job.attr_names),
+                "doc_count": len(job.dotation_projet_ids) * len(job.attr_names),
                 "is_export_one_pdf_all": export_format == EXPORT_FORMAT_ONE_PDF_ALL,
                 "is_export_one_pdf_all_grouped": export_format
                 == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
                 "is_export_one_pdf_per_project": export_format
                 == EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
-                "refreshed_programmation_projets": self.get_refreshed_programmation_projets(
-                    job.pp_ids
+                "refreshed_dotation_projets": self.get_refreshed_dotation_projets(
+                    job.dotation_projet_ids
                 ),
             }
         )
         response = render(request, TEMPLATES + "success.html", context)
         return trigger_client_event(response, "documents-generated")
 
-    def get_refreshed_programmation_projets(self, pp_ids):
+    def get_refreshed_dotation_projets(self, dotation_projet_ids):
         """The generated documents are rendered back into the projet list rows,
         in the order the job stored them."""
-        by_pk = {pp.pk: pp for pp in self.get_programmation_projets(pp_ids)}
-        return [by_pk[pk] for pk in pp_ids if pk in by_pk]
+        by_pk = {dp.pk: dp for dp in self.get_dotation_projets(dotation_projet_ids)}
+        return [by_pk[pk] for pk in dotation_projet_ids if pk in by_pk]
 
-    def get_programmation_projets(self, pp_ids):
+    def get_dotation_projets(self, dotation_projet_ids):
         """Subclasses fetch the relations their success template renders."""
-        return ProgrammationProjet.objects.filter(pk__in=pp_ids)
+        return DotationProjet.objects.filter(pk__in=dotation_projet_ids)
 
 
 class GenerateAcceptedDocumentsStatusView(BaseGenerateDocumentsStatusView):
     WIZARD_CLASS = GenerateAcceptedDocumentsWizard
 
-    def get_programmation_projets(self, pp_ids):
+    def get_dotation_projets(self, dotation_projet_ids):
         return (
             super()
-            .get_programmation_projets(pp_ids)
+            .get_dotation_projets(dotation_projet_ids)
             .select_related(
-                "dotation_projet__arrete",
-                "dotation_projet__lettrenotification",
-                "dotation_projet__lettre_et_arrete_signes",
+                "arrete",
+                "lettrenotification",
+                "lettre_et_arrete_signes",
             )
-            .prefetch_related("dotation_projet__annexes")
+            .prefetch_related("annexes")
         )
 
 
 class GenerateLettreRefusStatusView(BaseGenerateDocumentsStatusView):
     WIZARD_CLASS = GenerateLettreRefusWizard
 
-    def get_programmation_projets(self, pp_ids):
+    def get_dotation_projets(self, dotation_projet_ids):
         return (
             super()
-            .get_programmation_projets(pp_ids)
-            .select_related("dotation_projet__lettrerefus")
+            .get_dotation_projets(dotation_projet_ids)
+            .select_related("lettrerefus")
         )

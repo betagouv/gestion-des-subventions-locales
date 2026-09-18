@@ -9,7 +9,6 @@ from gsl_core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...constants import (
     DOTATION_DETR,
@@ -42,14 +41,11 @@ def notified_projet(collegue):
         dossier_ds__perimetre=collegue.perimetre,
         notified_at=timezone.now(),
     )
-    dotation_projet = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet,
         status=PROJET_STATUS_ACCEPTED,
         dotation=DOTATION_DETR,
         assiette=10_000,
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
     )
     return projet
 
@@ -101,12 +97,12 @@ def test_post_preserves_dotation_projet_status(mock_repasser, client, notified_p
 
 
 @patch("gsl.projet.forms.DsService.repasser_en_instruction")
-def test_post_preserves_programmation_projet(mock_repasser, client, notified_projet):
+def test_post_preserves_programmation(mock_repasser, client, notified_projet):
     dotation_projet = notified_projet.dotationprojet_set.first()
-    assert hasattr(dotation_projet, "programmation_projet")
+    assert dotation_projet.is_programmee
     client.post(_url(notified_projet), {}, headers={"HX-Request": "true"})
     dotation_projet.refresh_from_db()
-    assert hasattr(dotation_projet, "programmation_projet")
+    assert dotation_projet.is_programmee
 
 
 def test_get_returns_404_for_non_notified_projet(client, non_notified_projet):

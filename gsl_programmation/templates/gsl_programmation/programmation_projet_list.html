@@ -220,25 +220,25 @@
                                 </tr>
                             </thead>
                             <tbody id="projet-list">
-                                {% for programmation_projet in programmation_projets %}
-                                    {% with projet=programmation_projet.projet dotation_projet=programmation_projet.dotation_projet %}
+                                {% for dotation_projet in dotation_projets %}
+                                    {% with projet=dotation_projet.projet %}
                                         <tr {% if dotation_projet.other_dotations|length > 0 %} class="gsl-projet-table__row--double-dotation"{% endif %}>
                                             <td class="gsl-projet-table__sticky-left-1">
                                                 <div class="fr-checkbox-group fr-checkbox-group--sm">
-                                                    <input id="checkbox-{{ programmation_projet.id }}"
+                                                    <input id="checkbox-{{ dotation_projet.id }}"
                                                            type="checkbox"
-                                                           value="{{ programmation_projet.id }}"
+                                                           value="{{ dotation_projet.id }}"
                                                            data-checkbox-selection-target="rowCheckbox"
                                                            data-action="change->checkbox-selection#toggleRow">
                                                     <label class="fr-label gsl-projet-table__checkbox-label"
-                                                           for="checkbox-{{ programmation_projet.id }}">
-                                                        <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ programmation_projet.projet.dossier_ds.ds_number }}</span>
+                                                           for="checkbox-{{ dotation_projet.id }}">
+                                                        <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ dotation_projet.projet.dossier_ds.ds_number }}</span>
                                                     </label>
                                                 </div>
                                             </td>
                                             {% for column in columns %}
                                                 <td class="{{ column.td_classes }}"
-                                                    {% if column.key == "documents" %} id="pp-documents-cell-{{ programmation_projet.id }}"{% endif %}>
+                                                    {% if column.key == "documents" %} id="pp-documents-cell-{{ dotation_projet.id }}"{% endif %}>
                                                     {% include column.resolved_template_name %}
                                                 </td>
                                             {% endfor %}

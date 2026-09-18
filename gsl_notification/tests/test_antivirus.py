@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from gsl.projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES
+from gsl.projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, PROJET_STATUS_ACCEPTED
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -15,7 +16,6 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -29,9 +29,9 @@ def perimetre():
 
 
 @pytest.fixture
-def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
+def dotation_projet(perimetre):
+    return DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
 
 
@@ -49,10 +49,10 @@ def test_upload_triggers_scan_task_when_antivirus_enabled(
     mock_scan_task, settings, perimetre
 ):
     settings.BYPASS_ANTIVIRUS = False
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
-    doc = LettreEtArreteSignesFactory(dotation_projet=pp.dotation_projet)
+    doc = LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
     mock_scan_task.delay.assert_called_once_with(
         "gsl_notification.LettreEtArreteSignes", doc.pk
@@ -64,10 +64,10 @@ def test_upload_does_not_trigger_scan_when_antivirus_bypassed(
     mock_scan_task, settings, perimetre
 ):
     settings.BYPASS_ANTIVIRUS = True
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
-    LettreEtArreteSignesFactory(dotation_projet=pp.dotation_projet)
+    LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
     mock_scan_task.delay.assert_not_called()
 
@@ -75,10 +75,10 @@ def test_upload_does_not_trigger_scan_when_antivirus_bypassed(
 @patch("gsl_notification.tasks.scan_uploaded_document")
 def test_annexe_upload_triggers_scan_task(mock_scan_task, settings, perimetre):
     settings.BYPASS_ANTIVIRUS = False
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
-    doc = AnnexeFactory(dotation_projet=pp.dotation_projet)
+    doc = AnnexeFactory(dotation_projet=dotation_projet)
 
     mock_scan_task.delay.assert_called_once_with("gsl_notification.Annexe", doc.pk)
 
@@ -87,11 +87,9 @@ def test_annexe_upload_triggers_scan_task(mock_scan_task, settings, perimetre):
 
 
 @patch("gsl_notification.tasks.subprocess.run")
-def test_scan_task_marks_clean_file(mock_run, settings, programmation_projet):
+def test_scan_task_marks_clean_file(mock_run, settings, dotation_projet):
     # Create document with bypass to avoid signal-triggered scan
-    doc = LettreEtArreteSignesFactory(
-        dotation_projet=programmation_projet.dotation_projet
-    )
+    doc = LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
     assert doc.last_scan is None
     assert doc.is_infected is None
 
@@ -108,10 +106,8 @@ def test_scan_task_marks_clean_file(mock_run, settings, programmation_projet):
 
 
 @patch("gsl_notification.tasks.subprocess.run")
-def test_scan_task_marks_infected_file(mock_run, settings, programmation_projet):
-    doc = LettreEtArreteSignesFactory(
-        dotation_projet=programmation_projet.dotation_projet
-    )
+def test_scan_task_marks_infected_file(mock_run, settings, dotation_projet):
+    doc = LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
     settings.BYPASS_ANTIVIRUS = False
     mock_run.return_value = MagicMock(returncode=1, stdout="FOUND Eicar-Test-Signature")
@@ -126,10 +122,8 @@ def test_scan_task_marks_infected_file(mock_run, settings, programmation_projet)
 
 
 @patch("gsl_notification.tasks.subprocess.run")
-def test_scan_task_raises_on_clamdscan_error(mock_run, settings, programmation_projet):
-    doc = LettreEtArreteSignesFactory(
-        dotation_projet=programmation_projet.dotation_projet
-    )
+def test_scan_task_raises_on_clamdscan_error(mock_run, settings, dotation_projet):
+    doc = LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
     settings.BYPASS_ANTIVIRUS = False
     mock_run.return_value = MagicMock(returncode=2, stdout="ERROR: some clamav error")
@@ -140,12 +134,10 @@ def test_scan_task_raises_on_clamdscan_error(mock_run, settings, programmation_p
         scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
 
 
-def test_scan_task_skips_when_bypassed(settings, programmation_projet):
+def test_scan_task_skips_when_bypassed(settings, dotation_projet):
     settings.BYPASS_ANTIVIRUS = True
 
-    doc = LettreEtArreteSignesFactory(
-        dotation_projet=programmation_projet.dotation_projet
-    )
+    doc = LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
 
     from gsl_notification.tasks import scan_uploaded_document
 
@@ -166,9 +158,9 @@ def test_scan_task_skips_when_bypassed(settings, programmation_projet):
     ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_blocked_when_never_scanned(
-    settings, client_with_user, programmation_projet, doc_type, factory
+    settings, client_with_user, dotation_projet, doc_type, factory
 ):
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
     assert doc.last_scan is None
 
     settings.BYPASS_ANTIVIRUS = False
@@ -183,10 +175,10 @@ def test_download_blocked_when_never_scanned(
     ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_blocked_when_infected(
-    settings, client_with_user, programmation_projet, doc_type, factory
+    settings, client_with_user, dotation_projet, doc_type, factory
 ):
     doc = factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         last_scan=timezone.now(),
         is_infected=True,
     )
@@ -203,10 +195,10 @@ def test_download_blocked_when_infected(
     ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_allowed_when_clean(
-    settings, client_with_user, programmation_projet, doc_type, factory
+    settings, client_with_user, dotation_projet, doc_type, factory
 ):
     doc = factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         last_scan=timezone.now(),
         is_infected=False,
     )
@@ -234,10 +226,10 @@ def test_download_allowed_when_clean(
     ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_download_allowed_when_bypass_even_if_never_scanned(
-    settings, client_with_user, programmation_projet, doc_type, factory
+    settings, client_with_user, dotation_projet, doc_type, factory
 ):
     settings.BYPASS_ANTIVIRUS = True
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
 
     url = doc.get_download_url()
 
@@ -261,10 +253,10 @@ def test_download_allowed_when_bypass_even_if_never_scanned(
 @pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_false_when_never_scanned(
-    _mock_scan, settings, programmation_projet, factory
+    _mock_scan, settings, dotation_projet, factory
 ):
     settings.BYPASS_ANTIVIRUS = False
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
     assert doc.last_scan is None
     assert doc.is_downloadable is False
 
@@ -272,11 +264,11 @@ def test_is_downloadable_false_when_never_scanned(
 @pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_false_when_infected(
-    _mock_scan, settings, programmation_projet, factory
+    _mock_scan, settings, dotation_projet, factory
 ):
     settings.BYPASS_ANTIVIRUS = False
     doc = factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         last_scan=timezone.now(),
         is_infected=True,
     )
@@ -286,11 +278,11 @@ def test_is_downloadable_false_when_infected(
 @pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
 @patch("gsl_notification.tasks.scan_uploaded_document")
 def test_is_downloadable_true_when_scanned_and_clean(
-    _mock_scan, settings, programmation_projet, factory
+    _mock_scan, settings, dotation_projet, factory
 ):
     settings.BYPASS_ANTIVIRUS = False
     doc = factory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         last_scan=timezone.now(),
         is_infected=False,
     )
@@ -298,19 +290,17 @@ def test_is_downloadable_true_when_scanned_and_clean(
 
 
 @pytest.mark.parametrize("factory", (LettreEtArreteSignesFactory, AnnexeFactory))
-def test_is_downloadable_true_when_bypass_enabled(
-    settings, programmation_projet, factory
-):
+def test_is_downloadable_true_when_bypass_enabled(settings, dotation_projet, factory):
     settings.BYPASS_ANTIVIRUS = True
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
     assert doc.last_scan is None
     assert doc.is_downloadable is True
 
 
-def test_generated_document_is_always_downloadable(programmation_projet):
+def test_generated_document_is_always_downloadable(dotation_projet):
     from gsl_notification.tests.factories import ArreteFactory
 
-    doc = ArreteFactory(dotation_projet=programmation_projet.dotation_projet)
+    doc = ArreteFactory(dotation_projet=dotation_projet)
     assert doc.is_downloadable is True
 
 

@@ -1,16 +1,18 @@
 from typing import Optional
 
-from django.contrib import admin
-from django.db.models import Count
+from django.contrib import admin, messages
+from django.db import transaction
+from django.db.models import Count, F
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from gsl.simulation.models import SimulationProjet
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
-from gsl_programmation.models import ProgrammationProjet
+from gsl_core.templatetags.gsl_filters import percent
+from gsl_programmation.models import Enveloppe
 
-from .constants import PROJET_STATUS_CHOICES
+from .constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_CHOICES
 from .models import DotationProjet, Projet, ProjetQuerySet
 
 
@@ -176,28 +178,6 @@ class SimulationProjetInline(admin.TabularInline):
     ]
 
 
-class ProgrammationProjetInline(admin.TabularInline):
-    model = ProgrammationProjet
-    extra = 0
-    show_change_link = True
-    fields = [
-        "enveloppe",
-        "montant",
-        "taux",
-        "status",
-        "created_at",
-        "updated_at",
-    ]
-    readonly_fields = [
-        "enveloppe",
-        "montant",
-        "taux",
-        "status",
-        "created_at",
-        "updated_at",
-    ]
-
-
 @admin.register(DotationProjet)
 class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     raw_id_fields = ("projet",)
@@ -208,6 +188,9 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "projet_link",
         "dotation",
         "status",
+        "enveloppe",
+        "montant",
+        "formatted_taux",
         "simulation_count",
     )
     search_fields = (
@@ -215,15 +198,94 @@ class DotationProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "dotation",
         "projet__id",
     )
-    list_filter = ("projet__dossier_ds__is_active", "dotation", "status")
-    inlines = [SimulationProjetInline, ProgrammationProjetInline]
-    readonly_fields = ("created_at", "updated_at", "dossier_link", "projet_link")
+    list_filter = (
+        "projet__dossier_ds__is_active",
+        "dotation",
+        "status",
+        "enveloppe__annee",
+        "enveloppe__perimetre__region__name",
+        "enveloppe__perimetre__departement__name",
+    )
+    autocomplete_fields = ("enveloppe",)
+    inlines = [SimulationProjetInline]
+    actions = ("associer_enveloppe_2025",)
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "date_programmation",
+        "dossier_link",
+        "projet_link",
+    )
     list_select_related = ("projet", "projet__dossier_ds")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.annotate(simulation_count=Count("simulationprojet"))
         return qs.prefetch_related("simulationprojet_set")
+
+    @admin.action(description="Associer ce projet à l'enveloppe 2025")
+    @transaction.atomic
+    def associer_enveloppe_2025(self, request, queryset):
+        invalid = queryset.exclude(status=PROJET_STATUS_ACCEPTED, enveloppe__annee=2026)
+        if invalid.exists():
+            self.message_user(
+                request,
+                f"{invalid.count()} projet(s) ignoré(s) : cette action n'est autorisée que pour les projets acceptés sur une enveloppe 2026.",
+                messages.WARNING,
+            )
+
+        valid_qs = queryset.filter(
+            status=PROJET_STATUS_ACCEPTED, enveloppe__annee=2026
+        ).select_related("enveloppe__perimetre")
+        dotation_projet_ids = list(valid_qs.values_list("id", flat=True))
+        success_count = 0
+        for dotation_projet in valid_qs:
+            try:
+                enveloppe_2025 = Enveloppe.objects.get(
+                    dotation=dotation_projet.enveloppe.dotation,
+                    perimetre=dotation_projet.enveloppe.perimetre,
+                    annee=2025,
+                    deleguee_by=None,
+                )
+            except Enveloppe.DoesNotExist:
+                self.message_user(
+                    request,
+                    f"Aucune enveloppe 2025 trouvée pour le projet {dotation_projet.id} "
+                    f"(dotation={dotation_projet.enveloppe.dotation}, périmètre={dotation_projet.enveloppe.perimetre}).",
+                    messages.ERROR,
+                )
+                continue
+
+            dotation_projet.accept_without_ds_update(
+                montant=dotation_projet.montant,
+                enveloppe=enveloppe_2025,
+                actor=request.user,
+            )
+            dotation_projet.save()
+            success_count += 1
+
+        if success_count:
+            self.message_user(
+                request,
+                f"{success_count} projet(s) associé(s) avec succès à l'enveloppe 2025.",
+                messages.SUCCESS,
+            )
+
+        deleted_count, _ = SimulationProjet.objects.filter(
+            dotation_projet__in=dotation_projet_ids,
+            dotation_projet__enveloppe__annee__lt=F("simulation__enveloppe__annee"),
+        ).delete()
+        if deleted_count:
+            self.message_user(
+                request,
+                f"{deleted_count} simulation(s) projet supprimée(s) suite au réassociement.",
+                messages.SUCCESS,
+            )
+
+    def formatted_taux(self, obj):
+        return percent(obj.taux_retenu)
+
+    formatted_taux.short_description = "Taux"
 
     def has_delete_permission(self, request, obj: Optional[DotationProjet] = None):
         perm = super().has_delete_permission(request, obj)

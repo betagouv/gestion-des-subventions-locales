@@ -6,6 +6,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
+    PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.models import Projet
@@ -20,7 +21,6 @@ from gsl_core.tests.factories import (
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
 )
 
 
@@ -58,34 +58,28 @@ def submitted_projets(perimetre_departemental):
 @pytest.fixture
 def programmation_projets(perimetre_departemental, detr_enveloppe):
     for _ in range(3):
-        dotation_projet = DotationProjetFactory(
+        DotationProjetFactory(
             dotation=DOTATION_DETR,
+            status=PROJET_STATUS_REFUSED,
+            enveloppe=detr_enveloppe,
             projet__dossier_ds__perimetre=perimetre_departemental,
             projet__dossier_ds__demande_montant=30_000,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
             projet__dossier_ds__ds_date_traitement=datetime(2021, 10, 1, tzinfo=UTC),
             projet__dossier_ds__demande_dispositif_sollicite="DETR",
         )
-        ProgrammationProjetFactory(
-            enveloppe=detr_enveloppe,
-            status=PROJET_STATUS_REFUSED,
-            dotation_projet=dotation_projet,
-        )
 
     for montant in (200_000, 300_000):
-        dotation_projet = DotationProjetFactory(
+        DotationProjetFactory(
             dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=detr_enveloppe,
+            montant=montant,
             projet__dossier_ds__perimetre=perimetre_departemental,
             projet__dossier_ds__demande_montant=40_000,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
             projet__dossier_ds__ds_date_traitement=datetime(2021, 7, 1, tzinfo=UTC),
             projet__dossier_ds__demande_dispositif_sollicite="DETR",
-        )
-        ProgrammationProjetFactory(
-            enveloppe=detr_enveloppe,
-            status=PROJET_STATUS_ACCEPTED,
-            montant=montant,
-            dotation_projet=dotation_projet,
         )
 
 
@@ -173,27 +167,23 @@ class TestDelegatedEnveloppe:
 
         perimetre_arr_1, perimetre_arr_2 = perimetre_arrondissements
 
-        ProgrammationProjetFactory(
+        DotationProjetFactory(
             enveloppe=self.detr_enveloppe,
-            dotation_projet__projet__dossier_ds__perimetre=perimetre_arr_1,
+            projet__dossier_ds__perimetre=perimetre_arr_1,
             status=PROJET_STATUS_ACCEPTED,
             montant=200_000,
-            dotation_projet__projet__dossier_ds__demande_montant=500_000,
-            dotation_projet__dotation=DOTATION_DETR,
-            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
-                2020, 12, 1, tzinfo=UTC
-            ),
+            projet__dossier_ds__demande_montant=500_000,
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
-        ProgrammationProjetFactory(
+        DotationProjetFactory(
             enveloppe=self.detr_enveloppe,
-            dotation_projet__projet__dossier_ds__perimetre=perimetre_arr_2,
+            projet__dossier_ds__perimetre=perimetre_arr_2,
             status=PROJET_STATUS_REFUSED,
             montant=0,
-            dotation_projet__projet__dossier_ds__demande_montant=400_000,
-            dotation_projet__dotation=DOTATION_DETR,
-            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
-                2020, 12, 1, tzinfo=UTC
-            ),
+            projet__dossier_ds__demande_montant=400_000,
+            dotation=DOTATION_DETR,
+            projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
 
     def test_enveloppe_projets_processed(self):
@@ -249,27 +239,23 @@ class TestDelegatedEnveloppeWithTreeLevels:
             perimetre=arrondissement, deleguee_by=self.dsil_enveloppe_dep, annee=2021
         )
 
-        ProgrammationProjetFactory(
+        DotationProjetFactory(
             enveloppe=self.dsil_enveloppe,
-            dotation_projet__dotation=DOTATION_DSIL,
-            dotation_projet__projet__dossier_ds__perimetre=arrondissement,
+            dotation=DOTATION_DSIL,
+            projet__dossier_ds__perimetre=arrondissement,
             status=PROJET_STATUS_ACCEPTED,
             montant=200_000,
-            dotation_projet__projet__dossier_ds__demande_montant=500_000,
-            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
-                2020, 12, 1, tzinfo=UTC
-            ),
+            projet__dossier_ds__demande_montant=500_000,
+            projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
-        ProgrammationProjetFactory(
+        DotationProjetFactory(
             enveloppe=self.dsil_enveloppe,
-            dotation_projet__dotation=DOTATION_DSIL,
-            dotation_projet__projet__dossier_ds__perimetre=arrondissement,
+            dotation=DOTATION_DSIL,
+            projet__dossier_ds__perimetre=arrondissement,
             status=PROJET_STATUS_REFUSED,
             montant=0,
-            dotation_projet__projet__dossier_ds__demande_montant=400_000,
-            dotation_projet__projet__dossier_ds__ds_date_depot=datetime(
-                2020, 12, 1, tzinfo=UTC
-            ),
+            projet__dossier_ds__demande_montant=400_000,
+            projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
 
     def test_enveloppe_projets_processed(self):
@@ -321,54 +307,46 @@ class TestEnveloppePropertiesExcludeInactiveProjets:
 
         # 2 active accepted projets
         for montant in (100_000, 150_000):
-            dp = DotationProjetFactory(
+            DotationProjetFactory(
                 dotation=DOTATION_DETR,
+                status=PROJET_STATUS_ACCEPTED,
+                enveloppe=self.enveloppe,
+                montant=montant,
                 projet__dossier_ds__perimetre=perimetre,
                 projet__dossier_ds__demande_montant=self.DEMANDE_MONTANT,
                 projet__dossier_ds__ds_date_depot=depot,
             )
-            ProgrammationProjetFactory(
-                enveloppe=self.enveloppe,
-                status=PROJET_STATUS_ACCEPTED,
-                montant=montant,
-                dotation_projet=dp,
-            )
 
         # 1 active refused projet
-        dp = DotationProjetFactory(
+        DotationProjetFactory(
             dotation=DOTATION_DETR,
+            status=PROJET_STATUS_REFUSED,
+            enveloppe=self.enveloppe,
+            montant=0,
             projet__dossier_ds__perimetre=perimetre,
             projet__dossier_ds__demande_montant=self.DEMANDE_MONTANT,
             projet__dossier_ds__ds_date_depot=depot,
-        )
-        ProgrammationProjetFactory(
-            enveloppe=self.enveloppe,
-            status=PROJET_STATUS_REFUSED,
-            montant=0,
-            dotation_projet=dp,
         )
 
         # 1 active projet without programmation (eligible, not yet programmed)
         DotationProjetFactory(
             dotation=DOTATION_DETR,
+            status=PROJET_STATUS_PROCESSING,
             projet__dossier_ds__perimetre=perimetre,
             projet__dossier_ds__demande_montant=self.DEMANDE_MONTANT,
             projet__dossier_ds__ds_date_depot=depot,
         )
 
         # 1 INACTIVE accepted projet — must be excluded everywhere
-        dp_inactive = DotationProjetFactory(
+        DotationProjetFactory(
             dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=self.enveloppe,
+            montant=999_000,
             projet__dossier_ds__is_active=False,
             projet__dossier_ds__perimetre=perimetre,
             projet__dossier_ds__demande_montant=999_000,
             projet__dossier_ds__ds_date_depot=depot,
-        )
-        ProgrammationProjetFactory(
-            enveloppe=self.enveloppe,
-            status=PROJET_STATUS_ACCEPTED,
-            montant=999_000,
-            dotation_projet=dp_inactive,
         )
 
         # 1 INACTIVE projet without programmation — must be excluded from included

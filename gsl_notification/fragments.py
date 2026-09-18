@@ -15,7 +15,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
-from gsl.projet.models import Projet
+from gsl.projet.models import DotationProjet, Projet
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
@@ -38,7 +38,6 @@ from gsl_notification.qr.reattach import (
     extract_documents,
     replace_documents,
 )
-from gsl_programmation.models import ProgrammationProjet
 
 logger = logging.getLogger(__name__)
 
@@ -259,7 +258,9 @@ class UploadedDocumentAnalyzeFragment(BaseImportStepFragment):
         report = ImportReport()
         documents = []
         files = [uploaded_file]
-        queryset = ProgrammationProjet.objects.visible_to_user(self.request.user)
+        queryset = DotationProjet.objects.programmees().visible_to_user(
+            self.request.user
+        )
         try:
             for event in extract_documents(files, queryset):
                 if isinstance(event, DocumentMatched):
