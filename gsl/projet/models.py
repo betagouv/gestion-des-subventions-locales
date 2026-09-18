@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
+from functools import cached_property
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
@@ -436,13 +437,13 @@ class Projet(BaseModel):
             document
             for model in GENERATED_DOCUMENTS.values()
             for document in model.objects.filter(
-                programmation_projet__dotation_projet__projet=self
+                dotation_projet__projet=self
             ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
             documents,
             key=lambda d: (
-                DOTATIONS.index(d.programmation_projet.dotation),
+                DOTATIONS.index(d.dotation_projet.dotation),
                 list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
@@ -453,13 +454,13 @@ class Projet(BaseModel):
             document
             for model in UPLOADED_DOCUMENTS.values()
             for document in model.objects.filter(
-                programmation_projet__dotation_projet__projet=self
+                dotation_projet__projet=self
             ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
             documents,
             key=lambda d: (
-                DOTATIONS.index(d.programmation_projet.dotation),
+                DOTATIONS.index(d.dotation_projet.dotation),
                 list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
@@ -486,12 +487,11 @@ class Projet(BaseModel):
 
 # Used to construct file name
 _GENERATED_DOCUMENT_SELECT_RELATED = (
-    "programmation_projet__enveloppe",
-    "programmation_projet__dotation_projet__projet__dossier_ds__ds_demandeur",
+    "dotation_projet__projet__dossier_ds__ds_demandeur",
 )
 
 # Used for dotation column
-_UPLOADED_DOCUMENT_SELECT_RELATED = ("programmation_projet__dotation_projet",)
+_UPLOADED_DOCUMENT_SELECT_RELATED = ("dotation_projet",)
 
 
 class DotationProjetQuerySet(models.QuerySet):
@@ -499,19 +499,13 @@ class DotationProjetQuerySet(models.QuerySet):
         return self.filter(
             programmation_projet__isnull=False,
             status=PROJET_STATUS_ACCEPTED,
-            programmation_projet__lettre_et_arrete_signes__isnull=True,
+            lettre_et_arrete_signes__isnull=True,
         )
 
     def active(self):
         return self.filter(projet__dossier_ds__is_active=True)
 
     def annotate_notification_status(self):
-        # Mirrors DotationProjet.notification_status. The REFUSED/DISMISSED +
-        # LETTRE_REFUS branch from the property is intentionally not
-        # reproduced here: LETTRE_REFUS ("refus") isn't a real related_name
-        # on ProgrammationProjet, so that branch is already unreachable in
-        # the property today, and referencing it here would raise a
-        # FieldError instead of silently doing nothing.
         return self.annotate(
             _notification_status=Case(
                 When(programmation_projet__isnull=True, then=Value(None)),
@@ -520,19 +514,19 @@ class DotationProjetQuerySet(models.QuerySet):
                     then=Value(NOTIFICATION_STATUS_NOTIFIED),
                 ),
                 When(
-                    Q(programmation_projet__lettre_et_arrete_signes__isnull=False)
-                    | Q(programmation_projet__lettre_refus_signee__isnull=False),
+                    Q(lettre_et_arrete_signes__isnull=False)
+                    | Q(lettre_refus_signee__isnull=False),
                     then=Value(NOTIFICATION_STATUS_TO_NOTIFY),
                 ),
                 When(
                     status=PROJET_STATUS_ACCEPTED,
-                    programmation_projet__arrete__isnull=False,
-                    programmation_projet__lettrenotification__isnull=False,
+                    arrete__isnull=False,
+                    lettrenotification__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
                 When(
                     status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED],
-                    programmation_projet__lettrerefus__isnull=False,
+                    lettrerefus__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
                 default=Value(NOTIFICATION_STATUS_TO_GENERATE),
@@ -715,6 +709,40 @@ class DotationProjet(BaseModel):
     @property
     def is_treated(self) -> bool:
         return self.status in PROJET_FINAL_STATUSES
+
+    @property
+    def lettre(self):
+        """Bridge between the LETTRE document_type and the related_name, so
+        `getattr(dotation_projet, document_type)` resolves for every type."""
+        return self.lettrenotification
+
+    @property
+    def refus(self):
+        return self.lettrerefus
+
+    @cached_property
+    def documents_summary(self):
+        summary = list()
+
+        if hasattr(self, "lettre_et_arrete_signes"):
+            summary.append("1 lettre et arrêté signés")
+        else:
+            if hasattr(self, "arrete"):
+                summary.append("1 arrêté")
+            if hasattr(self, "lettrenotification"):
+                summary.append("1 lettre")
+
+        if hasattr(self, "lettre_refus_signee"):
+            summary.append("1 lettre de refus signée")
+        elif hasattr(self, "lettrerefus"):
+            summary.append("1 lettre de refus")
+
+        annexes_count = len(self.annexes.all())
+        if annexes_count != 0:
+            plural = "s" if annexes_count > 1 else ""
+            summary.append(f"{annexes_count} annexe{plural}")
+
+        return summary
 
     @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
     def accept_without_ds_update(

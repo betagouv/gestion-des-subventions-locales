@@ -815,8 +815,8 @@ def projet_with_mixed_notification_statuses() -> Projet:
 
     to_sign_dp = DetrProjetFactory(projet=projet, status="accepted")
     to_sign_pp = ProgrammationProjetFactory(dotation_projet=to_sign_dp)
-    ArreteFactory(programmation_projet=to_sign_pp)
-    LettreNotificationFactory(programmation_projet=to_sign_pp)
+    ArreteFactory(dotation_projet=to_sign_pp.dotation_projet)
+    LettreNotificationFactory(dotation_projet=to_sign_pp.dotation_projet)
 
     to_generate_dp = DsilProjetFactory(projet=projet, status="accepted")
     ProgrammationProjetFactory(dotation_projet=to_generate_dp)

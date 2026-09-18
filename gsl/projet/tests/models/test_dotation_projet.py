@@ -14,6 +14,14 @@ from gsl_core.tests.factories import (
     CollegueFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_notification.tests.factories import (
+    AnnexeFactory,
+    ArreteFactory,
+    LettreEtArreteSignesFactory,
+    LettreNotificationFactory,
+    LettreRefusFactory,
+    LettreRefusSigneeFactory,
+)
 from gsl_programmation.models import ProgrammationProjet
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -853,3 +861,52 @@ def test_dotation_projet_save_update_does_not_reset_assiette():
     dp.save()
     dp.refresh_from_db()
     assert dp.assiette is None
+
+
+# -- documents_summary --
+
+
+def test_documents_summary_no_document():
+    assert DotationProjetFactory().documents_summary == []
+
+
+def test_documents_summary_arrete_genere():
+    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    ArreteFactory(dotation_projet=dotation_projet)
+    LettreNotificationFactory(dotation_projet=dotation_projet)
+
+    assert dotation_projet.documents_summary == ["1 arrêté", "1 lettre"]
+
+
+@pytest.mark.parametrize(
+    "annexes_count, expected_summary", ((0, []), (1, ["1 annexe"]), (2, ["2 annexes"]))
+)
+def test_documents_summary_annexes(annexes_count, expected_summary):
+    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    AnnexeFactory.create_batch(annexes_count, dotation_projet=dotation_projet)
+
+    assert dotation_projet.documents_summary == expected_summary
+
+
+def test_documents_summary_lettre_et_arrete_signes_hides_arrete_and_lettre_generes():
+    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    LettreEtArreteSignesFactory(dotation_projet=dotation_projet)
+    ArreteFactory(dotation_projet=dotation_projet)
+    LettreNotificationFactory(dotation_projet=dotation_projet)
+
+    assert dotation_projet.documents_summary == ["1 lettre et arrêté signés"]
+
+
+def test_documents_summary_lettre_refus_generee():
+    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
+    LettreRefusFactory(dotation_projet=dotation_projet)
+
+    assert dotation_projet.documents_summary == ["1 lettre de refus"]
+
+
+def test_documents_summary_lettre_refus_signee_hides_lettre_refus_generee():
+    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_REFUSED)
+    LettreRefusSigneeFactory(dotation_projet=dotation_projet)
+    LettreRefusFactory(dotation_projet=dotation_projet)
+
+    assert dotation_projet.documents_summary == ["1 lettre de refus signée"]

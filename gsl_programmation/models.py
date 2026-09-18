@@ -329,20 +329,8 @@ class ProgrammationProjet(models.Model):
         return self.dotation_projet.dotation
 
     @property
-    def has_lettre_and_arrete_signes(self):
-        return hasattr(self, "lettre_et_arrete_signes")
-
-    @property
-    def has_lettre_refus_signee(self):
-        return hasattr(self, "lettre_refus_signee")
-
-    @property
-    def lettre(self):
-        return self.lettrenotification
-
-    @property
-    def refus(self):
-        return self.lettrerefus
+    def documents_summary(self):
+        return self.dotation_projet.documents_summary
 
     def clean(self):
         errors = {}
@@ -389,27 +377,3 @@ class ProgrammationProjet(models.Model):
         if self.status == self.STATUS_REFUSED:
             if self.montant != 0:
                 errors["montant"] = {"Un projet refusé doit avoir un montant nul."}
-
-    @cached_property
-    def documents_summary(self):
-        summary = list()
-
-        if self.has_lettre_and_arrete_signes:
-            summary.append("1 lettre et arrêté signés")
-        else:
-            if hasattr(self, "arrete"):
-                summary.append("1 arrêté")
-            if hasattr(self, "lettre"):
-                summary.append("1 lettre")
-
-        if self.has_lettre_refus_signee:
-            summary.append("1 lettre de refus signée")
-        elif hasattr(self, "refus"):
-            summary.append("1 lettre de refus")
-
-        annexes_count = len(self.annexes.all())
-        if annexes_count != 0:
-            plural = "s" if annexes_count > 1 else ""
-            summary.append(f"{annexes_count} annexe{plural}")
-
-        return summary

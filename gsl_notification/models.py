@@ -166,7 +166,7 @@ GENERATED_DOCUMENTS = {}
 class GeneratedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
     is_feminine: bool = False
-    required_programmation_projet_statuses: tuple[str, ...] = ()
+    required_dotation_projet_statuses: tuple[str, ...] = ()
     status_mismatch_message: str = ""
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
@@ -182,10 +182,10 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         null=True,
         blank=True,
     )
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
+    dotation_projet = models.OneToOneField(
+        "gsl_projet.DotationProjet",
         on_delete=models.CASCADE,
-        verbose_name="Programmation projet",
+        verbose_name="Dotation projet",
         related_name="%(class)s",
     )
     with_qr_code = models.BooleanField(default=True)
@@ -212,18 +212,18 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if hasattr(self, "programmation_projet"):
+        if hasattr(self, "dotation_projet"):
             if (
                 hasattr(self, "modele")
-                and self.programmation_projet.dotation != self.modele.dotation
+                and self.dotation_projet.dotation != self.modele.dotation
             ):
                 raise ValidationError(
                     "Le modèle doit avoir la même dotation que le projet de programmation."
                 )
             if (
-                self.required_programmation_projet_statuses
-                and self.programmation_projet.status
-                not in self.required_programmation_projet_statuses
+                self.required_dotation_projet_statuses
+                and self.dotation_projet.status
+                not in self.required_dotation_projet_statuses
             ):
                 raise ValidationError(self.status_mismatch_message)
         return super().clean()
@@ -250,7 +250,7 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
 
     @property
     def name(self):
-        return f"{self.short_name} {self.programmation_projet.enveloppe.dotation} - {self.programmation_projet.dossier.name_for_document}.pdf"
+        return f"{self.short_name} {self.dotation_projet.dotation} - {self.dotation_projet.dossier_ds.name_for_document}.pdf"
 
     @property
     def article_name(self):
@@ -267,7 +267,7 @@ class Arrete(GeneratedDocument):
     delete_question = "Êtes-vous sûr de vouloir supprimer cet arrêté ?"
     short_name = "Arrêté"
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
-    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_dotation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     status_mismatch_message = (
         "Un arrêté ne peut être associé qu'à un projet de programmation accepté."
     )
@@ -286,7 +286,7 @@ class LettreNotification(GeneratedDocument):
     )
     short_name = "Lettre"
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
-    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_dotation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     status_mismatch_message = (
         "Une lettre de notification ne peut être associée qu'à un projet de "
         "programmation accepté."
@@ -304,7 +304,7 @@ class LettreRefus(GeneratedDocument):
     delete_question = "Êtes-vous sûr de vouloir supprimer cette lettre de refus ou classement sans suite ?"
     short_name = "Lettre de refus"
     modele = models.ForeignKey(ModeleLettreRefus, on_delete=models.PROTECT)
-    required_programmation_projet_statuses = (
+    required_dotation_projet_statuses = (
         PROJET_STATUS_REFUSED,
         PROJET_STATUS_DISMISSED,
     )
@@ -323,16 +323,16 @@ UPLOADED_DOCUMENTS = {}
 
 def uploaded_document_upload_to(instance, filename):
     # Named (module-level) so it stays migration-serializable, unlike a lambda.
-    folder = f"programmation_projet_{instance.programmation_projet_id}"
+    folder = f"dotation_projet_{instance.dotation_projet_id}"
     return f"{instance.document_type}/{folder}/{filename}"
 
 
 class UploadedDocument(VerboseNameMixin, models.Model):
     document_type: str | None = None
-    # ProgrammationProjet statuses for which this document can be uploaded.
-    required_programmation_projet_statuses: tuple[str, ...] = ()
+    # DotationProjet statuses for which this document can be uploaded.
+    required_dotation_projet_statuses: tuple[str, ...] = ()
     status_mismatch_message: str = ""
-    # False => OneToOne to ProgrammationProjet: a single document, the choice is
+    # False => OneToOne to DotationProjet: a single document, the choice is
     # disabled once one exists. True => several allowed (e.g. annexes).
     allow_multiple = False
     reattach_source_document_types: tuple[str, ...] = ()
@@ -369,19 +369,17 @@ class UploadedDocument(VerboseNameMixin, models.Model):
         return kebab_case(cls.__name__)
 
     @classmethod
-    def can_upload(cls, programmation_projet) -> bool:
+    def can_upload(cls, dotation_projet) -> bool:
         if cls.allow_multiple:
             return True
-        return not cls.objects.filter(
-            programmation_projet=programmation_projet
-        ).exists()
+        return not cls.objects.filter(dotation_projet=dotation_projet).exists()
 
     def clean(self):
         if (
-            self.required_programmation_projet_statuses
-            and hasattr(self, "programmation_projet")
-            and self.programmation_projet.status
-            not in self.required_programmation_projet_statuses
+            self.required_dotation_projet_statuses
+            and hasattr(self, "dotation_projet")
+            and self.dotation_projet.status
+            not in self.required_dotation_projet_statuses
         ):
             raise ValidationError(self.status_mismatch_message)
         return super().clean()
@@ -419,7 +417,7 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
 class LettreEtArreteSignes(UploadedDocument):
     document_type = "lettre_et_arrete_signes"
-    required_programmation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_dotation_projet_statuses = (PROJET_STATUS_ACCEPTED,)
     reattach_source_document_types = (ARRETE, LETTRE)
     status_mismatch_message = (
         "La lettre et l'arrêté signés ne peuvent être importés que pour un "
@@ -430,8 +428,8 @@ class LettreEtArreteSignes(UploadedDocument):
         "Êtes-vous sûr de vouloir supprimer cette lettre et cet arrêté signés ?"
     )
 
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
+    dotation_projet = models.OneToOneField(
+        "gsl_projet.DotationProjet",
         on_delete=models.CASCADE,
         related_name="lettre_et_arrete_signes",
     )
@@ -446,7 +444,7 @@ class LettreEtArreteSignes(UploadedDocument):
 
 class LettreRefusSignee(UploadedDocument):
     document_type = "lettre_refus_signee"
-    required_programmation_projet_statuses = (
+    required_dotation_projet_statuses = (
         PROJET_STATUS_REFUSED,
         PROJET_STATUS_DISMISSED,
     )
@@ -460,8 +458,8 @@ class LettreRefusSignee(UploadedDocument):
         "Êtes-vous sûr de vouloir supprimer cette lettre de refus signée ?"
     )
 
-    programmation_projet = models.OneToOneField(
-        "gsl_programmation.ProgrammationProjet",
+    dotation_projet = models.OneToOneField(
+        "gsl_projet.DotationProjet",
         on_delete=models.CASCADE,
         related_name="lettre_refus_signee",
     )
@@ -476,7 +474,7 @@ class LettreRefusSignee(UploadedDocument):
 
 class Annexe(UploadedDocument):
     document_type = "annexe"
-    required_programmation_projet_statuses = (
+    required_dotation_projet_statuses = (
         PROJET_STATUS_ACCEPTED,
         PROJET_STATUS_REFUSED,
         PROJET_STATUS_DISMISSED,
@@ -485,8 +483,8 @@ class Annexe(UploadedDocument):
     delete_label = "Suppression de l’annexe"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"
 
-    programmation_projet = models.ForeignKey(
-        "gsl_programmation.ProgrammationProjet",
+    dotation_projet = models.ForeignKey(
+        "gsl_projet.DotationProjet",
         on_delete=models.CASCADE,
         related_name="annexes",
     )
@@ -504,7 +502,7 @@ class DocumentImportJob(BaseModel):
     Tracks an async re-import of scanned, signed documents. The browser uploads
     one or more PDFs straight to a temporary S3 prefix (presigned POST), then a
     Celery task downloads each one, virus-scans it, decodes the per-page GSL QR
-    codes, and reattaches each page-group to its ProgrammationProjet as a
+    codes, and reattaches each page-group to its DotationProjet as a
     LettreEtArreteSignes. The row is the single source of truth for progress:
     the browser polls a view that reads this model.
     """

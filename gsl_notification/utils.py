@@ -457,7 +457,7 @@ def generate_pdf_for_generated_document(
 
     When ``with_qr_code`` is True (default), a per-page QR code is rendered at
     the bottom-left of every page so a scanned, signed copy can be reattached
-    to the right ProgrammationProjet. Because each page needs a *different* QR
+    to the right DotationProjet. Because each page needs a *different* QR
     (the payload includes the page number), this is a two-pass render: first
     pass counts pages, second pass emits one ``@page :nth(K)`` rule per page
     with the matching QR image.
@@ -510,8 +510,8 @@ def count_pdf_pages(pdf_bytes: bytes) -> int:
 
 def _build_qr_css_rules(document: GeneratedDocument, page_count: int) -> str:
     """Return CSS with one ``@page :nth(K)`` rule per page, each carrying its QR."""
-    ds_number = document.programmation_projet.dossier.ds_number
-    dotation = document.programmation_projet.dotation
+    ds_number = document.dotation_projet.dossier_ds.ds_number
+    dotation = document.dotation_projet.dotation
     document_type = document.document_type
 
     rules = []

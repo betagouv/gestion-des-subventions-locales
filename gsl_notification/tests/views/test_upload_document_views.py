@@ -157,7 +157,7 @@ def test_analyze_without_qr_code_asks_for_the_document_type(
     # Nothing has been chosen yet, so the step must not open on an error.
     assert not form.is_bound
     assert not form.errors
-    assert not programmation_projet.annexes.exists()
+    assert not programmation_projet.dotation_projet.annexes.exists()
 
     key = response.context["key"]
     assert key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
@@ -238,7 +238,7 @@ def _signed_scan_for(programmation_projet):
         perimetre=programmation_projet.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        programmation_projet=programmation_projet,
+        dotation_projet=programmation_projet.dotation_projet,
         modele=modele,
         content="<p>Contenu de la lettre.</p>",
     )
@@ -274,7 +274,7 @@ def test_analyze_attaches_the_document_read_from_its_qr_code(
         response.templates[0].name
         == "gsl_notification/modal/projet_import/summary_step.html"
     )
-    assert programmation_projet.lettre_et_arrete_signes is not None
+    assert programmation_projet.dotation_projet.lettre_et_arrete_signes is not None
     assert ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_DOC_UPLOADED
     ).exists()
@@ -313,10 +313,10 @@ def test_analyze_refuses_a_scan_belonging_to_another_projet(
     assert response.status_code == 200
     assert "9999999" in response.context["form"].errors["file"][0]
     assert not LettreEtArreteSignes.objects.filter(
-        programmation_projet=target_pp
+        dotation_projet=target_pp.dotation_projet
     ).exists()
     assert not LettreEtArreteSignes.objects.filter(
-        programmation_projet=other_pp
+        dotation_projet=other_pp.dotation_projet
     ).exists()
 
 
@@ -355,9 +355,11 @@ def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
         response.templates[0].name
         == "gsl_notification/modal/projet_import/summary_step.html"
     )
-    assert LettreEtArreteSignes.objects.filter(programmation_projet=target_pp).exists()
+    assert LettreEtArreteSignes.objects.filter(
+        dotation_projet=target_pp.dotation_projet
+    ).exists()
     assert not LettreEtArreteSignes.objects.filter(
-        programmation_projet=other_pp
+        dotation_projet=other_pp.dotation_projet
     ).exists()
 
     report = response.context["report"]
@@ -392,13 +394,13 @@ def test_attach_imports_the_document(
     assert 'id="upload-document-modal-step"' in response.content.decode()
 
     if doc_type == LETTRE_ET_ARRETE_SIGNES:
-        document = programmation_projet.lettre_et_arrete_signes
+        document = programmation_projet.dotation_projet.lettre_et_arrete_signes
     else:
-        assert programmation_projet.annexes.count() == 1
-        document = programmation_projet.annexes.first()
+        assert programmation_projet.dotation_projet.annexes.count() == 1
+        document = programmation_projet.dotation_projet.annexes.first()
 
     assert document.file.name.startswith(
-        f"{doc_type}/programmation_projet_{programmation_projet.id}/test"
+        f"{doc_type}/dotation_projet_{programmation_projet.dotation_projet_id}/test"
     )
     assert document.created_by == correct_perimetre_client_with_user_logged.user
 
@@ -480,7 +482,7 @@ def test_attach_imports_a_lettre_refus_signee(
     )
 
     assert response.status_code == 200
-    assert programmation_projet.lettre_refus_signee is not None
+    assert programmation_projet.dotation_projet.lettre_refus_signee is not None
 
 
 def test_attach_out_of_perimetre_is_404(
@@ -522,7 +524,7 @@ def test_uploaded_document_download_url_with_correct_perimetre_and_without_arret
 def test_uploaded_document_download_url_with_correct_perimetre_and_with_arrete(
     correct_perimetre_client_with_user_logged, programmation_projet, doc_type, factory
 ):
-    doc = factory(programmation_projet=programmation_projet)
+    doc = factory(dotation_projet=programmation_projet.dotation_projet)
     url = doc.get_download_url()
     assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
 

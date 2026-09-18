@@ -38,7 +38,12 @@ class ProgrammationProjetFactory(DjangoModelFactory):
     class Meta:
         model = ProgrammationProjet
 
-    dotation_projet = SubFactory(DotationProjetFactory)
+    status = ProgrammationProjet.STATUS_ACCEPTED
+    # The two models carry the same status in production; keep fixtures coherent
+    # so a document's validation sees the status the test asked for.
+    dotation_projet = SubFactory(
+        DotationProjetFactory, status=factory.SelfAttribute("..status")
+    )
     enveloppe = factory.LazyAttribute(
         lambda obj: DetrEnveloppeFactory(
             perimetre=PerimetreDepartementalFactory(

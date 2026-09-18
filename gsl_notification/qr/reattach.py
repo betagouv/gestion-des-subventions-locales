@@ -1,6 +1,6 @@
 """
 Business logic for reattaching a scanned signed PDF to the matching
-ProgrammationProjet(s), decoded from per-page GSL QR codes.
+DotationProjet(s), decoded from per-page GSL QR codes.
 
 `extract_documents()` reads and matches, `replace_documents()` writes.
 `reattach_signed_docs()` composes them, and is what the CLI command in
@@ -65,7 +65,7 @@ class DeclaredDocument:
 @dataclass(frozen=True)
 class ExtractedDocument:
     declared: DeclaredDocument
-    programmation_projet_id: int
+    dotation_projet_id: int
     pages: tuple[ScannedPage, ...]
 
 
@@ -193,7 +193,7 @@ def replace_documents(
     remove_qr_code: bool = True,
 ) -> Iterator[DocumentAttached]:
     """Assemble each document into a single PDF and store it on its
-    ProgrammationProjet, deleting any existing document of the same kind — its
+    DotationProjet, deleting any existing document of the same kind — its
     stored file included.
 
     `pdfs` must be the batch `documents` were extracted from: a page locates
@@ -209,7 +209,7 @@ def replace_documents(
             uploaded = _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code)
             stored = _replace_uploaded_document(
                 document.declared.target_model,
-                document.programmation_projet_id,
+                document.dotation_projet_id,
                 uploaded,
                 user,
             )
@@ -247,22 +247,22 @@ def _match_document(
     return DocumentMatched(
         document=ExtractedDocument(
             declared=declared,
-            programmation_projet_id=programmation_projet.id,
+            dotation_projet_id=programmation_projet.dotation_projet_id,
             pages=tuple(pages),
         )
     )
 
 
-def _replace_uploaded_document(target_model, programmation_projet_id, uploaded, user):
+def _replace_uploaded_document(target_model, dotation_projet_id, uploaded, user):
     with transaction.atomic():
         existing = target_model.objects.filter(
-            programmation_projet_id=programmation_projet_id
+            dotation_projet_id=dotation_projet_id
         ).first()
         if existing is not None:
             existing.delete()  # post_delete signal removes its stored file
 
         doc = target_model(
-            programmation_projet_id=programmation_projet_id,
+            dotation_projet_id=dotation_projet_id,
             created_by=user,
             file=uploaded,
         )

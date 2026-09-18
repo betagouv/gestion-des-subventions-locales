@@ -1,7 +1,7 @@
 """
 Read a scanned signed PDF, decode the QR code on each page, and split the scan
 into one signed document (lettre/arrêté, or lettre de refus) per matching
-ProgrammationProjet.
+DotationProjet.
 
 Thin CLI wrapper around `gsl_notification.qr.reattach.reattach_signed_docs`,
 which the web import flow calls too. Matching is global here, where the web
@@ -37,7 +37,7 @@ except ImportError:
 class Command(BaseCommand):
     help = (
         "Decode the per-page QR codes from a scanned signed PDF and reattach "
-        "each document it contains to its ProgrammationProjet, as the matching "
+        "each document it contains to its DotationProjet, as the matching "
         "signed-document type (lettre/arrêté or lettre de refus)."
     )
 
@@ -142,7 +142,7 @@ def _format_attached(document) -> str:
     return (
         f"ds={declared.ds_number} dotation={declared.dotation} "
         f"[{declared.target_model.document_type}] → "
-        f"ProgrammationProjet #{document.programmation_projet_id} ({breakdown})"
+        f"DotationProjet #{document.dotation_projet_id} ({breakdown})"
     )
 
 

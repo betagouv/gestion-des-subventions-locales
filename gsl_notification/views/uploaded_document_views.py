@@ -16,9 +16,7 @@ def download_uploaded_document(request, document_type, document_id, download=Tru
         raise Http404(user_message="Le type de document sélectionné n'existe pas.")
     doc = get_object_or_404(
         doc_class.objects.filter(
-            programmation_projet__dotation_projet__projet__in=Projet.objects.active().for_user(
-                request.user
-            )
+            dotation_projet__projet__in=Projet.objects.active().for_user(request.user)
         ),
         id=document_id,
     )

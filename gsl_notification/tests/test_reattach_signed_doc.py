@@ -56,7 +56,7 @@ def _build_pdf_for_pp(ds_number, dotation=None, content_blocks=200):
         perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de test. " * content_blocks) + "</p>",
     )
@@ -105,10 +105,10 @@ def test_happy_path_splits_two_groups(tmp_path):
 
     pp1.refresh_from_db()
     pp2.refresh_from_db()
-    doc1 = LettreEtArreteSignes.objects.get(programmation_projet=pp1)
-    doc2 = LettreEtArreteSignes.objects.get(programmation_projet=pp2)
-    assert f"programmation_projet_{pp1.id}/" in doc1.file.name
-    assert f"programmation_projet_{pp2.id}/" in doc2.file.name
+    doc1 = LettreEtArreteSignes.objects.get(dotation_projet=pp1.dotation_projet)
+    doc2 = LettreEtArreteSignes.objects.get(dotation_projet=pp2.dotation_projet)
+    assert f"dotation_projet_{pp1.dotation_projet_id}/" in doc1.file.name
+    assert f"dotation_projet_{pp2.dotation_projet_id}/" in doc2.file.name
 
     # Each stored group should hold exactly the pages that belonged to its PP,
     # even though the scan was shuffled. We don't decode QRs here because the
@@ -133,7 +133,7 @@ def _build_refus_pdf_for_pp(ds_number, dotation=None, content_blocks=200):
         perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreRefusFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         modele=modele,
         content="<p>" + ("Contenu de refus. " * content_blocks) + "</p>",
     )
@@ -153,10 +153,12 @@ def test_happy_path_attaches_lettre_refus_signee(tmp_path):
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
     pp.refresh_from_db()
-    doc = LettreRefusSignee.objects.get(programmation_projet=pp)
-    assert f"programmation_projet_{pp.id}/" in doc.file.name
+    doc = LettreRefusSignee.objects.get(dotation_projet=pp.dotation_projet)
+    assert f"dotation_projet_{pp.dotation_projet_id}/" in doc.file.name
     assert "lettre-refus-signee" in doc.file.name
-    assert not LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
+    assert not LettreEtArreteSignes.objects.filter(
+        dotation_projet=pp.dotation_projet
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -172,7 +174,7 @@ def test_mixed_lettre_et_arrete_and_refus_pages_attach_independently(tmp_path):
         perimetre=pp.dotation_projet.projet.dossier_ds.perimetre,
     )
     refus_document = LettreRefusFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         modele=modele_refus,
         content="<p>" + ("Contenu de refus. " * 200) + "</p>",
     )
@@ -186,8 +188,8 @@ def test_mixed_lettre_et_arrete_and_refus_pages_attach_independently(tmp_path):
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
     pp.refresh_from_db()
-    lettre_doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
-    refus_doc = LettreRefusSignee.objects.get(programmation_projet=pp)
+    lettre_doc = LettreEtArreteSignes.objects.get(dotation_projet=pp.dotation_projet)
+    refus_doc = LettreRefusSignee.objects.get(dotation_projet=pp.dotation_projet)
 
     with lettre_doc.file.open("rb") as fh:
         assert len(Pdf.open(io.BytesIO(fh.read())).pages) == lettre_pages
@@ -284,7 +286,9 @@ def test_unreadable_page_is_skipped(tmp_path):
 
     assert str(blank_page_idx) in str(exc.value) or "unreadable" in str(exc.value)
     # The valid group is still committed despite the blank page.
-    assert LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
+    assert LettreEtArreteSignes.objects.filter(
+        dotation_projet=pp.dotation_projet
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -315,7 +319,7 @@ def test_replaces_existing_lettre_et_arrete_signes(tmp_path):
     pp, _, pdf_bytes = _build_pdf_for_pp(ds_number=5555555)
 
     pre = LettreEtArreteSignesFactory(
-        programmation_projet=pp,
+        dotation_projet=pp.dotation_projet,
         file=SimpleUploadedFile(
             "old.pdf", b"old-content", content_type="application/pdf"
         ),
@@ -327,11 +331,11 @@ def test_replaces_existing_lettre_et_arrete_signes(tmp_path):
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
-    docs = LettreEtArreteSignes.objects.filter(programmation_projet=pp)
+    docs = LettreEtArreteSignes.objects.filter(dotation_projet=pp.dotation_projet)
     assert docs.count() == 1
     new_doc = docs.get()
     assert new_doc.id != pre_id
-    assert f"programmation_projet_{pp.id}/" in new_doc.file.name
+    assert f"dotation_projet_{pp.dotation_projet_id}/" in new_doc.file.name
     with new_doc.file.open("rb") as fh:
         new_content = fh.read()
     assert new_content != b"old-content"
@@ -385,7 +389,7 @@ def test_qr_mask_blends_in_with_surrounding_texture(tmp_path):
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
-    doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    doc = LettreEtArreteSignes.objects.get(dotation_projet=pp.dotation_projet)
     with doc.file.open("rb") as fh:
         stored_bytes = fh.read()
 
@@ -437,7 +441,7 @@ def test_qr_is_removed_from_stored_pdf(tmp_path):
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
-    doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    doc = LettreEtArreteSignes.objects.get(dotation_projet=pp.dotation_projet)
     with doc.file.open("rb") as fh:
         stored_decoded = _decode_pdf_bytes(fh.read())
 
@@ -463,7 +467,7 @@ def test_qr_is_kept_when_remove_qr_code_is_false():
     all_pps = ProgrammationProjet.objects.all()
     list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=False))
 
-    doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    doc = LettreEtArreteSignes.objects.get(dotation_projet=pp.dotation_projet)
     with doc.file.open("rb") as fh:
         stored_decoded = _decode_pdf_bytes(fh.read())
 
@@ -502,7 +506,7 @@ def test_reimport_same_scan_filename_keeps_new_file(
     with django_capture_on_commit_callbacks(execute=True):
         list(reattach_signed_docs(pdfs, user, all_pps, remove_qr_code=False))
 
-    doc = LettreEtArreteSignes.objects.get(programmation_projet=pp)
+    doc = LettreEtArreteSignes.objects.get(dotation_projet=pp.dotation_projet)
     assert doc.file.storage.exists(doc.file.name), (
         "freshly-written file was deleted after re-import with a colliding key"
     )
@@ -531,13 +535,20 @@ def test_extracting_writes_nothing_and_can_be_replayed():
 
     documents = extract()
 
-    assert [document.programmation_projet_id for document in documents] == [pp.id]
+    assert [document.dotation_projet_id for document in documents] == [
+        pp.dotation_projet_id
+    ]
     assert extract() == documents
-    assert not LettreEtArreteSignes.objects.filter(programmation_projet=pp).exists()
+    assert not LettreEtArreteSignes.objects.filter(
+        dotation_projet=pp.dotation_projet
+    ).exists()
 
     attached = list(replace_documents(documents, pdfs, user))
     assert [event.document for event in attached] == documents
-    assert LettreEtArreteSignes.objects.filter(programmation_projet=pp).count() == 1
+    assert (
+        LettreEtArreteSignes.objects.filter(dotation_projet=pp.dotation_projet).count()
+        == 1
+    )
     assert [event.stored for event in attached] == [
-        LettreEtArreteSignes.objects.get(programmation_projet=pp)
+        LettreEtArreteSignes.objects.get(dotation_projet=pp.dotation_projet)
     ]

@@ -49,7 +49,9 @@ def programmation_projet(perimetre):
 
 @pytest.fixture
 def lettre_et_arrete_signes(programmation_projet):
-    return LettreEtArreteSignesFactory(programmation_projet=programmation_projet)
+    return LettreEtArreteSignesFactory(
+        dotation_projet=programmation_projet.dotation_projet
+    )
 
 
 @pytest.fixture

@@ -35,17 +35,21 @@ def build_export(job) -> tuple[str, str, bytes]:
     from gsl_notification.models import ExportJob
     from gsl_programmation.models import ProgrammationProjet
 
-    pk_to_pp = {
-        pp.pk: pp
-        for pp in ProgrammationProjet.objects.filter(pk__in=job.pp_ids).select_related(
-            "arrete__modele",
-            "lettrenotification__modele",
-            "lettrerefus__modele",
+    pk_to_dotation_projet = {
+        programmation_projet.pk: programmation_projet.dotation_projet
+        for programmation_projet in ProgrammationProjet.objects.filter(
+            pk__in=job.pp_ids
+        ).select_related(
+            "dotation_projet__arrete__modele",
+            "dotation_projet__lettrenotification__modele",
+            "dotation_projet__lettrerefus__modele",
             "dotation_projet__projet__dossier_ds__ds_demandeur",
         )
     }
-    pps = [pk_to_pp[pk] for pk in job.pp_ids]
-    documents = [getattr(pp, attr) for attr in job.attr_names for pp in pps]
+    dotation_projets = [pk_to_dotation_projet[pk] for pk in job.pp_ids]
+    documents = [
+        getattr(dp, attr) for attr in job.attr_names for dp in dotation_projets
+    ]
     total = len(documents)
     total_steps = 3 if job.with_qr_code else 2
 
@@ -61,7 +65,11 @@ def build_export(job) -> tuple[str, str, bytes]:
         )
 
         return _assemble_export(
-            pps, job.attr_names, job.export_format, job.document_type, pdf_paths
+            dotation_projets,
+            job.attr_names,
+            job.export_format,
+            job.document_type,
+            pdf_paths,
         )
 
 
@@ -112,24 +120,24 @@ def _render_pdfs_to_disk(job, documents, tmp_path: Path) -> dict[int, Path]:
 
 
 def _assemble_export(
-    pps, attrs, export_format, document_type, pdf_paths: dict[str, Path]
+    dotation_projets, attrs, export_format, document_type, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL:
-        return _build_single_merged_pdf(pps, attrs, document_type, pdf_paths)
+        return _build_single_merged_pdf(
+            dotation_projets, attrs, document_type, pdf_paths
+        )
     if export_format == EXPORT_FORMAT_ONE_PDF_PER_PROJECT:
-        return _build_one_pdf_per_project(pps, attrs, pdf_paths)
+        return _build_one_pdf_per_project(dotation_projets, attrs, pdf_paths)
     if export_format == EXPORT_FORMAT_ONE_PDF_ALL_GROUPED:
-        return _build_grouped_merged_pdf(pps, attrs, pdf_paths)
-    return _build_one_pdf_per_doc(pps, attrs, pdf_paths)
+        return _build_grouped_merged_pdf(dotation_projets, attrs, pdf_paths)
+    return _build_one_pdf_per_doc(dotation_projets, attrs, pdf_paths)
 
 
 def _build_one_pdf_per_doc(
-    programmation_projets, attrs, pdf_paths: dict[str, Path]
+    dotation_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     documents = [
-        doc
-        for attr in attrs
-        for doc in (getattr(pp, attr) for pp in programmation_projets)
+        doc for attr in attrs for doc in (getattr(dp, attr) for dp in dotation_projets)
     ]
 
     if len(documents) == 1:
@@ -150,15 +158,15 @@ def _build_one_pdf_per_doc(
 
 
 def _build_single_merged_pdf(
-    programmation_projets,
+    dotation_projets,
     attrs,
     document_type,
     pdf_paths: dict[str, Path],
 ) -> tuple[str, str, bytes]:
     paths = []
-    for pp in programmation_projets:
+    for dp in dotation_projets:
         for attr in attrs:
-            doc = getattr(pp, attr)
+            doc = getattr(dp, attr)
             paths.append(pdf_paths[f"{type(doc).__name__}_{doc.pk}"])
     merged = _merge_pdfs_from_paths(paths)
     date_str = timezone.now().strftime("%d-%m-%Y")
@@ -171,32 +179,32 @@ def _build_single_merged_pdf(
 
 
 def _build_one_pdf_per_project(
-    programmation_projets, attrs, pdf_paths: dict[str, Path]
+    dotation_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
-    if len(programmation_projets) == 1:
-        pp = programmation_projets[0]
+    if len(dotation_projets) == 1:
+        dp = dotation_projets[0]
         paths = [
-            pdf_paths[f"{type(getattr(pp, attr)).__name__}_{getattr(pp, attr).pk}"]
+            pdf_paths[f"{type(getattr(dp, attr)).__name__}_{getattr(dp, attr).pk}"]
             for attr in attrs
         ]
         merged = _merge_pdfs_from_paths(paths)
         date_str = timezone.now().strftime("%d-%m-%Y")
-        ds_number = pp.dossier.ds_number
-        raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
+        ds_number = dp.dossier_ds.ds_number
+        raison_sociale = slugify(dp.dossier_ds.ds_demandeur.raison_sociale)
         filename = f"lettre et arrêté - {ds_number} - {raison_sociale} - {date_str}.pdf"
         return filename, "application/pdf", merged
 
     date_str = timezone.now().strftime("%d-%m-%Y")
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for pp in programmation_projets:
+        for dp in dotation_projets:
             paths = [
-                pdf_paths[f"{type(getattr(pp, attr)).__name__}_{getattr(pp, attr).pk}"]
+                pdf_paths[f"{type(getattr(dp, attr)).__name__}_{getattr(dp, attr).pk}"]
                 for attr in attrs
             ]
             merged = _merge_pdfs_from_paths(paths)
-            ds_number = pp.dossier.ds_number
-            raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
+            ds_number = dp.dossier_ds.ds_number
+            raison_sociale = slugify(dp.dossier_ds.ds_demandeur.raison_sociale)
             filename = f"lettre et arrêté - {ds_number} - {raison_sociale}.pdf"
             zip_file.writestr(filename, merged)
     return (
@@ -207,12 +215,12 @@ def _build_one_pdf_per_project(
 
 
 def _build_grouped_merged_pdf(
-    programmation_projets, attrs, pdf_paths: dict[str, Path]
+    dotation_projets, attrs, pdf_paths: dict[str, Path]
 ) -> tuple[str, str, bytes]:
     paths = []
-    for pp in programmation_projets:
+    for dp in dotation_projets:
         for attr in attrs:
-            doc = getattr(pp, attr)
+            doc = getattr(dp, attr)
             paths.append(pdf_paths[f"{type(doc).__name__}_{doc.pk}"])
     merged = _merge_pdfs_from_paths(paths)
     date_str = timezone.now().strftime("%d-%m-%Y")
