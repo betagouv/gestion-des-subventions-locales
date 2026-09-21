@@ -36,10 +36,18 @@ def _dossier_with_traitements(*, traitements):
     return projet
 
 
-def _traitement(id, event, date="2025-01-15T10:00:00+00:00", email_agent_traitant=None):
+def _traitement(
+    id,
+    event,
+    date="2025-01-15T10:00:00+00:00",
+    email_agent_traitant=None,
+    motivation=None,
+):
     traitement = {"id": id, "event": event, "dateTraitement": date}
     if email_agent_traitant is not None:
         traitement["emailAgentTraitant"] = email_agent_traitant
+    if motivation is not None:
+        traitement["motivation"] = motivation
     return traitement
 
 
@@ -244,6 +252,34 @@ def test_leaves_actor_null_when_traitement_has_no_email_agent_traitant():
 
     action = ProjetAction.objects.get(projet=projet)
     assert action.actor is None
+
+
+def test_sets_details_from_traitement_motivation():
+    projet = _dossier_with_traitements(
+        traitements=[
+            _traitement(
+                "traitement-1",
+                DS_TRAITEMENT_EVENT_REFUSE,
+                motivation="Dossier incomplet",
+            )
+        ]
+    )
+
+    create_projet_actions_from_dossier_traitements(projet)
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.details == "Dossier incomplet"
+
+
+def test_leaves_details_blank_when_traitement_has_no_motivation():
+    projet = _dossier_with_traitements(
+        traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_ACCEPTE)]
+    )
+
+    create_projet_actions_from_dossier_traitements(projet)
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.details == ""
 
 
 class TestGetOrCreateCollegueFromTraitementEmail:
