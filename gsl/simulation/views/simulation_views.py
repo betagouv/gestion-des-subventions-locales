@@ -173,7 +173,6 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
             .select_related("address", "address__commune")
             .prefetch_related(
                 "dotationprojet_set",
-                "dotationprojet_set__programmation_projet",
                 "dotationprojet_set__simulationprojet_set",
                 "dossier_ds__demande_categorie_detr",
                 "dossier_ds__demande_categorie_dsil",
@@ -195,7 +194,6 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
                     queryset=SimulationProjet.objects.filter(simulation=self.object),
                     to_attr="simu",
                 ),
-                "dotation_projet__programmation_projet",
             )
             .defer("dossier_ds__ds_demarche__raw_ds_data")
             .distinct()

@@ -26,7 +26,10 @@ class SimulationProjetFactory(DjangoModelFactory):
 
     dotation_projet = SubFactory(DotationProjetFactory)
     simulation = LazyAttribute(
-        lambda obj: SimulationFactory(enveloppe__dotation=obj.dotation_projet.dotation)
+        lambda obj: SimulationFactory(
+            enveloppe__dotation=obj.dotation_projet.dotation,
+            enveloppe__perimetre=obj.dotation_projet.projet.dossier_ds.perimetre,
+        )
     )
     montant = LazyAttribute(
         lambda obj: randint(

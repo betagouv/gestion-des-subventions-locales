@@ -10,7 +10,6 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...constants import (
     DOTATION_DETR,
@@ -124,27 +123,18 @@ def test_projet_detail_page_shows_to_generate_badge_for_decided_dotation_without
     généré affiche le badge de statut de notification "À générer"
     (`NOTIFICATION_STATUS_TO_GENERATE`, valeur par défaut de
     `DotationProjet.notification_status`). Une dotation encore "processing"
-    n'a pas de `programmation_projet`, donc pas de badge de notification du
-    tout (seul son badge de statut "En traitement" s'affiche)."""
+    n'est pas programmée, donc pas de badge de notification du tout (seul son
+    badge de statut "En traitement" s'affiche)."""
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
 
-    dotation_projet_detr = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, status=dotation_status_1, dotation=DOTATION_DETR
     )
-    if dotation_status_1 is not PROJET_STATUS_PROCESSING:
-        ProgrammationProjetFactory(
-            dotation_projet=dotation_projet_detr, status=dotation_status_1
-        )
-
-    dotation_projet_dsil = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, status=dotation_status_2, dotation=DOTATION_DSIL
     )
-    if dotation_status_2 is not PROJET_STATUS_PROCESSING:
-        ProgrammationProjetFactory(
-            dotation_projet=dotation_projet_dsil, status=dotation_status_2
-        )
 
     url = reverse(
         "gsl_projet:get-projet",
@@ -185,21 +175,12 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=datetime.now())
 
-    dotation_projet_detr = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, status=dotation_status_1, dotation=DOTATION_DETR
     )
-    if dotation_status_1 is not PROJET_STATUS_PROCESSING:
-        ProgrammationProjetFactory(
-            dotation_projet=dotation_projet_detr, status=dotation_status_1
-        )
-
-    dotation_projet_dsil = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, status=dotation_status_2, dotation=DOTATION_DSIL
     )
-    if dotation_status_2 is not PROJET_STATUS_PROCESSING:
-        ProgrammationProjetFactory(
-            dotation_projet=dotation_projet_dsil, status=dotation_status_2
-        )
 
     url = reverse(
         "gsl_projet:get-projet",
@@ -223,13 +204,8 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dotation_projet = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        dotation_projet__projet__notified_at=None,
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
@@ -318,11 +294,8 @@ def test_primary_nav_highlights_projet_list_without_back_param():
 
 def _accepted_projet(perimetre):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dotation_projet = DotationProjetFactory(
+    DotationProjetFactory(
         projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
-    )
-    ProgrammationProjetFactory(
-        dotation_projet=dotation_projet, status=PROJET_STATUS_ACCEPTED
     )
     return projet
 

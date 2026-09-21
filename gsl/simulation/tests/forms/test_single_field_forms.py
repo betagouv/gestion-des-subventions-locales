@@ -3,11 +3,10 @@ from unittest import mock
 
 import pytest
 
-from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING
 from gsl.projet.tests.factories import DetrProjetFactory, DotationProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 from ...forms import (
     AssietteSingleFieldForm,
@@ -77,12 +76,10 @@ def test_assiette_form_save_accepted_triggers_accept(mock_ds_update, user):
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=40_000,
     )
-    ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe.delegation_root,
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        montant=40_000,
+    dotation_projet.accept_without_ds_update(
+        montant=40_000, enveloppe=simulation_projet.enveloppe.delegation_root
     )
+    dotation_projet.save()
 
     form = AssietteSingleFieldForm(
         data={"assiette": 90_000},
@@ -153,18 +150,18 @@ def test_montant_form_save_updates_montant(user):
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_montant_form_save_accepted_triggers_accept(mock_ds_update, user):
-    dotation_projet = DotationProjetFactory(assiette=1000)
+    dotation_projet = DotationProjetFactory(
+        assiette=1000, status=PROJET_STATUS_PROCESSING
+    )
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_000,
     )
-    ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe.delegation_root,
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
-        montant=1_000,
+    dotation_projet.accept_without_ds_update(
+        montant=1_000, enveloppe=simulation_projet.enveloppe.delegation_root
     )
+    dotation_projet.save()
 
     form = MontantSingleFieldForm(
         data={"montant": 500},
@@ -253,17 +250,18 @@ def test_taux_form_save_updates_montant_from_taux(user):
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
 def test_taux_form_save_accepted_triggers_accept(mock_ds_update, user):
-    dotation_projet = DotationProjetFactory(assiette=1000)
+    dotation_projet = DotationProjetFactory(
+        assiette=1000, status=PROJET_STATUS_PROCESSING
+    )
     simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=200,
     )
-    ProgrammationProjetFactory(
-        enveloppe=simulation_projet.enveloppe.delegation_root,
-        dotation_projet=dotation_projet,
-        status=PROJET_STATUS_ACCEPTED,
+    dotation_projet.accept_without_ds_update(
+        montant=200, enveloppe=simulation_projet.enveloppe.delegation_root
     )
+    dotation_projet.save()
 
     form = TauxSingleFieldForm(
         data={"taux": 15},

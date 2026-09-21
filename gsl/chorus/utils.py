@@ -3,7 +3,7 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
-from gsl_programmation.models import ProgrammationProjet
+from gsl.projet.models import DotationProjet
 
 from .models import SuiviFinancier
 
@@ -15,10 +15,11 @@ def resume_dotation(projet, dotation):
     if not ecritures:
         return None
     montant_accorde = (
-        ProgrammationProjet.objects.filter(
-            dotation_projet__projet=projet,
-            dotation_projet__dotation=dotation,
-            dotation_projet__status=PROJET_STATUS_ACCEPTED,
+        DotationProjet.objects.programmees()
+        .filter(
+            projet=projet,
+            dotation=dotation,
+            status=PROJET_STATUS_ACCEPTED,
         )
         .values_list("montant", flat=True)
         .first()

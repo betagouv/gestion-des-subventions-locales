@@ -295,10 +295,8 @@ class DotationProjetService:
         if detr_avis_commission is not None:  # we only update if we have an info
             dotation_projet.detr_avis_commission = detr_avis_commission
 
-        if hasattr(
-            dotation_projet, "programmation_projet"
-        ):  # We keep previous enveloppe to avoid squashing manuel rectification (ex: enveloppe 2025)
-            enveloppe = dotation_projet.programmation_projet.enveloppe
+        if dotation_projet.is_programmee:  # We keep previous enveloppe to avoid squashing manuel rectification (ex: enveloppe 2025)
+            enveloppe = dotation_projet.enveloppe
         else:
             enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
         montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
@@ -359,9 +357,7 @@ class DotationProjetService:
 
         dotation_projets = []
         for dotation_projet in projet_dps.all():
-            if cls._is_programmation_projet_created_after_date_of_passage_en_instruction(
-                dotation_projet
-            ):
+            if cls._is_programmation_date_after_passage_en_instruction(dotation_projet):
                 dotation_projets.append(dotation_projet)
                 continue
 
@@ -379,7 +375,7 @@ class DotationProjetService:
         dotation_projets = []
         for dotation_projet in projet.dotationprojet_set.all():
             if dotation_projet.status == PROJET_STATUS_ACCEPTED:
-                if cls._is_programmation_projet_created_after_date_of_passage_en_instruction(
+                if cls._is_programmation_date_after_passage_en_instruction(
                     dotation_projet
                 ):
                     continue
@@ -405,13 +401,14 @@ class DotationProjetService:
 
             if (
                 new_montant is not None
-                and hasattr(dotation_projet, "programmation_projet")
-                and new_montant != dotation_projet.programmation_projet.montant
+                and dotation_projet.is_programmee
+                and new_montant != dotation_projet.montant
             ):
                 dotation_projet.accept_without_ds_update(
                     montant=new_montant,
-                    enveloppe=dotation_projet.programmation_projet.enveloppe,
+                    enveloppe=dotation_projet.enveloppe,
                 )
+                dotation_projet.save()
 
     @classmethod
     def _get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
@@ -573,16 +570,14 @@ class DotationProjetService:
         return dotations
 
     @classmethod
-    def _is_programmation_projet_created_after_date_of_passage_en_instruction(
+    def _is_programmation_date_after_passage_en_instruction(
         cls, dotation_projet: DotationProjet
     ):
-        if (
-            hasattr(dotation_projet, "programmation_projet")
-            and dotation_projet.programmation_projet.created_at
+        return (
+            dotation_projet.is_programmee
+            and dotation_projet.date_programmation
             > dotation_projet.projet.dossier_ds.ds_date_passage_en_instruction
-        ):
-            return True
-        return False
+        )
 
     @classmethod
     def _add_dotation_projets_to_all_concerned_simulations(
@@ -622,10 +617,8 @@ class DotationProjetService:
                 + 1,
             )
 
-        if hasattr(dotation_projet, "programmation_projet"):
-            qs = qs.exclude(
-                enveloppe__annee__gt=dotation_projet.programmation_projet.enveloppe.annee
-            )
+        if dotation_projet.is_programmee:
+            qs = qs.exclude(enveloppe__annee__gt=dotation_projet.enveloppe.annee)
 
         return qs
 

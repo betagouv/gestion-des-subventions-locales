@@ -14,9 +14,6 @@ from gsl.projet.tests.factories import (
     DotationProjetFactory,
     ProjetFactory,
 )
-from gsl_programmation.tests.factories import (
-    ProgrammationProjetFactory,
-)
 
 from ...models import SimulationProjet
 from ...services.simulation_projet_service import SimulationProjetService
@@ -30,6 +27,7 @@ def test_create_or_update_simulation_projet_from_dotation_projet_when_no_simulat
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
         status=PROJET_STATUS_ACCEPTED,
+        montant=1_000,
         dotation=DOTATION_DETR,
     )
     simulation = SimulationFactory(enveloppe__dotation=DOTATION_DETR)
@@ -53,6 +51,7 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
         status=PROJET_STATUS_ACCEPTED,
+        montant=1_000,
         dotation=simulation.enveloppe.dotation,
     )
     original_simulation_projet = SimulationProjetFactory(
@@ -96,6 +95,7 @@ def test_get_initial_montant_from_dotation_projet_must_log_if_there_is_a_problem
         if dotation == DOTATION_DSIL
         else None,
         dotation=dotation,
+        status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette,
     )
@@ -144,6 +144,7 @@ def test_get_initial_montant_from_dotation_projet(
         if dotation == DOTATION_DSIL
         else None,
         dotation=dotation,
+        status=PROJET_STATUS_PROCESSING,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette_or_finance_cout_total if field == "assiette" else None,
         projet__dossier_ds__finance_cout_total=(
@@ -161,7 +162,7 @@ def test_get_initial_montant_from_dotation_projet(
 
 
 @pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
-def test_get_initial_montant_from_dotation_projet_with_an_accepted_programmation_projet(
+def test_get_initial_montant_from_dotation_projet_when_programmed(
     dotation,
 ):
     projet = ProjetFactory(
@@ -174,8 +175,9 @@ def test_get_initial_montant_from_dotation_projet_with_an_accepted_programmation
         dossier_ds__finance_cout_total=100_000_000,
         dossier_ds__demande_montant=100_202_500,
     )
-    dotation_projet = DotationProjetFactory(projet=projet, dotation=dotation)
-    ProgrammationProjetFactory(dotation_projet=dotation_projet, montant=500)
+    dotation_projet = DotationProjetFactory(
+        projet=projet, dotation=dotation, status=PROJET_STATUS_ACCEPTED, montant=500
+    )
 
     montant = SimulationProjetService.get_initial_montant_from_dotation_projet(
         dotation_projet,

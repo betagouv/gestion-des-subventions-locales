@@ -26,15 +26,15 @@ from .factories import SimulationFactory, SimulationProjetFactory
     ),
 )
 @pytest.mark.django_db
-def test_progammation_projet_taux(montant, assiette, finance_cout_total, expected_taux):
+def test_simulation_projet_taux(montant, assiette, finance_cout_total, expected_taux):
     dotation_projet = DotationProjetFactory(
         assiette=assiette, projet__dossier_ds__finance_cout_total=finance_cout_total
     )
-    programmation_projet = SimulationProjetFactory(
+    simulation_projet = SimulationProjetFactory(
         dotation_projet=dotation_projet, montant=montant
     )
-    assert isinstance(programmation_projet.taux, Decimal)
-    assert programmation_projet.taux == expected_taux
+    assert isinstance(simulation_projet.taux, Decimal)
+    assert simulation_projet.taux == expected_taux
 
 
 @pytest.fixture

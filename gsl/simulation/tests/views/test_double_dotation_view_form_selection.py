@@ -115,7 +115,7 @@ class TestModalForRefusing:
         dsil_dotation = double_dotation_projet["dsil_dotation"]
         projet = double_dotation_projet["projet"]
 
-        dsil_dotation.status = PROJET_STATUS_REFUSED
+        dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
@@ -143,7 +143,9 @@ class TestModalForRefusing:
         dsil_dotation = double_dotation_projet["dsil_dotation"]
         projet = double_dotation_projet["projet"]
 
-        dsil_dotation.status = PROJET_STATUS_ACCEPTED
+        dsil_dotation.accept_without_ds_update(
+            montant=7_500, enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre)
+        )
         dsil_dotation.save()
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
@@ -197,7 +199,9 @@ class TestModalForDismissing:
         dsil_dotation = double_dotation_projet["dsil_dotation"]
         projet = double_dotation_projet["projet"]
 
-        detr_dotation.status = PROJET_STATUS_DISMISSED
+        detr_dotation.dismiss(
+            enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre)
+        )
         detr_dotation.save()
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
@@ -225,7 +229,7 @@ class TestModalForDismissing:
         dsil_dotation = double_dotation_projet["dsil_dotation"]
         projet = double_dotation_projet["projet"]
 
-        detr_dotation.status = PROJET_STATUS_REFUSED
+        detr_dotation.refuse(enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre))
         detr_dotation.save()
 
         dsil_enveloppe = DsilEnveloppeFactory(perimetre=projet.perimetre)
@@ -280,7 +284,7 @@ class TestPostNoLongerPushesDsAtStatusChange:
         dsil_dotation = double_dotation_projet["dsil_dotation"]
         projet = double_dotation_projet["projet"]
 
-        dsil_dotation.status = PROJET_STATUS_REFUSED
+        dsil_dotation.refuse(enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre))
         dsil_dotation.save()
 
         detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)

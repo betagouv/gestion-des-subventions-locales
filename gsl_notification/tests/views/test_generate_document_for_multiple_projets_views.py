@@ -13,6 +13,7 @@ from freezegun import freeze_time
 
 from gsl.projet.constants import DOTATION_DETR, LETTRE, PROJET_STATUS_ACCEPTED
 from gsl.projet.models import Projet
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -32,7 +33,6 @@ from gsl_notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -46,13 +46,13 @@ def perimetre():
 
 
 @pytest.fixture
-def programmation_projets(perimetre):
-    return ProgrammationProjetFactory.create_batch(
+def dotation_projets(perimetre):
+    return DotationProjetFactory.create_batch(
         3,
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=perimetre,
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
-        dotation_projet__projet__notified_at=None,
+        projet__notified_at=None,
     )
 
 
@@ -153,8 +153,8 @@ def _template_names(response):
 ## Launch step (PRG entry) and wizard GET (dialog rendering)
 
 
-def test_launch_requires_htmx(client, programmation_projets):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+def test_launch_requires_htmx(client, dotation_projets):
+    ids = ",".join([str(dp.id) for dp in dotation_projets])
     response = client.post(
         _wizard_url(),
         _wizard_step_data("launch", {"ids": ids}),
@@ -170,9 +170,9 @@ def test_wizard_wrong_dotation(client):
 
 
 def test_launch_with_valid_ids_renders_type_selection_step_dialog(
-    client, programmation_projets
+    client, dotation_projets
 ):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    ids = ",".join([str(dp.id) for dp in dotation_projets])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == (
@@ -193,12 +193,12 @@ def test_launch_no_projects_renders_error_body(client):
 
 
 def test_launch_wrong_perimetre_renders_error_body(client):
-    wrong_pp = ProgrammationProjetFactory(
-        dotation_projet__dotation=DOTATION_DETR,
+    wrong_dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
-        dotation_projet__projet__notified_at=None,
+        projet__notified_at=None,
     )
-    response = _post_launch(client, ids=str(wrong_pp.id))
+    response = _post_launch(client, ids=str(wrong_dotation_projet.id))
     assert response.status_code == 200
     assert response.templates[0].name == (
         "gsl_notification/modal/bulk_generation/launch.html"
@@ -210,17 +210,17 @@ def test_launch_wrong_perimetre_renders_error_body(client):
 ## Wizard step submissions
 
 
-def _open_wizard_at_type_selection_step(client, programmation_projets):
+def _open_wizard_at_type_selection_step(client, dotation_projets):
     """POST the launch step so the type_selection step (doc_type) is initialized."""
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    ids = ",".join([str(dp.id) for dp in dotation_projets])
     _post_launch(client, ids=ids)
     return ids
 
 
 def test_wizard_type_selection_invalid_document_type_re_renders_type_selection(
-    client, programmation_projets
+    client, dotation_projets
 ):
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     response = client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": "raté"}),
@@ -235,9 +235,9 @@ def test_wizard_type_selection_invalid_document_type_re_renders_type_selection(
 
 
 def test_wizard_type_selection_to_modele_selection_renders_modeles(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     response = client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": LETTRE}),
@@ -253,9 +253,9 @@ def test_wizard_type_selection_to_modele_selection_renders_modeles(
 
 
 def test_wizard_type_selection_to_modele_selection_both_types_renders_two_selectors(
-    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+    client, dotation_projets, detr_arrete_modele, detr_lettre_modele
 ):
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     response = client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": ARRETE_ET_LETTRE}),
@@ -272,13 +272,13 @@ def test_wizard_type_selection_to_modele_selection_both_types_renders_two_select
 
 
 def test_wizard_modele_selection_field_order_matches_figma(
-    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+    client, dotation_projets, detr_arrete_modele, detr_lettre_modele
 ):
     """Figma: Conserver/Remplacer first, then lettres, then arrêtés."""
-    for pp in programmation_projets:
-        LettreNotificationFactory(dotation_projet=pp.dotation_projet)
+    for dp in dotation_projets:
+        LettreNotificationFactory(dotation_projet=dp)
 
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     response = client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": ARRETE_ET_LETTRE}),
@@ -293,10 +293,10 @@ def test_wizard_modele_selection_field_order_matches_figma(
 
 
 def test_wizard_modele_selection_missing_modele_re_renders_modele_selection(
-    client, programmation_projets
+    client, dotation_projets
 ):
     """Regression: previously the format view rendered modele_selection on missing_modele."""
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": LETTRE}),
@@ -316,9 +316,9 @@ def test_wizard_modele_selection_missing_modele_re_renders_modele_selection(
 
 
 def test_wizard_modele_selection_missing_both_modeles_re_renders_modele_selection(
-    client, programmation_projets
+    client, dotation_projets
 ):
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": ARRETE_ET_LETTRE}),
@@ -341,9 +341,9 @@ def test_wizard_modele_selection_missing_both_modeles_re_renders_modele_selectio
 
 
 def test_wizard_modele_selection_to_format_step(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": LETTRE}),
@@ -363,10 +363,10 @@ def test_wizard_modele_selection_to_format_step(
 
 
 def test_wizard_format_step_invalid_export_format_re_renders_format_step(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     """Regression: previously the loading view rendered the format step on invalid export_format."""
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": LETTRE}),
@@ -399,7 +399,7 @@ def test_wizard_format_step_invalid_export_format_re_renders_format_step(
 
 def _drive_through_format_step(
     client,
-    programmation_projets,
+    dotation_projets,
     *,
     document_type=LETTRE,
     modele_selection_fields,
@@ -410,7 +410,7 @@ def _drive_through_format_step(
 
     Returns the response of the format POST (= initial create-step render).
     """
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     client.post(
         _wizard_url(dotation),
         _wizard_step_data(
@@ -459,11 +459,11 @@ def _post_create_step(client, dotation=DOTATION_DETR):
 
 
 def test_wizard_format_step_renders_loading_body(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     response = _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
     assert response.status_code == 200
@@ -478,11 +478,11 @@ def test_wizard_format_step_renders_loading_body(
 
 
 def test_wizard_create_step_returns_polling_template(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
     response = _post_create_step_raw(client)
@@ -496,14 +496,14 @@ def test_wizard_create_step_returns_polling_template(
 
 
 def test_wizard_create_step_aborts_when_projets_became_ineligible(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     """A run spans several requests and only the raw POST data of each step is
     kept in between, so eligibility is settled again at the very end: projets
     notified meanwhile — from another tab, by a colleague — must stop it."""
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
     Projet.objects.all().update(notified_at=timezone.now())
@@ -520,11 +520,11 @@ def test_wizard_create_step_aborts_when_projets_became_ineligible(
 
 
 def test_wizard_create_step_creates_documents_and_returns_success(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
     response = _post_create_step(client)
@@ -533,46 +533,45 @@ def test_wizard_create_step_creates_documents_and_returns_success(
         response
     )
     assert response.context["doc_count"] == 3
-    assert len(list(response.context["refreshed_programmation_projets"])) == 3
-    for pp in programmation_projets:
-        pp.refresh_from_db()
-        assert hasattr(pp.dotation_projet, "lettre")
-        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
-        assert pp.dotation_projet.lettrenotification.created_by == client.user
+    assert len(list(response.context["refreshed_dotation_projets"])) == 3
+    for dp in dotation_projets:
+        dp.refresh_from_db()
+        assert dp.lettrenotification.modele == detr_lettre_modele
+        assert dp.lettrenotification.created_by == client.user
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (3 docs)
 
 
 def test_wizard_create_step_replaces_existing_doc(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
-    pp = programmation_projets[0]
-    old_lettre = LettreNotificationFactory(dotation_projet=pp.dotation_projet)
+    dp = dotation_projets[0]
+    old_lettre = LettreNotificationFactory(dotation_projet=dp)
 
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={
             "modele_lettre_id": str(detr_lettre_modele.id),
             "overwrite_strategy": GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER,
         },
     )
     response = _post_create_step(client)
-    pp.refresh_from_db()
-    assert pp.dotation_projet.lettrenotification.id != old_lettre.id
+    dp.refresh_from_db()
+    assert dp.lettrenotification.id != old_lettre.id
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
 
 
 def test_wizard_modele_selection_conserver_when_all_covered_advances_to_format_step(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
-    for pp in programmation_projets:
-        LettreNotificationFactory(dotation_projet=pp.dotation_projet)
+    for dp in dotation_projets:
+        LettreNotificationFactory(dotation_projet=dp)
 
-    _open_wizard_at_type_selection_step(client, programmation_projets)
+    _open_wizard_at_type_selection_step(client, dotation_projets)
     client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": LETTRE}),
@@ -600,16 +599,14 @@ def test_wizard_modele_selection_conserver_when_all_covered_advances_to_format_s
 
 
 def test_wizard_create_step_conserver_creates_only_missing_documents(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
-    pp_with_existing, *pps_without = programmation_projets
-    old_lettre = LettreNotificationFactory(
-        dotation_projet=pp_with_existing.dotation_projet
-    )
+    with_existing, *without = dotation_projets
+    old_lettre = LettreNotificationFactory(dotation_projet=with_existing)
 
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={
             "modele_lettre_id": str(detr_lettre_modele.id),
             "overwrite_strategy": GenerateDocumentsModeleSelectionForm.STRATEGY_CONSERVER,
@@ -621,27 +618,26 @@ def test_wizard_create_step_conserver_creates_only_missing_documents(
         response
     )
 
-    pp_with_existing.refresh_from_db()
-    assert pp_with_existing.dotation_projet.lettrenotification.id == old_lettre.id
-    for pp in pps_without:
-        pp.refresh_from_db()
-        assert hasattr(pp.dotation_projet, "lettre")
-        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
+    with_existing.refresh_from_db()
+    assert with_existing.lettrenotification.id == old_lettre.id
+    for dp in without:
+        dp.refresh_from_db()
+        assert dp.lettrenotification.modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
 
 
 def test_wizard_create_step_remplacer_when_all_covered_replaces_all(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     old_ids = []
-    for pp in programmation_projets:
-        old_ids.append(LettreNotificationFactory(dotation_projet=pp.dotation_projet).id)
+    for dp in dotation_projets:
+        old_ids.append(LettreNotificationFactory(dotation_projet=dp).id)
 
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={
             "modele_lettre_id": str(detr_lettre_modele.id),
             "overwrite_strategy": GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER,
@@ -652,24 +648,24 @@ def test_wizard_create_step_remplacer_when_all_covered_replaces_all(
     assert "gsl_notification/modal/bulk_generation/success.html" in _template_names(
         response
     )
-    for pp, old_id in zip(programmation_projets, old_ids, strict=True):
-        pp.refresh_from_db()
-        assert pp.dotation_projet.lettrenotification.id != old_id
-        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
+    for dp, old_id in zip(dotation_projets, old_ids, strict=True):
+        dp.refresh_from_db()
+        assert dp.lettrenotification.id != old_id
+        assert dp.lettrenotification.modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
 
 
 def test_wizard_create_step_conserver_full_coverage_with_empty_ids_reaches_success(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     """When the user selects all projets, the trigger form posts ids="" and the
     launch form's fallback resolves projets from the filterset. The wizard must
     still reach the create step's success when CONSERVER is chosen and every projet is
     already covered."""
-    for pp in programmation_projets:
-        LettreNotificationFactory(dotation_projet=pp.dotation_projet)
+    for dp in dotation_projets:
+        LettreNotificationFactory(dotation_projet=dp)
 
     _post_launch(client, ids="")
     client.post(
@@ -705,11 +701,11 @@ def test_wizard_create_step_conserver_full_coverage_with_empty_ids_reaches_succe
 
 
 def test_wizard_create_step_both_creates_arrete_and_lettre(
-    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+    client, dotation_projets, detr_arrete_modele, detr_lettre_modele
 ):
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         document_type=ARRETE_ET_LETTRE,
         modele_selection_fields={
             "modele_arrete_id": str(detr_arrete_modele.id),
@@ -723,13 +719,11 @@ def test_wizard_create_step_both_creates_arrete_and_lettre(
     )
     assert response.context["doc_count"] == 6  # 3 projets × 2 types = ARRETE_ET_LETTRE
     assert "download_url" in response.context
-    assert len(list(response.context["refreshed_programmation_projets"])) == 3
-    for pp in programmation_projets:
-        pp.refresh_from_db()
-        assert hasattr(pp.dotation_projet, "arrete")
-        assert pp.dotation_projet.arrete.modele == detr_arrete_modele
-        assert hasattr(pp.dotation_projet, "lettre")
-        assert pp.dotation_projet.lettrenotification.modele == detr_lettre_modele
+    assert len(list(response.context["refreshed_dotation_projets"])) == 3
+    for dp in dotation_projets:
+        dp.refresh_from_db()
+        assert dp.arrete.modele == detr_arrete_modele
+        assert dp.lettrenotification.modele == detr_lettre_modele
 
     key, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (6 docs)
@@ -745,17 +739,17 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
     """One projet × LETTRE → single PDF named after the document."""
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    pps = [
-        ProgrammationProjetFactory(
-            dotation_projet__projet__dossier_ds__perimetre=perimetre,
-            dotation_projet__dotation=DOTATION_DETR,
+    dotation_projets = [
+        DotationProjetFactory(
+            projet__dossier_ds__perimetre=perimetre,
+            dotation=DOTATION_DETR,
             status=PROJET_STATUS_ACCEPTED,
-            dotation_projet__projet__notified_at=None,
+            projet__notified_at=None,
         )
     ]
     _drive_through_format_step(
         client,
-        pps,
+        dotation_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
         export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
     )
@@ -764,17 +758,17 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
 
     key, body = _read_storage_body(response.context["download_url"])
     filename = os.path.basename(key)
-    assert filename == pps[0].dotation_projet.lettrenotification.name
+    assert filename == dotation_projets[0].lettrenotification.name
     assert body[:4] == b"%PDF"
 
 
 @freeze_time("2026-05-03")
 def test_export_one_pdf_per_doc_multi_returns_zip(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
         export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
     )
@@ -790,12 +784,12 @@ def test_export_one_pdf_per_doc_multi_returns_zip(
 
 @freeze_time("2026-05-03")
 def test_export_one_pdf_all_merges_into_single_pdf(
-    client, programmation_projets, detr_lettre_modele
+    client, dotation_projets, detr_lettre_modele
 ):
     """One_PDF_ALL is only offered for a single document type (lettre xor arrêté)."""
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
         export_format=EXPORT_FORMAT_ONE_PDF_ALL,
     )
@@ -813,15 +807,15 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
 ):
     user = CollegueFactory(perimetre=perimetre)
     client = ClientWithLoggedUserFactory(user)
-    pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
-        dotation_projet__projet__notified_at=None,
+        projet__notified_at=None,
     )
     _drive_through_format_step(
         client,
-        [pp],
+        [dotation_projet],
         document_type=ARRETE_ET_LETTRE,
         modele_selection_fields={
             "modele_arrete_id": str(detr_arrete_modele.id),
@@ -833,8 +827,8 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
     assert response.status_code == 200
 
     key, body = _read_storage_body(response.context["download_url"])
-    ds_number = pp.dossier.ds_number
-    raison_sociale = slugify(pp.dossier.ds_demandeur.raison_sociale)
+    ds_number = dotation_projet.dossier_ds.ds_number
+    raison_sociale = slugify(dotation_projet.dossier_ds.ds_demandeur.raison_sociale)
     expected = f"lettre et arrêté - {ds_number} - {raison_sociale} - 03-05-2026.pdf"
     assert os.path.basename(key) == expected
     assert body[:4] == b"%PDF"
@@ -842,11 +836,11 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
 
 @freeze_time("2026-05-03")
 def test_export_one_pdf_per_project_multi_returns_zip(
-    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+    client, dotation_projets, detr_arrete_modele, detr_lettre_modele
 ):
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         document_type=ARRETE_ET_LETTRE,
         modele_selection_fields={
             "modele_arrete_id": str(detr_arrete_modele.id),
@@ -867,11 +861,11 @@ def test_export_one_pdf_per_project_multi_returns_zip(
 
 @freeze_time("2026-05-03")
 def test_export_one_pdf_all_grouped_merges_into_single_pdf(
-    client, programmation_projets, detr_arrete_modele, detr_lettre_modele
+    client, dotation_projets, detr_arrete_modele, detr_lettre_modele
 ):
     _drive_through_format_step(
         client,
-        programmation_projets,
+        dotation_projets,
         document_type=ARRETE_ET_LETTRE,
         modele_selection_fields={
             "modele_arrete_id": str(detr_arrete_modele.id),

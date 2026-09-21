@@ -143,7 +143,10 @@ def test_patch_status_simulation_projet_gives_message(
 ):
     if status == SimulationProjet.STATUS_PROCESSING:
         simulation_projet.status = SimulationProjet.STATUS_ACCEPTED
-        simulation_projet.dotation_projet.status = PROJET_STATUS_ACCEPTED
+        simulation_projet.dotation_projet.accept_without_ds_update(
+            montant=simulation_projet.montant,
+            enveloppe=simulation_projet.enveloppe.delegation_root,
+        )
         simulation_projet.dotation_projet.save()
         simulation_projet.save()
 

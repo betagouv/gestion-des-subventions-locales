@@ -1,18 +1,13 @@
 import pytest
 
-from ..models import Enveloppe, ProgrammationProjet
-from .factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
-    ProgrammationProjetFactory,
-)
+from ..models import Enveloppe
+from .factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 pytestmark = pytest.mark.django_db
 
 test_data = (
     (DetrEnveloppeFactory, Enveloppe),
     (DsilEnveloppeFactory, Enveloppe),
-    (ProgrammationProjetFactory, ProgrammationProjet),
 )
 
 

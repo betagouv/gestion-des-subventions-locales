@@ -11,10 +11,7 @@ from gsl_core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    ProgrammationProjetFactory,
-)
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory
@@ -72,9 +69,6 @@ def test_refuse_modal_excludes_notified_projects(
     # Mark the related programmation as notified
     simulation_projet.dotation_projet.projet.notified_at = date.today()
     simulation_projet.dotation_projet.projet.save()
-    ProgrammationProjetFactory(
-        dotation_projet=simulation_projet.dotation_projet,
-    )
 
     url = reverse(
         "simulation:simulation-projet-update-programmed-status",
@@ -90,11 +84,6 @@ def test_refuse_modal_excludes_notified_projects(
 def test_refuse_modal_allows_non_notified_projects(
     client_with_user_logged, simulation_projet
 ):
-    # Ensure a related ProgrammationProjet exists without notification
-    ProgrammationProjetFactory(
-        dotation_projet=simulation_projet.dotation_projet,
-    )
-
     url = reverse(
         "simulation:simulation-projet-update-programmed-status",
         args=[simulation_projet.id, SimulationProjet.STATUS_REFUSED],

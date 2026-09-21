@@ -479,14 +479,14 @@ class ProjetListViewFilters(ProjetFilters):
     def qs(self):
         qs = super().qs
         qs = qs.annotate(
-            montant_retenu_total=Sum("dotationprojet__programmation_projet__montant"),
+            montant_retenu_total=Sum("dotationprojet__montant"),
             assiette_max=Max("dotationprojet__assiette"),
             taux_max=Max(
                 Case(
                     When(
                         dotationprojet__assiette__gt=0,
-                        dotationprojet__programmation_projet__montant__isnull=False,
-                        then=F("dotationprojet__programmation_projet__montant")
+                        dotationprojet__montant__isnull=False,
+                        then=F("dotationprojet__montant")
                         * 100.0
                         / F("dotationprojet__assiette"),
                     ),
@@ -507,7 +507,7 @@ class ProjetListViewFilters(ProjetFilters):
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
             "dossier_ds__porteur_de_projet_arrondissement",
-            "dotationprojet_set__programmation_projet",
+            "dotationprojet_set",
             "dossier_ds__demande_cofinancements",
             "dossier_ds__projet_zonage",
             "dossier_ds__projet_contractualisation",

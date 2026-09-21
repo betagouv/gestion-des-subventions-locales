@@ -1,25 +1,20 @@
 from datetime import date
 
-import factory
 from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-)
-from gsl.projet.tests.factories import DotationProjetFactory
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_programmation.models import Enveloppe
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):
     class Meta:
         model = Enveloppe
+        django_get_or_create = ("perimetre", "dotation", "annee")
 
     dotation = DOTATION_DSIL
     montant = Faker("random_number", digits=5)
@@ -36,33 +31,3 @@ class DetrEnveloppeFactory(DjangoModelFactory):
     montant = Faker("random_number", digits=5)
     annee = date.today().year
     perimetre = SubFactory(PerimetreDepartementalFactory)
-
-
-class ProgrammationProjetFactory(DjangoModelFactory):
-    class Meta:
-        model = ProgrammationProjet
-
-    dotation_projet = SubFactory(DotationProjetFactory, status=PROJET_STATUS_ACCEPTED)
-    enveloppe = factory.LazyAttribute(
-        lambda obj: DetrEnveloppeFactory(
-            perimetre=PerimetreDepartementalFactory(
-                departement=obj.dotation_projet.projet.dossier_ds.perimetre.departement,
-                region=obj.dotation_projet.projet.dossier_ds.perimetre.region,
-            )
-        )
-    )
-
-    montant = Faker("random_number", digits=5)
-
-    @factory.post_generation
-    def status(obj, create, extracted, **kwargs):
-        """The status lives on the DotationProjet, whether the caller lets this
-        factory build it or passes its own."""
-        if extracted is None or obj.dotation_projet.status == extracted:
-            return
-        obj.dotation_projet.status = extracted
-        obj.dotation_projet.save(update_fields=["status"])
-
-    @factory.post_generation
-    def save_projet(obj, create, extracted, **kwargs):
-        obj.dotation_projet.projet.save()

@@ -27,13 +27,8 @@ from gsl_demarches_simplifiees.tests.factories import (
     NaturePorteurProjetFactory,
     PersonneMoraleFactory,
 )
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    ProgrammationProjetFactory,
-)
-from gsl_programmation.utils.programmation_projet_filters import (
-    ProgrammationProjetFilters,
-)
+from gsl_programmation.tests.factories import DetrEnveloppeFactory
+from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
 @pytest.fixture
@@ -96,7 +91,7 @@ def mock_request_dsil(request_factory, user):
 pytestmark = pytest.mark.django_db
 
 
-class TestProgrammationProjetFilters:
+class TestProgrammationFilters:
     def test_porteur_filter(self, mock_request, enveloppe, arrondissement):
         """Test le filtre par type de porteur de projet"""
         # Créer différents types de porteurs
@@ -115,22 +110,21 @@ class TestProgrammationProjetFilters:
         projet_commune = ProjetFactory(dossier_ds=dossier_commune)
         projet_departement = ProjetFactory(dossier_ds=dossier_departement)
 
-        dotation_commune = DotationProjetFactory(
-            projet=projet_commune, dotation=DOTATION_DETR
+        prog_commune = DotationProjetFactory(
+            projet=projet_commune,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_departement = DotationProjetFactory(
-            projet=projet_departement, dotation=DOTATION_DETR
-        )
-
-        prog_commune = ProgrammationProjetFactory(
-            dotation_projet=dotation_commune, enveloppe=enveloppe
-        )
-        prog_departement = ProgrammationProjetFactory(
-            dotation_projet=dotation_departement, enveloppe=enveloppe
+        prog_departement = DotationProjetFactory(
+            projet=projet_departement,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
         # Test du filtre
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"porteur": [NaturePorteurProjet.COMMUNES]}, request=mock_request
         )
 
@@ -156,28 +150,27 @@ class TestProgrammationProjetFilters:
         projet_moyen = ProjetFactory(dossier_ds=dossier_moyen)
         projet_grand = ProjetFactory(dossier_ds=dossier_grand)
 
-        dotation_petit = DotationProjetFactory(
-            projet=projet_petit, dotation=DOTATION_DETR
+        prog_petit = DotationProjetFactory(
+            projet=projet_petit,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_moyen = DotationProjetFactory(
-            projet=projet_moyen, dotation=DOTATION_DETR
+        prog_moyen = DotationProjetFactory(
+            projet=projet_moyen,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_grand = DotationProjetFactory(
-            projet=projet_grand, dotation=DOTATION_DETR
-        )
-
-        prog_petit = ProgrammationProjetFactory(
-            dotation_projet=dotation_petit, enveloppe=enveloppe
-        )
-        prog_moyen = ProgrammationProjetFactory(
-            dotation_projet=dotation_moyen, enveloppe=enveloppe
-        )
-        prog_grand = ProgrammationProjetFactory(
-            dotation_projet=dotation_grand, enveloppe=enveloppe
+        prog_grand = DotationProjetFactory(
+            projet=projet_grand,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
         # Test filtre cout_min
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"cout_min": "100000"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -186,7 +179,7 @@ class TestProgrammationProjetFilters:
         assert prog_grand in result
 
         # Test filtre cout_max
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"cout_max": "200000"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -214,28 +207,27 @@ class TestProgrammationProjetFilters:
         projet_moyen = ProjetFactory(dossier_ds=dossier_moyen)
         projet_grand = ProjetFactory(dossier_ds=dossier_grand)
 
-        dotation_petit = DotationProjetFactory(
-            projet=projet_petit, dotation=DOTATION_DETR
+        prog_petit = DotationProjetFactory(
+            projet=projet_petit,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_moyen = DotationProjetFactory(
-            projet=projet_moyen, dotation=DOTATION_DETR
+        prog_moyen = DotationProjetFactory(
+            projet=projet_moyen,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_grand = DotationProjetFactory(
-            projet=projet_grand, dotation=DOTATION_DETR
-        )
-
-        prog_petit = ProgrammationProjetFactory(
-            dotation_projet=dotation_petit, enveloppe=enveloppe
-        )
-        prog_moyen = ProgrammationProjetFactory(
-            dotation_projet=dotation_moyen, enveloppe=enveloppe
-        )
-        prog_grand = ProgrammationProjetFactory(
-            dotation_projet=dotation_grand, enveloppe=enveloppe
+        prog_grand = DotationProjetFactory(
+            projet=projet_grand,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
         # Test filtre montant_demande_min
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"montant_demande_min": "50000"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -244,7 +236,7 @@ class TestProgrammationProjetFilters:
         assert prog_grand in result
 
         # Test filtre montant_demande_max
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"montant_demande_max": "100000"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -261,22 +253,30 @@ class TestProgrammationProjetFilters:
         projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
         projet3 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
-        dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
-        dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
-        dotation3 = DotationProjetFactory(projet=projet3, dotation=DOTATION_DETR)
-
-        prog_petit = ProgrammationProjetFactory(
-            dotation_projet=dotation1, enveloppe=enveloppe, montant=Decimal("30000.00")
+        prog_petit = DotationProjetFactory(
+            projet=projet1,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
+            montant=Decimal("30000.00"),
         )
-        prog_moyen = ProgrammationProjetFactory(
-            dotation_projet=dotation2, enveloppe=enveloppe, montant=Decimal("70000.00")
+        prog_moyen = DotationProjetFactory(
+            projet=projet2,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
+            montant=Decimal("70000.00"),
         )
-        prog_grand = ProgrammationProjetFactory(
-            dotation_projet=dotation3, enveloppe=enveloppe, montant=Decimal("120000.00")
+        prog_grand = DotationProjetFactory(
+            projet=projet3,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
+            montant=Decimal("120000.00"),
         )
 
         # Test filtre montant_retenu_min
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"montant_retenu_min": "50000"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -285,7 +285,7 @@ class TestProgrammationProjetFilters:
         assert prog_grand in result
 
         # Test filtre montant_retenu_max
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"montant_retenu_max": "80000"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -299,22 +299,21 @@ class TestProgrammationProjetFilters:
         projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
         projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
-        dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
-        dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
-
-        prog_accepted = ProgrammationProjetFactory(
-            dotation_projet=dotation1,
+        prog_accepted = DotationProjetFactory(
+            projet=projet1,
+            dotation=DOTATION_DETR,
             enveloppe=enveloppe,
             status=PROJET_STATUS_ACCEPTED,
         )
-        prog_refused = ProgrammationProjetFactory(
-            dotation_projet=dotation2,
+        prog_refused = DotationProjetFactory(
+            projet=projet2,
+            dotation=DOTATION_DETR,
             enveloppe=enveloppe,
             status=PROJET_STATUS_REFUSED,
         )
 
         # Test filtre pour acceptés uniquement
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"status": [PROJET_STATUS_ACCEPTED]}, request=mock_request
         )
         result = list(filterset.qs)
@@ -322,7 +321,7 @@ class TestProgrammationProjetFilters:
         assert prog_refused not in result
 
         # Test filtre pour refusés uniquement
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"status": [PROJET_STATUS_REFUSED]}, request=mock_request
         )
         result = list(filterset.qs)
@@ -344,22 +343,21 @@ class TestProgrammationProjetFilters:
         projet_arr1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
         projet_arr2 = ProjetFactory(dossier_ds__perimetre=autre_arrondissement)
 
-        dotation_projet1 = DotationProjetFactory(
-            projet=projet_arr1, dotation=DOTATION_DETR
+        prog_arr1 = DotationProjetFactory(
+            projet=projet_arr1,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_projet2 = DotationProjetFactory(
-            projet=projet_arr2, dotation=DOTATION_DETR
-        )
-
-        prog_arr1 = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet1, enveloppe=enveloppe
-        )
-        prog_arr2 = ProgrammationProjetFactory(
-            dotation_projet=dotation_projet2, enveloppe=enveloppe
+        prog_arr2 = DotationProjetFactory(
+            projet=projet_arr2,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
         # Test filtre par arrondissement spécifique
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"territoire": [arrondissement.id]}, request=mock_request
         )
         result = list(filterset.qs)
@@ -367,7 +365,7 @@ class TestProgrammationProjetFilters:
         assert prog_arr2 not in result
 
         # Test filtre par département (doit inclure les deux arrondissements)
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"territoire": [departement.id]}, request=mock_request
         )
         result = list(filterset.qs)
@@ -391,53 +389,54 @@ class TestProgrammationProjetFilters:
         projet_a = ProjetFactory(dossier_ds=dossier_a)
         projet_z = ProjetFactory(dossier_ds=dossier_z)
 
-        dotation_a = DotationProjetFactory(projet=projet_a, dotation=DOTATION_DETR)
-        dotation_z = DotationProjetFactory(projet=projet_z, dotation=DOTATION_DETR)
-
-        prog_a = ProgrammationProjetFactory(
-            dotation_projet=dotation_a, enveloppe=enveloppe, montant=Decimal("50000.00")
+        prog_a = DotationProjetFactory(
+            projet=projet_a,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
+            montant=Decimal("50000.00"),
         )
-        prog_z = ProgrammationProjetFactory(
-            dotation_projet=dotation_z, enveloppe=enveloppe, montant=Decimal("80000.00")
+        prog_z = DotationProjetFactory(
+            projet=projet_z,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
+            montant=Decimal("80000.00"),
         )
 
         # Test tri par montant croissant
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "montant"}, request=mock_request
         )
         result = list(filterset.qs)
         assert result.index(prog_a) < result.index(prog_z)
 
         # Test tri par montant décroissant
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "-montant"}, request=mock_request
         )
         result = list(filterset.qs)
         assert result.index(prog_z) < result.index(prog_a)
 
         # Test tri par cout croissant
-        filterset = ProgrammationProjetFilters(
-            data={"order": "cout"}, request=mock_request
-        )
+        filterset = ProgrammationFilters(data={"order": "cout"}, request=mock_request)
         result = list(filterset.qs)
         assert result.index(prog_a) < result.index(prog_z)
 
         # Test tri par cout décroissant
-        filterset = ProgrammationProjetFilters(
-            data={"order": "-cout"}, request=mock_request
-        )
+        filterset = ProgrammationFilters(data={"order": "-cout"}, request=mock_request)
         result = list(filterset.qs)
         assert result.index(prog_z) < result.index(prog_a)
 
         # Test tri par demandeur croissant
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "demandeur"}, request=mock_request
         )
         result = list(filterset.qs)
         assert result.index(prog_a) < result.index(prog_z)
 
         # Test tri par demandeur décroissant
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "-demandeur"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -446,26 +445,26 @@ class TestProgrammationProjetFilters:
     def test_order_by_numero_dn(self, mock_request, enveloppe, arrondissement):
         dossier_a = DossierFactory(ds_number=1000, perimetre=arrondissement)
         dossier_z = DossierFactory(ds_number=9000, perimetre=arrondissement)
-        prog_a = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
-            ),
+        prog_a = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_a),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
-        prog_z = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
-            ),
+        prog_z = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_z),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
 
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "numero_dn"}, request=mock_request
         )
         result = list(filterset.qs)
         assert result.index(prog_a) < result.index(prog_z)
 
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "-numero_dn"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -480,20 +479,20 @@ class TestProgrammationProjetFilters:
         dossier_z = DossierFactory(
             perimetre=arrondissement, porteur_de_projet_arrondissement=arr_z
         )
-        prog_a = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
-            ),
+        prog_a = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_a),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
-        prog_z = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
-            ),
+        prog_z = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_z),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
 
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "arrondissement"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -506,20 +505,20 @@ class TestProgrammationProjetFilters:
         dossier_z = DossierFactory(
             demande_montant=Decimal("90000"), perimetre=arrondissement
         )
-        prog_a = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
-            ),
+        prog_a = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_a),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
-        prog_z = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
-            ),
+        prog_z = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_z),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
 
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "montant_sollicite"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -528,24 +527,22 @@ class TestProgrammationProjetFilters:
     def test_order_by_assiette(self, mock_request, enveloppe, arrondissement):
         dossier_a = DossierFactory(perimetre=arrondissement)
         dossier_z = DossierFactory(perimetre=arrondissement)
-        prog_a = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_a),
-                dotation=DOTATION_DETR,
-                assiette=Decimal("50000"),
-            ),
+        prog_a = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_a),
+            dotation=DOTATION_DETR,
+            assiette=Decimal("50000"),
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
-        prog_z = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_z),
-                dotation=DOTATION_DETR,
-                assiette=Decimal("200000"),
-            ),
+        prog_z = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_z),
+            dotation=DOTATION_DETR,
+            assiette=Decimal("200000"),
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
 
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "assiette"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -555,29 +552,25 @@ class TestProgrammationProjetFilters:
         dossier_a = DossierFactory(perimetre=arrondissement)
         dossier_z = DossierFactory(perimetre=arrondissement)
         # prog_a: montant=10000 / assiette=100000 = 10%
-        prog_a = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_a),
-                dotation=DOTATION_DETR,
-                assiette=Decimal("100000"),
-            ),
+        prog_a = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_a),
+            dotation=DOTATION_DETR,
+            assiette=Decimal("100000"),
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
             montant=Decimal("10000"),
         )
         # prog_z: montant=80000 / assiette=100000 = 80%
-        prog_z = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_z),
-                dotation=DOTATION_DETR,
-                assiette=Decimal("100000"),
-            ),
+        prog_z = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_z),
+            dotation=DOTATION_DETR,
+            assiette=Decimal("100000"),
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
             montant=Decimal("80000"),
         )
 
-        filterset = ProgrammationProjetFilters(
-            data={"order": "taux"}, request=mock_request
-        )
+        filterset = ProgrammationFilters(data={"order": "taux"}, request=mock_request)
         result = list(filterset.qs)
         assert result.index(prog_a) < result.index(prog_z)
 
@@ -588,21 +581,21 @@ class TestProgrammationProjetFilters:
         dossier_z = DossierFactory(
             perimetre=arrondissement, date_debut=date(2026, 6, 1)
         )
-        prog_a = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_a), dotation=DOTATION_DETR
-            ),
+        prog_a = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_a),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
-        prog_z = ProgrammationProjetFactory(
-            dotation_projet=DotationProjetFactory(
-                projet=ProjetFactory(dossier_ds=dossier_z), dotation=DOTATION_DETR
-            ),
+        prog_z = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_z),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
             enveloppe=enveloppe,
         )
 
         # date_debut is a date field, ascending means earliest first
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"order": "date_debut"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -622,10 +615,9 @@ class TestProgrammationProjetFilters:
         )
 
         projet = ProjetFactory(dossier_ds=dossier)
-        dotation = DotationProjetFactory(projet=projet, dotation=DOTATION_DETR)
-
-        prog_match = ProgrammationProjetFactory(
-            dotation_projet=dotation,
+        prog_match = DotationProjetFactory(
+            projet=projet,
+            dotation=DOTATION_DETR,
             enveloppe=enveloppe,
             montant=Decimal("60000.00"),
             status=PROJET_STATUS_ACCEPTED,
@@ -638,17 +630,15 @@ class TestProgrammationProjetFilters:
             perimetre=arrondissement,
         )
         autre_projet = ProjetFactory(dossier_ds=autre_dossier)
-        autre_dotation = DotationProjetFactory(
-            projet=autre_projet, dotation=DOTATION_DETR
-        )
-        prog_no_match = ProgrammationProjetFactory(
-            dotation_projet=autre_dotation,
+        prog_no_match = DotationProjetFactory(
+            projet=autre_projet,
+            dotation=DOTATION_DETR,
             enveloppe=enveloppe,
             status=PROJET_STATUS_ACCEPTED,
         )
 
         # Test combinaison de filtres
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={
                 "porteur": [NaturePorteurProjet.COMMUNES],
                 "cout_min": "100000",
@@ -665,7 +655,7 @@ class TestProgrammationProjetFilters:
         self, mock_request, departement
     ):
         """Le filtre territoire expose un queryset incluant le périmètre de l'utilisateur."""
-        filterset = ProgrammationProjetFilters(request=mock_request)
+        filterset = ProgrammationFilters(request=mock_request)
 
         territoire_queryset = filterset.form.fields["territoire"].queryset
 
@@ -678,7 +668,7 @@ class TestProgrammationProjetFilters:
         from django.test.utils import CaptureQueriesContext
 
         with CaptureQueriesContext(connection) as ctx:
-            ProgrammationProjetFilters(request=mock_request)
+            ProgrammationFilters(request=mock_request)
 
         executed = " ".join(q["sql"] for q in ctx.captured_queries).lower()
         for table in (
@@ -708,22 +698,21 @@ class TestProgrammationProjetFilters:
         projet_ancien = ProjetFactory(dossier_ds=dossier_ancien)
         projet_recent = ProjetFactory(dossier_ds=dossier_recent)
 
-        dotation_ancien = DotationProjetFactory(
-            projet=projet_ancien, dotation=DOTATION_DETR
+        prog_ancien = DotationProjetFactory(
+            projet=projet_ancien,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_recent = DotationProjetFactory(
-            projet=projet_recent, dotation=DOTATION_DETR
-        )
-
-        prog_ancien = ProgrammationProjetFactory(
-            dotation_projet=dotation_ancien, enveloppe=enveloppe
-        )
-        prog_recent = ProgrammationProjetFactory(
-            dotation_projet=dotation_recent, enveloppe=enveloppe
+        prog_recent = DotationProjetFactory(
+            projet=projet_recent,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
         # Test filtre date_depot_after
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"date_depot_after": "2024-03-01"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -731,7 +720,7 @@ class TestProgrammationProjetFilters:
         assert prog_recent in result
 
         # Test filtre date_depot_before
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"date_depot_before": "2024-03-01"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -739,7 +728,7 @@ class TestProgrammationProjetFilters:
         assert prog_recent not in result
 
         # Test boundary: dossier deposited on the cutoff date is included
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"date_depot_before": "2024-01-15"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -747,7 +736,7 @@ class TestProgrammationProjetFilters:
         assert prog_recent not in result
 
         # Test combinaison after + before
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"date_depot_after": "2024-01-01", "date_depot_before": "2024-12-31"},
             request=mock_request,
         )
@@ -767,20 +756,21 @@ class TestProgrammationProjetFilters:
         projet_tot = ProjetFactory(dossier_ds=dossier_tot)
         projet_tard = ProjetFactory(dossier_ds=dossier_tard)
 
-        dotation_tot = DotationProjetFactory(projet=projet_tot, dotation=DOTATION_DETR)
-        dotation_tard = DotationProjetFactory(
-            projet=projet_tard, dotation=DOTATION_DETR
+        prog_tot = DotationProjetFactory(
+            projet=projet_tot,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-
-        prog_tot = ProgrammationProjetFactory(
-            dotation_projet=dotation_tot, enveloppe=enveloppe
-        )
-        prog_tard = ProgrammationProjetFactory(
-            dotation_projet=dotation_tard, enveloppe=enveloppe
+        prog_tard = DotationProjetFactory(
+            projet=projet_tard,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
         # Test filtre date_debut_after
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"date_debut_after": "2024-06-01"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -799,20 +789,21 @@ class TestProgrammationProjetFilters:
         projet_tot = ProjetFactory(dossier_ds=dossier_tot)
         projet_tard = ProjetFactory(dossier_ds=dossier_tard)
 
-        dotation_tot = DotationProjetFactory(projet=projet_tot, dotation=DOTATION_DETR)
-        dotation_tard = DotationProjetFactory(
-            projet=projet_tard, dotation=DOTATION_DETR
+        prog_tot = DotationProjetFactory(
+            projet=projet_tot,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-
-        prog_tot = ProgrammationProjetFactory(
-            dotation_projet=dotation_tot, enveloppe=enveloppe
-        )
-        prog_tard = ProgrammationProjetFactory(
-            dotation_projet=dotation_tard, enveloppe=enveloppe
+        prog_tard = DotationProjetFactory(
+            projet=projet_tard,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
         # Test filtre date_achevement_before
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"date_achevement_before": "2025-06-01"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -837,35 +828,30 @@ class TestProgrammationProjetFilters:
             perimetre=arrondissement,
         )
 
-        dotation_ecole = DotationProjetFactory(
-            projet=ProjetFactory(dossier_ds=dossier_ecole), dotation=DOTATION_DETR
+        prog_ecole = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_ecole),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        dotation_mairie = DotationProjetFactory(
-            projet=ProjetFactory(dossier_ds=dossier_mairie), dotation=DOTATION_DETR
+        prog_mairie = DotationProjetFactory(
+            projet=ProjetFactory(dossier_ds=dossier_mairie),
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
-        prog_ecole = ProgrammationProjetFactory(
-            dotation_projet=dotation_ecole, enveloppe=enveloppe
-        )
-        prog_mairie = ProgrammationProjetFactory(
-            dotation_projet=dotation_mairie, enveloppe=enveloppe
-        )
-
-        filterset = ProgrammationProjetFilters(
-            data={"search": "école"}, request=mock_request
-        )
+        filterset = ProgrammationFilters(data={"search": "école"}, request=mock_request)
         result = list(filterset.qs)
         assert prog_ecole in result
         assert prog_mairie not in result
 
-        filterset = ProgrammationProjetFilters(
-            data={"search": "Brest"}, request=mock_request
-        )
+        filterset = ProgrammationFilters(data={"search": "Brest"}, request=mock_request)
         result = list(filterset.qs)
         assert prog_ecole not in result
         assert prog_mairie in result
 
-        filterset = ProgrammationProjetFilters(
+        filterset = ProgrammationFilters(
             data={"search": "9000002"}, request=mock_request
         )
         result = list(filterset.qs)
@@ -875,7 +861,7 @@ class TestProgrammationProjetFilters:
     def test_fixed_fields_show_detr_category_on_detr_page(self, mock_request):
         """On a DETR programmation page, the DETR category sits in the fixed row
         and the DSIL category is absent."""
-        filterset = ProgrammationProjetFilters(request=mock_request)
+        filterset = ProgrammationFilters(request=mock_request)
         fixed_names = [field.name for field in filterset.fixed_fields]
         assert "categorie_detr" in fixed_names
         assert "categorie_dsil" not in fixed_names
@@ -883,7 +869,7 @@ class TestProgrammationProjetFilters:
     def test_fixed_fields_show_dsil_category_on_dsil_page(self, mock_request_dsil):
         """On a DSIL programmation page, the DSIL category sits in the fixed row
         and the DETR category is absent."""
-        filterset = ProgrammationProjetFilters(request=mock_request_dsil)
+        filterset = ProgrammationFilters(request=mock_request_dsil)
         fixed_names = [field.name for field in filterset.fixed_fields]
         assert "categorie_dsil" in fixed_names
         assert "categorie_detr" not in fixed_names
@@ -893,17 +879,20 @@ class TestProgrammationProjetFilters:
         projet1 = ProjetFactory(dossier_ds__perimetre=arrondissement)
         projet2 = ProjetFactory(dossier_ds__perimetre=arrondissement)
 
-        dotation1 = DotationProjetFactory(projet=projet1, dotation=DOTATION_DETR)
-        dotation2 = DotationProjetFactory(projet=projet2, dotation=DOTATION_DETR)
-
-        prog1 = ProgrammationProjetFactory(
-            dotation_projet=dotation1, enveloppe=enveloppe
+        prog1 = DotationProjetFactory(
+            projet=projet1,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
-        prog2 = ProgrammationProjetFactory(
-            dotation_projet=dotation2, enveloppe=enveloppe
+        prog2 = DotationProjetFactory(
+            projet=projet2,
+            dotation=DOTATION_DETR,
+            status=PROJET_STATUS_ACCEPTED,
+            enveloppe=enveloppe,
         )
 
-        filterset = ProgrammationProjetFilters(request=mock_request)
+        filterset = ProgrammationFilters(request=mock_request)
         result = list(filterset.qs)
 
         assert prog1 in result

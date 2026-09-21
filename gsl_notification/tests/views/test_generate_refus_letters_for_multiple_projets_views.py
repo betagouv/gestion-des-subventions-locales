@@ -15,6 +15,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_REFUSED,
 )
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -30,7 +31,6 @@ from gsl_notification.tests.factories import (
     LettreRefusFactory,
     ModeleLettreRefusFactory,
 )
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -44,14 +44,14 @@ def perimetre():
 
 
 @pytest.fixture
-def programmation_projets(perimetre):
-    return ProgrammationProjetFactory.create_batch(
+def dotation_projets(perimetre):
+    return DotationProjetFactory.create_batch(
         3,
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
+        projet__dossier_ds__perimetre=perimetre,
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_REFUSED,
         montant=0,
-        dotation_projet__projet__notified_at=None,
+        projet__notified_at=None,
     )
 
 
@@ -147,8 +147,8 @@ TEMPLATE_BASE = "gsl_notification/modal/bulk_generation/"
 ## Launch step (PRG entry) and wizard GET (dialog rendering)
 
 
-def test_launch_requires_htmx(client, programmation_projets):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+def test_launch_requires_htmx(client, dotation_projets):
+    ids = ",".join([str(dp.id) for dp in dotation_projets])
     response = client.post(
         _wizard_url(),
         _wizard_step_data("launch", {"ids": ids}),
@@ -163,10 +163,8 @@ def test_wizard_wrong_dotation(client):
     assert "Dotation inconnue" in unescape(response.content.decode("utf-8"))
 
 
-def test_launch_with_valid_ids_renders_step_modele_dialog(
-    client, programmation_projets
-):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+def test_launch_with_valid_ids_renders_step_modele_dialog(client, dotation_projets):
+    ids = ",".join([str(dp.id) for dp in dotation_projets])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
@@ -174,12 +172,12 @@ def test_launch_with_valid_ids_renders_step_modele_dialog(
 
 
 def test_launch_skips_type_selection_and_sets_document_type_lettre_refus(
-    client, programmation_projets
+    client, dotation_projets
 ):
     """GenerateLettreRefusWizard declares no type_selection step: the launch
     step jumps straight to modele_selection, with document_type already fixed
     to LETTRE_REFUS."""
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+    ids = ",".join([str(dp.id) for dp in dotation_projets])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
@@ -195,31 +193,29 @@ def test_launch_no_projects_renders_error_body(client):
 
 
 def test_launch_wrong_perimetre_renders_error_body(client):
-    wrong_pp = ProgrammationProjetFactory(
-        dotation_projet__dotation=DOTATION_DETR,
+    wrong_dotation_projet = DotationProjetFactory(
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_REFUSED,
         montant=0,
-        dotation_projet__projet__notified_at=None,
+        projet__notified_at=None,
     )
-    response = _post_launch(client, ids=str(wrong_pp.id))
+    response = _post_launch(client, ids=str(wrong_dotation_projet.id))
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "launch.html"
     form = response.context["form"]
     assert "choix valide" in " ".join(form.errors.get("ids", []))
 
 
-def test_launch_ignores_ineligible_ids_silently(client, programmation_projets):
+def test_launch_ignores_ineligible_ids_silently(client, dotation_projets):
     """A selection mixing eligible (refused) and ineligible (accepted) rows
     must not fail validation: the ineligible one is silently dropped."""
-    accepted_pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=programmation_projets[
-            0
-        ].dossier.perimetre,
-        dotation_projet__dotation=DOTATION_DETR,
+    accepted = DotationProjetFactory(
+        projet__dossier_ds__perimetre=dotation_projets[0].dossier_ds.perimetre,
+        dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
-        dotation_projet__projet__notified_at=None,
+        projet__notified_at=None,
     )
-    ids = ",".join([str(pp.id) for pp in programmation_projets] + [str(accepted_pp.id)])
+    ids = ",".join([str(dp.id) for dp in dotation_projets] + [str(accepted.id)])
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
@@ -229,16 +225,14 @@ def test_launch_ignores_ineligible_ids_silently(client, programmation_projets):
 ## Wizard step submissions
 
 
-def _open_wizard_at_step_modele(client, programmation_projets):
-    ids = ",".join([str(pp.id) for pp in programmation_projets])
+def _open_wizard_at_step_modele(client, dotation_projets):
+    ids = ",".join([str(dp.id) for dp in dotation_projets])
     _post_launch(client, ids=ids)
     return ids
 
 
-def test_wizard_step_modele_missing_modele_re_renders_step(
-    client, programmation_projets
-):
-    _open_wizard_at_step_modele(client, programmation_projets)
+def test_wizard_step_modele_missing_modele_re_renders_step(client, dotation_projets):
+    _open_wizard_at_step_modele(client, dotation_projets)
     response = client.post(
         _wizard_url(),
         _wizard_step_data("modele_selection", {"modele_refus_id": ""}),
@@ -250,10 +244,8 @@ def test_wizard_step_modele_missing_modele_re_renders_step(
     assert form.errors["modele_refus_id"] == ["Veuillez sélectionner un modèle."]
 
 
-def test_wizard_step_modele_to_step_format(
-    client, programmation_projets, detr_refus_modele
-):
-    _open_wizard_at_step_modele(client, programmation_projets)
+def test_wizard_step_modele_to_step_format(client, dotation_projets, detr_refus_modele):
+    _open_wizard_at_step_modele(client, dotation_projets)
     response = client.post(
         _wizard_url(),
         _wizard_step_data(
@@ -266,9 +258,9 @@ def test_wizard_step_modele_to_step_format(
 
 
 def test_wizard_step_format_invalid_export_format_re_renders_step(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
-    _open_wizard_at_step_modele(client, programmation_projets)
+    _open_wizard_at_step_modele(client, dotation_projets)
     client.post(
         _wizard_url(),
         _wizard_step_data(
@@ -294,7 +286,7 @@ def test_wizard_step_format_invalid_export_format_re_renders_step(
 
 def _drive_through_step_format(
     client,
-    programmation_projets,
+    dotation_projets,
     *,
     modele_id,
     overwrite_strategy=None,
@@ -305,7 +297,7 @@ def _drive_through_step_format(
 
     Returns the response of the step_format POST (= initial step_create render).
     """
-    _open_wizard_at_step_modele(client, programmation_projets)
+    _open_wizard_at_step_modele(client, dotation_projets)
     step_modele_fields = {"modele_refus_id": str(modele_id)}
     if overwrite_strategy:
         step_modele_fields["overwrite_strategy"] = overwrite_strategy
@@ -349,10 +341,10 @@ def _post_step_create(client, dotation=DOTATION_DETR):
 
 
 def test_wizard_step_format_renders_loading_body(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
     response = _drive_through_step_format(
-        client, programmation_projets, modele_id=detr_refus_modele.id
+        client, dotation_projets, modele_id=detr_refus_modele.id
     )
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "loading.html"
@@ -362,11 +354,9 @@ def test_wizard_step_format_renders_loading_body(
 
 
 def test_wizard_step_create_returns_polling_template(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
-    _drive_through_step_format(
-        client, programmation_projets, modele_id=detr_refus_modele.id
-    )
+    _drive_through_step_format(client, dotation_projets, modele_id=detr_refus_modele.id)
     response = _post_step_create_raw(client)
     assert response.status_code == 200
     assert TEMPLATE_BASE + "export_progress.html" in _template_names(response)
@@ -375,50 +365,47 @@ def test_wizard_step_create_returns_polling_template(
 
 
 def test_wizard_step_create_creates_documents_and_returns_success(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
-    _drive_through_step_format(
-        client, programmation_projets, modele_id=detr_refus_modele.id
-    )
+    _drive_through_step_format(client, dotation_projets, modele_id=detr_refus_modele.id)
     response = _post_step_create(client)
     assert response.status_code == 200
     assert TEMPLATE_BASE + "success.html" in _template_names(response)
     assert response.context["doc_count"] == 3
-    assert len(list(response.context["refreshed_programmation_projets"])) == 3
-    for pp in programmation_projets:
-        pp.refresh_from_db()
-        assert hasattr(pp.dotation_projet, "refus")
-        assert pp.dotation_projet.lettrerefus.modele == detr_refus_modele
-        assert pp.dotation_projet.lettrerefus.created_by == client.user
+    assert len(list(response.context["refreshed_dotation_projets"])) == 3
+    for dp in dotation_projets:
+        dp.refresh_from_db()
+        assert dp.lettrerefus.modele == detr_refus_modele
+        assert dp.lettrerefus.created_by == client.user
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (3 docs)
 
 
 def test_wizard_step_create_replaces_existing_doc(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
-    pp = programmation_projets[0]
-    old_refus = LettreRefusFactory(dotation_projet=pp.dotation_projet)
+    dp = dotation_projets[0]
+    old_refus = LettreRefusFactory(dotation_projet=dp)
 
     _drive_through_step_format(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_id=detr_refus_modele.id,
         overwrite_strategy=GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER,
     )
     _post_step_create(client)
-    pp.refresh_from_db()
-    assert pp.dotation_projet.lettrerefus.id != old_refus.id
+    dp.refresh_from_db()
+    assert dp.lettrerefus.id != old_refus.id
 
 
 def test_wizard_step_modele_conserver_when_all_covered_advances_to_step_format(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
-    for pp in programmation_projets:
-        LettreRefusFactory(dotation_projet=pp.dotation_projet)
+    for dp in dotation_projets:
+        LettreRefusFactory(dotation_projet=dp)
 
-    _open_wizard_at_step_modele(client, programmation_projets)
+    _open_wizard_at_step_modele(client, dotation_projets)
     response = client.post(
         _wizard_url(),
         _wizard_step_data(
@@ -439,14 +426,14 @@ def test_wizard_step_modele_conserver_when_all_covered_advances_to_step_format(
 
 
 def test_wizard_step_create_conserver_creates_only_missing_documents(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
-    pp_with_existing, *pps_without = programmation_projets
-    old_refus = LettreRefusFactory(dotation_projet=pp_with_existing.dotation_projet)
+    with_existing, *without = dotation_projets
+    old_refus = LettreRefusFactory(dotation_projet=with_existing)
 
     _drive_through_step_format(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_id=detr_refus_modele.id,
         overwrite_strategy=GenerateDocumentsModeleSelectionForm.STRATEGY_CONSERVER,
     )
@@ -454,42 +441,39 @@ def test_wizard_step_create_conserver_creates_only_missing_documents(
     assert response.status_code == 200
     assert TEMPLATE_BASE + "success.html" in _template_names(response)
 
-    pp_with_existing.refresh_from_db()
-    assert pp_with_existing.dotation_projet.lettrerefus.id == old_refus.id
-    for pp in pps_without:
-        pp.refresh_from_db()
-        assert hasattr(pp.dotation_projet, "refus")
-        assert pp.dotation_projet.lettrerefus.modele == detr_refus_modele
+    with_existing.refresh_from_db()
+    assert with_existing.lettrerefus.id == old_refus.id
+    for dp in without:
+        dp.refresh_from_db()
+        assert dp.lettrerefus.modele == detr_refus_modele
 
 
 def test_wizard_step_create_remplacer_when_all_covered_replaces_all(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
     old_ids = []
-    for pp in programmation_projets:
-        old_ids.append(LettreRefusFactory(dotation_projet=pp.dotation_projet).id)
+    for dp in dotation_projets:
+        old_ids.append(LettreRefusFactory(dotation_projet=dp).id)
 
     _drive_through_step_format(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_id=detr_refus_modele.id,
         overwrite_strategy=GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER,
     )
     response = _post_step_create(client)
     assert response.status_code == 200
     assert TEMPLATE_BASE + "success.html" in _template_names(response)
-    for pp, old_id in zip(programmation_projets, old_ids, strict=True):
-        pp.refresh_from_db()
-        assert pp.dotation_projet.lettrerefus.id != old_id
-        assert pp.dotation_projet.lettrerefus.modele == detr_refus_modele
+    for dp, old_id in zip(dotation_projets, old_ids, strict=True):
+        dp.refresh_from_db()
+        assert dp.lettrerefus.id != old_id
+        assert dp.lettrerefus.modele == detr_refus_modele
 
 
 def test_export_job_attr_names_and_document_type(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
-    _drive_through_step_format(
-        client, programmation_projets, modele_id=detr_refus_modele.id
-    )
+    _drive_through_step_format(client, dotation_projets, modele_id=detr_refus_modele.id)
     _post_step_create(client)
     job = ExportJob.objects.latest("created_at")
     assert job.attr_names == [LETTRE_REFUS]
@@ -501,11 +485,11 @@ def test_export_job_attr_names_and_document_type(
 
 @freeze_time("2026-05-03")
 def test_export_one_pdf_per_doc_multi_returns_zip(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
     _drive_through_step_format(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_id=detr_refus_modele.id,
         export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
     )
@@ -521,11 +505,11 @@ def test_export_one_pdf_per_doc_multi_returns_zip(
 
 @freeze_time("2026-05-03")
 def test_export_one_pdf_all_merges_into_single_pdf(
-    client, programmation_projets, detr_refus_modele
+    client, dotation_projets, detr_refus_modele
 ):
     _drive_through_step_format(
         client,
-        programmation_projets,
+        dotation_projets,
         modele_id=detr_refus_modele.id,
         export_format=EXPORT_FORMAT_ONE_PDF_ALL,
     )

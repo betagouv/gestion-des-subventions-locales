@@ -1,7 +1,14 @@
+from decimal import Decimal
+
 import pytest
 from django.urls import reverse
 
-from gsl.projet.constants import DS_STATE_ACCEPTE, DS_STATE_EN_INSTRUCTION
+from gsl.projet.constants import (
+    DS_STATE_ACCEPTE,
+    DS_STATE_EN_INSTRUCTION,
+    PROJET_STATUS_ACCEPTED,
+)
+from gsl.projet.tests.factories import DetrProjetFactory, ProjetFactory
 from gsl.stats.models import Subvention
 from gsl_core.tests.factories import (
     AdresseFactory,
@@ -11,7 +18,10 @@ from gsl_core.tests.factories import (
     DepartementFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
+from gsl_demarches_simplifiees.tests.factories import (
+    DossierFactory,
+    PersonneMoraleFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -156,3 +166,25 @@ class TestCollectiviteDetailView:
         )
 
         assert "Accepté" not in response.content.decode()
+
+    def test_shows_the_projets_of_the_collectivite(self):
+        pm = _personne_morale("21750056900011")
+        projet = ProjetFactory(dossier_ds=DossierFactory(ds_demandeur=pm))
+        DetrProjetFactory(
+            projet=projet,
+            status=PROJET_STATUS_ACCEPTED,
+            assiette=Decimal("2000"),
+            montant=Decimal("1500"),
+        )
+
+        client = ClientWithLoggedUserFactory(CollegueFactory(is_staff=True))
+        response = client.get(
+            reverse("suivi_financier:collectivite-detail", args=[pm.siren])
+        )
+
+        assert response.status_code == 200
+        assert list(response.context["projets"]) == [projet]
+        html = response.content.decode()
+        assert projet.dossier_ds.projet_intitule.lower().capitalize() in html
+        assert "DETR" in html
+        assert "1\xa0500\xa0€" in html

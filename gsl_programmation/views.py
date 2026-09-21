@@ -14,6 +14,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
 )
+from gsl.projet.models import DotationProjet
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
@@ -23,20 +24,18 @@ from gsl_core.matomo_constants import (
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import FilterSkiplinksMixin
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
-from gsl_programmation.models import Enveloppe, ProgrammationProjet
+from gsl_programmation.models import Enveloppe
 from gsl_programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
-from gsl_programmation.utils.programmation_projet_filters import (
-    ProgrammationProjetFilters,
-)
+from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
-class ProgrammationProjetListView(FilterSkiplinksMixin, FilterView, ListView):
-    model = ProgrammationProjet
-    filterset_class = ProgrammationProjetFilters
+class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
+    model = DotationProjet
+    filterset_class = ProgrammationFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
-    context_object_name = "programmation_projets"
+    context_object_name = "dotation_projets"
     paginate_by = 25
-    ordering = ["-created_at"]
+    ordering = ["-date_programmation"]
 
     def get_queryset(self):
         return (
@@ -44,36 +43,34 @@ class ProgrammationProjetListView(FilterSkiplinksMixin, FilterView, ListView):
             .get_queryset()
             .active()
             .select_related(
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__dossier_ds__ds_demandeur",
+                "projet",
+                "projet__dossier_ds",
+                "projet__dossier_ds__ds_demandeur",
             )
             .prefetch_related(
-                "dotation_projet__arrete",
-                "dotation_projet__lettrenotification",
-                "dotation_projet__lettre_et_arrete_signes",
+                "arrete",
+                "lettrenotification",
+                "lettre_et_arrete_signes",
                 "enveloppe",
-                "dotation_projet__annexes",
+                "annexes",
                 "enveloppe__perimetre",
-                "dotation_projet__projet__dotationprojet_set",
-                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
-                "dotation_projet__projet__dotationprojet_set__programmation_projet",
-                "dotation_projet__projet__dotationprojet_set__arrete",
-                "dotation_projet__projet__dotationprojet_set__lettrenotification",
-                "dotation_projet__projet__dotationprojet_set__lettre_et_arrete_signes",
-                "dotation_projet__projet__dotationprojet_set__programmation_projet__enveloppe",
-                "dotation_projet__projet__dotationprojet_set__annexes",
-                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
-                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
-                "dotation_projet__projet__dossier_ds__ds_demarche",
-                "dotation_projet__projet__dossier_ds__perimetre",
-                "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
-                "dotation_projet__projet__dossier_ds__demande_cofinancements",
-                "dotation_projet__projet__dossier_ds__projet_zonage",
-                "dotation_projet__projet__dossier_ds__projet_contractualisation",
+                "projet__dotationprojet_set",
+                "projet__dotationprojet_set__simulationprojet_set",
+                "projet__dotationprojet_set__arrete",
+                "projet__dotationprojet_set__lettrenotification",
+                "projet__dotationprojet_set__lettre_et_arrete_signes",
+                "projet__dotationprojet_set__enveloppe",
+                "projet__dotationprojet_set__annexes",
+                "projet__dossier_ds__demande_categorie_dsil",
+                "projet__dossier_ds__demande_categorie_detr",
+                "projet__dossier_ds__ds_demarche",
+                "projet__dossier_ds__perimetre",
+                "projet__dossier_ds__porteur_de_projet_arrondissement",
+                "projet__dossier_ds__demande_cofinancements",
+                "projet__dossier_ds__projet_zonage",
+                "projet__dossier_ds__projet_contractualisation",
             )
-            .defer("dotation_projet__projet__dossier_ds__ds_demarche__raw_ds_data")
+            .defer("projet__dossier_ds__ds_demarche__raw_ds_data")
         )
 
     def get(self, request, *args, **kwargs):

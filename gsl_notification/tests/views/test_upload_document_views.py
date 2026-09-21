@@ -15,6 +15,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_REFUSED,
 )
+from gsl.projet.tests.factories import DotationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -32,7 +33,6 @@ from gsl_notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl_notification.utils import generate_pdf_for_generated_document
-from gsl_programmation.tests.factories import ProgrammationProjetFactory
 
 LETTRE_REFUS_SIGNEE = LettreRefusSignee.document_type
 
@@ -48,17 +48,16 @@ def perimetre():
 
 
 @pytest.fixture
-def programmation_projet(perimetre):
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre
+def dotation_projet(perimetre):
+    return DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
     )
 
 
 @pytest.fixture
-def refused_programmation_projet(perimetre):
-    return ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__status=PROJET_STATUS_REFUSED,
+def refused_dotation_projet(perimetre):
+    return DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
         status=PROJET_STATUS_REFUSED,
     )
 
@@ -104,11 +103,11 @@ def _parked_pdf(name="scan.pdf"):
 
 
 def test_opening_the_modal_serves_a_fresh_upload_step(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
     """The dialog fetches this on every opening, so a step left in error is
     never what the agent comes back to."""
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
 
     response = correct_perimetre_client_with_user_logged.get(
         _analyze_url(projet), headers=HTMX
@@ -128,9 +127,9 @@ def test_opening_the_modal_serves_a_fresh_upload_step(
 
 
 def test_analyze_is_htmx_only(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
 
     response = correct_perimetre_client_with_user_logged.get(_analyze_url(projet))
 
@@ -138,9 +137,9 @@ def test_analyze_is_htmx_only(
 
 
 def test_analyze_without_qr_code_asks_for_the_document_type(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
 
     response = correct_perimetre_client_with_user_logged.post(
         _analyze_url(projet), {"file": _pdf()}, headers=HTMX
@@ -156,7 +155,7 @@ def test_analyze_without_qr_code_asks_for_the_document_type(
     # Nothing has been chosen yet, so the step must not open on an error.
     assert not form.is_bound
     assert not form.errors
-    assert not programmation_projet.dotation_projet.annexes.exists()
+    assert not dotation_projet.annexes.exists()
 
     key = response.context["key"]
     assert key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
@@ -165,10 +164,10 @@ def test_analyze_without_qr_code_asks_for_the_document_type(
 
 
 def test_analyze_of_an_image_skips_qr_detection(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
     """An image can't carry a QR page, so it goes straight to the choice step."""
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     image = SimpleUploadedFile("scan.png", b"dummy", content_type="image/png")
 
     response = correct_perimetre_client_with_user_logged.post(
@@ -183,9 +182,9 @@ def test_analyze_of_an_image_skips_qr_detection(
 
 
 def test_analyze_requires_a_file(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
 
     response = correct_perimetre_client_with_user_logged.post(
         _analyze_url(projet), {}, headers=HTMX
@@ -198,9 +197,9 @@ def test_analyze_requires_a_file(
 
 
 def test_analyze_out_of_perimetre_is_404(
-    programmation_projet, different_perimetre_client_with_user_logged
+    dotation_projet, different_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
 
     response = different_perimetre_client_with_user_logged.post(
         _analyze_url(projet), {"file": _pdf()}, headers=HTMX
@@ -229,15 +228,15 @@ def _merged_pdf(*pdf_bytes_list) -> bytes:
     return buf.getvalue()
 
 
-def _signed_scan_for(programmation_projet):
+def _signed_scan_for(dotation_projet):
     """The PDF of a generated lettre de notification, QR codes included — what
     the user gets back after printing, signing and scanning it."""
     modele = ModeleLettreNotificationFactory(
-        dotation=programmation_projet.dotation,
-        perimetre=programmation_projet.dotation_projet.projet.dossier_ds.perimetre,
+        dotation=dotation_projet.dotation,
+        perimetre=dotation_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(
-        dotation_projet=programmation_projet.dotation_projet,
+        dotation_projet=dotation_projet,
         modele=modele,
         content="<p>Contenu de la lettre.</p>",
     )
@@ -252,15 +251,14 @@ def test_analyze_attaches_the_document_read_from_its_qr_code(
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    programmation_projet = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+    dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
         status=PROJET_STATUS_ACCEPTED,
     )
-    projet = programmation_projet.dotation_projet.projet
+    projet = dotation_projet.projet
     scan = SimpleUploadedFile(
         "scan.pdf",
-        _signed_scan_for(programmation_projet),
+        _signed_scan_for(dotation_projet),
         content_type="application/pdf",
     )
 
@@ -273,7 +271,7 @@ def test_analyze_attaches_the_document_read_from_its_qr_code(
         response.templates[0].name
         == "gsl_notification/modal/projet_import/summary_step.html"
     )
-    assert programmation_projet.dotation_projet.lettre_et_arrete_signes is not None
+    assert dotation_projet.lettre_et_arrete_signes is not None
     assert ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_DOC_UPLOADED
     ).exists()
@@ -287,24 +285,24 @@ def test_analyze_refuses_a_scan_belonging_to_another_projet(
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    other_pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__projet__dossier_ds__ds_number=9999999,
-        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+    other_dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=9999999,
         status=PROJET_STATUS_ACCEPTED,
     )
-    target_pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__projet__dossier_ds__ds_number=1111111,
-        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+    target_dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=1111111,
         status=PROJET_STATUS_ACCEPTED,
     )
     scan = SimpleUploadedFile(
-        "scan.pdf", _signed_scan_for(other_pp), content_type="application/pdf"
+        "scan.pdf",
+        _signed_scan_for(other_dotation_projet),
+        content_type="application/pdf",
     )
 
     response = correct_perimetre_client_with_user_logged.post(
-        _analyze_url(target_pp.dotation_projet.projet),
+        _analyze_url(target_dotation_projet.projet),
         {"file": scan},
         headers=HTMX,
     )
@@ -312,10 +310,10 @@ def test_analyze_refuses_a_scan_belonging_to_another_projet(
     assert response.status_code == 200
     assert "9999999" in response.context["form"].errors["file"][0]
     assert not LettreEtArreteSignes.objects.filter(
-        dotation_projet=target_pp.dotation_projet
+        dotation_projet=target_dotation_projet
     ).exists()
     assert not LettreEtArreteSignes.objects.filter(
-        dotation_projet=other_pp.dotation_projet
+        dotation_projet=other_dotation_projet
     ).exists()
 
 
@@ -327,26 +325,27 @@ def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    target_pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__projet__dossier_ds__ds_number=1111111,
-        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+    target_dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=1111111,
         status=PROJET_STATUS_ACCEPTED,
     )
-    other_pp = ProgrammationProjetFactory(
-        dotation_projet__projet__dossier_ds__perimetre=perimetre,
-        dotation_projet__projet__dossier_ds__ds_number=9999999,
-        dotation_projet__status=PROJET_STATUS_ACCEPTED,
+    other_dotation_projet = DotationProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=9999999,
         status=PROJET_STATUS_ACCEPTED,
     )
     scan = SimpleUploadedFile(
         "scan.pdf",
-        _merged_pdf(_signed_scan_for(target_pp), _signed_scan_for(other_pp)),
+        _merged_pdf(
+            _signed_scan_for(target_dotation_projet),
+            _signed_scan_for(other_dotation_projet),
+        ),
         content_type="application/pdf",
     )
 
     response = correct_perimetre_client_with_user_logged.post(
-        _analyze_url(target_pp.dotation_projet.projet), {"file": scan}, headers=HTMX
+        _analyze_url(target_dotation_projet.projet), {"file": scan}, headers=HTMX
     )
 
     assert response.status_code == 200
@@ -355,10 +354,10 @@ def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
         == "gsl_notification/modal/projet_import/summary_step.html"
     )
     assert LettreEtArreteSignes.objects.filter(
-        dotation_projet=target_pp.dotation_projet
+        dotation_projet=target_dotation_projet
     ).exists()
     assert not LettreEtArreteSignes.objects.filter(
-        dotation_projet=other_pp.dotation_projet
+        dotation_projet=other_dotation_projet
     ).exists()
 
     report = response.context["report"]
@@ -372,10 +371,10 @@ def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
 
 @pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
 def test_attach_imports_the_document(
-    programmation_projet, correct_perimetre_client_with_user_logged, doc_type
+    dotation_projet, correct_perimetre_client_with_user_logged, doc_type
 ):
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
 
     response = correct_perimetre_client_with_user_logged.post(
         _attach_url(projet),
@@ -393,25 +392,25 @@ def test_attach_imports_the_document(
     assert 'id="upload-document-modal-step"' in response.content.decode()
 
     if doc_type == LETTRE_ET_ARRETE_SIGNES:
-        document = programmation_projet.dotation_projet.lettre_et_arrete_signes
+        document = dotation_projet.lettre_et_arrete_signes
     else:
-        assert programmation_projet.dotation_projet.annexes.count() == 1
-        document = programmation_projet.dotation_projet.annexes.first()
+        assert dotation_projet.annexes.count() == 1
+        document = dotation_projet.annexes.first()
 
     assert document.file.name.startswith(
-        f"{doc_type}/dotation_projet_{programmation_projet.dotation_projet_id}/test"
+        f"{doc_type}/dotation_projet_{dotation_projet.id}/test"
     )
     assert document.created_by == correct_perimetre_client_with_user_logged.user
 
 
 def test_import_refreshes_the_page_behind_the_modal(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
     """The summary carries what the import changed, swapped out-of-band: the
     imported documents table, and the notification step whose "Notifier" button
     a signed lettre unblocks."""
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
 
     response = correct_perimetre_client_with_user_logged.post(
         _attach_url(projet),
@@ -427,10 +426,10 @@ def test_import_refreshes_the_page_behind_the_modal(
 
 
 def test_attach_logs_a_projet_action(
-    programmation_projet, correct_perimetre_client_with_user_logged
+    dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
 
     correct_perimetre_client_with_user_logged.post(
         _attach_url(projet),
@@ -445,13 +444,13 @@ def test_attach_logs_a_projet_action(
 
 
 def test_attach_refuses_a_type_the_dotation_status_forbids(
-    refused_programmation_projet, correct_perimetre_client_with_user_logged
+    refused_dotation_projet, correct_perimetre_client_with_user_logged
 ):
     """`lettre_et_arrete_signes` only applies to an accepted dotation, so it is
     not even offered as a choice for a refused one."""
-    programmation_projet = refused_programmation_projet
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.dotation
+    dotation_projet = refused_dotation_projet
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
 
     key = _parked_pdf()
     response = correct_perimetre_client_with_user_logged.post(
@@ -468,11 +467,11 @@ def test_attach_refuses_a_type_the_dotation_status_forbids(
 
 
 def test_attach_imports_a_lettre_refus_signee(
-    refused_programmation_projet, correct_perimetre_client_with_user_logged
+    refused_dotation_projet, correct_perimetre_client_with_user_logged
 ):
-    programmation_projet = refused_programmation_projet
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.dotation
+    dotation_projet = refused_dotation_projet
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
 
     response = correct_perimetre_client_with_user_logged.post(
         _attach_url(projet),
@@ -481,14 +480,14 @@ def test_attach_imports_a_lettre_refus_signee(
     )
 
     assert response.status_code == 200
-    assert programmation_projet.dotation_projet.lettre_refus_signee is not None
+    assert dotation_projet.lettre_refus_signee is not None
 
 
 def test_attach_out_of_perimetre_is_404(
-    programmation_projet, different_perimetre_client_with_user_logged
+    dotation_projet, different_perimetre_client_with_user_logged
 ):
-    projet = programmation_projet.dotation_projet.projet
-    dotation = programmation_projet.dotation
+    projet = dotation_projet.projet
+    dotation = dotation_projet.dotation
 
     response = different_perimetre_client_with_user_logged.post(
         _attach_url(projet),
@@ -521,9 +520,9 @@ def test_uploaded_document_download_url_with_correct_perimetre_and_without_arret
     ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
 )
 def test_uploaded_document_download_url_with_correct_perimetre_and_with_arrete(
-    correct_perimetre_client_with_user_logged, programmation_projet, doc_type, factory
+    correct_perimetre_client_with_user_logged, dotation_projet, doc_type, factory
 ):
-    doc = factory(dotation_projet=programmation_projet.dotation_projet)
+    doc = factory(dotation_projet=dotation_projet)
     url = doc.get_download_url()
     assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
 
