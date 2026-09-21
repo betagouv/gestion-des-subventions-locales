@@ -1,15 +1,23 @@
 import logging
+import time
 from datetime import datetime, timedelta
 
 from django.core.management.base import BaseCommand
 
-from gsl_demarches_simplifiees.importer.dossier import save_one_dossier_from_ds
+from gsl_demarches_simplifiees.ds_client import DsClient
+from gsl_demarches_simplifiees.models import Dossier
 
 from ...models import ProjetAction
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 logger = logging.getLogger(__name__)
 
-MATCH_TOLERANCE = timedelta(seconds=5)
+MATCH_TOLERANCE = timedelta(seconds=10)
+MIN_DELAY_BETWEEN_DS_CALLS = timedelta(seconds=1)
 
 
 class Command(BaseCommand):
@@ -25,15 +33,24 @@ class Command(BaseCommand):
     help = "Rattache ProjetAction.source_id aux notifications déjà enregistrées"
 
     def handle(self, *args, **options):
+        client = DsClient()
+
         logger.info("Backfill de ProjetAction.source_id…")
         actions = ProjetAction.objects.filter(
             action_type=ProjetAction.TYPE_NOTIFIED, source_id=""
         ).select_related("projet__dossier_ds")
 
+        if tqdm is not None:
+            actions = tqdm(actions, total=actions.count(), unit="action")
+
+        last_ds_call_at = None
         for action in actions:
-            dossier = action.projet.dossier_ds  # faire un appel par seconde
+            dossier = action.projet.dossier_ds
+            last_ds_call_at = _throttle_ds_call(last_ds_call_at)
             try:
-                save_one_dossier_from_ds(dossier)
+                dossier_data = client.get_one_dossier(dossier.ds_number)
+                dossier.ds_data.raw_data = dossier_data
+                dossier.ds_data.save()
             except Exception as e:
                 logger.error(
                     "Backfill ProjetAction.source_id : échec du rafraîchissement DN "
@@ -59,21 +76,30 @@ class Command(BaseCommand):
         logger.info(self.style.SUCCESS("Terminé."))
 
 
-def _find_traitement_matching_action(dossier, action: ProjetAction) -> dict | None:
+def _throttle_ds_call(last_call_at: float | None) -> float:
+    """Bloque si besoin pour ne jamais déclencher plus d'un appel DS par
+    seconde, puis retourne l'horodatage (`time.monotonic`) de cet appel."""
+    now = time.monotonic()
+    if last_call_at is not None:
+        remaining = MIN_DELAY_BETWEEN_DS_CALLS.total_seconds() - (now - last_call_at)
+        if remaining > 0:
+            time.sleep(remaining)
+            now = time.monotonic()
+    return now
+
+
+def _find_traitement_matching_action(
+    dossier: Dossier, action: ProjetAction
+) -> dict | None:
     """Parcourt tous les traitements du dossier (pas seulement celui
     correspondant à son état courant, cf. `get_last_traitement_matching_dossier_state`)
     et retourne celui dont `dateTraitement` est le plus proche de
     `action.created_at`, à condition d'être à moins de `MATCH_TOLERANCE`."""
-    ds_data = getattr(dossier, "ds_data", None)
-    traitements = ((ds_data.raw_data if ds_data else None) or {}).get(
-        "traitements"
-    ) or []
-
     best_match = None
     best_delta = None
     notification_traitements = [
         t
-        for t in traitements
+        for t in dossier.traitements
         if t.get("event") in ["accepte", "refuse", "classe_sans_suite"]
     ]
     for traitement in notification_traitements:

@@ -35,7 +35,7 @@ def _projet_with_traitements(perimetre, *, date_traitement, traitements=None):
             }
         ]
     DossierDataFactory(dossier=projet.dossier_ds, raw_data={"traitements": traitements})
-    return projet
+    return projet, traitements
 
 
 def _notified_action(projet, *, created_at, source_id=""):
@@ -48,22 +48,36 @@ def _notified_action(projet, *, created_at, source_id=""):
     )
 
 
-@mock.patch(f"{MODULE}.save_one_dossier_from_ds")
-def test_associates_source_id_when_traitement_is_within_tolerance(mock_save):
+def _stub_ds_client(mock_ds_client_class, *, traitements):
+    """Fait renvoyer à `DsClient().get_one_dossier(...)` les traitements
+    donnés, comme si DN les avait retournés tels quels lors du
+    rafraîchissement."""
+    mock_client = mock_ds_client_class.return_value
+    mock_client.get_one_dossier.return_value = {"traitements": traitements}
+    return mock_client
+
+
+@mock.patch(f"{MODULE}.DsClient")
+def test_associates_source_id_when_traitement_is_within_tolerance(mock_ds_client_class):
     perimetre = PerimetreArrondissementFactory()
     date_traitement = datetime(2025, 1, 15, 10, 0, 0, tzinfo=UTC)
-    projet = _projet_with_traitements(perimetre, date_traitement=date_traitement)
+    projet, traitements = _projet_with_traitements(
+        perimetre, date_traitement=date_traitement
+    )
     action = _notified_action(projet, created_at=date_traitement + timedelta(seconds=2))
+    mock_client = _stub_ds_client(mock_ds_client_class, traitements=traitements)
 
     call_command(COMMAND)
 
-    mock_save.assert_called_once_with(projet.dossier_ds)
+    mock_client.get_one_dossier.assert_called_once_with(projet.dossier_ds.ds_number)
     action.refresh_from_db()
     assert action.source_id == "traitement-1"
 
 
-@mock.patch(f"{MODULE}.save_one_dossier_from_ds")
-def test_picks_the_closest_traitement_among_several_notification_events(mock_save):
+@mock.patch(f"{MODULE}.DsClient")
+def test_picks_the_closest_traitement_among_several_notification_events(
+    mock_ds_client_class,
+):
     """Among the notification-triggering events (accepte/refuse/classe_sans_suite),
     the match is purely date-based: it loops over all of them and keeps the
     closest one, not just the one whose `event` matches the dossier's current
@@ -71,7 +85,7 @@ def test_picks_the_closest_traitement_among_several_notification_events(mock_sav
     not for this backfill)."""
     perimetre = PerimetreArrondissementFactory()
     date_traitement = datetime(2025, 1, 15, 10, 0, 0, tzinfo=UTC)
-    projet = _projet_with_traitements(
+    projet, traitements = _projet_with_traitements(
         perimetre,
         date_traitement=date_traitement,
         traitements=[
@@ -87,6 +101,7 @@ def test_picks_the_closest_traitement_among_several_notification_events(mock_sav
             },
         ],
     )
+    _stub_ds_client(mock_ds_client_class, traitements=traitements)
     # Closest to "refuse-then-repris", even though the dossier's current state
     # (SANS_SUITE) matches the other traitement.
     action = _notified_action(
@@ -100,14 +115,14 @@ def test_picks_the_closest_traitement_among_several_notification_events(mock_sav
     assert action.source_id == "refuse-then-repris"
 
 
-@mock.patch(f"{MODULE}.save_one_dossier_from_ds")
-def test_ignores_non_notification_events_even_when_closer(mock_save):
+@mock.patch(f"{MODULE}.DsClient")
+def test_ignores_non_notification_events_even_when_closer(mock_ds_client_class):
     """A `depose`/`repasse_en_instruction`/... traitement is never an
     acceptable match, even if it's chronologically closer to the action than
     any accepte/refuse/classe_sans_suite traitement."""
     perimetre = PerimetreArrondissementFactory()
     date_traitement = datetime(2025, 1, 15, 10, 0, 0, tzinfo=UTC)
-    projet = _projet_with_traitements(
+    projet, traitements = _projet_with_traitements(
         perimetre,
         date_traitement=date_traitement,
         traitements=[
@@ -123,6 +138,7 @@ def test_ignores_non_notification_events_even_when_closer(mock_save):
             },
         ],
     )
+    _stub_ds_client(mock_ds_client_class, traitements=traitements)
     action = _notified_action(projet, created_at=date_traitement)
 
     call_command(COMMAND)
@@ -131,13 +147,16 @@ def test_ignores_non_notification_events_even_when_closer(mock_save):
     assert action.source_id == "classe-sans-suite"
 
 
-@mock.patch(f"{MODULE}.save_one_dossier_from_ds")
+@mock.patch(f"{MODULE}.DsClient")
 def test_alerts_instead_of_guessing_when_no_traitement_is_close_enough(
-    mock_save, caplog
+    mock_ds_client_class, caplog
 ):
     perimetre = PerimetreArrondissementFactory()
     date_traitement = datetime(2025, 1, 15, 10, 0, 0, tzinfo=UTC)
-    projet = _projet_with_traitements(perimetre, date_traitement=date_traitement)
+    projet, traitements = _projet_with_traitements(
+        perimetre, date_traitement=date_traitement
+    )
+    _stub_ds_client(mock_ds_client_class, traitements=traitements)
     action = _notified_action(projet, created_at=date_traitement + timedelta(hours=1))
 
     with caplog.at_level(logging.WARNING):
@@ -148,24 +167,29 @@ def test_alerts_instead_of_guessing_when_no_traitement_is_close_enough(
     assert action.source_id == ""
 
 
-@mock.patch(f"{MODULE}.save_one_dossier_from_ds")
-def test_skips_actions_that_already_have_a_source_id(mock_save):
+@mock.patch(f"{MODULE}.DsClient")
+def test_skips_actions_that_already_have_a_source_id(mock_ds_client_class):
     perimetre = PerimetreArrondissementFactory()
     date_traitement = datetime(2025, 1, 15, 10, 0, 0, tzinfo=UTC)
-    projet = _projet_with_traitements(perimetre, date_traitement=date_traitement)
+    projet, _traitements = _projet_with_traitements(
+        perimetre, date_traitement=date_traitement
+    )
     _notified_action(projet, created_at=date_traitement, source_id="already-set")
 
     call_command(COMMAND)
 
-    mock_save.assert_not_called()
+    mock_ds_client_class.return_value.get_one_dossier.assert_not_called()
 
 
-@mock.patch(f"{MODULE}.save_one_dossier_from_ds", side_effect=Exception("boom"))
-def test_logs_and_continues_when_the_dn_refresh_fails(mock_save, caplog):
+@mock.patch(f"{MODULE}.DsClient")
+def test_logs_and_continues_when_the_dn_refresh_fails(mock_ds_client_class, caplog):
     perimetre = PerimetreArrondissementFactory()
     date_traitement = datetime(2025, 1, 15, 10, 0, 0, tzinfo=UTC)
-    projet = _projet_with_traitements(perimetre, date_traitement=date_traitement)
+    projet, _traitements = _projet_with_traitements(
+        perimetre, date_traitement=date_traitement
+    )
     action = _notified_action(projet, created_at=date_traitement)
+    mock_ds_client_class.return_value.get_one_dossier.side_effect = Exception("boom")
 
     with caplog.at_level(logging.ERROR):
         call_command(COMMAND)
