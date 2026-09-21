@@ -74,13 +74,13 @@ class BaseProjetDetailView(DetailView):
 
     @staticmethod
     def get_base_projet_context(projet, request):
-        dotation_projets = sorted(
-            projet.dotationprojet_set.all(), key=lambda dp: dp.dotation
+        enveloppe_projets = sorted(
+            projet.enveloppeprojet_set.all(), key=lambda dp: dp.dotation
         )
         return {
             "title": projet.dossier_ds.projet_intitule,
             "dossier": projet.dossier_ds,
-            "dotation_projets": dotation_projets,
+            "enveloppe_projets": enveloppe_projets,
             "extra_skiplinks": [{"link": "#projet-panel", "label": "Détail"}],
             **get_projet_go_back_context(request),
         }
@@ -124,19 +124,19 @@ class ProjetSimulationsView(BaseProjetDetailView):
         context = super().get_context_data(**kwargs)
         projet = self.object
         all_qs = SimulationProjet.objects.filter(
-            dotation_projet__projet=projet
+            enveloppe_projet__projet=projet
         ).select_related(
             "simulation",
             "simulation__enveloppe",
-            "dotation_projet",
-            "dotation_projet__projet",
-            "dotation_projet__projet__dossier_ds",
+            "enveloppe_projet",
+            "enveloppe_projet__projet",
+            "enveloppe_projet__projet__dossier_ds",
         )
 
         dotation_filter = self.request.GET.get("dotation", "")
         filtered_qs = all_qs.order_by("-simulation__created_at")
         if dotation_filter in ("DETR", "DSIL"):
-            filtered_qs = filtered_qs.filter(dotation_projet__dotation=dotation_filter)
+            filtered_qs = filtered_qs.filter(enveloppe_projet__dotation=dotation_filter)
 
         simulation_projets_with_forms = []
         for sp in filtered_qs:
@@ -479,16 +479,16 @@ class ProjetListViewFilters(ProjetFilters):
     def qs(self):
         qs = super().qs
         qs = qs.annotate(
-            montant_retenu_total=Sum("dotationprojet__montant"),
-            assiette_max=Max("dotationprojet__assiette"),
+            montant_retenu_total=Sum("enveloppeprojet__montant"),
+            assiette_max=Max("enveloppeprojet__assiette"),
             taux_max=Max(
                 Case(
                     When(
-                        dotationprojet__assiette__gt=0,
-                        dotationprojet__montant__isnull=False,
-                        then=F("dotationprojet__montant")
+                        enveloppeprojet__assiette__gt=0,
+                        enveloppeprojet__montant__isnull=False,
+                        then=F("enveloppeprojet__montant")
                         * 100.0
-                        / F("dotationprojet__assiette"),
+                        / F("enveloppeprojet__assiette"),
                     ),
                     default=None,
                     output_field=DecimalField(),
@@ -507,7 +507,7 @@ class ProjetListViewFilters(ProjetFilters):
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
             "dossier_ds__porteur_de_projet_arrondissement",
-            "dotationprojet_set",
+            "enveloppeprojet_set",
             "dossier_ds__demande_cofinancements",
             "dossier_ds__projet_zonage",
             "dossier_ds__projet_contractualisation",
@@ -584,6 +584,6 @@ class ProjetMissingAnnotationsListView(ListView):
                 "dossier_ds",
                 "dossier_ds__ds_demandeur",
             )
-            .prefetch_related("dotationprojet_set", "dossier_ds__ds_demarche")
+            .prefetch_related("enveloppeprojet_set", "dossier_ds__ds_demarche")
             .order_by("-dossier_ds__ds_date_depot")
         )

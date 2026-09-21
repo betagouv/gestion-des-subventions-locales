@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 class ProjetService:
     @classmethod
     def create_or_update_projet_and_co_from_dossier(cls, ds_dossier_number: str):
-        from .dotation_projet_services import DotationProjetService
+        from .enveloppe_projet_services import EnveloppeProjetService
 
         ds_dossier = Dossier.objects.get(ds_number=ds_dossier_number)
         projet = cls.create_or_update_from_ds_dossier(ds_dossier)
-        DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+        EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet(projet)
 
     @classmethod
     def create_or_update_from_ds_dossier(cls, ds_dossier: Dossier):

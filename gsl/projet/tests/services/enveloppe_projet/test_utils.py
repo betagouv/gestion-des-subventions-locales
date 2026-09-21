@@ -22,11 +22,11 @@ from ....constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
-from ....services.dotation_projet_services import (
-    DotationProjetService as dps,
+from ....services.enveloppe_projet_services import (
+    EnveloppeProjetService as dps,
 )
 from ...factories import (
-    DotationProjetFactory,
+    EnveloppeProjetFactory,
     ProjetFactory,
 )
 
@@ -52,16 +52,16 @@ def perimetres():
     ]
 
 
-# -- _get_root_enveloppe_from_dotation_projet --
+# -- _get_root_enveloppe_from_enveloppe_projet --
 
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_get_root_enveloppe_from_dotation_projet_with_a_detr_and_arrondissement_projet(
+def test_get_root_enveloppe_from_enveloppe_projet_with_a_detr_and_arrondissement_projet(
     perimetres,
 ):
     arr_dijon, dep_21, *_ = perimetres
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -71,17 +71,17 @@ def test_get_root_enveloppe_from_dotation_projet_with_a_detr_and_arrondissement_
         perimetre=arr_dijon, annee=2025, deleguee_by=dep_detr_enveloppe
     )
 
-    enveloppe = dps._get_root_enveloppe_from_dotation_projet(dotation_projet)
+    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
     assert enveloppe == dep_detr_enveloppe
 
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_get_root_enveloppe_from_dotation_projet_with_a_dsil_and_region_projet(
+def test_get_root_enveloppe_from_enveloppe_projet_with_a_dsil_and_region_projet(
     perimetres,
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -94,17 +94,17 @@ def test_get_root_enveloppe_from_dotation_projet_with_a_dsil_and_region_projet(
         perimetre=arr_dijon, annee=2025, deleguee_by=dep_dsil_enveloppe_delegated
     )
 
-    enveloppe = dps._get_root_enveloppe_from_dotation_projet(dotation_projet)
+    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
 
     assert enveloppe == region_dsil_enveloppe
 
 
 @pytest.mark.django_db
 @freeze_time("2026-05-06")
-def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(perimetres, caplog):
+def test_get_enveloppe_from_enveloppe_projet_with_a_next_year_date(perimetres, caplog):
     arr_dijon, _, region_bfc, *_ = perimetres
     region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
         enveloppe=region_dsil_enveloppe,
@@ -115,16 +115,16 @@ def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(perimetres, ca
     )
 
     with pytest.raises(Enveloppe.DoesNotExist):  # No enveloppe for 2026
-        dps._get_root_enveloppe_from_dotation_projet(dotation_projet)
+        dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
 
     record = caplog.records[0]
-    assert record.message == "No enveloppe found for a dotation projet"
+    assert record.message == "No enveloppe found for a enveloppe projet"
     assert record.levelname == "WARNING"
     assert (
         getattr(record, "dossier_ds_number", None)
-        == dotation_projet.dossier_ds.ds_number
+        == enveloppe_projet.dossier_ds.ds_number
     )
-    assert getattr(record, "dotation", None) == dotation_projet.dotation
+    assert getattr(record, "dotation", None) == enveloppe_projet.dotation
     assert getattr(record, "year", None) == 2026
     assert getattr(record, "perimetre", None) == arr_dijon
 
@@ -143,7 +143,7 @@ def test_get_enveloppe_from_dotation_projet_with_a_next_year_date(perimetres, ca
         (timezone.datetime(2026, 11, 1, tzinfo=UTC), True, 2027),
     ],
 )
-def test_get_enveloppe_from_dotation_projet_with_a_date_traitement_after_november(
+def test_get_enveloppe_from_enveloppe_projet_with_a_date_traitement_after_november(
     perimetres, date_traitement, allow_next_year, expected_annee
 ):
     arr_dijon, _, region_bfc, *_ = perimetres
@@ -151,15 +151,15 @@ def test_get_enveloppe_from_dotation_projet_with_a_date_traitement_after_novembe
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2026)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2027)
 
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         status=PROJET_STATUS_ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_date_traitement=date_traitement,
     )
 
-    enveloppe = dps._get_root_enveloppe_from_dotation_projet(
-        dotation_projet, allow_next_year=allow_next_year
+    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(
+        enveloppe_projet, allow_next_year=allow_next_year
     )
     assert enveloppe.annee == expected_annee
 
@@ -236,9 +236,9 @@ def test_get_montant_from_dossier_handles_missing_montant(caplog):
 @pytest.mark.django_db
 def test_is_programmation_date_after_passage_en_instruction_without_programmation():
     """Test _is_programmation_date_after_passage_en_instruction returns False when the dotation isn't programmed"""
-    dotation_projet = DotationProjetFactory(status=PROJET_STATUS_PROCESSING)
+    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_PROCESSING)
 
-    result = dps._is_programmation_date_after_passage_en_instruction(dotation_projet)
+    result = dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
 
     assert result is False
 
@@ -250,16 +250,16 @@ def test_is_programmation_date_after_passage_en_instruction_when_before_passage_
         ds_date_passage_en_instruction=timezone.datetime(2025, 1, 15, tzinfo=UTC)
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         status=PROJET_STATUS_ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
 
-    result = dps._is_programmation_date_after_passage_en_instruction(dotation_projet)
+    result = dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
 
     assert result is False
-    assert dotation_projet.date_programmation < dossier.ds_date_passage_en_instruction
+    assert enveloppe_projet.date_programmation < dossier.ds_date_passage_en_instruction
 
 
 @pytest.mark.django_db
@@ -271,16 +271,16 @@ def test_is_programmation_date_after_passage_en_instruction_when_after_passage_e
         )
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         status=PROJET_STATUS_ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
     )
 
-    result = dps._is_programmation_date_after_passage_en_instruction(dotation_projet)
+    result = dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
 
     assert result is True
-    assert dotation_projet.date_programmation > dossier.ds_date_passage_en_instruction
+    assert enveloppe_projet.date_programmation > dossier.ds_date_passage_en_instruction
 
 
 @pytest.mark.django_db
@@ -288,7 +288,7 @@ def test_is_programmation_date_after_passage_en_instruction_with_none_date():
     """Test _is_programmation_date_after_passage_en_instruction raises TypeError when ds_date_passage_en_instruction is None"""
     dossier = DossierFactory(ds_date_passage_en_instruction=None)
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         status=PROJET_STATUS_ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
@@ -296,4 +296,4 @@ def test_is_programmation_date_after_passage_en_instruction_with_none_date():
 
     # When ds_date_passage_en_instruction is None, the comparison raises TypeError
     with pytest.raises(TypeError, match="not supported between instances of"):
-        dps._is_programmation_date_after_passage_en_instruction(dotation_projet)
+        dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)

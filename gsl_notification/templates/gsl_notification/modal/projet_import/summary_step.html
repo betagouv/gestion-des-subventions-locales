@@ -20,7 +20,7 @@
     <ul class="fr-mt-2w">
         {% for document in report.attached %}
             <li>
-                {{ document.dotation_projet.dotation }} —
+                {{ document.enveloppe_projet.dotation }} —
                 {{ document.verbose_name }} : {{ document.name }}
             </li>
         {% endfor %}

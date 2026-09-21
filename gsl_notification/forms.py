@@ -24,7 +24,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import DotationProjet, DotationProjetQuerySet, Projet
+from gsl.projet.models import EnveloppeProjet, EnveloppeProjetQuerySet, Projet
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
@@ -193,15 +193,15 @@ def uploadable_document_choices(projet) -> list[tuple[str, str]]:
     value, which `RadioSelect` renders as a disabled option.
     """
     choices = []
-    dotation_projets = projet.dotationprojet_set.filter(
+    enveloppe_projets = projet.enveloppeprojet_set.filter(
         status__in=PROJET_FINAL_STATUSES
     ).order_by("dotation")
-    for dotation_projet in dotation_projets:
-        dotation = dotation_projet.dotation
+    for enveloppe_projet in enveloppe_projets:
+        dotation = enveloppe_projet.dotation
         for model in UPLOADED_DOCUMENTS.values():
-            if dotation_projet.status not in model.required_dotation_projet_statuses:
+            if enveloppe_projet.status not in model.required_enveloppe_projet_statuses:
                 continue
-            can_upload = model.can_upload(dotation_projet)
+            can_upload = model.can_upload(enveloppe_projet)
             choices.append(
                 (
                     (f"{model.document_type}-{dotation}" if can_upload else ""),
@@ -248,9 +248,9 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         return cleaned_data
 
     @cached_property
-    def dotation_projet(self) -> DotationProjet:
+    def enveloppe_projet(self) -> EnveloppeProjet:
         _, dotation = self.cleaned_data["document"].split("-")
-        return DotationProjet.objects.get(projet=self.projet, dotation=dotation)
+        return EnveloppeProjet.objects.get(projet=self.projet, dotation=dotation)
 
     @cached_property
     def document_class(self):
@@ -261,7 +261,7 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         key = self.cleaned_data["key"]
         with default_storage.open(key) as parked:
             document = self.document_class.objects.create(
-                dotation_projet=self.dotation_projet,
+                enveloppe_projet=self.enveloppe_projet,
                 created_by=user,
                 file=File(parked, name=os.path.basename(key)),
             )
@@ -279,10 +279,10 @@ class DotationDocumentFields:
 
     modeles = []
 
-    def __init__(self, form: "GenerateDotationsDocumentsForm", dotation_projet):
+    def __init__(self, form: "GenerateDotationsDocumentsForm", enveloppe_projet):
         self.form = form
-        self.dotation = dotation_projet.dotation
-        self.dotation_projet = dotation_projet
+        self.dotation = enveloppe_projet.dotation
+        self.enveloppe_projet = enveloppe_projet
 
     def build(self) -> dict:
         widget_fields = {}
@@ -310,7 +310,7 @@ class DotationDocumentFields:
 
     def _add_modele_field(self, modele_class, perimetres):
         name = f"modele_{modele_class.type}_{self.dotation}"
-        existing_document = getattr(self.dotation_projet, modele_class.type, None)
+        existing_document = getattr(self.enveloppe_projet, modele_class.type, None)
         self.form.fields[name] = forms.ModelChoiceField(
             queryset=modele_class.objects.filter(
                 dotation=self.dotation, perimetre__in=perimetres
@@ -377,25 +377,25 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
     def __init__(self, *args, projet, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        self.treated_dotation_projets = list(
-            projet.dotationprojet_set.filter(status__in=PROJET_FINAL_STATUSES).order_by(
-                "dotation"
-            )
+        self.treated_enveloppe_projets = list(
+            projet.enveloppeprojet_set.filter(
+                status__in=PROJET_FINAL_STATUSES
+            ).order_by("dotation")
         )
 
         self.dotation_fields = {
             dp.dotation: {
-                "dotation_projet": dp,
+                "enveloppe_projet": dp,
                 "fields": DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS[dp.status](
                     self, dp
                 ).build(),
             }
-            for dp in self.treated_dotation_projets
+            for dp in self.treated_enveloppe_projets
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        for dp in self.treated_dotation_projets:
+        for dp in self.treated_enveloppe_projets:
             for fields in self.dotation_fields[dp.dotation]["fields"].values():
                 modele_name = fields["modele"].name
                 skip_name = fields["skip"].name
@@ -412,7 +412,7 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
     def save(self):
         with_qr_code = not self.cleaned_data["hide_qr_code"]
         documents = []
-        for dp in self.treated_dotation_projets:
+        for dp in self.treated_enveloppe_projets:
             for fields in self.dotation_fields[dp.dotation]["fields"].values():
                 if not self.cleaned_data[fields["skip"].name]:
                     documents.append(
@@ -425,22 +425,22 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
                     )
         return documents
 
-    def _generate_document(self, modele_class, dotation_projet, modele, with_qr_code):
+    def _generate_document(self, modele_class, enveloppe_projet, modele, with_qr_code):
         document_class = modele_class.generated_document_class
-        is_creating = not hasattr(dotation_projet, modele_class.type)
+        is_creating = not hasattr(enveloppe_projet, modele_class.type)
         if not is_creating:
-            getattr(dotation_projet, modele_class.type).delete()
+            getattr(enveloppe_projet, modele_class.type).delete()
 
         document = document_class(
-            dotation_projet=dotation_projet,
+            enveloppe_projet=enveloppe_projet,
             modele=modele,
             created_by=self.user,
-            content=replace_mentions_in_html(modele.content, dotation_projet),
+            content=replace_mentions_in_html(modele.content, enveloppe_projet),
             with_qr_code=with_qr_code,
         )
         document.save()
         log_generated_document_action(
-            self.user, dotation_projet, document_class, is_creating
+            self.user, enveloppe_projet, document_class, is_creating
         )
         return document
 
@@ -456,7 +456,7 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
         fields = (
             "content",
             "created_by",
-            "dotation_projet",
+            "enveloppe_projet",
             "modele",
             "with_qr_code",
         )
@@ -556,7 +556,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        if self.instance.dotationprojet_set.without_signed_document().exists():
+        if self.instance.enveloppeprojet_set.without_signed_document().exists():
             raise forms.ValidationError(
                 "Impossible d'envoyer la notification : il manque des documents "
                 "signés obligatoires."
@@ -627,7 +627,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
     def _notification_filename(self, documents):
         if len(documents) <= 1:
             return os.path.splitext(documents[0].name)[0] + ".pdf"
-        dotations = {doc.dotation_projet.dotation for doc in documents}
+        dotations = {doc.enveloppe_projet.dotation for doc in documents}
         ordered = [d for d in DOTATIONS if d in dotations]
         ds_number = self.instance.dossier_ds.ds_number
         return f"Notification {ds_number} {'-'.join(ordered)}.pdf"
@@ -643,8 +643,8 @@ EXPORT_FORMAT_ONE_PDF_PER_PROJECT = ExportJob.EXPORT_FORMAT_ONE_PDF_PER_PROJECT
 EXPORT_FORMAT_ONE_PDF_ALL_GROUPED = ExportJob.EXPORT_FORMAT_ONE_PDF_ALL_GROUPED
 
 
-class DotationProjetMultipleChoiceField(forms.ModelMultipleChoiceField):
-    """Hidden, CSV-encoded ModelMultipleChoiceField for DotationProjet."""
+class EnveloppeProjetMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """Hidden, CSV-encoded ModelMultipleChoiceField for EnveloppeProjet."""
 
     widget = forms.HiddenInput
 
@@ -709,15 +709,15 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     Subclasses restrict them to the projets they can generate documents for.
     """
 
-    ids = DotationProjetMultipleChoiceField(
-        queryset=DotationProjet.objects.none(),
+    ids = EnveloppeProjetMultipleChoiceField(
+        queryset=EnveloppeProjet.objects.none(),
         required=False,
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["ids"].queryset = (
-            DotationProjet.objects.programmees()
+            EnveloppeProjet.objects.programmees()
             .active()
             .visible_to_user(self.user)
             .filter(dotation=self.dotation)
@@ -727,29 +727,29 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     def clean_ids(self):
         checked = self.cleaned_data.get("ids") or []
         if checked:
-            queryset = DotationProjet.objects.filter(pk__in=[dp.pk for dp in checked])
+            queryset = EnveloppeProjet.objects.filter(pk__in=[dp.pk for dp in checked])
         else:
             queryset = ProgrammationFilters(
                 data=self.request.GET, request=self.request
             ).qs
-        ids = self.eligible_dotation_projets(queryset)
+        ids = self.eligible_enveloppe_projets(queryset)
         if not ids:
             raise forms.ValidationError("Aucun projet à notifier.", code="no_projects")
         return ids
 
-    def eligible_dotation_projets(
-        self, queryset: DotationProjetQuerySet
-    ) -> DotationProjetQuerySet:
+    def eligible_enveloppe_projets(
+        self, queryset: EnveloppeProjetQuerySet
+    ) -> EnveloppeProjetQuerySet:
         raise NotImplementedError
 
 
 class GenerateAcceptedDocumentsLaunchForm(BaseGenerateDocumentsLaunchForm):
-    def eligible_dotation_projets(self, queryset):
+    def eligible_enveloppe_projets(self, queryset):
         return queryset.can_generate_accepted_documents()
 
 
 class GenerateRefusLettersLaunchForm(BaseGenerateDocumentsLaunchForm):
-    def eligible_dotation_projets(self, queryset):
+    def eligible_enveloppe_projets(self, queryset):
         return queryset.can_generate_refus_documents()
 
 
@@ -778,9 +778,9 @@ class GenerateDocumentsModeleSelectionForm(
     STRATEGY_CONSERVER = "conserver"
     STRATEGY_REMPLACER = "remplacer"
 
-    def __init__(self, *args, dotation_projets, **kwargs):
+    def __init__(self, *args, enveloppe_projets, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dotation_projets = dotation_projets
+        self.enveloppe_projets = enveloppe_projets
 
         self.modele_entries = [
             ModeleSelectionEntry(self, t)
@@ -879,7 +879,7 @@ class ModeleSelectionEntry:
     def existing_count(self) -> int:
         generated_document_class = MODELES[self.document_type].generated_document_class
         return generated_document_class.objects.filter(
-            dotation_projet__in=self.form.dotation_projets
+            enveloppe_projet__in=self.form.enveloppe_projets
         ).count()
 
     @cached_property
@@ -960,19 +960,19 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
     document creation.
     """
 
-    def __init__(self, *args, dotation_projets, **kwargs):
+    def __init__(self, *args, enveloppe_projets, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dotation_projets = dotation_projets
+        self.enveloppe_projets = enveloppe_projets
         self._pending_doc_actions = []
 
-    def _log_doc_action(self, dotation_projet, document_class):
+    def _log_doc_action(self, enveloppe_projet, document_class):
         self._pending_doc_actions.append(
             ProjetAction(
-                projet=dotation_projet.projet,
+                projet=enveloppe_projet.projet,
                 action_type=ProjetAction.TYPE_DOC_GENERATED,
                 actor=self.user,
                 source=ProjetAction.SOURCE_TURGOT,
-                dotation=dotation_projet.dotation,
+                dotation=enveloppe_projet.dotation,
                 document_name=document_class._meta.verbose_name.lower(),
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
@@ -986,13 +986,13 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         ProjetAction.objects.bulk_create(self._pending_doc_actions)
 
         return list(
-            DotationProjet.objects.active().filter(pk__in=self.dotation_projets)
+            EnveloppeProjet.objects.active().filter(pk__in=self.enveloppe_projets)
         )
 
     # replace_mentions_in_html() (every Mention in gsl_notification.utils.MENTIONS)
     # and _log_doc_action() walk these chains for every projet; without them
     # each hop is an extra N+1 query per document.
-    DOTATION_PROJETS_SELECT_RELATED = (
+    ENVELOPPE_PROJETS_SELECT_RELATED = (
         "projet__dossier_ds__ds_demandeur__address__commune",
         "projet__dossier_ds__perimetre__departement",
     )
@@ -1005,24 +1005,24 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             == GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER
         ):
             document_class.objects.filter(
-                dotation_projet__in=self.dotation_projets
+                enveloppe_projet__in=self.enveloppe_projets
             ).delete()
-            to_create = self.dotation_projets.select_related(
-                *self.DOTATION_PROJETS_SELECT_RELATED
+            to_create = self.enveloppe_projets.select_related(
+                *self.ENVELOPPE_PROJETS_SELECT_RELATED
             )
         else:
             to_create = (
-                DotationProjet.objects.active()
-                .filter(pk__in=self.dotation_projets)
-                .exclude(pk__in=document_class.objects.values("dotation_projet_id"))
-                .select_related(*self.DOTATION_PROJETS_SELECT_RELATED)
+                EnveloppeProjet.objects.active()
+                .filter(pk__in=self.enveloppe_projets)
+                .exclude(pk__in=document_class.objects.values("enveloppe_projet_id"))
+                .select_related(*self.ENVELOPPE_PROJETS_SELECT_RELATED)
             )
 
-        for dotation_projet in to_create:
+        for enveloppe_projet in to_create:
             document_class(
-                dotation_projet=dotation_projet,
+                enveloppe_projet=enveloppe_projet,
                 modele=modele,
                 created_by=self.user,
-                content=replace_mentions_in_html(modele.content, dotation_projet),
+                content=replace_mentions_in_html(modele.content, enveloppe_projet),
             ).save()
-            self._log_doc_action(dotation_projet, document_class)
+            self._log_doc_action(enveloppe_projet, document_class)

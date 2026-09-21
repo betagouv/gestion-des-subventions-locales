@@ -19,62 +19,62 @@ from ..constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from ..models import DotationProjet, Projet
+from ..models import EnveloppeProjet, Projet
 
 logger = logging.getLogger(__name__)
 
 
-class DotationProjetService:
+class EnveloppeProjetService:
     @classmethod
-    def create_or_update_dotation_projet_from_projet(
+    def create_or_update_enveloppe_projet_from_projet(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         # check for initialisation
-        if projet.dotationprojet_set.count() == 0:
-            dotation_projets = cls._initialize_dotation_projets_from_projet(projet)
+        if projet.enveloppeprojet_set.count() == 0:
+            enveloppe_projets = cls._initialize_enveloppe_projets_from_projet(projet)
 
         else:
             if cls._should_dotations_be_updated_from_dn_construction_dossier(projet):
                 cls._remove_or_add_dotations_from_dossier_ds(projet)
             # check for updates
-            dotation_projets = cls._update_dotation_projets_from_projet(projet)
+            enveloppe_projets = cls._update_enveloppe_projets_from_projet(projet)
 
-        cls._add_dotation_projets_to_all_concerned_simulations(dotation_projets)
-        cls._remove_dotation_projets_from_unconcerned_simulations(dotation_projets)
-        return dotation_projets
+        cls._add_enveloppe_projets_to_all_concerned_simulations(enveloppe_projets)
+        cls._remove_enveloppe_projets_from_unconcerned_simulations(enveloppe_projets)
+        return enveloppe_projets
 
     @classmethod
-    def create_simulation_projets_from_dotation_projet(
+    def create_simulation_projets_from_enveloppe_projet(
         cls,
-        dotation_projet: DotationProjet,
+        enveloppe_projet: EnveloppeProjet,
     ):
         from gsl.simulation.services.simulation_projet_service import (
             SimulationProjetService,
         )
 
-        projet_perimetre = dotation_projet.projet.perimetre
+        projet_perimetre = enveloppe_projet.projet.perimetre
         perimetres_containing_this_projet_perimetre = list(projet_perimetre.ancestors())
         perimetres_containing_this_projet_perimetre.append(projet_perimetre)
         enveloppes = Enveloppe.objects.filter(
-            dotation=dotation_projet.dotation,
+            dotation=enveloppe_projet.dotation,
             perimetre__in=perimetres_containing_this_projet_perimetre,
             annee__gte=date.today().year,
         )
         simulations = Simulation.objects.filter(enveloppe__in=enveloppes)
         for simulation in simulations:
-            SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
-                dotation_projet, simulation
+            SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
+                enveloppe_projet, simulation
             )
 
     # private
 
-    ## -------------------------- Initialize Dotation Projets --------------------------
+    ## -------------------------- Initialize Enveloppe Projets --------------------------
 
     @classmethod
     @transaction.atomic
-    def _initialize_dotation_projets_from_projet(
+    def _initialize_enveloppe_projets_from_projet(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         dossier_status = projet.dossier_ds.ds_state
         if dossier_status in (
             Dossier.STATE_ACCEPTE,
@@ -85,25 +85,25 @@ class DotationProjetService:
             projet.save(update_fields=["notified_at"])
 
         if dossier_status == Dossier.STATE_ACCEPTE:
-            return cls._initialize_dotation_projets_from_projet_accepted(projet)
+            return cls._initialize_enveloppe_projets_from_projet_accepted(projet)
         elif dossier_status == Dossier.STATE_REFUSE:
-            return cls._initialize_dotation_projets_from_projet_refused(projet)
+            return cls._initialize_enveloppe_projets_from_projet_refused(projet)
         elif dossier_status == Dossier.STATE_SANS_SUITE:
-            return cls._initialize_dotation_projets_from_projet_sans_suite(projet)
+            return cls._initialize_enveloppe_projets_from_projet_sans_suite(projet)
         elif dossier_status in [
             Dossier.STATE_EN_CONSTRUCTION,
             Dossier.STATE_EN_INSTRUCTION,
         ]:
-            return cls._initialize_dotation_projets_from_projet_en_construction_or_instruction(
+            return cls._initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
                 projet
             )
 
         raise ValueError(f"Invalid dossier status: {dossier_status}")
 
     @classmethod
-    def _initialize_dotation_projets_from_projet_accepted(
+    def _initialize_enveloppe_projets_from_projet_accepted(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         dotations = cls._get_dotations_from_field(
             projet,
             "annotations_dotation",
@@ -115,71 +115,71 @@ class DotationProjetService:
                 projet, "demande_dispositif_sollicite"
             )
 
-        dotation_projets = []
+        enveloppe_projets = []
         for dotation in dotations:
-            dotation_projet = cls._create_dotation_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
+            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
             montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-            dotation_projet.accept_without_ds_update(
+            enveloppe_projet.accept_without_ds_update(
                 montant=montant, enveloppe=enveloppe
             )
-            dotation_projet.save()
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+            enveloppe_projet.save()
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     @classmethod
-    def _initialize_dotation_projets_from_projet_refused(
+    def _initialize_enveloppe_projets_from_projet_refused(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         dotations = cls._get_dotations_from_field(
             projet, "demande_dispositif_sollicite"
         )
-        dotation_projets = []
+        enveloppe_projets = []
         for dotation in dotations:
-            dotation_projet = cls._create_dotation_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-                dotation_projet, allow_next_year=True
+            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
+            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
+                enveloppe_projet, allow_next_year=True
             )
-            dotation_projet.refuse(enveloppe=enveloppe)
-            dotation_projet.save()
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+            enveloppe_projet.refuse(enveloppe=enveloppe)
+            enveloppe_projet.save()
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     @classmethod
-    def _initialize_dotation_projets_from_projet_sans_suite(
+    def _initialize_enveloppe_projets_from_projet_sans_suite(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         dotations = cls._get_dotations_from_field(
             projet, "demande_dispositif_sollicite"
         )
-        dotation_projets = []
+        enveloppe_projets = []
         for dotation in dotations:
-            dotation_projet = cls._create_dotation_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-                dotation_projet, allow_next_year=True
+            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
+            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
+                enveloppe_projet, allow_next_year=True
             )
-            dotation_projet.dismiss(enveloppe=enveloppe)
-            dotation_projet.save()
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+            enveloppe_projet.dismiss(enveloppe=enveloppe)
+            enveloppe_projet.save()
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     @classmethod
-    def _initialize_dotation_projets_from_projet_en_construction_or_instruction(
+    def _initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         dotations = cls._get_dotations_from_field(
             projet, "demande_dispositif_sollicite"
         )
-        dotation_projets = []
+        enveloppe_projets = []
         for dotation in dotations:
-            dotation_projet = cls._create_dotation_projet(projet, dotation)
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     @classmethod
-    def _create_dotation_projet(
+    def _create_enveloppe_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
-    ) -> DotationProjet:
+    ) -> EnveloppeProjet:
         detr_avis_commission = cls._get_detr_avis_commission(
             dotation, projet.dossier_ds
         )
@@ -191,15 +191,15 @@ class DotationProjetService:
         }
         if assiette is not None:
             kwargs["assiette"] = assiette
-        return DotationProjet.objects.create(**kwargs)
+        return EnveloppeProjet.objects.create(**kwargs)
 
-    ## -------------------------- Update Dotation Projets --------------------------
+    ## -------------------------- Update Enveloppe Projets --------------------------
 
     @classmethod
     @transaction.atomic
-    def _update_dotation_projets_from_projet(
+    def _update_enveloppe_projets_from_projet(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         cls._update_assiette_from_dossier(projet)
 
         dossier_status = projet.dossier_ds.ds_state
@@ -213,29 +213,29 @@ class DotationProjetService:
             projet.save(update_fields=["notified_at"])
 
         if dossier_status == Dossier.STATE_ACCEPTE:
-            return cls._update_dotation_projets_from_projet_accepted(projet)
+            return cls._update_enveloppe_projets_from_projet_accepted(projet)
         elif dossier_status == Dossier.STATE_REFUSE:
-            return cls._update_dotation_projets_from_projet_refused(projet)
+            return cls._update_enveloppe_projets_from_projet_refused(projet)
         elif dossier_status == Dossier.STATE_SANS_SUITE:
-            return cls._update_dotation_projets_from_projet_sans_suite(projet)
+            return cls._update_enveloppe_projets_from_projet_sans_suite(projet)
         elif dossier_status in [
             Dossier.STATE_EN_CONSTRUCTION,
             Dossier.STATE_EN_INSTRUCTION,
         ]:
-            cls._update_accepted_dotation_projets_montant_from_dn(projet)
+            cls._update_accepted_enveloppe_projets_montant_from_dn(projet)
             is_dossier_back_to_instruction = cls._is_dossier_back_to_instruction(projet)
             if is_dossier_back_to_instruction:
-                return cls._update_dotation_projets_from_projet_back_to_instruction(
+                return cls._update_enveloppe_projets_from_projet_back_to_instruction(
                     projet
                 )
         else:
             raise ValueError(f"Invalid dossier status: {dossier_status}")
-        return projet.dotationprojet_set.all()
+        return projet.enveloppeprojet_set.all()
 
     @classmethod
-    def _update_dotation_projets_from_projet_accepted(
+    def _update_enveloppe_projets_from_projet_accepted(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
+    ) -> list[EnveloppeProjet]:
         dotations_to_accept = cls._get_dotations_from_field(
             projet,
             "annotations_dotation",
@@ -243,13 +243,13 @@ class DotationProjetService:
         )
 
         if not dotations_to_accept:
-            return projet.dotationprojet_set.all()
+            return projet.enveloppeprojet_set.all()
 
         existing_dotations = set(projet.dotations)
         dotations_to_remove = existing_dotations - set(dotations_to_accept)
 
         for dotation in dotations_to_accept:
-            cls._accept_dotation_projet(projet, dotation)
+            cls._accept_enveloppe_projet(projet, dotation)
             if dotation not in existing_dotations:
                 ProjetAction.objects.create(
                     projet=projet,
@@ -261,7 +261,7 @@ class DotationProjetService:
 
         for dotation in dotations_to_remove:
             deleted_count, _ = (
-                DotationProjet.objects.filter(projet=projet, dotation=dotation)
+                EnveloppeProjet.objects.filter(projet=projet, dotation=dotation)
                 .exclude(status__in=[PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
                 .delete()
             )
@@ -274,75 +274,75 @@ class DotationProjetService:
                     dotation=dotation,
                 )
 
-        return projet.dotationprojet_set.all()
+        return projet.enveloppeprojet_set.all()
 
     @classmethod
-    def _accept_dotation_projet(
+    def _accept_enveloppe_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
-    ) -> DotationProjet:
-        dotation_projet, _ = DotationProjet.objects.get_or_create(
+    ) -> EnveloppeProjet:
+        enveloppe_projet, _ = EnveloppeProjet.objects.get_or_create(
             projet=projet,
             dotation=dotation,
         )
 
         assiette = cls._get_assiette_from_annotations(projet.dossier_ds, dotation)
         if assiette is not None:  # we only update if we have an info
-            dotation_projet.assiette = assiette
+            enveloppe_projet.assiette = assiette
 
         detr_avis_commission = cls._get_detr_avis_commission(
             dotation, projet.dossier_ds
         )
         if detr_avis_commission is not None:  # we only update if we have an info
-            dotation_projet.detr_avis_commission = detr_avis_commission
+            enveloppe_projet.detr_avis_commission = detr_avis_commission
 
-        if dotation_projet.is_programmee:  # We keep previous enveloppe to avoid squashing manuel rectification (ex: enveloppe 2025)
-            enveloppe = dotation_projet.enveloppe
+        if enveloppe_projet.is_programmee:  # We keep previous enveloppe to avoid squashing manuel rectification (ex: enveloppe 2025)
+            enveloppe = enveloppe_projet.enveloppe
         else:
-            enveloppe = cls._get_root_enveloppe_from_dotation_projet(dotation_projet)
+            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
         montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
-        dotation_projet.accept_without_ds_update(montant=montant, enveloppe=enveloppe)
-        dotation_projet.save()
+        enveloppe_projet.accept_without_ds_update(montant=montant, enveloppe=enveloppe)
+        enveloppe_projet.save()
 
-        return dotation_projet
+        return enveloppe_projet
 
     @classmethod
-    def _update_dotation_projets_from_projet_refused(
+    def _update_enveloppe_projets_from_projet_refused(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
-        dotation_projets = []
-        for dotation_projet in projet.dotationprojet_set.all():
-            if dotation_projet.status != PROJET_STATUS_REFUSED:
-                enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-                    dotation_projet, allow_next_year=True
+    ) -> list[EnveloppeProjet]:
+        enveloppe_projets = []
+        for enveloppe_projet in projet.enveloppeprojet_set.all():
+            if enveloppe_projet.status != PROJET_STATUS_REFUSED:
+                enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
+                    enveloppe_projet, allow_next_year=True
                 )
-                dotation_projet.refuse(enveloppe=enveloppe)
-                dotation_projet.save()
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+                enveloppe_projet.refuse(enveloppe=enveloppe)
+                enveloppe_projet.save()
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     @classmethod
-    def _update_dotation_projets_from_projet_sans_suite(
+    def _update_enveloppe_projets_from_projet_sans_suite(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
-        dotation_projets = []
-        for dotation_projet in projet.dotationprojet_set.all():
-            if dotation_projet.status not in [
+    ) -> list[EnveloppeProjet]:
+        enveloppe_projets = []
+        for enveloppe_projet in projet.enveloppeprojet_set.all():
+            if enveloppe_projet.status not in [
                 PROJET_STATUS_DISMISSED,
                 PROJET_STATUS_REFUSED,
             ]:
-                enveloppe = cls._get_root_enveloppe_from_dotation_projet(
-                    dotation_projet, allow_next_year=True
+                enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
+                    enveloppe_projet, allow_next_year=True
                 )
-                dotation_projet.dismiss(enveloppe=enveloppe)
-                dotation_projet.save()
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+                enveloppe_projet.dismiss(enveloppe=enveloppe)
+                enveloppe_projet.save()
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     @classmethod
-    def _update_dotation_projets_from_projet_back_to_instruction(
+    def _update_enveloppe_projets_from_projet_back_to_instruction(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
-        projet_dps = projet.dotationprojet_set
+    ) -> list[EnveloppeProjet]:
+        projet_dps = projet.enveloppeprojet_set
 
         if projet_dps.filter(status=PROJET_STATUS_ACCEPTED).count() == 1:
             if (
@@ -351,64 +351,66 @@ class DotationProjetService:
                 ).count()
                 == 1
             ):
-                return cls._update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused(
+                return cls._update_enveloppe_projets_with_one_accepted_and_one_dismissed_or_refused(
                     projet
                 )
 
-        dotation_projets = []
-        for dotation_projet in projet_dps.all():
-            if cls._is_programmation_date_after_passage_en_instruction(dotation_projet):
-                dotation_projets.append(dotation_projet)
+        enveloppe_projets = []
+        for enveloppe_projet in projet_dps.all():
+            if cls._is_programmation_date_after_passage_en_instruction(
+                enveloppe_projet
+            ):
+                enveloppe_projets.append(enveloppe_projet)
                 continue
 
-            if dotation_projet.status != PROJET_STATUS_PROCESSING:
-                dotation_projet.set_back_status_to_processing_without_ds()
-                dotation_projet.save()
+            if enveloppe_projet.status != PROJET_STATUS_PROCESSING:
+                enveloppe_projet.set_back_status_to_processing_without_ds()
+                enveloppe_projet.save()
 
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     @classmethod
-    def _update_dotation_projets_with_one_accepted_and_one_dismissed_or_refused(
+    def _update_enveloppe_projets_with_one_accepted_and_one_dismissed_or_refused(
         cls, projet: Projet
-    ) -> list[DotationProjet]:
-        dotation_projets = []
-        for dotation_projet in projet.dotationprojet_set.all():
-            if dotation_projet.status == PROJET_STATUS_ACCEPTED:
+    ) -> list[EnveloppeProjet]:
+        enveloppe_projets = []
+        for enveloppe_projet in projet.enveloppeprojet_set.all():
+            if enveloppe_projet.status == PROJET_STATUS_ACCEPTED:
                 if cls._is_programmation_date_after_passage_en_instruction(
-                    dotation_projet
+                    enveloppe_projet
                 ):
                     continue
-                dotation_projet.set_back_status_to_processing_without_ds()
-                dotation_projet.save()
-            dotation_projets.append(dotation_projet)
-        return dotation_projets
+                enveloppe_projet.set_back_status_to_processing_without_ds()
+                enveloppe_projet.save()
+            enveloppe_projets.append(enveloppe_projet)
+        return enveloppe_projets
 
     ## -------------------------- Utils --------------------------
 
     @classmethod
-    def _update_accepted_dotation_projets_montant_from_dn(cls, projet: Projet) -> None:
-        for dotation_projet in projet.dotationprojet_set.filter(
+    def _update_accepted_enveloppe_projets_montant_from_dn(cls, projet: Projet) -> None:
+        for enveloppe_projet in projet.enveloppeprojet_set.filter(
             status=PROJET_STATUS_ACCEPTED
         ):
-            # Assiette is already updated (cf cls._update_assiette_from_dossier(projet) called in cls._update_dotation_projets_from_projet)
+            # Assiette is already updated (cf cls._update_assiette_from_dossier(projet) called in cls._update_enveloppe_projets_from_projet)
             # regardless of the projet/dossier statuses
 
-            if dotation_projet.dotation == DOTATION_DETR:
+            if enveloppe_projet.dotation == DOTATION_DETR:
                 new_montant = projet.dossier_ds.annotations_montant_accorde_detr
             else:
                 new_montant = projet.dossier_ds.annotations_montant_accorde_dsil
 
             if (
                 new_montant is not None
-                and dotation_projet.is_programmee
-                and new_montant != dotation_projet.montant
+                and enveloppe_projet.is_programmee
+                and new_montant != enveloppe_projet.montant
             ):
-                dotation_projet.accept_without_ds_update(
+                enveloppe_projet.accept_without_ds_update(
                     montant=new_montant,
-                    enveloppe=dotation_projet.enveloppe,
+                    enveloppe=enveloppe_projet.enveloppe,
                 )
-                dotation_projet.save()
+                enveloppe_projet.save()
 
     @classmethod
     def _get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
@@ -418,46 +420,46 @@ class DotationProjetService:
         return None
 
     @classmethod
-    def _get_root_enveloppe_from_dotation_projet(
-        cls, dotation_projet: DotationProjet, allow_next_year: bool = False
+    def _get_root_enveloppe_from_enveloppe_projet(
+        cls, enveloppe_projet: EnveloppeProjet, allow_next_year: bool = False
     ):
         """
-        Get the root enveloppe from a dotation projet.
+        Get the root enveloppe from a enveloppe projet.
         Args:
             allow_next_year: If True, allow the use of the next year if the dossier is accepted after November.
         """
 
-        year = dotation_projet.dossier_ds.ds_date_traitement.year
+        year = enveloppe_projet.dossier_ds.ds_date_traitement.year
         if (
             allow_next_year
-            and dotation_projet.dossier_ds.ds_date_traitement.month >= 11
+            and enveloppe_projet.dossier_ds.ds_date_traitement.month >= 11
         ):
             year = year + 1
 
         enveloppe_qs = Enveloppe.objects.filter(
-            dotation=dotation_projet.dotation,
+            dotation=enveloppe_projet.dotation,
             annee=year,
             deleguee_by__isnull=True,
         )
-        projet_perimetre = dotation_projet.projet.perimetre
+        projet_perimetre = enveloppe_projet.projet.perimetre
         perimetre = cls._get_perimetre_from_dotation(
-            projet_perimetre, dotation_projet.dotation
+            projet_perimetre, enveloppe_projet.dotation
         )
         try:
             return enveloppe_qs.get(perimetre=perimetre)
         except Enveloppe.DoesNotExist:
             logger.warning(
-                "No enveloppe found for a dotation projet",
+                "No enveloppe found for a enveloppe projet",
                 extra={
-                    "dossier_ds_number": dotation_projet.dossier_ds.ds_number,
-                    "dotation": dotation_projet.dotation,
+                    "dossier_ds_number": enveloppe_projet.dossier_ds.ds_number,
+                    "dotation": enveloppe_projet.dotation,
                     "year": year,
                     "perimetre": projet_perimetre,
-                    "date_traitement": dotation_projet.dossier_ds.ds_date_traitement,
+                    "date_traitement": enveloppe_projet.dossier_ds.ds_date_traitement,
                 },
             )
             raise Enveloppe.DoesNotExist(
-                f"No enveloppe found for dotation {dotation_projet.dotation}, perimetre {projet_perimetre} and year {year}"
+                f"No enveloppe found for dotation {enveloppe_projet.dotation}, perimetre {projet_perimetre} and year {year}"
             )
 
     @classmethod
@@ -480,25 +482,25 @@ class DotationProjetService:
 
     @classmethod
     def _update_assiette_from_dossier(cls, projet: Projet):
-        for dotation_projet in projet.dotationprojet_set.all():
+        for enveloppe_projet in projet.enveloppeprojet_set.all():
             assiette = cls._get_assiette_from_annotations(
-                projet.dossier_ds, dotation_projet.dotation
+                projet.dossier_ds, enveloppe_projet.dotation
             )
             if assiette is None:
                 continue
 
-            if dotation_projet.assiette != assiette:
+            if enveloppe_projet.assiette != assiette:
                 ProjetAction.objects.create(
                     projet=projet,
                     action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
                     actor=None,
                     source=ProjetAction.SOURCE_DN,
-                    dotation=dotation_projet.dotation,
+                    dotation=enveloppe_projet.dotation,
                     euro_field_value=assiette,
                 )
 
-            dotation_projet.assiette = assiette
-            dotation_projet.save()
+            enveloppe_projet.assiette = assiette
+            enveloppe_projet.save()
 
     @classmethod
     def _get_assiette_from_annotations(
@@ -571,66 +573,68 @@ class DotationProjetService:
 
     @classmethod
     def _is_programmation_date_after_passage_en_instruction(
-        cls, dotation_projet: DotationProjet
+        cls, enveloppe_projet: EnveloppeProjet
     ):
         return (
-            dotation_projet.is_programmee
-            and dotation_projet.date_programmation
-            > dotation_projet.projet.dossier_ds.ds_date_passage_en_instruction
+            enveloppe_projet.is_programmee
+            and enveloppe_projet.date_programmation
+            > enveloppe_projet.projet.dossier_ds.ds_date_passage_en_instruction
         )
 
     @classmethod
-    def _add_dotation_projets_to_all_concerned_simulations(
-        cls, dotation_projets: list[DotationProjet]
+    def _add_enveloppe_projets_to_all_concerned_simulations(
+        cls, enveloppe_projets: list[EnveloppeProjet]
     ):
         from gsl.simulation.services.simulation_projet_service import (
             SimulationProjetService,
         )
 
-        for dotation_projet in dotation_projets:
-            simulations = cls._get_all_concerned_simulations_for_dotation_projet(
-                dotation_projet
-            ).exclude(simulationprojet__dotation_projet=dotation_projet)
+        for enveloppe_projet in enveloppe_projets:
+            simulations = cls._get_all_concerned_simulations_for_enveloppe_projet(
+                enveloppe_projet
+            ).exclude(simulationprojet__enveloppe_projet=enveloppe_projet)
             for simulation in simulations:
-                SimulationProjetService.create_or_update_simulation_projet_from_dotation_projet(
-                    dotation_projet, simulation
+                SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
+                    enveloppe_projet, simulation
                 )
 
     @classmethod
-    def _get_all_concerned_simulations_for_dotation_projet(
-        cls, dotation_projet: DotationProjet
+    def _get_all_concerned_simulations_for_enveloppe_projet(
+        cls, enveloppe_projet: EnveloppeProjet
     ):
         qs = Simulation.objects.containing_perimetre(
-            dotation_projet.projet.perimetre
+            enveloppe_projet.projet.perimetre
         ).filter(
-            enveloppe__dotation=dotation_projet.dotation,
+            enveloppe__dotation=enveloppe_projet.dotation,
             enveloppe__annee__gte=date.today().year,
         )
 
         if (
-            dotation_projet.dossier_ds.ds_state
+            enveloppe_projet.dossier_ds.ds_state
             in [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE]
-            and dotation_projet.dossier_ds.ds_date_traitement is not None
+            and enveloppe_projet.dossier_ds.ds_date_traitement is not None
         ):
             qs = qs.exclude(
-                enveloppe__annee__gte=dotation_projet.projet.dossier_ds.ds_date_traitement.year
+                enveloppe__annee__gte=enveloppe_projet.projet.dossier_ds.ds_date_traitement.year
                 + 1,
             )
 
-        if dotation_projet.is_programmee:
-            qs = qs.exclude(enveloppe__annee__gt=dotation_projet.enveloppe.annee)
+        if enveloppe_projet.is_programmee:
+            qs = qs.exclude(enveloppe__annee__gt=enveloppe_projet.enveloppe.annee)
 
         return qs
 
     @classmethod
-    def _remove_dotation_projets_from_unconcerned_simulations(
-        cls, dotation_projets: list[DotationProjet]
+    def _remove_enveloppe_projets_from_unconcerned_simulations(
+        cls, enveloppe_projets: list[EnveloppeProjet]
     ):
-        for dotation_projet in dotation_projets:
+        for enveloppe_projet in enveloppe_projets:
             concerned_simulations = (
-                cls._get_all_concerned_simulations_for_dotation_projet(dotation_projet)
+                cls._get_all_concerned_simulations_for_enveloppe_projet(
+                    enveloppe_projet
+                )
             )
-            SimulationProjet.objects.filter(dotation_projet=dotation_projet).exclude(
+            SimulationProjet.objects.filter(enveloppe_projet=enveloppe_projet).exclude(
                 simulation__in=concerned_simulations
             ).delete()
 
@@ -665,7 +669,7 @@ class DotationProjetService:
                 source=ProjetAction.SOURCE_DN,
                 dotation=dotation,
             )
-        projet.dotationprojet_set.filter(dotation__in=dotation_to_delete).delete()
+        projet.enveloppeprojet_set.filter(dotation__in=dotation_to_delete).delete()
 
         # Refresh projet to get the latest dotations
         projet.refresh_from_db()
@@ -674,7 +678,7 @@ class DotationProjetService:
             projet.dotations
         )
         for dotation in dotations_to_add:
-            cls._create_dotation_projet(projet, dotation)
+            cls._create_enveloppe_projet(projet, dotation)
             ProjetAction.objects.create(
                 projet=projet,
                 action_type=ProjetAction.TYPE_DOTATION_ADDED,

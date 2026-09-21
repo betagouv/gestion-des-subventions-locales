@@ -80,7 +80,7 @@ COLUMN_COUT_TOTAL = Column(
 def _get_montant_sollicite(context):
     projet = context.get("projet")
     montant = projet.dossier_ds.demande_montant if projet else None
-    dp = context.get("dotation_projet")
+    dp = context.get("enveloppe_projet")
     taux = dp.taux_de_subvention_sollicite if dp else None
     return format_html("{}<br>{}", euro_value(montant, 2), percent(taux, 2))
 

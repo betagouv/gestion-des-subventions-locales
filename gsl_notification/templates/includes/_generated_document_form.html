@@ -10,7 +10,9 @@
     {% ui_tiptap_editor content_field_name="content" %}
     {{ arrete_form.content }}
     <input type="hidden" name="created_by" value="{{ user.id }}">
-    <input type="hidden" name="dotation_projet" value="{{ dotation_projet.id }}">
+    <input type="hidden"
+           name="enveloppe_projet"
+           value="{{ enveloppe_projet.id }}">
     <input type="hidden" name="modele" value="{{ modele.id }}">
     <div id="initial_content" hidden>{{ arrete_initial_content }}</div>
     <div class="next-step-buttons">

@@ -129,7 +129,7 @@ class BulkStatusJobProgressView(DetailView):
             sp.id
             for sp in simulation_projets_to_refresh
             if sp.status in BulkStatusJob.ALLOWED_TARGET_STATUSES
-            and sp.dotation_projet.projet.notified_at is None
+            and sp.enveloppe_projet.projet.notified_at is None
         ]
         context["columns"] = SIMULATION_TABLE_COLUMNS
         context["dotations"] = DOTATIONS
@@ -152,20 +152,20 @@ class BulkStatusJobProgressView(DetailView):
             .select_related(
                 "simulation",
                 "simulation__enveloppe",
-                "dotation_projet",
-                "dotation_projet__projet",
-                "dotation_projet__projet__dossier_ds",
-                "dotation_projet__projet__dossier_ds__ds_demarche",
-                "dotation_projet__projet__dossier_ds__ds_demandeur",
-                "dotation_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
-                "dotation_projet__projet__dossier_ds__demande_categorie_detr",
-                "dotation_projet__projet__dossier_ds__demande_categorie_dsil",
+                "enveloppe_projet",
+                "enveloppe_projet__projet",
+                "enveloppe_projet__projet__dossier_ds",
+                "enveloppe_projet__projet__dossier_ds__ds_demarche",
+                "enveloppe_projet__projet__dossier_ds__ds_demandeur",
+                "enveloppe_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
+                "enveloppe_projet__projet__dossier_ds__demande_categorie_detr",
+                "enveloppe_projet__projet__dossier_ds__demande_categorie_dsil",
             )
             .prefetch_related(
-                "dotation_projet__projet__dotationprojet_set",
-                "dotation_projet__projet__dotationprojet_set__simulationprojet_set",
-                "dotation_projet__projet__dossier_ds__demande_cofinancements",
-                "dotation_projet__projet__dossier_ds__projet_zonage",
-                "dotation_projet__projet__dossier_ds__projet_contractualisation",
+                "enveloppe_projet__projet__enveloppeprojet_set",
+                "enveloppe_projet__projet__enveloppeprojet_set__simulationprojet_set",
+                "enveloppe_projet__projet__dossier_ds__demande_cofinancements",
+                "enveloppe_projet__projet__dossier_ds__projet_zonage",
+                "enveloppe_projet__projet__dossier_ds__projet_contractualisation",
             )
         )

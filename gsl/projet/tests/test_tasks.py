@@ -20,14 +20,14 @@ from ..constants import (
     PROJET_STATUS_DISMISSED,
     PROJET_STATUS_REFUSED,
 )
-from ..models import DotationProjet
+from ..models import EnveloppeProjet
 from ..tasks import (
-    task_create_or_update_dotation_projets_from_projet_batch,
+    task_create_or_update_enveloppe_projets_from_projet_batch,
     task_create_or_update_projet_and_co_from_dossier,
     task_create_or_update_projets_and_co_batch,
     task_create_or_update_projets_and_co_from_all_dossiers,
 )
-from .factories import DotationProjetFactory, ProjetFactory
+from .factories import EnveloppeProjetFactory, ProjetFactory
 
 # Fixtures
 
@@ -57,7 +57,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
     perimetre_arrondissement,
 ):
     """
-    On teste le fait qu'un dossier DN avec une annotation_dotation donnée ne supprime pas les dotation_projets avec une autre dotation dans notre application.
+    On teste le fait qu'un dossier DN avec une annotation_dotation donnée ne supprime pas les enveloppe_projets avec une autre dotation dans notre application.
     Désormais, on ignore l'annotation dotation lorsque le dossier n'est pas accepté. Donc ici, la dotation DSIL ne sera pas instanciée pour ce projet.
     """
     dossier = DossierFactory(
@@ -69,7 +69,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
         demande_dispositif_sollicite="['DETR']",
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    detr_dotation_projet = DotationProjetFactory(
+    detr_enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
     )
 
@@ -79,11 +79,11 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
 
     # --
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert dotation_projets.count() == 1
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.count() == 1
 
-    detr_dotation_projet.refresh_from_db()  # always exists
-    assert detr_dotation_projet.status == PROJET_STATUS_ACCEPTED
+    detr_enveloppe_projet.refresh_from_db()  # always exists
+    assert detr_enveloppe_projet.status == PROJET_STATUS_ACCEPTED
 
 
 @pytest.mark.django_db
@@ -99,7 +99,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
         perimetre=perimetre_arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
@@ -107,7 +107,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     )
     SimulationProjetFactory.create_batch(
         2,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=400,
     )
@@ -124,20 +124,20 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert dotation_projets.count() == 1
-    dotation_projet = dotation_projets.first()  # always exists
-    assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette == 4_000
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED  # always exists
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.count() == 1
+    enveloppe_projet = enveloppe_projets.first()  # always exists
+    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.assiette == 4_000
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED  # always exists
 
-    for simulation_projet in dotation_projet.simulationprojet_set.all():
+    for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
 
-    assert dotation_projet.montant == 400
-    assert dotation_projet.taux_retenu == 10
+    assert enveloppe_projet.montant == 400
+    assert enveloppe_projet.taux_retenu == 10
 
 
 @pytest.mark.django_db
@@ -145,8 +145,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     perimetre_arrondissement,
 ):
     """
-    On teste le fait qu'un dossier DN en instruction avec un dotation_projet accepté mais pas encore notifié
-    ne modifie pas le statut du projet ni des dotation_projets, simulation_projets et programmation_projets associés.
+    On teste le fait qu'un dossier DN en instruction avec un enveloppe_projet accepté mais pas encore notifié
+    ne modifie pas le statut du projet ni des enveloppe_projets, simulation_projets et programmation_projets associés.
     """
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
@@ -157,7 +157,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         perimetre=perimetre_arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
@@ -165,7 +165,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     )
     SimulationProjetFactory.create_batch(
         2,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=400,
     )
@@ -177,20 +177,20 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert dotation_projets.count() == 1
-    dotation_projet = dotation_projets.first()
-    assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette == 4_000
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-    assert dotation_projet.projet.notified_at is None
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.count() == 1
+    enveloppe_projet = enveloppe_projets.first()
+    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.assiette == 4_000
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.projet.notified_at is None
 
-    for simulation_projet in dotation_projet.simulationprojet_set.all():
+    for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
 
-    assert dotation_projet.is_programmee
+    assert enveloppe_projet.is_programmee
 
 
 @pytest.mark.django_db
@@ -198,8 +198,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     perimetre_arrondissement,
 ):
     """
-    On teste le fait qu'un dossier DN en instruction avec un dotation_projet accepté mais pas encore notifié
-    ne modifie pas le statut du projet ni des dotation_projets, simulation_projets et programmation_projets associés.
+    On teste le fait qu'un dossier DN en instruction avec un enveloppe_projet accepté mais pas encore notifié
+    ne modifie pas le statut du projet ni des enveloppe_projets, simulation_projets et programmation_projets associés.
     """
     dossier = DossierFactory(
         ds_state=Dossier.STATE_EN_INSTRUCTION,
@@ -209,7 +209,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         perimetre=perimetre_arrondissement,
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
@@ -217,7 +217,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     )
     SimulationProjetFactory.create_batch(
         2,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=400,
     )
@@ -233,20 +233,20 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert dotation_projets.count() == 1
-    dotation_projet = dotation_projets.first()
-    assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette == 4_000
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.count() == 1
+    enveloppe_projet = enveloppe_projets.first()
+    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.assiette == 4_000
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
 
-    for simulation_projet in dotation_projet.simulationprojet_set.all():
+    for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
         assert simulation_projet.montant == 400
         assert simulation_projet.taux == 10
 
-    assert dotation_projet.montant == 400
-    assert dotation_projet.taux_retenu == 10
+    assert enveloppe_projet.montant == 400
+    assert enveloppe_projet.taux_retenu == 10
 
 
 @pytest.mark.django_db
@@ -254,7 +254,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     perimetre_arrondissement, detr_enveloppe
 ):
     """
-    On teste le fait qu'un dossier DN accepté avec un dotation_projet refusé bascule le projet et tout le reste en accepté
+    On teste le fait qu'un dossier DN accepté avec un enveloppe_projet refusé bascule le projet et tout le reste en accepté
     """
     dossier = DossierFactory(
         ds_state=Dossier.STATE_ACCEPTE,
@@ -265,7 +265,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
         annotations_assiette_detr=50_000,
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_REFUSED,
@@ -273,7 +273,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     )
     SimulationProjetFactory.create_batch(
         2,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
     )
@@ -284,20 +284,20 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_ACCEPTED
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert dotation_projets.count() == 1
-    dotation_projet = dotation_projets.first()
-    assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette == 50_000
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.count() == 1
+    enveloppe_projet = enveloppe_projets.first()
+    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.assiette == 50_000
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
 
-    for simulation_projet in dotation_projet.simulationprojet_set.all():
+    for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
         assert simulation_projet.montant == 5_000
         assert simulation_projet.taux == 10
 
-    assert dotation_projet.montant == 5_000
-    assert dotation_projet.taux_retenu == 10
+    assert enveloppe_projet.montant == 5_000
+    assert enveloppe_projet.taux_retenu == 10
 
 
 @pytest.mark.django_db
@@ -311,7 +311,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
@@ -320,7 +320,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     )
     SimulationProjetFactory.create_batch(
         2,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
     )
@@ -331,23 +331,23 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_REFUSED
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert dotation_projets.count() == 1
-    dotation_projet = dotation_projets.first()
-    assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette is None
-    assert dotation_projet.status == PROJET_STATUS_REFUSED
-    assert dotation_projet.projet.notified_at == datetime(
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.count() == 1
+    enveloppe_projet = enveloppe_projets.first()
+    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.assiette is None
+    assert enveloppe_projet.status == PROJET_STATUS_REFUSED
+    assert enveloppe_projet.projet.notified_at == datetime(
         2024, 1, 15, 10, 30, tzinfo=UTC
     )
 
-    for simulation_projet in dotation_projet.simulationprojet_set.all():
+    for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
-    assert dotation_projet.montant == 0
-    assert dotation_projet.taux_retenu == 0
+    assert enveloppe_projet.montant == 0
+    assert enveloppe_projet.taux_retenu == 0
 
 
 @pytest.mark.django_db
@@ -361,7 +361,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dotation_projet = DotationProjetFactory(
+    enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
@@ -370,7 +370,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     )
     SimulationProjetFactory.create_batch(
         2,
-        dotation_projet=dotation_projet,
+        enveloppe_projet=enveloppe_projet,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
     )
@@ -381,23 +381,23 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     projet.refresh_from_db()
     assert projet.status == PROJET_STATUS_DISMISSED
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    assert dotation_projets.count() == 1
-    dotation_projet = dotation_projets.first()
-    assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette is None
-    assert dotation_projet.status == PROJET_STATUS_DISMISSED
-    assert dotation_projet.projet.notified_at == datetime(
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.count() == 1
+    enveloppe_projet = enveloppe_projets.first()
+    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.assiette is None
+    assert enveloppe_projet.status == PROJET_STATUS_DISMISSED
+    assert enveloppe_projet.projet.notified_at == datetime(
         2024, 1, 15, 10, 30, tzinfo=UTC
     )
 
-    for simulation_projet in dotation_projet.simulationprojet_set.all():
+    for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
-    assert dotation_projet.montant == 0
-    assert dotation_projet.taux_retenu == 0
+    assert enveloppe_projet.montant == 0
+    assert enveloppe_projet.taux_retenu == 0
 
 
 @pytest.mark.django_db
@@ -421,7 +421,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
         is_in_qpv=False,
         is_attached_to_a_crte=False,
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=PROJET_STATUS_ACCEPTED,
@@ -437,11 +437,11 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
     assert projet.is_in_qpv is True
     assert projet.is_attached_to_a_crte is True
 
-    dotation_projets = DotationProjet.objects.filter(projet=projet)
-    dotation_projet = dotation_projets.first()
-    assert dotation_projet.dotation == DOTATION_DETR
-    assert dotation_projet.assiette == 60_000
-    assert dotation_projet.montant == 6_000
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    enveloppe_projet = enveloppe_projets.first()
+    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.assiette == 60_000
+    assert enveloppe_projet.montant == 6_000
 
 
 @pytest.mark.django_db
@@ -488,11 +488,11 @@ def test_create_or_update_projets_batch():
 
 
 @pytest.mark.django_db
-def test_create_or_update_dotation_projets_batch():
+def test_create_or_update_enveloppe_projets_batch():
     with mock.patch(
-        "gsl.projet.tasks.task_create_or_update_dotation_projet_from_projet.apply_async"
+        "gsl.projet.tasks.task_create_or_update_enveloppe_projet_from_projet.apply_async"
     ) as mock_delay:
-        task_create_or_update_dotation_projets_from_projet_batch((1, 2, 3))
+        task_create_or_update_enveloppe_projets_from_projet_batch((1, 2, 3))
         assert mock_delay.call_count == 3
 
         mock_delay.assert_any_call((1,), priority=9)

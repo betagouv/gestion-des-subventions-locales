@@ -15,7 +15,7 @@ from ...constants import (
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
-from ..factories import DotationProjetFactory, ProjetFactory
+from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -41,7 +41,7 @@ def notified_projet(collegue):
         dossier_ds__perimetre=collegue.perimetre,
         notified_at=timezone.now(),
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet,
         status=PROJET_STATUS_ACCEPTED,
         dotation=DOTATION_DETR,
@@ -56,7 +56,7 @@ def non_notified_projet(collegue):
         dossier_ds__perimetre=collegue.perimetre,
         notified_at=None,
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet,
         status=PROJET_STATUS_ACCEPTED,
         dotation=DOTATION_DETR,
@@ -89,20 +89,20 @@ def test_post_calls_ds_repasser_en_instruction(mock_repasser, client, notified_p
 
 
 @patch("gsl.projet.forms.DsService.repasser_en_instruction")
-def test_post_preserves_dotation_projet_status(mock_repasser, client, notified_projet):
-    dotation_projet = notified_projet.dotationprojet_set.first()
+def test_post_preserves_enveloppe_projet_status(mock_repasser, client, notified_projet):
+    enveloppe_projet = notified_projet.enveloppeprojet_set.first()
     client.post(_url(notified_projet), {}, headers={"HX-Request": "true"})
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.status == PROJET_STATUS_ACCEPTED
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
 
 
 @patch("gsl.projet.forms.DsService.repasser_en_instruction")
 def test_post_preserves_programmation(mock_repasser, client, notified_projet):
-    dotation_projet = notified_projet.dotationprojet_set.first()
-    assert dotation_projet.is_programmee
+    enveloppe_projet = notified_projet.enveloppeprojet_set.first()
+    assert enveloppe_projet.is_programmee
     client.post(_url(notified_projet), {}, headers={"HX-Request": "true"})
-    dotation_projet.refresh_from_db()
-    assert dotation_projet.is_programmee
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.is_programmee
 
 
 def test_get_returns_404_for_non_notified_projet(client, non_notified_projet):
@@ -117,7 +117,7 @@ def test_get_returns_404_for_out_of_perimeter_projet():
         dossier_ds__perimetre=PerimetreDepartementalFactory(),
         notified_at=timezone.now(),
     )
-    DotationProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
+    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
     client = ClientWithLoggedUserFactory(other_collegue)
     response = client.get(_url(projet), headers={"HX-Request": "true"})
     assert response.status_code == 404
@@ -129,10 +129,10 @@ def test_double_dotation_post_calls_ds_once(mock_repasser, collegue):
         dossier_ds__perimetre=collegue.perimetre,
         notified_at=timezone.now(),
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
     )
-    DotationProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DSIL
     )
     client = ClientWithLoggedUserFactory(collegue)

@@ -1,7 +1,7 @@
 """
 Read a scanned signed PDF, decode the QR code on each page, and split the scan
 into one signed document (lettre/arrêté, or lettre de refus) per matching
-DotationProjet.
+EnveloppeProjet.
 
 Thin CLI wrapper around `gsl_notification.qr.reattach.reattach_signed_docs`,
 which the web import flow calls too. Matching is global here, where the web
@@ -17,7 +17,7 @@ from pathlib import Path
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 
-from gsl.projet.models import DotationProjet
+from gsl.projet.models import EnveloppeProjet
 from gsl_core.models import Collegue
 from gsl_notification.qr.reattach import (
     DOCUMENT_TYPE_ORDER,
@@ -37,7 +37,7 @@ except ImportError:
 class Command(BaseCommand):
     help = (
         "Decode the per-page QR codes from a scanned signed PDF and reattach "
-        "each document it contains to its DotationProjet, as the matching "
+        "each document it contains to its EnveloppeProjet, as the matching "
         "signed-document type (lettre/arrêté or lettre de refus)."
     )
 
@@ -67,7 +67,7 @@ class Command(BaseCommand):
 
         pdfs = [ContentFile(pdf_path.read_bytes(), name=pdf_path.name)]
         attached, unreadable, unmatched = self._consume_events(
-            reattach_signed_docs(pdfs, user, DotationProjet.objects.programmees())
+            reattach_signed_docs(pdfs, user, EnveloppeProjet.objects.programmees())
         )
 
         self._print_summary(attached, unreadable, unmatched)
@@ -108,7 +108,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Skipped {len(unreadable)} unreadable page(s).")
         if unreadable:
             self.stdout.write(f"  pages: {unreadable}")
-        self.stdout.write(f"Matched no DotationProjet: {len(unmatched)}.")
+        self.stdout.write(f"Matched no EnveloppeProjet: {len(unmatched)}.")
         for line in unmatched:
             self.stdout.write(f"  {line}")
 
@@ -142,7 +142,7 @@ def _format_attached(document) -> str:
     return (
         f"ds={declared.ds_number} dotation={declared.dotation} "
         f"[{declared.target_model.document_type}] → "
-        f"DotationProjet #{document.dotation_projet_id} ({breakdown})"
+        f"EnveloppeProjet #{document.enveloppe_projet_id} ({breakdown})"
     )
 
 

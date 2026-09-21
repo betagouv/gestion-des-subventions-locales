@@ -6,7 +6,7 @@ from gsl.celery import TASK_PRIORITY_LOW
 from gsl_demarches_simplifiees.models import Dossier
 
 from .models import Projet
-from .services.dotation_projet_services import DotationProjetService
+from .services.enveloppe_projet_services import EnveloppeProjetService
 from .services.projet_services import ProjetService
 
 
@@ -45,30 +45,30 @@ def task_create_or_update_projet_and_co_from_dossier(
     ProjetService.create_or_update_projet_and_co_from_dossier(ds_dossier_number)
 
 
-## Dotation Projet
+## Enveloppe Projet
 ### for all
 @shared_task
-def task_create_or_update_dotation_projets_from_all_projets(batch_size=500):
+def task_create_or_update_enveloppe_projets_from_all_projets(batch_size=500):
     projets = Projet.objects.active().all().values_list("pk", flat=True)
     for batch in batched(projets, batch_size):
-        task_create_or_update_dotation_projets_from_projet_batch.apply_async(
+        task_create_or_update_enveloppe_projets_from_projet_batch.apply_async(
             (batch,), priority=TASK_PRIORITY_LOW
         )
 
 
 ### for a list
 @shared_task
-def task_create_or_update_dotation_projets_from_projet_batch(
+def task_create_or_update_enveloppe_projets_from_projet_batch(
     dossier_numbers: tuple[int],
 ):
     for ds_number in dossier_numbers:
-        task_create_or_update_dotation_projet_from_projet.apply_async(
+        task_create_or_update_enveloppe_projet_from_projet.apply_async(
             (ds_number,), priority=TASK_PRIORITY_LOW
         )
 
 
 ### for one
 @shared_task
-def task_create_or_update_dotation_projet_from_projet(projet_id):
+def task_create_or_update_enveloppe_projet_from_projet(projet_id):
     projet = Projet.objects.active().get(id=projet_id)
-    DotationProjetService.create_or_update_dotation_projet_from_projet(projet)
+    EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet(projet)

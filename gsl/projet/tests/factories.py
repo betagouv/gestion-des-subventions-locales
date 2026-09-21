@@ -24,7 +24,7 @@ from ..constants import (
     PROJET_STATUS_CHOICES,
     PROJET_STATUS_PROCESSING,
 )
-from ..models import DotationProjet, Projet, ProjetNote
+from ..models import EnveloppeProjet, Projet, ProjetNote
 
 
 class ProjetFactory(factory.django.DjangoModelFactory):
@@ -77,9 +77,9 @@ def _default_montant(obj):
     return Decimal(randint(0, int(ceiling))) if ceiling else Decimal(randint(1, 99_999))
 
 
-class DotationProjetFactory(factory.django.DjangoModelFactory):
+class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = DotationProjet
+        model = EnveloppeProjet
         django_get_or_create = ("projet", "dotation")
 
     projet = factory.SubFactory(ProjetFactory)
@@ -97,11 +97,11 @@ class DotationProjetFactory(factory.django.DjangoModelFactory):
     )
 
 
-class DetrProjetFactory(DotationProjetFactory):
+class DetrProjetFactory(EnveloppeProjetFactory):
     dotation = DOTATION_DETR
 
 
-class DsilProjetFactory(DotationProjetFactory):
+class DsilProjetFactory(EnveloppeProjetFactory):
     dotation = DOTATION_DSIL
 
 

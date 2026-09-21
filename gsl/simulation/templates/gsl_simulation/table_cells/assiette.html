@@ -1,8 +1,8 @@
 {% load gsl_filters %}
 {% if projet.notified_at or simu.status == 'cancelled' or simu.status == 'dismissed' %}
-    {{ simu.dotation_projet.assiette|euro_value:2 }}
+    {{ simu.enveloppe_projet.assiette|euro_value:2 }}
 {% else %}
-    <span>{{ simu.dotation_projet.assiette|euro_value:2 }}</span>
+    <span>{{ simu.enveloppe_projet.assiette|euro_value:2 }}</span>
     <button class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line gsl-cell-edit-btn"
             aria-expanded="false"
             aria-controls="edit-assiette-{{ simu.pk }}"

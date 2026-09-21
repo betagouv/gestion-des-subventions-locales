@@ -24,9 +24,9 @@ from ....constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from ....models import DotationProjet
-from ....services.dotation_projet_services import (
-    DotationProjetService as dps,
+from ....models import EnveloppeProjet
+from ....services.enveloppe_projet_services import (
+    EnveloppeProjetService as dps,
 )
 from ...factories import (
     ProjetFactory,
@@ -56,10 +56,10 @@ def perimetres():
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_dotation_projets_from_projet_accepted_with_annotations_dotation(
+def test_initialize_enveloppe_projets_from_projet_accepted_with_annotations_dotation(
     perimetres,
 ):
-    """Test _initialize_dotation_projets_from_projet_accepted when annotations_dotation is set"""
+    """Test _initialize_enveloppe_projets_from_projet_accepted when annotations_dotation is set"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -75,19 +75,19 @@ def test_initialize_dotation_projets_from_projet_accepted_with_annotations_dotat
         dossier_ds__perimetre=arr_dijon,
     )
 
-    dotation_projets = dps._initialize_dotation_projets_from_projet_accepted(projet)
+    enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_accepted(projet)
 
-    assert len(dotation_projets) == 2
-    assert DotationProjet.objects.filter(projet=projet).count() == 2
+    assert len(enveloppe_projets) == 2
+    assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_ACCEPTED
     assert detr_dp.assiette == 10_000
     assert detr_dp.detr_avis_commission is True
     assert detr_dp.montant_retenu == 5_000
     assert detr_dp.taux_retenu == 50
 
-    dsil_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
+    dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == PROJET_STATUS_ACCEPTED
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.detr_avis_commission is None
@@ -97,10 +97,10 @@ def test_initialize_dotation_projets_from_projet_accepted_with_annotations_dotat
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations_dotation_falls_back_to_demande_dispositif_sollicite(
+def test_initialize_enveloppe_projets_from_projet_accepted_with_empty_annotations_dotation_falls_back_to_demande_dispositif_sollicite(
     perimetres, caplog
 ):
-    """Test _initialize_dotation_projets_from_projet_accepted when annotations_dotation is empty, falls back to demande_dispositif_sollicite"""
+    """Test _initialize_enveloppe_projets_from_projet_accepted when annotations_dotation is empty, falls back to demande_dispositif_sollicite"""
 
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
@@ -118,12 +118,14 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
     # --
 
     with caplog.at_level(logging.WARNING):
-        dotation_projets = dps._initialize_dotation_projets_from_projet_accepted(projet)
+        enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_accepted(
+            projet
+        )
 
     # --
 
-    assert len(dotation_projets) == 1
-    detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
+    assert len(enveloppe_projets) == 1
+    detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_ACCEPTED
     assert detr_dp.assiette is None, "Assiette should be None if assiette is missing"
     assert detr_dp.montant_retenu == 0, "Montant should be 0 if montant is missing"
@@ -154,8 +156,8 @@ def test_initialize_dotation_projets_from_projet_accepted_with_empty_annotations
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_dotation_projets_from_projet_refused(perimetres):
-    """Test _initialize_dotation_projets_from_projet_refused"""
+def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
+    """Test _initialize_enveloppe_projets_from_projet_refused"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -169,12 +171,12 @@ def test_initialize_dotation_projets_from_projet_refused(perimetres):
         dossier_ds__perimetre=arr_dijon,
     )
 
-    dotation_projets = dps._initialize_dotation_projets_from_projet_refused(projet)
+    enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_refused(projet)
 
-    assert len(dotation_projets) == 2
-    assert DotationProjet.objects.filter(projet=projet).count() == 2
+    assert len(enveloppe_projets) == 2
+    assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_REFUSED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu == 0
@@ -182,7 +184,7 @@ def test_initialize_dotation_projets_from_projet_refused(perimetres):
     assert detr_dp.detr_avis_commission is None
     assert detr_dp.is_programmee
 
-    dsil_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
+    dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == PROJET_STATUS_REFUSED
     assert dsil_dp.assiette is None
     assert dsil_dp.montant_retenu == 0
@@ -193,8 +195,8 @@ def test_initialize_dotation_projets_from_projet_refused(perimetres):
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_dotation_projets_from_projet_sans_suite(perimetres):
-    """Test _initialize_dotation_projets_from_projet_sans_suite"""
+def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
+    """Test _initialize_enveloppe_projets_from_projet_sans_suite"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -208,18 +210,18 @@ def test_initialize_dotation_projets_from_projet_sans_suite(perimetres):
         dossier_ds__perimetre=arr_dijon,
     )
 
-    dotation_projets = dps._initialize_dotation_projets_from_projet_sans_suite(projet)
+    enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_sans_suite(projet)
 
-    assert len(dotation_projets) == 2
-    assert DotationProjet.objects.filter(projet=projet).count() == 2
+    assert len(enveloppe_projets) == 2
+    assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_DISMISSED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu == 0
     assert detr_dp.taux_retenu == 0
 
-    dsil_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
+    dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == PROJET_STATUS_DISMISSED
     assert dsil_dp.assiette is None
     assert dsil_dp.montant_retenu == 0
@@ -227,8 +229,8 @@ def test_initialize_dotation_projets_from_projet_sans_suite(perimetres):
 
 
 @pytest.mark.django_db
-def test_initialize_dotation_projets_from_projet_en_construction_or_instruction():
-    """Test _initialize_dotation_projets_from_projet_en_construction_or_instruction"""
+def test_initialize_enveloppe_projets_from_projet_en_construction_or_instruction():
+    """Test _initialize_enveloppe_projets_from_projet_en_construction_or_instruction"""
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="DETR et DSIL",
@@ -236,22 +238,22 @@ def test_initialize_dotation_projets_from_projet_en_construction_or_instruction(
         dossier_ds__annotations_assiette_dsil=20_000,
     )
 
-    dotation_projets = (
-        dps._initialize_dotation_projets_from_projet_en_construction_or_instruction(
+    enveloppe_projets = (
+        dps._initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
             projet
         )
     )
 
-    assert len(dotation_projets) == 2
-    assert DotationProjet.objects.filter(projet=projet).count() == 2
+    assert len(enveloppe_projets) == 2
+    assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == PROJET_STATUS_PROCESSING
     assert detr_dp.assiette is None
     assert detr_dp.montant_retenu is None
     assert not detr_dp.is_programmee
 
-    dsil_dp = DotationProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
+    dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == PROJET_STATUS_PROCESSING
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.montant_retenu is None
