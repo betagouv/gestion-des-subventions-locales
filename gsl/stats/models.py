@@ -12,9 +12,11 @@ class Subvention(models.Model):
 
     SOURCE_DGCL = "dgcl"
     SOURCE_FONDS_VERT = "fonds_vert"
+    SOURCE_FNADT = "fnadt"
     SOURCE_CHOICES = (
         (SOURCE_DGCL, "DGCL"),
         (SOURCE_FONDS_VERT, "Fonds Vert"),
+        (SOURCE_FNADT, "FNADT"),
     )
 
     # Utile pour les importeurs pour l'upsert
@@ -31,6 +33,7 @@ class Subvention(models.Model):
     )  # DETR, DSIL, DPV, FONDS VERT (la DSID est ignorée à l'import)
     programme = models.PositiveSmallIntegerField(verbose_name="Programme")
     intitule = models.TextField(verbose_name="Intitulé du projet")
+    # TODO remove departement and commune if useless (decide during new navigation)
     departement = models.ForeignKey(
         "gsl_core.Departement",
         on_delete=models.PROTECT,

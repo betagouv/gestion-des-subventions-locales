@@ -50,6 +50,7 @@ dependencies = [
     "whitenoise",
     "django-weasyprint",
     "graphql-core",
+    "openpyxl>=3.1.5",
 ]
 
 [tool.setuptools]

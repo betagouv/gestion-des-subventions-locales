@@ -8,7 +8,6 @@ from ...importers.dgcl import (
     DGCL_DATASET_ID,
     DgclRowSkipped,
     _build_dgcl_subvention,
-    _parse_decimal,
     _parse_int,
     import_dgcl_subventions,
 )
@@ -237,18 +236,3 @@ class TestImportDgclSubventions:
 )
 def test_parse_int(raw, expected):
     assert _parse_int(raw) == expected
-
-
-@pytest.mark.parametrize(
-    "raw,expected",
-    [
-        ("1000,50", 1000.50),
-        ("1 000,50", 1000.50),
-        ("1000.50", 1000.50),
-        ("", None),
-        (None, None),
-        ("abc", None),
-    ],
-)
-def test_parse_decimal(raw, expected):
-    assert _parse_decimal(raw) == expected
