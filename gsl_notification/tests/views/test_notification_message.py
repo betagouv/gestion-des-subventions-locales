@@ -263,10 +263,9 @@ class TestForm:
         assert full_raw_data["state"] == "en_construction"
         DossierDataFactory(dossier=dossier, raw_data=full_raw_data)
         projet = ProjetFactory(dossier_ds=dossier)
-        pp = _accepted_dotation(
+        enveloppe_projet = _accepted_dotation(
             perimetre, projet, DOTATION_DETR, with_signed_document=True
         )
-        dotation_projet = pp.dotation_projet
 
         with (
             mock.patch(
@@ -306,10 +305,8 @@ class TestForm:
             form.save(user=collegue)
 
         passer_en_instruction.assert_called_once()
-        dotation_projet.refresh_from_db()
-        assert dotation_projet.status == PROJET_STATUS_ACCEPTED
-        pp.refresh_from_db()
-        assert pp.status == ProgrammationProjet.STATUS_ACCEPTED
+        enveloppe_projet.refresh_from_db()
+        assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
         projet.refresh_from_db()
         assert projet.notified_at is not None
 

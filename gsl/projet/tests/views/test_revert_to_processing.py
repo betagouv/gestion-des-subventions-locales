@@ -21,7 +21,6 @@ from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
 )
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
