@@ -32,8 +32,11 @@ class RefreshOneDossierView(SafeRedirectMixin, SingleObjectMixin, View):
         dossier = self.get_object()
 
         try:
-            level, message = save_one_dossier_from_ds(dossier)
-            messages.add_message(request, level, message)
+            save_one_dossier_from_ds(dossier)
+            messages.success(
+                request,
+                "Le dossier a bien été mis à jour depuis Démarche Numérique.",
+            )
         except DsServiceException:
             messages.error(
                 request,

@@ -2,7 +2,6 @@ import logging
 from typing import Iterable, NamedTuple
 
 from django.contrib import messages
-from django.utils import timezone
 
 from gsl.celery import TASK_PRIORITY_HIGH, TASK_PRIORITY_LOW
 from gsl.historique.models import ProjetAction
@@ -256,36 +255,12 @@ def _save_cursors_after_page(
 def save_one_dossier_from_ds(
     dossier: Dossier,
     client: DsClient | None = None,
-    refresh_only_if_dossier_has_been_updated: bool = True,
 ):
     client = client or DsClient()
     dossier_data = client.get_one_dossier(dossier.ds_number)
-    has_dossier_been_updated = _save_dossier_data_and_refresh_dossier_and_projet_and_co(
+    _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         dossier,
         dossier_data,
-        refresh_only_if_dossier_has_been_updated=refresh_only_if_dossier_has_been_updated,
-    )
-
-    if has_dossier_been_updated:
-        return (
-            messages.SUCCESS,
-            "Le dossier a bien été mis à jour depuis Démarche Numérique.",
-        )
-    return (
-        messages.WARNING,
-        (
-            "Le dossier était déjà à jour sur Turgot, nous ne l’avons pas "
-            "remis à jour depuis Démarche Numérique."
-        ),
-    )
-
-
-def create_or_update_dossier_from_ds_number(ds_number: str):
-    client = DsClient()
-    dossier_data = client.get_one_dossier(ds_number)
-    handled_departement_insee_codes = _get_handled_departement_insee_codes()
-    return _create_or_update_dossier_from_ds_data(
-        dossier_data, handled_departement_insee_codes
     )
 
 
@@ -295,7 +270,7 @@ def import_one_dossier_from_ds(dossier_number: int):
     - sa démarche est présente dans Turgot
     - il n'existe pas encore dans Turgot
 
-    Retourne un tuple (level, message) à la manière de save_one_dossier_from_ds.
+    Retourne un tuple (level, message) à afficher à l'utilisateur.
     """
     client = DsClient()
     try:
@@ -592,15 +567,9 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     dossier: Dossier,
     dossier_data: dict,
     async_refresh: bool = False,
-    refresh_only_if_dossier_has_been_updated: bool = True,
     groupe_index: dict | None = None,
     refresh_priority: int = TASK_PRIORITY_LOW,
 ):
-    if refresh_only_if_dossier_has_been_updated:
-        must_refresh_dossier = _has_dossier_been_updated_on_ds(dossier, dossier_data)
-    else:
-        must_refresh_dossier = True
-
     refresh_dossier_instructeurs(dossier_data, dossier, groupe_index=groupe_index)
     if getattr(dossier, "ds_data", None) is None:
         DossierData.objects.create(dossier=dossier, raw_data=dossier_data)
@@ -609,39 +578,16 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         dossier.ds_data.save()
     dossier.save()
 
-    if must_refresh_dossier:
-        if async_refresh:
-            from gsl_demarches_simplifiees.tasks import (
-                task_refresh_dossier_from_saved_data,
-            )
-
-            task_refresh_dossier_from_saved_data.apply_async(
-                (dossier.ds_number,), priority=refresh_priority
-            )
-        else:
-            refresh_dossier_from_saved_data(dossier)
-
-    return must_refresh_dossier
-
-
-def _has_dossier_been_updated_on_ds(dossier: Dossier, dossier_data: dict) -> bool:
-    date_modif_ds = dossier_data.get("dateDerniereModification", None)
-
-    if not date_modif_ds:
-        raise DsServiceException(
-            "Une erreur est survenue lors de la mise à jour du dossier.",
-            level=logging.ERROR,
-            log_message="Unset date_modif_ds is not a normal situation.",
-            extra={
-                "dossier_ds_number": dossier.ds_number,
-            },
+    if async_refresh:
+        from gsl_demarches_simplifiees.tasks import (
+            task_refresh_dossier_from_saved_data,
         )
 
-    if dossier.ds_date_derniere_modification is None:
-        return True  # New dossier on Turgot
-
-    date_modif_ds = timezone.datetime.fromisoformat(date_modif_ds)
-    return date_modif_ds > dossier.ds_date_derniere_modification
+        task_refresh_dossier_from_saved_data.apply_async(
+            (dossier.ds_number,), priority=refresh_priority
+        )
+    else:
+        refresh_dossier_from_saved_data(dossier)
 
 
 def _get_handled_departement_insee_codes():
@@ -690,7 +636,6 @@ def _create_or_update_dossier_from_ds_data(
         dossier,
         dossier_data,
         async_refresh=True,
-        refresh_only_if_dossier_has_been_updated=False,
         groupe_index=groupe_index,
         refresh_priority=refresh_priority,
     )
