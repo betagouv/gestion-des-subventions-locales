@@ -1,77 +1,14 @@
-from datetime import datetime
-from typing import TYPE_CHECKING
-
 from django.contrib.admin.models import LogEntry
 from django.db import models
 from django.utils import timezone
 
-from gsl.projet.constants import (
-    DOTATION_CHOICES,
-    DS_TRAITEMENT_EVENT_ACCEPTE,
-    DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT,
-    DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
-    DS_TRAITEMENT_EVENT_DEPOSE,
-    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
-    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT,
-    DS_TRAITEMENT_EVENT_REFUSE,
-    DS_TRAITEMENT_EVENT_REFUSE_AUTOMATIQUEMENT,
-    DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION,
-    DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
-)
-
-if TYPE_CHECKING:
-    from gsl.projet.models import Projet
+from gsl.projet.constants import DOTATION_CHOICES
 
 
 def projet_action_document_upload_to(instance, filename):
     # Named (module-level) so it stays migration-serializable, unlike a lambda.
     timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
     return f"notifications/{instance.projet_id}/{timestamp}/{filename}"
-
-
-class ProjetActionManager(models.Manager):
-    def create_from_dossier_traitements(self, projet: "Projet") -> int:
-        """Parcourt tous les traitements DN du dossier et crée les
-        ProjetActions manquantes (dépôt, passage en instruction, retour en
-        instruction, retour en construction, notification), en associant
-        `source_id` (id du Traitement DN) qui sert de clé pour ne jamais
-        créer de doublon si la fonction est rejouée (ex : resynchronisation
-        périodique du dossier). Retourne le nombre de ProjetActions créées."""
-        event_to_action_type = {
-            DS_TRAITEMENT_EVENT_DEPOSE: self.model.TYPE_DEPOT_DOSSIER,
-            DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION: self.model.TYPE_PASSAGE_EN_INSTRUCTION,
-            DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT: self.model.TYPE_PASSAGE_EN_INSTRUCTION,
-            DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION: self.model.TYPE_RETOUR_EN_INSTRUCTION,
-            DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION: self.model.TYPE_RETOUR_EN_CONSTRUCTION,
-            DS_TRAITEMENT_EVENT_ACCEPTE: self.model.TYPE_NOTIFIED,
-            DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT: self.model.TYPE_NOTIFIED,
-            DS_TRAITEMENT_EVENT_REFUSE: self.model.TYPE_NOTIFIED,
-            DS_TRAITEMENT_EVENT_REFUSE_AUTOMATIQUEMENT: self.model.TYPE_NOTIFIED,
-            DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE: self.model.TYPE_NOTIFIED,
-        }
-
-        traitements = projet.dossier_ds.traitements
-
-        created_count = 0
-        for traitement in traitements:
-            action_type = event_to_action_type.get(traitement.get("event"))
-            traitement_id = traitement.get("id")
-            date_traitement = traitement.get("dateTraitement")
-            if not action_type or not traitement_id or not date_traitement:
-                continue
-
-            _, created = self.get_or_create(
-                projet=projet,
-                source_id=traitement_id,
-                defaults={
-                    "action_type": action_type,
-                    "source": self.model.SOURCE_DN,
-                    "created_at": datetime.fromisoformat(date_traitement),
-                },
-            )
-            created_count += created
-
-        return created_count
 
 
 class ProjetAction(models.Model):
@@ -167,8 +104,6 @@ class ProjetAction(models.Model):
     document = models.FileField(
         upload_to=projet_action_document_upload_to, null=True, blank=True
     )
-
-    objects = ProjetActionManager()
 
     class Meta:
         ordering = ["-created_at"]

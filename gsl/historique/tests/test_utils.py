@@ -20,6 +20,7 @@ from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 
 from ..models import ProjetAction
+from ..utils import create_projet_actions_from_dossier_traitements
 
 pytestmark = pytest.mark.django_db
 
@@ -64,7 +65,7 @@ def _traitement(id, event, date="2025-01-15T10:00:00+00:00"):
 def test_creates_the_matching_action_type_for_each_known_event(event, action_type):
     projet = _dossier_with_traitements(traitements=[_traitement("traitement-1", event)])
 
-    created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert created_count == 1
     action = ProjetAction.objects.get(projet=projet)
@@ -85,7 +86,7 @@ def test_creates_the_matching_action_type_for_each_known_event(event, action_typ
 def test_ignores_events_without_a_mapped_action_type(event):
     projet = _dossier_with_traitements(traitements=[_traitement("traitement-1", event)])
 
-    created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert created_count == 0
     assert not ProjetAction.objects.filter(projet=projet).exists()
@@ -102,7 +103,7 @@ def test_ignores_events_without_a_mapped_action_type(event):
 def test_ignores_traitements_missing_id_or_date(traitement):
     projet = _dossier_with_traitements(traitements=[traitement])
 
-    created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert created_count == 0
     assert not ProjetAction.objects.filter(projet=projet).exists()
@@ -125,7 +126,7 @@ def test_creates_one_action_per_traitement_in_order():
         ]
     )
 
-    created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert created_count == 3
     source_ids = set(
@@ -139,8 +140,8 @@ def test_is_idempotent_when_rerun_on_the_same_traitements():
         traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_DEPOSE)]
     )
 
-    first_created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
-    second_created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    first_created_count = create_projet_actions_from_dossier_traitements(projet)
+    second_created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert first_created_count == 1
     assert second_created_count == 0
@@ -151,7 +152,7 @@ def test_only_creates_actions_for_new_traitements_on_resync():
     projet = _dossier_with_traitements(
         traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_DEPOSE)]
     )
-    ProjetAction.objects.create_from_dossier_traitements(projet)
+    create_projet_actions_from_dossier_traitements(projet)
 
     # Le dossier a avancé depuis : un nouveau traitement DN est apparu.
     projet.dossier_ds.ds_data.raw_data = {
@@ -162,7 +163,7 @@ def test_only_creates_actions_for_new_traitements_on_resync():
     }
     projet.dossier_ds.ds_data.save()
 
-    created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert created_count == 1
     assert ProjetAction.objects.filter(projet=projet).count() == 2
@@ -176,7 +177,7 @@ def test_only_creates_actions_for_new_traitements_on_resync():
 def test_returns_zero_when_dossier_has_no_ds_data():
     projet = ProjetFactory()
 
-    created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert created_count == 0
     assert not ProjetAction.objects.filter(projet=projet).exists()
@@ -185,6 +186,6 @@ def test_returns_zero_when_dossier_has_no_ds_data():
 def test_returns_zero_when_dossier_has_no_traitements():
     projet = _dossier_with_traitements(traitements=[])
 
-    created_count = ProjetAction.objects.create_from_dossier_traitements(projet)
+    created_count = create_projet_actions_from_dossier_traitements(projet)
 
     assert created_count == 0

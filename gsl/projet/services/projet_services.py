@@ -1,6 +1,6 @@
 import logging
 
-from gsl.historique.models import ProjetAction
+from gsl.historique.utils import create_projet_actions_from_dossier_traitements
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..models import Projet
@@ -48,7 +48,7 @@ class ProjetService:
 
         projet.save()
 
-        ProjetAction.objects.create_from_dossier_traitements(projet)
+        create_projet_actions_from_dossier_traitements(projet)
         return projet
 
     # Private
