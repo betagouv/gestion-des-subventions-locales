@@ -2,7 +2,12 @@ import pytest
 
 from gsl_core.tests.factories import CommuneFactory, DepartementFactory
 
-from ...importers.utils import reset_geo_cache, resolve_commune, resolve_departement
+from ...importers.utils import (
+    parse_excel_decimal,
+    reset_geo_cache,
+    resolve_commune,
+    resolve_departement,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -66,6 +71,14 @@ class TestResolveCommune:
 
         assert resolve_commune("99999") is None
 
+    def test_resolves_case_insensitively(self):
+        # Les départements corses (2A/2B) sont parfois saisis en minuscules
+        # dans les imports (ex. FNADT), alors que Commune.insee_code est
+        # enregistré en majuscules.
+        commune = CommuneFactory(insee_code="2B267")
+
+        assert resolve_commune("2b267") == commune
+
     def test_only_queries_the_database_once_across_several_calls(
         self, django_assert_num_queries
     ):
@@ -102,3 +115,18 @@ class TestResetGeoCache:
         # rempli : ne doit pas planter.
         reset_geo_cache()
         reset_geo_cache()
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("1000,50", 1000.50),
+        ("1 000,50", 1000.50),
+        ("1000.50", 1000.50),
+        ("", None),
+        (None, None),
+        ("abc", None),
+    ],
+)
+def test_parse_excel_decimal(raw, expected):
+    assert parse_excel_decimal(raw) == expected

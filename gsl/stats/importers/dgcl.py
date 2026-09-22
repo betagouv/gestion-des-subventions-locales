@@ -1,8 +1,6 @@
 import csv
 import io
 import logging
-from dataclasses import dataclass, field
-from decimal import Decimal, InvalidOperation
 
 import requests
 from django.db import transaction
@@ -10,7 +8,13 @@ from django.db import transaction
 from gsl_core.api.data_gouv import get_dataset_resources
 
 from ..models import Subvention
-from .utils import resolve_commune, resolve_departement
+from .utils import (
+    InvalidRow,
+    log_invalidated_lines,
+    parse_excel_decimal,
+    resolve_commune,
+    resolve_departement,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +25,7 @@ DGCL_DATASET_ID = "6176785207139a929a2776fe"
 def import_dgcl_subventions(show_dsid=False):
     """`show_dsid` : affiche aussi, dans le bilan journalisé, les lignes
     ignorées car en dispositif DSID (masquées par défaut, cf.
-    `_log_invalidated_lines`)."""
+    `log_invalidated_lines`)."""
     resources = get_dataset_resources(DGCL_DATASET_ID, "csv")
     logger.info(f"Trouvé {len(resources)} ressources CSV dans le jeu de données DGCL")
 
@@ -40,7 +44,8 @@ def import_dgcl_subventions(show_dsid=False):
         logger.info(
             f"{title}: {nb_validated} lignes validées, {len(invalid_rows)} lignes invalidées"
         )
-        _log_invalidated_lines(invalid_rows, show_dsid=show_dsid)
+        hidden_reasons = () if show_dsid else (DSID_SKIPPED_REASON,)
+        log_invalidated_lines(logger, invalid_rows, hidden_reasons)
 
 
 class DgclRowSkipped(Exception):
@@ -53,22 +58,6 @@ class DgclRowSkipped(Exception):
         super().__init__(reason)
         self.reason = reason
         self.field = field_name
-
-
-@dataclass
-class InvalidRowsSummary:
-    """Un bilan : nombre de lignes concernées + liste de ces lignes."""
-
-    reason: str
-    count: int = 0
-    lines: list[int] = field(default_factory=list)
-
-
-@dataclass
-class InvalidRow:
-    line: int
-    reason: str
-    field: str | None = None
 
 
 # Motif de `DgclRowSkipped` pour un dispositif DSID : hors périmètre Turgot
@@ -174,8 +163,8 @@ def _build_dgcl_subvention(row) -> Subvention:
         programme=programme,
         departement=departement,
         commune=commune,
-        cout_total=_parse_decimal(cout_total_raw),
-        montant_attribue=_parse_decimal(montant_attribue_raw),
+        cout_total=parse_excel_decimal(cout_total_raw),
+        montant_attribue=parse_excel_decimal(montant_attribue_raw),
     )
 
 
@@ -186,41 +175,3 @@ def _parse_int(value):
         return int(str(value).strip())
     except (ValueError, TypeError):
         return None
-
-
-def _parse_decimal(value):
-    if not value:
-        return None
-    cleaned = str(value).strip().replace(",", ".").replace(" ", "").replace("\xa0", "")
-    try:
-        return Decimal(cleaned)
-    except InvalidOperation:
-        return None
-
-
-def _log_invalidated_lines(invalid_rows: list[InvalidRow], show_dsid=False) -> None:
-    """Regroupe (cf. `_summarize_invalid_rows`) et journalise (info) le
-    bilan des lignes invalides. Le motif DSID (`DSID_SKIPPED_REASON`) est
-    masqué par défaut ; passer `show_dsid=True` pour l'afficher aussi."""
-    invalid_rows_summaries = _summarize_invalid_rows(invalid_rows)
-    for invalid_rows_summary in invalid_rows_summaries:
-        if not show_dsid and invalid_rows_summary.reason == DSID_SKIPPED_REASON:
-            continue
-        logger.info(
-            f"    {invalid_rows_summary.reason} : {invalid_rows_summary.count} ligne(s) — lignes {invalid_rows_summary.lines}"
-        )
-
-
-def _summarize_invalid_rows(
-    invalid_rows: list[InvalidRow],
-) -> list[InvalidRowsSummary]:
-    bilans_by_reason: dict[str, InvalidRowsSummary] = {}
-    for invalid_row in invalid_rows:
-        reason = invalid_row.reason
-        if invalid_row.field:
-            reason += f" - {invalid_row.field}"
-
-        bilan = bilans_by_reason.setdefault(reason, InvalidRowsSummary(reason=reason))
-        bilan.count += 1
-        bilan.lines.append(invalid_row.line)
-    return list(bilans_by_reason.values())
