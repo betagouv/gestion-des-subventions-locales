@@ -620,6 +620,65 @@ def test_in_ds_creates_dossier_data_when_missing(
         assert dossier.data.raw_data == {"state": "accepte"}
 
 
+class TestCreateProjetActionForMutation:
+    def test_creates_projet_action_with_turgot_source_and_given_action_type(
+        self, user, dossier
+    ):
+        projet = ProjetFactory(dossier_ds=dossier)
+        document = SimpleUploadedFile("justificatif.pdf", b"%PDF-1.4 fake content")
+        dossier_data = {
+            "traitements": [
+                {
+                    "id": "traitement-1",
+                    "dateTraitement": "2025-06-25T11:46:30+02:00",
+                    "event": "accepte",
+                }
+            ]
+        }
+
+        DsService()._create_projet_action_for_mutation(
+            dossier,
+            user,
+            "accept",
+            ProjetAction.TYPE_NOTIFIED,
+            dossier_data,
+            document=document,
+            motivation="Motif de la décision",
+        )
+
+        action = ProjetAction.objects.get(projet=projet)
+        assert action.action_type == ProjetAction.TYPE_NOTIFIED
+        assert action.source == ProjetAction.SOURCE_TURGOT
+        assert action.actor == user
+        assert action.source_id == "traitement-1"
+        assert action.details == "Motif de la décision"
+        assert action.created_at == datetime.fromisoformat("2025-06-25T11:46:30+02:00")
+        assert "justificatif" in action.document.name
+
+    def test_falls_back_to_now_when_no_matching_traitement(self, user, dossier):
+        projet = ProjetFactory(dossier_ds=dossier)
+
+        before = timezone.now()
+        DsService()._create_projet_action_for_mutation(
+            dossier, user, "accept", ProjetAction.TYPE_NOTIFIED, {}
+        )
+        after = timezone.now()
+
+        action = ProjetAction.objects.get(projet=projet)
+        assert action.action_type == ProjetAction.TYPE_NOTIFIED
+        assert action.source == ProjetAction.SOURCE_TURGOT
+        assert action.actor == user
+        assert action.source_id == ""
+        assert before <= action.created_at <= after
+
+    def test_does_nothing_when_dossier_has_no_projet(self, user, dossier):
+        DsService()._create_projet_action_for_mutation(
+            dossier, user, "accept", ProjetAction.TYPE_NOTIFIED, {}
+        )
+
+        assert not ProjetAction.objects.exists()
+
+
 @pytest.mark.parametrize(
     "method_name, mutator_method, mutation_key",
     [

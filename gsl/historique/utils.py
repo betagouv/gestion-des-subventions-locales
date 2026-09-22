@@ -14,9 +14,22 @@ from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION,
     DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
 )
+from gsl_core.models import Collegue
 
 if TYPE_CHECKING:
     from gsl.projet.models import Projet
+
+
+def get_or_create_collegue_from_traitement_email(
+    traitement: dict | None,
+) -> Collegue | None:
+    if not traitement:
+        return None
+    email = (traitement.get("emailAgentTraitant") or "").strip().lower()
+    if not email:
+        return None
+
+    return Collegue.objects.get_or_create_from_email(email)
 
 
 def create_projet_actions_from_dossier_traitements(projet: "Projet") -> int:
@@ -46,6 +59,7 @@ def create_projet_actions_from_dossier_traitements(projet: "Projet") -> int:
         action_type = event_to_action_type.get(traitement.get("event"))
         traitement_id = traitement.get("id")
         date_traitement = traitement.get("dateTraitement")
+        details = traitement.get("motivation")
         if not action_type or not traitement_id or not date_traitement:
             continue
 
@@ -56,6 +70,8 @@ def create_projet_actions_from_dossier_traitements(projet: "Projet") -> int:
                 "action_type": action_type,
                 "source": ProjetAction.SOURCE_DN,
                 "created_at": datetime.fromisoformat(date_traitement),
+                "actor": get_or_create_collegue_from_traitement_email(traitement),
+                "details": details or "",
             },
         )
         created_count += created
