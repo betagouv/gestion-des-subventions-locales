@@ -31,9 +31,7 @@ class ProjetAction(models.Model):
     TYPE_DEPOT_DOSSIER = "depot_dossier"
     TYPE_PASSAGE_EN_INSTRUCTION = "passage_en_instruction"
     TYPE_RETOUR_EN_CONSTRUCTION = "retour_en_construction"
-    TYPE_RETOUR_EN_INSTRUCTION = (
-        "retour_en_instruction"  # TODO, use it when this Turgot action is done
-    )
+    TYPE_RETOUR_EN_INSTRUCTION = "retour_en_instruction"
     TYPE_DEACTIVATION = "deactivation"
     TYPE_REACTIVATION = "reactivation"
 

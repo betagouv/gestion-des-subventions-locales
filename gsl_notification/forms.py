@@ -8,7 +8,6 @@ from django.core.files import File
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.template.defaultfilters import pluralize
-from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
@@ -583,50 +582,26 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
             ds_service = DsService()
 
             if status == PROJET_STATUS_ACCEPTED:
-                traitement_id = ds_service.accept_in_ds(
+                ds_service.accept_in_ds(
                     self.instance.dossier_ds,
                     user,
                     document=justificatif_file,
                     motivation=motivation,
                 )
             elif status == PROJET_STATUS_DISMISSED:
-                traitement_id = ds_service.dismiss_in_ds(
+                ds_service.dismiss_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
                     document=justificatif_file,
                 )
             else:
-                traitement_id = ds_service.refuser_in_ds(
+                ds_service.refuser_in_ds(
                     self.instance.dossier_ds,
                     user,
                     motivation=motivation,
                     document=justificatif_file,
                 )
-
-            # DsService.*_in_ds() just refreshed dossier_ds.ds_date_traitement from
-            # DN's own response, so reuse that exact timestamp as created_at.
-            notified_at = self.instance.dossier_ds.ds_date_traitement or timezone.now()
-            self.instance.notified_at = notified_at
-            self.instance.save()
-
-            action = ProjetAction(
-                projet=self.instance,
-                action_type=ProjetAction.TYPE_NOTIFIED,
-                actor=user,
-                source=ProjetAction.SOURCE_TURGOT,
-                source_id=traitement_id or "",
-                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
-                details=motivation,
-                created_at=notified_at,
-            )
-            if justificatif_file:
-                justificatif_file.seek(0)
-                action.document.save(
-                    justificatif_file.name, justificatif_file, save=False
-                )
-            action.save()
-
             return self.instance
 
     def _notification_filename(self, documents):

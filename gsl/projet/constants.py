@@ -64,6 +64,8 @@ DS_STATE_VALUES = (
     (DS_STATE_SANS_SUITE, "Classé sans suite"),
 )
 
+DS_TREATED_STATES = (DS_STATE_ACCEPTE, DS_STATE_REFUSE, DS_STATE_SANS_SUITE)
+
 # Valeurs de l'enum GraphQL `TraitementEvent` de Démarches Simplifiées
 # (https://www.demarches-simplifiees.fr/graphql/schema/enums/TraitementEvent),
 DS_TRAITEMENT_EVENT_DEPOSE = "depose"
