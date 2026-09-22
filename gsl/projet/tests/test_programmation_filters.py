@@ -11,9 +11,11 @@ from gsl.projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
     EnveloppeProjetFactory,
     ProjetFactory,
 )
+from gsl.projet.utils.programmation_filters import ProgrammationFilters
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     CollegueFactory,
@@ -27,8 +29,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     NaturePorteurProjetFactory,
     PersonneMoraleFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
 @pytest.fixture

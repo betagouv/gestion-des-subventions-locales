@@ -21,13 +21,14 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
-from gsl_core.models import Collegue
-from gsl_core.tests.factories import CollegueFactory
-from gsl_programmation.tests.factories import (
+from gsl.projet.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
+    EnveloppeProjetFactory,
+    ProjetFactory,
 )
+from gsl_core.models import Collegue
+from gsl_core.tests.factories import CollegueFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet

@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("gsl_historique", "0006_delete_spurious_retour_en_construction_actions"),
+        ("gsl_historique", "0009_remove_some_traitements_projet_actions"),
         ("gsl_projet", "0041_enveloppe"),
     ]
 

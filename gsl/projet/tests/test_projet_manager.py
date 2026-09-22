@@ -4,6 +4,7 @@ from datetime import timezone as tz
 import pytest
 from django.db import connection
 
+from gsl.projet.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl_core.models import Departement, Perimetre
 from gsl_core.tests.factories import (
     ArrondissementFactory,
@@ -14,7 +15,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ..models import Projet
 from .factories import (

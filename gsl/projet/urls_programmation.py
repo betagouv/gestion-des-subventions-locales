@@ -1,17 +1,15 @@
 from django.urls import path
 
-from gsl_programmation.views import ProgrammationListView
-
-app_name = "gsl_programmation"
+from .views import ProgrammationListView
 
 urlpatterns = [
     path(
-        "liste/",
+        "",
         ProgrammationListView.as_view(),
         name="programmation-projet-list",
     ),
     path(
-        "liste/<str:dotation>/",
+        "<str:dotation>/",
         ProgrammationListView.as_view(),
         name="programmation-projet-list-dotation",
     ),

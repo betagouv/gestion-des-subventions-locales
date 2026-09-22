@@ -8,6 +8,10 @@ from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_core.tests.factories import (
@@ -23,10 +27,6 @@ from gsl_notification.tests.factories import (
     LettreNotificationFactory,
     LettreRefusFactory,
     LettreRefusSigneeFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 from ...constants import (

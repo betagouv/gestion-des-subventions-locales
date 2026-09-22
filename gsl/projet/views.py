@@ -1,6 +1,7 @@
 import json
 
 from django.contrib import messages
+from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import (
     Case,
     DecimalField,
@@ -8,6 +9,7 @@ from django.db.models import (
     IntegerField,
     Max,
     Prefetch,
+    ProtectedError,
     Q,
     Sum,
     Value,
@@ -15,10 +17,12 @@ from django.db.models import (
 )
 from django.http import QueryDict
 from django.shortcuts import get_object_or_404, redirect
+from django.template.defaultfilters import pluralize
 from django.template.response import TemplateResponse
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -35,6 +39,12 @@ from gsl.historique.models import ProjetAction
 from gsl.simulation.forms import SimulationProjetForm
 from gsl.simulation.models import SimulationProjet
 from gsl_core.decorators import htmx_only
+from gsl_core.exceptions import Http404
+from gsl_core.matomo import queue_matomo_event
+from gsl_core.matomo_constants import (
+    MATOMO_ACTION_CREATION_SOUS_ENVELOPPE,
+    MATOMO_CATEGORY_SOUS_ENVELOPPE,
+)
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import (
     FilterSkiplinksMixin,
@@ -50,15 +60,20 @@ from gsl_demarches_simplifiees.models import (
     ProjetZonage,
 )
 
+from .constants import DOTATION_DETR, DOTATION_DSIL
 from .forms import (
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
     ProjetRevertToProcessingForm,
+    SubEnveloppeCreateForm,
+    SubEnveloppeUpdateForm,
 )
-from .models import Projet, ProjetNote
+from .models import Enveloppe, EnveloppeProjet, Projet, ProjetNote
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
+from .table_columns_programmation import PROGRAMMATION_TABLE_COLUMNS
 from .utils.django_filters_custom_widget import CustomSelectWidget
+from .utils.programmation_filters import ProgrammationFilters
 from .utils.projet_filters import (
     ORDERING_MAP,
     ProjetFilters,
@@ -609,3 +624,202 @@ class ProjetMissingAnnotationsListView(ListView):
             .prefetch_related("enveloppeprojet_set", "dossier_ds__ds_demarche")
             .order_by("-dossier_ds__ds_date_depot")
         )
+
+
+class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
+    model = EnveloppeProjet
+    filterset_class = ProgrammationFilters
+    template_name = "gsl_projet/programmation_projet_list.html"
+    context_object_name = "enveloppe_projets"
+    paginate_by = 25
+    ordering = ["-date_programmation"]
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .active()
+            .select_related(
+                "projet",
+                "projet__dossier_ds",
+                "projet__dossier_ds__ds_demandeur",
+            )
+            .prefetch_related(
+                "arrete",
+                "lettrenotification",
+                "lettre_et_arrete_signes",
+                "enveloppe",
+                "annexes",
+                "enveloppe__perimetre",
+                "projet__enveloppeprojet_set",
+                "projet__enveloppeprojet_set__simulationprojet_set",
+                "projet__enveloppeprojet_set__arrete",
+                "projet__enveloppeprojet_set__lettrenotification",
+                "projet__enveloppeprojet_set__lettre_et_arrete_signes",
+                "projet__enveloppeprojet_set__enveloppe",
+                "projet__enveloppeprojet_set__annexes",
+                "projet__dossier_ds__demande_categorie_dsil",
+                "projet__dossier_ds__demande_categorie_detr",
+                "projet__dossier_ds__ds_demarche",
+                "projet__dossier_ds__perimetre",
+                "projet__dossier_ds__porteur_de_projet_arrondissement",
+                "projet__dossier_ds__demande_cofinancements",
+                "projet__dossier_ds__projet_zonage",
+                "projet__dossier_ds__projet_contractualisation",
+            )
+            .defer("projet__dossier_ds__ds_demarche__raw_ds_data")
+        )
+
+    def get(self, request, *args, **kwargs):
+        self.perimetre: Perimetre = self.request.user.perimetre
+        self.dotation = kwargs.get("dotation")
+        if self.dotation is None:
+            return redirect(
+                "gsl_programmation:programmation-projet-list-dotation",
+                dotation=DOTATION_DETR,
+            )
+        if self.dotation not in (DOTATION_DETR, DOTATION_DSIL):
+            raise Http404(user_message="Dotation non reconnue.")
+
+        if (
+            self.dotation == DOTATION_DETR
+            and self.perimetre.type == Perimetre.TYPE_REGION
+        ):
+            return redirect(
+                "gsl_programmation:programmation-projet-list-dotation", dotation="DSIL"
+            )
+
+        if "reset_filters" in request.GET:
+            if request.path.startswith("/programmation/"):
+                return redirect(request.path)
+            else:
+                return redirect("/")
+
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        enveloppe = self.filterset.enveloppe
+        title = "Programmation en cours"
+        if enveloppe:
+            title = f"Programmation {enveloppe.dotation} {enveloppe.annee}"
+        context.update(
+            {
+                "enveloppe": enveloppe,
+                "dotation": self.dotation,
+                "title": title,
+                "selectable_ids_list": list(
+                    self.object_list.values_list("id", flat=True)
+                ),
+                "can_generate_accepted_documents_ids": list(
+                    self.object_list.can_generate_accepted_documents().values_list(
+                        "id", flat=True
+                    )
+                ),
+                "can_generate_refus_documents_ids": list(
+                    self.object_list.can_generate_refus_documents().values_list(
+                        "id", flat=True
+                    )
+                ),
+                "current_order": self.request.GET.get("order", ""),
+                "columns": PROGRAMMATION_TABLE_COLUMNS,
+            }
+        )
+
+        if self.perimetre:
+            context["territoire_choices"] = (
+                self.perimetre,
+                *self.perimetre.children(),
+            )
+
+        return context
+
+
+class EnveloppeCreateView(RedirectURLMixin, CreateView):
+    model = Enveloppe
+    form_class = SubEnveloppeCreateForm
+    template_name = "gsl_projet/enveloppe_form.html"
+    next_page = reverse_lazy("gsl_projet:list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user_perimetre"] = self.request.user.perimetre
+        return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        queue_matomo_event(
+            self.request,
+            MATOMO_CATEGORY_SOUS_ENVELOPPE,
+            MATOMO_ACTION_CREATION_SOUS_ENVELOPPE,
+            f"{self.object.dotation} - {self.object.perimetre.type}",
+        )
+        return response
+
+
+class EnveloppeUpdateView(UpdateView):
+    model = Enveloppe
+    form_class = SubEnveloppeUpdateForm
+    template_name = "gsl_projet/enveloppe_form.html"
+    success_url = reverse_lazy("gsl_projet:list")
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                deleguee_by__isnull=False,
+                perimetre__in=(
+                    self.request.user.perimetre,
+                    *(self.request.user.perimetre.children()),
+                ),
+            )
+        )
+
+
+@method_decorator(require_POST, name="dispatch")
+class EnveloppeDeleteView(DeleteView):
+    model = Enveloppe
+    success_url = reverse_lazy("gsl_projet:list")
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                deleguee_by__isnull=False,
+                perimetre__in=(
+                    self.request.user.perimetre,
+                    *(self.request.user.perimetre.children()),
+                ),
+            )
+        )
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except ProtectedError as e:
+            object_classes = {}
+            for obj in e.protected_objects:
+                if obj._meta.model_name not in object_classes:
+                    object_classes[obj._meta.model_name] = 1
+                else:
+                    object_classes[obj._meta.model_name] += 1
+
+            objects_count = sum(object_classes.values())
+            msgs = []
+            if "simulation" in object_classes:
+                simulations_count = object_classes["simulation"]
+                plural = "s" if simulations_count > 1 else ""
+                msgs.append(f"{simulations_count} simulation{plural}")
+
+            if "enveloppe" in object_classes:
+                enveloppe_count = object_classes["enveloppe"]
+                plural = "s" if enveloppe_count > 1 else ""
+                msgs.append(f"{enveloppe_count} enveloppe{plural}")
+
+            messages.error(
+                self.request,
+                f"Suppression impossible : {' et '.join(msgs)} {pluralize(objects_count, 'est,sont')} rattachée{pluralize(objects_count, 's')} à cette enveloppe.",
+            )
+            return redirect(self.success_url)

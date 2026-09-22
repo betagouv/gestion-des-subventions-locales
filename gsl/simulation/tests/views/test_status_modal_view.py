@@ -5,13 +5,12 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 
 from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
-from gsl.projet.tests.factories import EnveloppeProjetFactory
+from gsl.projet.tests.factories import DetrEnveloppeFactory, EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory

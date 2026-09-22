@@ -12,7 +12,9 @@ from gsl.projet.constants import (
 )
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
     DetrProjetFactory,
+    DsilEnveloppeFactory,
     DsilProjetFactory,
     EnveloppeProjetFactory,
     ProjetFactory,
@@ -24,10 +26,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
-)
 
 from ..forms import _add_enveloppe_projets_to_simulation
 from ..models import SimulationProjet

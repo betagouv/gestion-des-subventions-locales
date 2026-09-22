@@ -17,13 +17,17 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    EnveloppeProjetFactory,
+    ProjetFactory,
+)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ...models import SimulationProjet
 from ...views.simulation_projet_views import ProgrammationStatusUpdateView

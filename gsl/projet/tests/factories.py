@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from random import randint
 
@@ -8,13 +9,11 @@ from gsl_core.tests.factories import (
     AdresseFactory,
     CollegueFactory,
     DepartementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
-)
 
 from ..constants import (
     DOTATION_DETR,
@@ -24,7 +23,29 @@ from ..constants import (
     PROJET_STATUS_CHOICES,
     PROJET_STATUS_PROCESSING,
 )
-from ..models import EnveloppeProjet, Projet, ProjetNote
+from ..models import Enveloppe, EnveloppeProjet, Projet, ProjetNote
+
+
+class DsilEnveloppeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Enveloppe
+        django_get_or_create = ("perimetre", "dotation", "annee")
+
+    dotation = DOTATION_DSIL
+    montant = factory.Faker("random_number", digits=5)
+    annee = date.today().year
+    perimetre = factory.SubFactory(PerimetreRegionalFactory)
+
+
+class DetrEnveloppeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Enveloppe
+        django_get_or_create = ("perimetre", "dotation", "annee")
+
+    dotation = DOTATION_DETR
+    montant = factory.Faker("random_number", digits=5)
+    annee = date.today().year
+    perimetre = factory.SubFactory(PerimetreDepartementalFactory)
 
 
 class ProjetFactory(factory.django.DjangoModelFactory):

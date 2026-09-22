@@ -24,6 +24,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_REFUSED,
 )
 from gsl.projet.models import EnveloppeProjet, EnveloppeProjetQuerySet, Projet
+from gsl.projet.utils.programmation_filters import ProgrammationFilters
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 from gsl_notification.models import (
@@ -46,7 +47,6 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_notification.validators import document_file_validator
-from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
 class PresignedUploadForm(forms.Form):

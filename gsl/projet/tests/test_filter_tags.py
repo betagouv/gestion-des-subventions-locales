@@ -6,6 +6,7 @@ import pytest
 from bs4 import BeautifulSoup
 from django.urls import reverse
 
+from gsl.projet.tests.factories import DetrEnveloppeFactory
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -14,7 +15,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
 from .factories import EnveloppeProjetFactory, ProjetFactory

@@ -26,7 +26,12 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    EnveloppeProjetFactory,
+    ProjetFactory,
+)
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -43,10 +48,6 @@ from gsl_notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,
     LettreRefusSigneeFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 DS_FIXTURES_DIR = (

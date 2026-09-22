@@ -1,11 +1,5 @@
 from django.urls import path
 
-from gsl_programmation.views import (
-    EnveloppeCreateView,
-    EnveloppeDeleteView,
-    EnveloppeUpdateView,
-)
-
 from . import views
 
 urlpatterns = [
@@ -77,17 +71,17 @@ urlpatterns = [
     ),
     path(
         "enveloppe/ajouter/",
-        EnveloppeCreateView.as_view(),
+        views.EnveloppeCreateView.as_view(),
         name="enveloppe-create",
     ),
     path(
         "enveloppe/<int:pk>/modifier/",
-        EnveloppeUpdateView.as_view(),
+        views.EnveloppeUpdateView.as_view(),
         name="enveloppe-update",
     ),
     path(
         "enveloppe/<int:pk>/supprimer/",
-        EnveloppeDeleteView.as_view(),
+        views.EnveloppeDeleteView.as_view(),
         name="enveloppe-delete",
     ),
 ]

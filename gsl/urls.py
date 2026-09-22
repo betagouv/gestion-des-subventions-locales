@@ -8,6 +8,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from gsl_core.fragments import fragment_urlpatterns
 
@@ -35,9 +36,28 @@ urlpatterns = [
         "simulation/",
         include(("gsl.simulation.urls", "gsl_simulation"), "simulation"),
     ),
+    # Must be before include of "programmation".
+    path(
+        "programmation/liste/",
+        RedirectView.as_view(
+            pattern_name="programmation:programmation-projet-list",
+            permanent=True,
+            query_string=True,
+        ),
+    ),
+    path(
+        "programmation/liste/<str:dotation>/",
+        RedirectView.as_view(
+            pattern_name="programmation:programmation-projet-list-dotation",
+            permanent=True,
+            query_string=True,
+        ),
+    ),
     path(
         "programmation/",
-        include(("gsl_programmation.urls", "gsl_programmation"), "programmation"),
+        include(
+            ("gsl.projet.urls_programmation", "gsl_programmation"), "programmation"
+        ),
     ),
     path(
         "notification/",

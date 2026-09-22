@@ -19,14 +19,17 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_PROCESSING,
 )
-from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    EnveloppeProjetFactory,
+    ProjetFactory,
+)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet

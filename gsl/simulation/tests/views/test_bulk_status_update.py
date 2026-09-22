@@ -10,14 +10,13 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from gsl.projet.tests.factories import EnveloppeProjetFactory
+from gsl.projet.tests.factories import DetrEnveloppeFactory, EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import SimulationProjet
 from ..factories import (

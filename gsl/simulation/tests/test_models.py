@@ -4,13 +4,16 @@ import pytest
 from django.forms import ValidationError
 
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl.projet.tests.factories import EnveloppeProjetFactory
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    EnveloppeProjetFactory,
+)
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ..models import Simulation, SimulationProjet
 from .factories import SimulationFactory, SimulationProjetFactory

@@ -11,16 +11,17 @@ from gsl.projet.constants import (
 )
 from gsl.projet.models import Projet
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
-from gsl.projet.tests.factories import EnveloppeProjetFactory, SubmittedProjetFactory
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    EnveloppeProjetFactory,
+    SubmittedProjetFactory,
+)
 from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 

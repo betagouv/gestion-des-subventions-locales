@@ -1,7 +1,9 @@
 import pytest
 
-from ..models import EnveloppeProjet, Projet, ProjetNote
+from ..models import Enveloppe, EnveloppeProjet, Projet, ProjetNote
 from .factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
     EnveloppeProjetFactory,
     ProcessedProjetFactory,
     ProjetFactory,
@@ -17,6 +19,8 @@ test_data = (
     (ProcessedProjetFactory, Projet),
     (EnveloppeProjetFactory, EnveloppeProjet),
     (ProjetNoteFactory, ProjetNote),
+    (DetrEnveloppeFactory, Enveloppe),
+    (DsilEnveloppeFactory, Enveloppe),
 )
 
 

@@ -6,6 +6,10 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from gsl.historique.models import ProjetAction
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
 from gsl.simulation.models import Simulation, SimulationProjet
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_core.tests.factories import (
@@ -16,10 +20,6 @@ from gsl_core.tests.factories import (
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 from ....constants import (

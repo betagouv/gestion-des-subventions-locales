@@ -1,11 +1,11 @@
 import pytest
 from django.urls import reverse
 
+from gsl.projet.tests.factories import DetrEnveloppeFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import Simulation
 from ..factories import SimulationFactory

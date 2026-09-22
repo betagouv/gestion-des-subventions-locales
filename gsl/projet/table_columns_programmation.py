@@ -158,7 +158,7 @@ COLUMN_TAUX = Column(
 COLUMN_DOCUMENTS = Column(
     key="documents",
     label="Documents ajoutés",
-    template_name="gsl_programmation/table_cells/documents.html",
+    template_name="gsl_projet/table_cells/documents.html",
     other_dotation_getter=_get_other_dotation_documents,
     width=ColumnWidth.MIN_105,
 )

@@ -2,12 +2,12 @@ import pytest
 
 from gsl.projet.constants import DOTATION_DETR
 from gsl.projet.models import Projet
+from gsl.projet.tests.factories import (
+    DsilEnveloppeFactory,
+)
 from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreRegionalFactory,
-)
-from gsl_programmation.tests.factories import (
-    DsilEnveloppeFactory,
 )
 
 from ...models import Simulation, SimulationProjet

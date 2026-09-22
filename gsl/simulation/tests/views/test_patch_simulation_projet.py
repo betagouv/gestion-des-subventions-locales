@@ -13,7 +13,7 @@ from gsl.projet.constants import (
     PROJET_STATUS_PROCESSING,
 )
 from gsl.projet.models import EnveloppeProjet
-from gsl.projet.tests.factories import EnveloppeProjetFactory
+from gsl.projet.tests.factories import DetrEnveloppeFactory, EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -21,7 +21,6 @@ from gsl_core.tests.factories import (
 )
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory

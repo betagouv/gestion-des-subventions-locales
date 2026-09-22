@@ -7,16 +7,16 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     PROJET_STATUS_ACCEPTED,
 )
-from gsl.projet.tests.factories import EnveloppeProjetFactory
+from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+    EnveloppeProjetFactory,
+)
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 pytestmark = pytest.mark.django_db

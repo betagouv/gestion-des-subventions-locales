@@ -185,3 +185,43 @@ def test_projet_comment_update_redirects_to_notes_when_next_invalid(
 
     assert response.status_code == 302
     assert response.url == expected_redirect
+
+
+def test_programmation_projet_list_url():
+    url = reverse("gsl_programmation:programmation-projet-list")
+    assert url == "/programmation/"
+
+
+def test_programmation_projet_list_dotation_url():
+    url = reverse(
+        "gsl_programmation:programmation-projet-list-dotation",
+        kwargs={"dotation": "DETR"},
+    )
+    assert url == "/programmation/DETR/"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "old_url, expected",
+    (
+        ("/programmation/liste/", "/programmation/"),
+        ("/programmation/liste/DETR/", "/programmation/DETR/"),
+    ),
+)
+def test_old_programmation_url_redirects_permanently(
+    client_with_55_user_logged, old_url, expected
+):
+    response = client_with_55_user_logged.get(old_url)
+
+    assert response.status_code == 301
+    assert response["Location"] == expected
+
+
+@pytest.mark.django_db
+def test_old_programmation_url_keeps_the_filters(client_with_55_user_logged):
+    response = client_with_55_user_logged.get(
+        "/programmation/liste/DETR/?porteur=EPCI&cout_min=1000"
+    )
+
+    assert response.status_code == 301
+    assert response["Location"] == "/programmation/DETR/?porteur=EPCI&cout_min=1000"

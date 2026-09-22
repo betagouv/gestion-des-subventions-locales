@@ -9,7 +9,9 @@ from django.utils import timezone
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl.projet.models import Projet
 from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
     DetrProjetFactory,
+    DsilEnveloppeFactory,
     DsilProjetFactory,
     ProjetFactory,
 )
@@ -17,10 +19,6 @@ from gsl_core.tests.factories import (
     CollegueFactory,
     PerimetreDepartementalFactory,
     RequestFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 from ...models import SimulationProjet

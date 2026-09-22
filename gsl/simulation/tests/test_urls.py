@@ -6,6 +6,8 @@ from django.urls import reverse
 
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
     EnveloppeProjetFactory,
 )
 from gsl_core.tests.factories import (
@@ -15,7 +17,6 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ..models import SimulationProjet
 from .factories import SimulationFactory, SimulationProjetFactory

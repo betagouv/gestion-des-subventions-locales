@@ -4,7 +4,7 @@
     {% for enveloppe_projet in refreshed_enveloppe_projets %}
         <td id="pp-documents-cell-{{ enveloppe_projet.id }}"
             hx-swap-oob="outerHTML">
-            {% include "gsl_programmation/table_cells/documents.html" %}
+            {% include "gsl_projet/table_cells/documents.html" %}
         </td>
     {% endfor %}
 {% endblock oob_swaps %}

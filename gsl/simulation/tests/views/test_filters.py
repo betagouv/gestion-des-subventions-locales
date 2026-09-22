@@ -7,6 +7,8 @@ from django.urls import resolve, reverse
 from gsl.projet.models import Projet
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl.projet.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
     EnveloppeProjetFactory,
     ProjetFactory,
 )
@@ -24,10 +26,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     FieldMappingFactory,
     NaturePorteurProjetFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 from ...forms import _add_enveloppe_projets_to_simulation

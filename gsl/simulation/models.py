@@ -7,9 +7,9 @@ from django.forms import ValidationError
 from django_extensions.db.fields import AutoSlugField
 
 from gsl.projet.models import Enveloppe, EnveloppeProjet, Projet
+from gsl.projet.services.enveloppe_service import EnveloppeService
 from gsl.projet.utils.utils import compute_taux
 from gsl_core.models import BaseModel, Collegue, Perimetre
-from gsl_programmation.services.enveloppe_service import EnveloppeService
 
 
 def validate_columns_visibility(value):
