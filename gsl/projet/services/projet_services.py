@@ -1,6 +1,6 @@
 import logging
 
-from gsl.historique.models import ProjetAction
+from gsl.historique.utils import create_projet_actions_from_dossier_traitements
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..models import Projet
@@ -25,7 +25,6 @@ class ProjetService:
             projet = Projet(
                 dossier_ds=ds_dossier,
             )
-        was_created = projet.pk is None
         projet.address = ds_dossier.projet_adresse
         projet.is_in_qpv = cls._get_boolean_value(ds_dossier, "annotations_is_qpv")
         projet.is_attached_to_a_crte = cls._get_boolean_value(
@@ -48,13 +47,8 @@ class ProjetService:
         projet.contrat_local = ds_dossier.annotations_contrat_local
 
         projet.save()
-        if was_created and ds_dossier.ds_date_depot:
-            ProjetAction.objects.create(
-                projet=projet,
-                action_type=ProjetAction.TYPE_DEPOT_DOSSIER,
-                source=ProjetAction.SOURCE_DN,
-                created_at=ds_dossier.ds_date_depot,
-            )
+
+        create_projet_actions_from_dossier_traitements(projet)
         return projet
 
     # Private

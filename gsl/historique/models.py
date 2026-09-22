@@ -31,6 +31,9 @@ class ProjetAction(models.Model):
     TYPE_DEPOT_DOSSIER = "depot_dossier"
     TYPE_PASSAGE_EN_INSTRUCTION = "passage_en_instruction"
     TYPE_RETOUR_EN_CONSTRUCTION = "retour_en_construction"
+    TYPE_RETOUR_EN_INSTRUCTION = (
+        "retour_en_instruction"  # TODO, use it when this Turgot action is done
+    )
     TYPE_DEACTIVATION = "deactivation"
     TYPE_REACTIVATION = "reactivation"
 
@@ -50,6 +53,7 @@ class ProjetAction(models.Model):
         (TYPE_DEPOT_DOSSIER, "Dépôt du dossier"),
         (TYPE_PASSAGE_EN_INSTRUCTION, "Passage en instruction"),
         (TYPE_RETOUR_EN_CONSTRUCTION, "Retour en construction"),
+        (TYPE_RETOUR_EN_INSTRUCTION, "Retour en instruction"),
         (TYPE_DEACTIVATION, "Désactivation du dossier"),
         (TYPE_REACTIVATION, "Réactivation du dossier"),
     ]
@@ -74,6 +78,16 @@ class ProjetAction(models.Model):
         on_delete=models.SET_NULL,
     )
     source = models.CharField(max_length=20, choices=SOURCES)
+    source_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        verbose_name="Identifiant externe",
+        help_text=(
+            "Identifiant de l'événement source (ex : id du Traitement DN), "
+            "pour éviter les doublons lors d'une resynchronisation."
+        ),
+    )
     dotation = models.CharField(
         max_length=10, choices=DOTATION_CHOICES, blank=True, default=""
     )
@@ -139,6 +153,7 @@ class ProjetAction(models.Model):
             self.TYPE_DEPOT_DOSSIER: "Dépôt du dossier",
             self.TYPE_PASSAGE_EN_INSTRUCTION: "Passage en instruction",
             self.TYPE_RETOUR_EN_CONSTRUCTION: "Retour en construction",
+            self.TYPE_RETOUR_EN_INSTRUCTION: "Retour en instruction",
             self.TYPE_DEACTIVATION: self._deactivation_label,
             self.TYPE_REACTIVATION: "Réactivation du dossier",
         }

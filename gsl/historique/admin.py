@@ -28,6 +28,7 @@ class ProjetActionAdmin(admin.ModelAdmin):
         "created_at",
         "actor",
         "source",
+        "source_id",
         "dotation",
         "status",
         "euro_field_value",

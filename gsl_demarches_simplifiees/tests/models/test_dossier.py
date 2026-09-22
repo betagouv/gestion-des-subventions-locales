@@ -145,3 +145,108 @@ def test_is_instructeur_returns_false_for_user_without_ds_profile():
 
     assert user.ds_id == ""
     assert dossier.is_instructeur(user) is False
+
+
+def test_get_last_traitement_matching_dossier_state_sorts_by_date_traitement_not_list_order():
+    """The DN API doesn't guarantee `traitements` is chronologically ordered:
+    the matching traitement must be picked by `dateTraitement`, not by its
+    position in the list."""
+    dossier = DossierFactory(ds_state=Dossier.STATE_ACCEPTE)
+    DossierDataFactory(
+        dossier=dossier,
+        raw_data={
+            "traitements": [
+                {
+                    "id": "second-accepte",
+                    "event": "accepte",
+                    "dateTraitement": "2025-01-20T00:00:00+00:00",
+                },
+                {
+                    "id": "depose",
+                    "event": "depose",
+                    "dateTraitement": "2024-12-01T00:00:00+00:00",
+                },
+                {
+                    "id": "first-accepte",
+                    "event": "accepte",
+                    "dateTraitement": "2025-01-10T00:00:00+00:00",
+                },
+            ]
+        },
+    )
+
+    traitement = dossier.get_last_traitement_matching_dossier_state()
+
+    assert traitement["id"] == "second-accepte"
+
+
+def test_get_last_traitement_matching_dossier_state_returns_none_when_no_event_matches():
+    """When no traitement's `event` matches the dossier's current state, there
+    is no fallback: guessing (e.g. the chronologically last traitement) would
+    risk associating the wrong one."""
+    dossier = DossierFactory(ds_state=Dossier.STATE_ACCEPTE)
+    DossierDataFactory(
+        dossier=dossier,
+        raw_data={
+            "traitements": [
+                {
+                    "id": "repasse-en-instruction",
+                    "event": "repasse_en_instruction",
+                    "dateTraitement": "2025-01-20T00:00:00+00:00",
+                },
+                {
+                    "id": "depose",
+                    "event": "depose",
+                    "dateTraitement": "2024-12-01T00:00:00+00:00",
+                },
+            ]
+        },
+    )
+
+    assert dossier.get_last_traitement_matching_dossier_state() is None
+
+
+def test_get_last_traitement_matching_dossier_state_returns_none_without_dossier_data():
+    dossier = DossierFactory(ds_state=Dossier.STATE_ACCEPTE)
+
+    assert dossier.get_last_traitement_matching_dossier_state() is None
+
+
+def test_data_returns_none_without_dossier_data():
+    dossier = DossierFactory()
+
+    assert dossier.data is None
+
+
+def test_data_returns_the_linked_dossier_data():
+    dossier = DossierFactory()
+    dossier_data = DossierDataFactory(dossier=dossier)
+
+    assert dossier.data == dossier_data
+
+
+def test_traitements_returns_empty_list_without_dossier_data():
+    dossier = DossierFactory()
+
+    assert dossier.traitements == []
+
+
+def test_traitements_returns_empty_list_when_raw_data_has_no_traitements_key():
+    dossier = DossierFactory()
+    DossierDataFactory(dossier=dossier, raw_data={})
+
+    assert dossier.traitements == []
+
+
+def test_traitements_returns_the_traitements_from_raw_data():
+    dossier = DossierFactory()
+    traitements = [
+        {
+            "id": "depose",
+            "event": "depose",
+            "dateTraitement": "2024-12-01T00:00:00+00:00",
+        }
+    ]
+    DossierDataFactory(dossier=dossier, raw_data={"traitements": traitements})
+
+    assert dossier.traitements == traitements

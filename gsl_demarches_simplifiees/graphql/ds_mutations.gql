@@ -73,6 +73,10 @@ mutation dossierAccepter($input: DossierAccepterInput!) {
       prefilled
       prenomMandataire
       state
+      traitements {
+        id
+        dateTraitement
+      }
     }
     errors {
       message
@@ -107,6 +111,9 @@ mutation dossierRefuser($input: DossierRefuserInput!) {
       prefilled
       prenomMandataire
       state
+      traitements {
+        id
+      }
     }
     errors {
       message
@@ -141,6 +148,9 @@ mutation dossierClasserSansSuite($input: DossierClasserSansSuiteInput!) {
       prefilled
       prenomMandataire
       state
+      traitements {
+        id
+      }
     }
     errors {
       message

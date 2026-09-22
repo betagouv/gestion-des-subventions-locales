@@ -800,6 +800,7 @@ def test_update_creates_notified_action_with_matching_collegue(perimetres):
         raw_data={
             "traitements": [
                 {
+                    "id": "traitement-1",
                     "event": "classe_sans_suite",
                     "dateTraitement": "2025-01-15T00:00:00+00:00",
                     "emailAgentTraitant": "agent@example.fr",
@@ -815,6 +816,7 @@ def test_update_creates_notified_action_with_matching_collegue(perimetres):
         projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
     )
     assert action.source == ProjetAction.SOURCE_DN
+    assert action.source_id == "traitement-1"
     assert action.details == "Hors périmètre"
     assert action.created_at == ds_date_traitement
     assert action.actor == collegue
@@ -839,6 +841,7 @@ def test_update_creates_collegue_when_no_matching_email(perimetres):
         raw_data={
             "traitements": [
                 {
+                    "id": "traitement-1",
                     "event": "classe_sans_suite",
                     "dateTraitement": "2025-01-15T00:00:00+00:00",
                     "emailAgentTraitant": "unknown.agent@example.fr",
@@ -863,8 +866,10 @@ def test_update_creates_collegue_when_no_matching_email(perimetres):
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_creates_notified_action_without_traitements_data(perimetres):
-    """No DossierData / no traitements: still logs the notification, with no actor."""
+def test_update_does_not_create_notified_action_without_a_traitement_id(perimetres):
+    """No DossierData / no traitements means no exploitable source_id: skip logging
+    rather than risk an unde-duplicated notification (cf. dedup now keyed on
+    source_id, not created_at)."""
     arr_dijon, *_ = perimetres
     ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
 
@@ -879,12 +884,9 @@ def test_update_creates_notified_action_without_traitements_data(perimetres):
 
     dps._update_enveloppe_projets_from_projet(projet)
 
-    action = ProjetAction.objects.get(
+    assert not ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
-    )
-    assert action.actor is None
-    assert action.details == ""
-    assert action.created_at == ds_date_traitement
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -900,6 +902,20 @@ def test_update_does_not_duplicate_notified_action_on_repeated_sync(perimetres):
     )
     EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+    )
+    DossierDataFactory(
+        dossier=projet.dossier_ds,
+        raw_data={
+            "traitements": [
+                {
+                    "id": "traitement-1",
+                    "event": "classe_sans_suite",
+                    "dateTraitement": "2025-01-15T00:00:00+00:00",
+                    "emailAgentTraitant": "",
+                    "motivation": "",
+                }
+            ]
+        },
     )
 
     dps._update_enveloppe_projets_from_projet(projet)
@@ -919,8 +935,9 @@ def test_update_does_not_duplicate_notified_action_already_logged_from_turgot(
     perimetres,
 ):
     """A notification triggered from Turgot (source=SOURCE_TURGOT) already created a
-    TYPE_NOTIFIED action at the exact DN dateTraitement: a later DN resync must not
-    log a second one."""
+    TYPE_NOTIFIED action with the DN Traitement's own id as source_id: a later DN
+    resync finding that same id must not log a second one, nor overwrite the
+    Turgot-owned source/actor/details."""
     arr_dijon, *_ = perimetres
     ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
     collegue = CollegueFactory(email="agent-turgot@example.fr")
@@ -933,11 +950,26 @@ def test_update_does_not_duplicate_notified_action_already_logged_from_turgot(
     EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
     )
+    DossierDataFactory(
+        dossier=projet.dossier_ds,
+        raw_data={
+            "traitements": [
+                {
+                    "id": "traitement-1",
+                    "event": "classe_sans_suite",
+                    "dateTraitement": "2025-01-15T00:00:00+00:00",
+                    "emailAgentTraitant": "agent-dn@example.fr",
+                    "motivation": "Motivation DN",
+                }
+            ]
+        },
+    )
     ProjetAction.objects.create(
         projet=projet,
         action_type=ProjetAction.TYPE_NOTIFIED,
         created_at=ds_date_traitement,
         source=ProjetAction.SOURCE_TURGOT,
+        source_id="traitement-1",
         actor=collegue,
         details="Motivation saisie dans Turgot",
     )
@@ -949,5 +981,7 @@ def test_update_does_not_duplicate_notified_action_already_logged_from_turgot(
     )
     assert actions.count() == 1
     action = actions.first()
+    assert action.created_at == timezone.datetime(2025, 1, 15, tzinfo=UTC)
     assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.details == "Motivation saisie dans Turgot"
     assert action.actor == collegue
