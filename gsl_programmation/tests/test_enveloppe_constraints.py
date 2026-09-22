@@ -4,14 +4,13 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.models import Enveloppe
 from gsl_core.models import Perimetre
 from gsl_core.tests.factories import (
     ArrondissementFactory,
     DepartementFactory,
     PerimetreFactory,
 )
-
-from ..models import Enveloppe
 
 pytestmark = pytest.mark.django_db
 

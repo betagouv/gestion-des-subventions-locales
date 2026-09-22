@@ -1,6 +1,7 @@
 import pytest
 
-from ..models import Enveloppe
+from gsl.projet.models import Enveloppe
+
 from .factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 pytestmark = pytest.mark.django_db

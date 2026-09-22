@@ -70,7 +70,7 @@ class ProjetAction(models.Model):
         on_delete=models.SET_NULL,
     )
     enveloppe = models.ForeignKey(
-        "gsl_programmation.Enveloppe",
+        "gsl_projet.Enveloppe",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

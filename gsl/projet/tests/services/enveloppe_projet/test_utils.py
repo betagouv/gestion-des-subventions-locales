@@ -10,7 +10,6 @@ from gsl_core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.models import Enveloppe
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -22,6 +21,7 @@ from ....constants import (
     PROJET_STATUS_ACCEPTED,
     PROJET_STATUS_PROCESSING,
 )
+from ....models import Enveloppe
 from ....services.enveloppe_projet_services import (
     EnveloppeProjetService as dps,
 )

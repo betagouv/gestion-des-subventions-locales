@@ -8,7 +8,6 @@ from gsl.historique.models import ProjetAction
 from gsl.simulation.models import Simulation, SimulationProjet
 from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
-from gsl_programmation.models import Enveloppe
 
 from ..constants import (
     DOTATION_DETR,
@@ -19,7 +18,7 @@ from ..constants import (
     PROJET_STATUS_PROCESSING,
     PROJET_STATUS_REFUSED,
 )
-from ..models import EnveloppeProjet, Projet
+from ..models import Enveloppe, EnveloppeProjet, Projet
 
 logger = logging.getLogger(__name__)
 

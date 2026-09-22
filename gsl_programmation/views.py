@@ -14,7 +14,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
 )
-from gsl.projet.models import EnveloppeProjet
+from gsl.projet.models import Enveloppe, EnveloppeProjet
 from gsl_core.exceptions import Http404
 from gsl_core.matomo import queue_matomo_event
 from gsl_core.matomo_constants import (
@@ -24,7 +24,6 @@ from gsl_core.matomo_constants import (
 from gsl_core.models import Perimetre
 from gsl_core.view_mixins import FilterSkiplinksMixin
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
-from gsl_programmation.models import Enveloppe
 from gsl_programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
 from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
@@ -141,6 +140,7 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
 class EnveloppeCreateView(RedirectURLMixin, CreateView):
     model = Enveloppe
     form_class = SubEnveloppeCreateForm
+    template_name = "gsl_programmation/enveloppe_form.html"
     next_page = reverse_lazy("gsl_projet:list")
 
     def get_form_kwargs(self):
@@ -162,6 +162,7 @@ class EnveloppeCreateView(RedirectURLMixin, CreateView):
 class EnveloppeUpdateView(UpdateView):
     model = Enveloppe
     form_class = SubEnveloppeUpdateForm
+    template_name = "gsl_programmation/enveloppe_form.html"
     success_url = reverse_lazy("gsl_projet:list")
 
     def get_queryset(self):

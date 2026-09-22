@@ -12,7 +12,7 @@ from gsl.projet.constants import (
     PROJET_FINAL_STATUSES,
     PROJET_STATUS_CHOICES,
 )
-from gsl.projet.models import EnveloppeProjet
+from gsl.projet.models import Enveloppe, EnveloppeProjet
 from gsl.projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,
     CustomSelectWidget,
@@ -32,7 +32,6 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
-from gsl_programmation.models import Enveloppe
 
 PROGRAMMATION_ORDERING_MAP = {
     "projet__dossier_ds__finance_cout_total": "cout",

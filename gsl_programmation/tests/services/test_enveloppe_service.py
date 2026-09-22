@@ -1,6 +1,7 @@
 import pytest
 
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.models import Enveloppe
 from gsl.simulation.tests.factories import SimulationFactory
 from gsl_core.tests.factories import (
     CollegueFactory,
@@ -8,7 +9,6 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl_programmation.models import Enveloppe
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,

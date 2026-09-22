@@ -10,10 +10,9 @@ from gsl.simulation.models import SimulationProjet
 from gsl_core.admin import AllPermsForStaffUser
 from gsl_core.models import Arrondissement
 from gsl_core.templatetags.gsl_filters import percent
-from gsl_programmation.models import Enveloppe
 
 from .constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_CHOICES
-from .models import EnveloppeProjet, Projet, ProjetQuerySet
+from .models import Enveloppe, EnveloppeProjet, Projet, ProjetQuerySet
 
 
 class EnveloppeProjetInline(admin.TabularInline):
