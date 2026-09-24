@@ -1,7 +1,7 @@
 <ul id="projet-actions"
     {% if oob %}hx-swap-oob="true"{% endif %}
     class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
-    {% if projet.notified_at %}
+    {% if projet.has_been_notified %}
         <li class="fr-mb-2w">
             <button class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-arrow-go-back-fill"
                     hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"

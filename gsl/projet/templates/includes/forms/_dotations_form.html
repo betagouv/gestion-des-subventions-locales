@@ -1,4 +1,4 @@
-{% if projet.notified_at %}
+{% if projet.has_been_notified %}
     <p>
         <b>Dispositif{{ projet.dotations|pluralize }} de financement retenu{{ projet.dotations|pluralize }}</b>
         {{ projet.dotations|join:" et " }}

@@ -1,7 +1,7 @@
 {% load ui_tags %}
 <div id="notification-message-block"
      {% if oob %}hx-swap-oob="true"{% endif %}>
-    {% if projet.notified_at %}
+    {% if projet.has_been_notified %}
         <p class="fr-text-default--success">
             Message de notification envoyé le {{ projet.notified_at|date }} à {{ projet.notified_at|time }} sur Démarche Numérique.
         </p>

@@ -47,7 +47,9 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     def clean_dotations(self):
         dotations = self.cleaned_data.get("dotations")
-        if self.instance.notified_at and set(dotations) != set(self.instance.dotations):
+        if self.instance.has_been_notified and set(dotations) != set(
+            self.instance.dotations
+        ):
             raise ValidationError(
                 "Les dotations d'un projet déjà notifié ne peuvent être modifiées."
             )

@@ -377,8 +377,12 @@ class Projet(BaseModel):
                 return dp
 
     @property
+    def has_been_notified(self) -> bool:
+        return self.notified_at is not None
+
+    @property
     def to_notify(self) -> bool:
-        if self.notified_at is not None:
+        if self.has_been_notified:
             return False
 
         enveloppe_projets = self.enveloppeprojet_set.all()
@@ -1027,7 +1031,7 @@ class EnveloppeProjet(BaseModel):
         target=PROJET_STATUS_PROCESSING,
     )
     def set_back_status_to_processing(self, user: Collegue):
-        is_notified = self.projet.notified_at is not None
+        is_notified = self.projet.has_been_notified
         ds_service = DsService()
 
         self.set_back_status_to_processing_without_ds(actor=user)

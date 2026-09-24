@@ -1,4 +1,5 @@
 import pytest
+from django.utils import timezone
 
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl_notification.tests.factories import (
@@ -93,6 +94,18 @@ def test_dotation_dsil():
     assert projet.dotation_dsil == dotation
 
 
+@pytest.mark.parametrize(
+    ("notified_at", "expected_has_been_notified"),
+    (
+        (None, False),
+        (timezone.now(), True),
+    ),
+)
+def test_has_been_notified(notified_at, expected_has_been_notified):
+    projet = ProjetFactory(notified_at=notified_at)
+    assert projet.has_been_notified is expected_has_been_notified
+
+
 def test_to_notify_false_without_enveloppe_projet():
     """Project without any EnveloppeProjet should return False."""
     projet = ProjetFactory()
@@ -122,8 +135,6 @@ def test_to_notify_true_with_treated_enveloppe_projet(status):
 
 def test_to_notify_false_when_projet_already_notified():
     """Project already notified should return False."""
-    from django.utils import timezone
-
     projet = ProjetFactory(notified_at=timezone.now())
     EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
@@ -134,8 +145,6 @@ def test_to_notify_false_when_projet_already_notified():
 
 def test_to_notify_with_double_dotation_all_notified():
     """Double dotation project returns False only if all dotations are notified."""
-    from django.utils import timezone
-
     projet = ProjetFactory(notified_at=timezone.now())
     EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
