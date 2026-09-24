@@ -170,7 +170,7 @@ class EnveloppeUpdateView(UpdateView):
             super()
             .get_queryset()
             .filter(
-                deleguee_by__isnull=False,
+                parent__isnull=False,
                 perimetre__in=(
                     self.request.user.perimetre,
                     *(self.request.user.perimetre.children()),
@@ -189,7 +189,7 @@ class EnveloppeDeleteView(DeleteView):
             super()
             .get_queryset()
             .filter(
-                deleguee_by__isnull=False,
+                parent__isnull=False,
                 perimetre__in=(
                     self.request.user.perimetre,
                     *(self.request.user.perimetre.children()),

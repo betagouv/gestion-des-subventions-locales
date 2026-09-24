@@ -41,7 +41,7 @@ class TestSubEnveloppeSecurity:
             montant=1000,
             annee=parent_enveloppe.annee,
             perimetre=perimetre_arr,
-            deleguee_by=parent_enveloppe,
+            parent=parent_enveloppe,
         )
 
         # Delegated envelope outside user's perimeter (should NOT be editable)
@@ -54,7 +54,7 @@ class TestSubEnveloppeSecurity:
             montant=2000,
             annee=other_parent.annee,
             perimetre=other_arr,
-            deleguee_by=other_parent,
+            parent=other_parent,
         )
 
         # Allowed: can edit delegated sub-enveloppe within their perimeter/children
@@ -141,14 +141,14 @@ class TestSubEnveloppeDeleteView:
             montant=1500,
             annee=parent_enveloppe.annee,
             perimetre=perimetre_dept,
-            deleguee_by=parent_enveloppe,
+            parent=parent_enveloppe,
         )
         _sub_sub_enveloppe = Enveloppe.objects.create(
             dotation=DOTATION_DSIL,
             montant=500,
             annee=parent_enveloppe.annee,
             perimetre=perimetre_arr,
-            deleguee_by=sub_enveloppe,
+            parent=sub_enveloppe,
         )
 
         # Create a simulation linked to the sub-enveloppe

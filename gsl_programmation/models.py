@@ -21,7 +21,7 @@ class EnveloppeQueryset(models.QuerySet):
 
         new_obj = super().create(dotation=dotation, perimetre=perimetre, **kwargs)
         if (
-            new_obj.deleguee_by is not None
+            new_obj.is_deleguee
             or (
                 new_obj.dotation == DOTATION_DETR
                 and new_obj.perimetre.arrondissement is None
@@ -33,13 +33,13 @@ class EnveloppeQueryset(models.QuerySet):
         ):
             return new_obj
 
-        new_obj.deleguee_by = self.model.objects.get_or_create(
+        new_obj.parent = self.model.objects.get_or_create(
             dotation=new_obj.dotation,
             annee=new_obj.annee,
             perimetre=new_obj.perimetre.parent,
             defaults={"montant": new_obj.montant},
         )[0]
-        new_obj.save(update_fields=["deleguee_by"])
+        new_obj.save(update_fields=["parent"])
         return new_obj
 
     def for_current_year(self):
@@ -63,9 +63,9 @@ class Enveloppe(BaseModel):
         Perimetre, on_delete=models.PROTECT, verbose_name="Périmètre"
     )
 
-    deleguee_by = models.ForeignKey(
+    parent = models.ForeignKey(
         "self",
-        verbose_name="Enveloppe déléguée",
+        verbose_name="Enveloppe parente",
         null=True,
         on_delete=models.PROTECT,
         blank=True,
@@ -91,7 +91,7 @@ class Enveloppe(BaseModel):
 
     @property
     def is_deleguee(self):
-        return self.deleguee_by is not None
+        return self.parent_id is not None
 
     @property
     def ordered_sous_enveloppes(self):
@@ -101,10 +101,9 @@ class Enveloppe(BaseModel):
 
     @property
     def delegation_root(self) -> "Enveloppe":
-        if not self.is_deleguee:
-            return self
-        else:
-            return self.deleguee_by.delegation_root
+        if self.is_deleguee:
+            return self.parent.delegation_root
+        return self
 
     @property
     def is_arrondissement(self):
@@ -140,7 +139,7 @@ class Enveloppe(BaseModel):
                     "Il faut préciser un périmètre régional pour une enveloppe DSIL non déléguée."
                 )
 
-        if self.is_deleguee and not self.deleguee_by.perimetre.contains(self.perimetre):
+        if self.is_deleguee and not self.parent.perimetre.contains(self.perimetre):
             raise ValidationError(
                 "Le périmètre de l'enveloppe délégante est incohérent avec celui de l'enveloppe déléguée."
             )

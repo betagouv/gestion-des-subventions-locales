@@ -21,7 +21,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         "arrondissement_name",
         "formatted_amount",
         "simulations_count",
-        "deleguee_by",
+        "parent",
     )
     list_filter = (
         "dotation",
@@ -37,7 +37,7 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         "perimetre__arrondissement__name",
     )
     autocomplete_fields = (
-        "deleguee_by",
+        "parent",
         "perimetre",
     )
     list_select_related = (
@@ -45,11 +45,11 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         "perimetre__region",
         "perimetre__departement",
         "perimetre__arrondissement",
-        "deleguee_by",
-        "deleguee_by__perimetre",
-        "deleguee_by__perimetre__region",
-        "deleguee_by__perimetre__departement",
-        "deleguee_by__perimetre__arrondissement",
+        "parent",
+        "parent__perimetre",
+        "parent__perimetre__region",
+        "parent__perimetre__departement",
+        "parent__perimetre__arrondissement",
     )
 
     def region_name(self, obj):

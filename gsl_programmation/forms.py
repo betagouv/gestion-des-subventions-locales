@@ -29,14 +29,14 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
 
     def clean(self):
         perimetre: Perimetre = self.cleaned_data.get("perimetre")
-        self.instance.deleguee_by = (
+        self.instance.parent = (
             Enveloppe.objects.filter(
                 dotation=self.cleaned_data.get("dotation"), perimetre=perimetre.parent
             )
             .order_by("-annee")
             .first()
         )
-        if self.instance.deleguee_by is None:
+        if self.instance.parent is None:
             # We need to fill this field to trigger model validation errors
             self.instance.annee = 1
 
@@ -44,7 +44,7 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
                 "L'enveloppe doit être une sous-enveloppe d'une enveloppe existante."
             )
 
-        self.instance.annee = self.instance.deleguee_by.annee
+        self.instance.annee = self.instance.parent.annee
         return super().clean()
 
     def _get_validation_exclusions(self):

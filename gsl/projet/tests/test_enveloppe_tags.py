@@ -158,12 +158,12 @@ class TestDelegatedEnveloppe:
 
         self.delegated_enveloppe_1 = DetrEnveloppeFactory(
             perimetre=perimetre_arrondissements[0],
-            deleguee_by=self.detr_enveloppe,
+            parent=self.detr_enveloppe,
             annee=2021,
         )
         self.delegated_enveloppe_2 = DetrEnveloppeFactory(
             perimetre=perimetre_arrondissements[1],
-            deleguee_by=self.detr_enveloppe,
+            parent=self.detr_enveloppe,
             annee=2021,
         )
 
@@ -229,10 +229,10 @@ class TestDelegatedEnveloppeWithTreeLevels:
 
         self.dsil_enveloppe = DsilEnveloppeFactory(perimetre=region, annee=2021)
         self.dsil_enveloppe_dep = DsilEnveloppeFactory(
-            perimetre=departement, deleguee_by=self.dsil_enveloppe, annee=2021
+            perimetre=departement, parent=self.dsil_enveloppe, annee=2021
         )
         self.dsil_enveloppe_arr = DsilEnveloppeFactory(
-            perimetre=arrondissement, deleguee_by=self.dsil_enveloppe_dep, annee=2021
+            perimetre=arrondissement, parent=self.dsil_enveloppe_dep, annee=2021
         )
 
         EnveloppeProjetFactory(

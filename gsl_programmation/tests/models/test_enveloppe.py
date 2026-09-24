@@ -6,8 +6,8 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory
 @pytest.fixture
 def enveloppes_hierarchy():
     mother_enveloppe = DetrEnveloppeFactory()
-    child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
-    grandchild_enveloppe = DetrEnveloppeFactory(deleguee_by=child_enveloppe)
+    child_enveloppe = DetrEnveloppeFactory(parent=mother_enveloppe)
+    grandchild_enveloppe = DetrEnveloppeFactory(parent=child_enveloppe)
     return mother_enveloppe, child_enveloppe, grandchild_enveloppe
 
 
