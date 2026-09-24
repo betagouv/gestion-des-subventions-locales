@@ -1,4 +1,4 @@
-{% load gsl_filters %}
+{% load gsl_filters enveloppe_tags %}
 
 {% include "blocks/messages.html" with hx_swap_oob="true" %}
 {% include "includes/_status_summary.html" with hx_swap_oob="true" %}
@@ -6,6 +6,6 @@
 <template>
     {% include "includes/_simulation_detail_row.html" %}
     {% if enveloppe %}
-        {% include "includes/_enveloppe_summary_line.html" with enveloppe=enveloppe oob_swap=True %}
+        {% enveloppe_summary_line enveloppe oob_swap=True %}
     {% endif %}
 </template>

@@ -109,6 +109,7 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
         context.update(
             {
                 "enveloppe": enveloppe,
+                "enveloppes": [enveloppe] if enveloppe else [],
                 "dotation": self.dotation,
                 "title": title,
                 "selectable_ids_list": list(
