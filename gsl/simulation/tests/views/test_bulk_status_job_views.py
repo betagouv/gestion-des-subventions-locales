@@ -4,7 +4,7 @@ import pytest
 from django.db import IntegrityError
 from django.urls import reverse
 
-from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
+from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -114,7 +114,7 @@ def test_start_view_rejects_foreign_perimeter_ids(
     other_env = DetrEnveloppeFactory(perimetre=other_perim, annee=2025)
     other_simu = SimulationFactory(enveloppe=other_env)
     other_dp = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=other_perim,
         dotation=DOTATION_DETR,
         assiette=10_000,

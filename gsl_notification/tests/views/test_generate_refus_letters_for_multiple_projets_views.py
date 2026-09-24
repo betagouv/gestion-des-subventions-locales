@@ -12,8 +12,7 @@ from freezegun import freeze_time
 from gsl.projet.constants import (
     DOTATION_DETR,
     LETTRE_REFUS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
@@ -49,7 +48,7 @@ def enveloppe_projets(perimetre):
         3,
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_REFUSED,
+        status=ProjetStatus.REFUSED,
         montant=0,
         projet__notified_at=None,
     )
@@ -195,7 +194,7 @@ def test_launch_no_projects_renders_error_body(client):
 def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_REFUSED,
+        status=ProjetStatus.REFUSED,
         montant=0,
         projet__notified_at=None,
     )
@@ -212,7 +211,7 @@ def test_launch_ignores_ineligible_ids_silently(client, enveloppe_projets):
     accepted = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=enveloppe_projets[0].dossier_ds.perimetre,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )
     ids = ",".join([str(dp.id) for dp in enveloppe_projets] + [str(accepted.id)])

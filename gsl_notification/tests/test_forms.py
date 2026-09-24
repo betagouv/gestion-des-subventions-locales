@@ -14,8 +14,7 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -65,7 +64,7 @@ from gsl_notification.utils import MENTIONS
 def test_arrete_form_valid(form_class, modele_factory, dotation):
     collegue = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=dotation, status=PROJET_STATUS_ACCEPTED
+        dotation=dotation, status=ProjetStatus.ACCEPTED
     )
     modele = modele_factory(dotation=dotation)
     data = {
@@ -162,7 +161,7 @@ def test_analyze_form_rejects_large_file(file_size, is_valid):
 def test_attach_form_only_offers_documents_importable_on_the_projet():
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     form = ManualDocumentAttachForm(projet=projet)
@@ -178,7 +177,7 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
     user = CollegueFactory()
     projet = ProjetFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     key = _parked_pdf()
@@ -205,7 +204,7 @@ def test_attach_form_refuses_a_document_already_imported():
     choice, so picking it cannot validate."""
     projet = ProjetFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
 
@@ -222,7 +221,7 @@ def test_attach_form_refuses_a_document_already_imported():
 def test_attach_form_refuses_a_key_outside_the_temporary_prefix():
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     form = ManualDocumentAttachForm(
@@ -340,7 +339,7 @@ def _make_accepted_enveloppe_projet(dotation, projet=None):
     return EnveloppeProjetFactory(
         projet=projet or ProjetFactory(),
         dotation=dotation,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
 
 
@@ -348,7 +347,7 @@ def _make_accepted_enveloppe_projet(dotation, projet=None):
 def test_generate_accepted_dotations_documents_form_only_lists_accepted_dotations():
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
     )
     _make_accepted_enveloppe_projet(DOTATION_DETR, projet=projet)
     user = CollegueFactory()
@@ -557,12 +556,12 @@ def test_generate_documents_create_form_save_is_not_n_plus_1_on_all_mentions():
     )
 
     one = EnveloppeProjetFactory.create_batch(
-        1, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        1, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     queries_for_one = _save_documents(one, modele)
 
     five = EnveloppeProjetFactory.create_batch(
-        5, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        5, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     queries_for_five = _save_documents(five, modele)
 

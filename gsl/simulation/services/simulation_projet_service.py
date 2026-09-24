@@ -4,10 +4,7 @@ from decimal import Decimal
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet
 
@@ -96,10 +93,10 @@ class SimulationProjetService:
         )
 
     PROJET_STATUS_TO_SIMULATION_PROJET_STATUS = {
-        PROJET_STATUS_ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
-        PROJET_STATUS_DISMISSED: SimulationProjet.STATUS_DISMISSED,
-        PROJET_STATUS_REFUSED: SimulationProjet.STATUS_REFUSED,
-        PROJET_STATUS_PROCESSING: SimulationProjet.STATUS_PROCESSING,
+        ProjetStatus.ACCEPTED: SimulationProjet.STATUS_ACCEPTED,
+        ProjetStatus.DISMISSED: SimulationProjet.STATUS_DISMISSED,
+        ProjetStatus.REFUSED: SimulationProjet.STATUS_REFUSED,
+        ProjetStatus.PROCESSING: SimulationProjet.STATUS_PROCESSING,
     }
 
     @classmethod

@@ -25,9 +25,7 @@ from gsl_programmation.tests.factories import (
 from ....constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ....models import EnveloppeProjet
 from ....services.enveloppe_projet_services import (
@@ -106,7 +104,7 @@ def test_create_or_update_enveloppe_projet_from_projet(
 
     for enveloppe_projet in EnveloppeProjet.objects.all():
         assert enveloppe_projet.projet == projet
-        assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+        assert enveloppe_projet.status == ProjetStatus.ACCEPTED
         assert enveloppe_projet.assiette == 1_000
         if enveloppe_projet.dotation == DOTATION_DSIL:
             assert enveloppe_projet.detr_avis_commission is None
@@ -151,10 +149,10 @@ def test_create_or_update_enveloppe_projet_from_projet_also_refuse_dsil_envelopp
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
     projet_dotation_detr = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     projet_dotation_dsil = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
     )
     projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert projet_enveloppe_projets.count() == 2
@@ -162,10 +160,10 @@ def test_create_or_update_enveloppe_projet_from_projet_also_refuse_dsil_envelopp
     dps.create_or_update_enveloppe_projet_from_projet(projet)
 
     projet_dotation_detr.refresh_from_db()  # always exists
-    assert projet_dotation_detr.status == PROJET_STATUS_REFUSED
+    assert projet_dotation_detr.status == ProjetStatus.REFUSED
 
     projet_dotation_dsil.refresh_from_db()  # always exists
-    assert projet_dotation_dsil.status == PROJET_STATUS_REFUSED
+    assert projet_dotation_dsil.status == ProjetStatus.REFUSED
 
 
 @pytest.mark.django_db
@@ -288,7 +286,7 @@ def test_create_simulation_projets_from_enveloppe_projet_with_a_detr_and_arrondi
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=0,
         projet__dossier_ds__perimetre=arr_dijon,
     )
@@ -330,7 +328,7 @@ def test_create_simulation_projets_from_enveloppe_projet_with_a_dsil_and_departe
     _, dep_21, region_bfc, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=dep_21,
     )
 
@@ -782,7 +780,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_filters_by_year(
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
@@ -1000,7 +998,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_does_not_exclude_whe
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=None,
@@ -1047,7 +1045,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_does_not_exclude_whe
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
@@ -1312,7 +1310,7 @@ def test_is_dossier_back_to_instruction(
 def test_update_accepted_enveloppe_projets_montant_from_dn_skips_non_accepted():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
     dps._update_accepted_enveloppe_projets_montant_from_dn(enveloppe_projet.projet)
@@ -1324,7 +1322,7 @@ def test_update_accepted_enveloppe_projets_montant_from_dn_skips_non_accepted():
 def test_update_accepted_enveloppe_projets_montant_from_dn_updates_montant():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
@@ -1337,7 +1335,7 @@ def test_update_accepted_enveloppe_projets_montant_from_dn_updates_montant():
 def test_update_accepted_enveloppe_projets_montant_from_dn_does_not_update_montant_when_none():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=None,
     )
@@ -1350,7 +1348,7 @@ def test_update_accepted_enveloppe_projets_montant_from_dn_does_not_update_monta
 def test_update_accepted_enveloppe_projets_montant_from_dn_creates_action_when_montant_changes():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
@@ -1373,7 +1371,7 @@ def test_update_accepted_enveloppe_projets_montant_from_dn_creates_action_when_m
 def test_update_accepted_enveloppe_projets_montant_from_dn_does_not_create_action_when_montant_unchanged():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
     )
@@ -1404,7 +1402,7 @@ def test_accept_enveloppe_projet_conserve_enveloppe_existante(perimetres):
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
         projet__dossier_ds__ds_date_traitement=datetime.datetime(
@@ -1439,7 +1437,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_excludes_simulations
     )
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
         enveloppe=enveloppe_current_year,
     )
@@ -1471,7 +1469,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_includes_all_years_w
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 

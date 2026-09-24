@@ -25,14 +25,6 @@ class ProjetStatus(models.TextChoices):
         return (cls.ACCEPTED, cls.REFUSED, cls.DISMISSED)
 
 
-# OLD constants, keep them until we've replaced everywhere
-PROJET_STATUS_ACCEPTED = ProjetStatus.ACCEPTED
-PROJET_STATUS_REFUSED = ProjetStatus.REFUSED
-PROJET_STATUS_PROCESSING = ProjetStatus.PROCESSING
-PROJET_STATUS_DISMISSED = ProjetStatus.DISMISSED
-PROJET_STATUS_CHOICES = ProjetStatus.choices
-PROJET_FINAL_STATUSES = ProjetStatus.FINAL
-
 NOTIFICATION_STATUS_TO_GENERATE = "to_generate"
 NOTIFICATION_STATUS_TO_SIGN = "to_sign"
 NOTIFICATION_STATUS_TO_NOTIFY = "to_notify"

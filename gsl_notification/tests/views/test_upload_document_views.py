@@ -12,8 +12,7 @@ from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
     ANNEXE,
     LETTRE_ET_ARRETE_SIGNES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
@@ -50,7 +49,7 @@ def perimetre():
 @pytest.fixture
 def enveloppe_projet(perimetre):
     return EnveloppeProjetFactory(
-        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
 
 
@@ -58,7 +57,7 @@ def enveloppe_projet(perimetre):
 def refused_enveloppe_projet(perimetre):
     return EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
-        status=PROJET_STATUS_REFUSED,
+        status=ProjetStatus.REFUSED,
     )
 
 
@@ -253,7 +252,7 @@ def test_analyze_attaches_the_document_read_from_its_qr_code(
 
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     projet = enveloppe_projet.projet
     scan = SimpleUploadedFile(
@@ -288,12 +287,12 @@ def test_analyze_refuses_a_scan_belonging_to_another_projet(
     other_enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         projet__dossier_ds__ds_number=9999999,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     target_enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         projet__dossier_ds__ds_number=1111111,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     scan = SimpleUploadedFile(
         "scan.pdf",
@@ -328,12 +327,12 @@ def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
     target_enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         projet__dossier_ds__ds_number=1111111,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     other_enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         projet__dossier_ds__ds_number=9999999,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     scan = SimpleUploadedFile(
         "scan.pdf",

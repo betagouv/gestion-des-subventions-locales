@@ -19,8 +19,7 @@ from gsl_programmation.tests.factories import (
 from ....constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from ....services.enveloppe_projet_services import (
     EnveloppeProjetService as dps,
@@ -63,7 +62,7 @@ def test_get_root_enveloppe_from_enveloppe_projet_with_a_detr_and_arrondissement
     arr_dijon, dep_21, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
     )
     dep_detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
@@ -83,7 +82,7 @@ def test_get_root_enveloppe_from_enveloppe_projet_with_a_dsil_and_region_projet(
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
     )
     region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -106,7 +105,7 @@ def test_get_enveloppe_from_enveloppe_projet_with_a_next_year_date(perimetres, c
     region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=region_dsil_enveloppe,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
@@ -153,7 +152,7 @@ def test_get_enveloppe_from_enveloppe_projet_with_a_date_traitement_after_novemb
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_date_traitement=date_traitement,
     )
@@ -236,7 +235,7 @@ def test_get_montant_from_dossier_handles_missing_montant(caplog):
 @pytest.mark.django_db
 def test_is_programmation_date_after_passage_en_instruction_without_programmation():
     """Test _is_programmation_date_after_passage_en_instruction returns False when the dotation isn't programmed"""
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_PROCESSING)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
 
     result = dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
 
@@ -252,7 +251,7 @@ def test_is_programmation_date_after_passage_en_instruction_when_before_passage_
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
 
@@ -273,7 +272,7 @@ def test_is_programmation_date_after_passage_en_instruction_when_after_passage_e
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
     )
 
@@ -290,7 +289,7 @@ def test_is_programmation_date_after_passage_en_instruction_with_none_date():
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
     )
 

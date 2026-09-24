@@ -5,10 +5,7 @@ import pytest
 
 from gsl.projet.constants import (
     DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl.projet.tests.factories import (
@@ -66,11 +63,11 @@ def dsil_simulation(region_perimetre):
 
 
 DOSSIER_DS_STATUS_TO_ENVELOPPE_PROJET_STATUS = {
-    Dossier.STATE_ACCEPTE: PROJET_STATUS_ACCEPTED,
-    Dossier.STATE_EN_CONSTRUCTION: PROJET_STATUS_PROCESSING,
-    Dossier.STATE_EN_INSTRUCTION: PROJET_STATUS_PROCESSING,
-    Dossier.STATE_REFUSE: PROJET_STATUS_REFUSED,
-    Dossier.STATE_SANS_SUITE: PROJET_STATUS_DISMISSED,
+    Dossier.STATE_ACCEPTE: ProjetStatus.ACCEPTED,
+    Dossier.STATE_EN_CONSTRUCTION: ProjetStatus.PROCESSING,
+    Dossier.STATE_EN_INSTRUCTION: ProjetStatus.PROCESSING,
+    Dossier.STATE_REFUSE: ProjetStatus.REFUSED,
+    Dossier.STATE_SANS_SUITE: ProjetStatus.DISMISSED,
 }
 
 

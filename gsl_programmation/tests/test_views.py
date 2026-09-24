@@ -5,7 +5,7 @@ from django.urls import reverse
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
@@ -62,7 +62,7 @@ class TestProgrammationProjetListViewWithDotation:
         return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DSIL,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             enveloppe=dsil_enveloppe,
         )
 
@@ -74,7 +74,7 @@ class TestProgrammationProjetListViewWithDotation:
         return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DETR,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             enveloppe=detr_enveloppe,
         )
 
@@ -163,14 +163,14 @@ class TestProgrammationProjetListViewExcludesInactiveDossiers:
         active_enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DETR,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             enveloppe=detr_enveloppe,
         )
         EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             projet__dossier_ds__is_active=False,
             dotation=DOTATION_DETR,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             enveloppe=detr_enveloppe,
         )
 

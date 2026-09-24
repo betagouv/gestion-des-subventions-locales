@@ -12,11 +12,7 @@ from gsl_demarches_simplifiees.tests.factories import (
     NaturePorteurProjetFactory,
 )
 
-from ...constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
+from ...constants import ProjetStatus
 from ...models import Projet
 from ...services.projet_services import ProjetService as ps
 from ..factories import EnveloppeProjetFactory, ProjetFactory
@@ -161,10 +157,10 @@ def test_totals_cost_with_filtered_qs(
 
 @pytest.mark.django_db
 def test_totals_amount_granted():
-    EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED, montant=10_000)
-    EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED, montant=20_000)
-    EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED, montant=0)
-    EnveloppeProjetFactory(status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, montant=10_000)
+    EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, montant=20_000)
+    EnveloppeProjetFactory(status=ProjetStatus.REFUSED, montant=0)
+    EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
 
     assert Projet.objects.all().totals()["total_amount_granted"] == 30_000
 

@@ -90,7 +90,7 @@ def test_qr_roundtrip_through_generated_pdf():
     pdfium = pytest.importorskip("pypdfium2")
     zxingcpp = pytest.importorskip("zxingcpp")
 
-    from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+    from gsl.projet.constants import ProjetStatus
     from gsl.projet.tests.factories import EnveloppeProjetFactory
     from gsl_notification.tests.factories import (
         LettreNotificationFactory,
@@ -100,7 +100,7 @@ def test_qr_roundtrip_through_generated_pdf():
 
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__ds_number=7654321,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     modele = ModeleLettreNotificationFactory(
         dotation=enveloppe_projet.dotation,
@@ -143,7 +143,7 @@ def test_decode_per_page_returns_bbox_in_bottom_left(tmp_path):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+    from gsl.projet.constants import ProjetStatus
     from gsl.projet.tests.factories import EnveloppeProjetFactory
     from gsl_notification.tests.factories import (
         LettreNotificationFactory,
@@ -153,7 +153,7 @@ def test_decode_per_page_returns_bbox_in_bottom_left(tmp_path):
 
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__ds_number=1234567,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     modele = ModeleLettreNotificationFactory(
         dotation=enveloppe_projet.dotation,
@@ -198,7 +198,7 @@ def test_no_qr_when_with_qr_code_is_false(tmp_path):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("zxingcpp")
 
-    from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+    from gsl.projet.constants import ProjetStatus
     from gsl.projet.tests.factories import EnveloppeProjetFactory
     from gsl_notification.tests.factories import (
         LettreNotificationFactory,
@@ -208,7 +208,7 @@ def test_no_qr_when_with_qr_code_is_false(tmp_path):
 
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__ds_number=2222222,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     modele = ModeleLettreNotificationFactory(
         dotation=enveloppe_projet.dotation,

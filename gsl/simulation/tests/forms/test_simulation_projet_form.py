@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from django import forms
 
-from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import DetrProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueWithDSProfileFactory
@@ -21,7 +21,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def simulation_projet() -> SimulationProjet:
     enveloppe_projet = DetrProjetFactory(
-        assiette=1_000, status=PROJET_STATUS_ACCEPTED, montant=200
+        assiette=1_000, status=ProjetStatus.ACCEPTED, montant=200
     )
     return cast(
         SimulationProjet,
@@ -291,7 +291,7 @@ def test_simulation_projet_form_cannot_change_amounts_when_notified():
     from django.utils import timezone
 
     enveloppe_projet = DetrProjetFactory(
-        assiette=1_000, status=PROJET_STATUS_ACCEPTED, montant=200
+        assiette=1_000, status=ProjetStatus.ACCEPTED, montant=200
     )
     simulation_projet = SimulationProjetFactory(
         enveloppe_projet=enveloppe_projet,

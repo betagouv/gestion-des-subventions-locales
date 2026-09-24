@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
-from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     AdresseFactory,
@@ -48,7 +48,7 @@ def enveloppe_projet():
         commune__name="Paris",
     )
     return EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             raison_sociale="Commune de Bagnères-de-Luchon",
             siret="12345678901234",
@@ -121,7 +121,7 @@ def test_replace_mentions_in_html_multiline_address():
         commune__name="PARIS",
     )
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             address=adresse,
         ),
@@ -141,7 +141,7 @@ def test_replace_mentions_in_html_uses_address_two_lines():
         commune__name="Paris",
     )
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
             address=adresse,
         ),

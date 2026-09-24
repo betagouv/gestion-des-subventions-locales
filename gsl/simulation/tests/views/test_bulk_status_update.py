@@ -5,10 +5,7 @@ from django.utils import timezone
 
 from gsl.projet.constants import (
     DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
@@ -97,7 +94,7 @@ def test_bulk_status_update_rejects_ids_outside_user_perimeter(
     other_enveloppe = DetrEnveloppeFactory(perimetre=other_perimetre, annee=2025)
     other_simulation = SimulationFactory(enveloppe=other_enveloppe)
     other_dotation = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=other_perimetre,
         dotation=DOTATION_DETR,
         assiette=10_000,
@@ -156,9 +153,9 @@ def test_bulk_status_update_switches_between_refused_and_dismissed(
     target_status,
 ):
     dotation_status = (
-        PROJET_STATUS_REFUSED
+        ProjetStatus.REFUSED
         if initial_status == SimulationProjet.STATUS_REFUSED
-        else PROJET_STATUS_DISMISSED
+        else ProjetStatus.DISMISSED
     )
     sp = _make_simu_projet(
         collegue,
@@ -226,7 +223,7 @@ def test_bulk_status_update_to_pending_returns_confirmation_modal_if_any_row_is_
     accepted = _make_simu_projet(
         collegue,
         simulation,
-        dotation_status=PROJET_STATUS_ACCEPTED,
+        dotation_status=ProjetStatus.ACCEPTED,
         simu_status=SimulationProjet.STATUS_ACCEPTED,
     )
 
@@ -247,13 +244,13 @@ def test_bulk_status_update_rejects_notified_projets(
     sp_ok = _make_simu_projet(
         collegue,
         simulation,
-        dotation_status=PROJET_STATUS_ACCEPTED,
+        dotation_status=ProjetStatus.ACCEPTED,
         simu_status=SimulationProjet.STATUS_ACCEPTED,
     )
     sp_notified = _make_simu_projet(
         collegue,
         simulation,
-        dotation_status=PROJET_STATUS_ACCEPTED,
+        dotation_status=ProjetStatus.ACCEPTED,
         simu_status=SimulationProjet.STATUS_ACCEPTED,
     )
     sp_notified.projet.notified_at = timezone.now()

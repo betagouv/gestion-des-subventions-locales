@@ -18,9 +18,7 @@ from django_htmx.http import (
 
 from gsl.projet.constants import (
     DOTATIONS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.models import projet_status_from_dotation_statuses
 from gsl_core.decorators import htmx_only
@@ -343,7 +341,7 @@ class SimulationProjetCardUpdateView(UpdateView):
 
     def form_valid(self, form):
         if (
-            self.object.enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+            self.object.enveloppe_projet.status == ProjetStatus.ACCEPTED
             and not self.request.POST.get("confirmed")
         ):
             refresh_url = reverse(
@@ -599,7 +597,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
         if target_status == SimulationProjet.STATUS_ACCEPTED:
             return True
         return any(
-            sp.enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+            sp.enveloppe_projet.status == ProjetStatus.ACCEPTED
             for sp in simulation_projets
         )
 
@@ -752,7 +750,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
         message = SIMU_PROJET_STATUS_TO_MESSAGE[self.kwargs["status"]]
 
-        if self.new_project_status in [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]:
+        if self.new_project_status in [ProjetStatus.REFUSED, ProjetStatus.DISMISSED]:
             message += " Pensez à notifier le demandeur."
 
         return message

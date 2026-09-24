@@ -10,9 +10,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     LETTRE,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
@@ -44,7 +42,7 @@ from gsl_notification.tests.factories import (
 )
 def generated_document_properties(type, modele_factory, factory):
     collegue = CollegueFactory()
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     modele = modele_factory()
 
     file_content = {"key": "value"}
@@ -81,7 +79,7 @@ def generated_document_properties(type, modele_factory, factory):
 )
 def test_generated_document_save_calculates_size(modele_factory, factory):
     """Test that the save method calculates and saves the size field"""
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests
@@ -122,7 +120,7 @@ def test_generated_document_save_updates_size_on_content_change(
     mock_get_logo_base64, modele_factory, factory
 ):
     """Test that the save method recalculates size when content changes"""
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests - keep it active for both saves
@@ -169,8 +167,8 @@ def test_generated_document_save_with_different_content_sizes(
 ):
     """Test that size calculation works correctly with different content sizes"""
     # Create separate enveloppe projets since Arrete/LettreNotification have OneToOneField
-    enveloppe_projet1 = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
-    enveloppe_projet2 = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet1 = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
+    enveloppe_projet2 = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     modele = modele_factory()
 
     # Mock the logo base64 to avoid external requests - keep it active for both document creations
@@ -218,7 +216,7 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
     modele_factory, factory
 ):
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+        dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
     modele = modele_factory(dotation=DOTATION_DETR)
     # Mock the logo base64 to avoid external requests during save()
@@ -252,7 +250,7 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
 def test_generated_document_validation_error_when_pp_status_mismatch(
     modele_factory, factory, message
 ):
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.REFUSED)
     modele = modele_factory(dotation=enveloppe_projet.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(enveloppe_projet=enveloppe_projet, modele=modele)
@@ -264,7 +262,7 @@ def test_generated_document_validation_error_when_pp_status_mismatch(
 
 @pytest.mark.django_db
 def test_lettre_refus_validation_error_when_pp_status_mismatch():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     modele = ModeleLettreRefusFactory(dotation=enveloppe_projet.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = LettreRefusFactory(enveloppe_projet=enveloppe_projet, modele=modele)
@@ -286,7 +284,7 @@ def test_lettre_refus_validation_error_when_pp_status_mismatch():
     ),
 )
 def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     modele = modele_factory(dotation=enveloppe_projet.dotation)
     with patch("gsl_notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(enveloppe_projet=enveloppe_projet, modele=modele)
@@ -296,7 +294,7 @@ def test_generated_document_no_error_when_pp_accepted(modele_factory, factory):
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "status",
-    (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+    (ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
 )
 def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
     enveloppe_projet = EnveloppeProjetFactory(status=status)
@@ -310,7 +308,7 @@ def test_lettre_refus_no_error_when_pp_refused_or_dismissed(status):
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_properties(factory):
     collegue = CollegueFactory()
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
 
     file_content = b"dummy content"
     file = SimpleUploadedFile(
@@ -387,7 +385,7 @@ def test_two_models_have_different_logos():
 
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.REFUSED)
     doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
@@ -400,7 +398,7 @@ def test_lettre_et_arrete_signes_validation_error_when_pp_status_mismatch():
 
 @pytest.mark.django_db
 def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     doc = LettreRefusSigneeFactory(enveloppe_projet=enveloppe_projet)
     with pytest.raises(ValidationError) as exc_info:
         doc.clean()
@@ -414,9 +412,9 @@ def test_lettre_refus_signee_validation_error_when_pp_status_mismatch():
 @pytest.mark.parametrize(
     "status",
     (
-        PROJET_STATUS_ACCEPTED,
-        PROJET_STATUS_REFUSED,
-        PROJET_STATUS_DISMISSED,
+        ProjetStatus.ACCEPTED,
+        ProjetStatus.REFUSED,
+        ProjetStatus.DISMISSED,
     ),
 )
 @pytest.mark.django_db
@@ -428,7 +426,7 @@ def test_annexe_no_error_regardless_of_pp_status(status):
 
 @pytest.mark.django_db
 def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
     doc.clean()  # should not raise
 
@@ -436,7 +434,7 @@ def test_lettre_et_arrete_signes_no_error_when_pp_accepted():
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "status",
-    (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+    (ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
 )
 def test_lettre_refus_signee_no_error_when_pp_refused_or_dismissed(status):
     enveloppe_projet = EnveloppeProjetFactory(status=status)
@@ -474,7 +472,7 @@ def test_second_annexe_with_the_same_name_is_suffixed():
 def test_replacing_a_single_document_keeps_its_name():
     """Only documents that legitimately coexist collide: deleting the previous
     one frees its stored file, so a replacement is not suffixed."""
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     LettreEtArreteSignesFactory(
         enveloppe_projet=enveloppe_projet, file__filename="remplacement.pdf"
     ).delete()

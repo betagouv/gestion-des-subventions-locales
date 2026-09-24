@@ -14,8 +14,7 @@ from gsl_demarches_simplifiees.services import DsService
 from .constants import (
     DOTATION_CHOICES,
     POSSIBLE_DOTATIONS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from .models import EnveloppeProjet, Projet, ProjetNote
 
@@ -95,7 +94,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
         for dotation in new_dotations:
             enveloppe_projet = EnveloppeProjet.objects.create(
-                projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+                projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
             )
             EnveloppeProjetService.create_simulation_projets_from_enveloppe_projet(
                 enveloppe_projet
@@ -113,10 +112,10 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             projet=projet, dotation__in=dotation_to_remove
         )
 
-        if enveloppe_projet_to_remove.filter(status=PROJET_STATUS_ACCEPTED).exists():
+        if enveloppe_projet_to_remove.filter(status=ProjetStatus.ACCEPTED).exists():
             dotations_to_be_checked = (
                 EnveloppeProjet.objects.filter(
-                    projet=projet, status=PROJET_STATUS_ACCEPTED
+                    projet=projet, status=ProjetStatus.ACCEPTED
                 )
                 .exclude(dotation__in=dotation_to_remove)
                 .values_list("dotation", flat=True)

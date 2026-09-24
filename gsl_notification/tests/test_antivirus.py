@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from gsl.projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -31,7 +31,7 @@ def perimetre():
 @pytest.fixture
 def enveloppe_projet(perimetre):
     return EnveloppeProjetFactory(
-        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
 
 
@@ -50,7 +50,7 @@ def test_upload_triggers_scan_task_when_antivirus_enabled(
 ):
     settings.BYPASS_ANTIVIRUS = False
     enveloppe_projet = EnveloppeProjetFactory(
-        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
     doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
 
@@ -65,7 +65,7 @@ def test_upload_does_not_trigger_scan_when_antivirus_bypassed(
 ):
     settings.BYPASS_ANTIVIRUS = True
     enveloppe_projet = EnveloppeProjetFactory(
-        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
     LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
 
@@ -76,7 +76,7 @@ def test_upload_does_not_trigger_scan_when_antivirus_bypassed(
 def test_annexe_upload_triggers_scan_task(mock_scan_task, settings, perimetre):
     settings.BYPASS_ANTIVIRUS = False
     enveloppe_projet = EnveloppeProjetFactory(
-        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
     doc = AnnexeFactory(enveloppe_projet=enveloppe_projet)
 

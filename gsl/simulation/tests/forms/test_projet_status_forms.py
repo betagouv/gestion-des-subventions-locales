@@ -5,10 +5,7 @@ import pytest
 
 from gsl.projet.constants import (
     DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.models import Collegue
@@ -120,7 +117,7 @@ def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
         status=SimulationProjet.STATUS_PROCESSING,
         simulation=simulation,
         enveloppe_projet__dotation=DOTATION_DETR,
-        enveloppe_projet__status=PROJET_STATUS_PROCESSING,
+        enveloppe_projet__status=ProjetStatus.PROCESSING,
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
 
@@ -148,9 +145,9 @@ def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
     "initial_programmation_status, new_projet_status, programmation_status_expected",
     (
         (
-            PROJET_STATUS_REFUSED,
+            ProjetStatus.REFUSED,
             SimulationProjet.STATUS_ACCEPTED,
-            PROJET_STATUS_ACCEPTED,
+            ProjetStatus.ACCEPTED,
         ),
     ),
 )
@@ -209,9 +206,9 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
 @pytest.mark.parametrize(
     "initial_simulation_status, initial_dotation_status",
     (
-        (SimulationProjet.STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
-        (SimulationProjet.STATUS_REFUSED, PROJET_STATUS_REFUSED),
-        (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+        (SimulationProjet.STATUS_ACCEPTED, ProjetStatus.ACCEPTED),
+        (SimulationProjet.STATUS_REFUSED, ProjetStatus.REFUSED),
+        (SimulationProjet.STATUS_DISMISSED, ProjetStatus.DISMISSED),
     ),
 )
 def test_revert_from_final_status_resets_enveloppe_projet_to_processing(
@@ -230,7 +227,7 @@ def test_revert_from_final_status_resets_enveloppe_projet_to_processing(
     form.save(user)
 
     simulation_projet.enveloppe_projet.refresh_from_db()
-    assert simulation_projet.enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert simulation_projet.enveloppe_projet.status == ProjetStatus.PROCESSING
 
 
 @mock.patch(
@@ -239,9 +236,9 @@ def test_revert_from_final_status_resets_enveloppe_projet_to_processing(
 @pytest.mark.parametrize(
     "initial_simulation_status, initial_dotation_status",
     (
-        (SimulationProjet.STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
-        (SimulationProjet.STATUS_REFUSED, PROJET_STATUS_REFUSED),
-        (SimulationProjet.STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
+        (SimulationProjet.STATUS_ACCEPTED, ProjetStatus.ACCEPTED),
+        (SimulationProjet.STATUS_REFUSED, ProjetStatus.REFUSED),
+        (SimulationProjet.STATUS_DISMISSED, ProjetStatus.DISMISSED),
     ),
 )
 def test_revert_from_final_status_drops_the_programmation(
@@ -291,10 +288,10 @@ def test_pending_to_pending_does_not_revert_enveloppe_projet(
 ):
     simulation_projet = SimulationProjetFactory(
         status=initial_status,
-        enveloppe_projet__status=PROJET_STATUS_PROCESSING,
+        enveloppe_projet__status=ProjetStatus.PROCESSING,
     )
     form = SimulationProjetStatusForm(instance=simulation_projet, status=new_status)
     form.save(user)
 
     simulation_projet.enveloppe_projet.refresh_from_db()
-    assert simulation_projet.enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert simulation_projet.enveloppe_projet.status == ProjetStatus.PROCESSING

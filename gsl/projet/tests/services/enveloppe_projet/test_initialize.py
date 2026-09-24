@@ -19,10 +19,7 @@ from gsl_programmation.tests.factories import (
 from ....constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ....models import EnveloppeProjet
 from ....services.enveloppe_projet_services import (
@@ -81,14 +78,14 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_annotations_dota
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
-    assert detr_dp.status == PROJET_STATUS_ACCEPTED
+    assert detr_dp.status == ProjetStatus.ACCEPTED
     assert detr_dp.assiette == 10_000
     assert detr_dp.detr_avis_commission is True
     assert detr_dp.montant_retenu == 5_000
     assert detr_dp.taux_retenu == 50
 
     dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
-    assert dsil_dp.status == PROJET_STATUS_ACCEPTED
+    assert dsil_dp.status == ProjetStatus.ACCEPTED
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.detr_avis_commission is None
     assert dsil_dp.montant_retenu == 15_000
@@ -126,7 +123,7 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_empty_annotation
 
     assert len(enveloppe_projets) == 1
     detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
-    assert detr_dp.status == PROJET_STATUS_ACCEPTED
+    assert detr_dp.status == ProjetStatus.ACCEPTED
     assert detr_dp.assiette is None, "Assiette should be None if assiette is missing"
     assert detr_dp.montant_retenu == 0, "Montant should be 0 if montant is missing"
     assert detr_dp.taux_retenu == 0, "Taux should be 0 if montant is missing"
@@ -177,7 +174,7 @@ def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
-    assert detr_dp.status == PROJET_STATUS_REFUSED
+    assert detr_dp.status == ProjetStatus.REFUSED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu == 0
     assert detr_dp.taux_retenu == 0
@@ -185,7 +182,7 @@ def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
     assert detr_dp.is_programmee
 
     dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
-    assert dsil_dp.status == PROJET_STATUS_REFUSED
+    assert dsil_dp.status == ProjetStatus.REFUSED
     assert dsil_dp.assiette is None
     assert dsil_dp.montant_retenu == 0
     assert dsil_dp.taux_retenu == 0
@@ -216,13 +213,13 @@ def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
-    assert detr_dp.status == PROJET_STATUS_DISMISSED
+    assert detr_dp.status == ProjetStatus.DISMISSED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu == 0
     assert detr_dp.taux_retenu == 0
 
     dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
-    assert dsil_dp.status == PROJET_STATUS_DISMISSED
+    assert dsil_dp.status == ProjetStatus.DISMISSED
     assert dsil_dp.assiette is None
     assert dsil_dp.montant_retenu == 0
     assert dsil_dp.taux_retenu == 0
@@ -248,13 +245,13 @@ def test_initialize_enveloppe_projets_from_projet_en_construction_or_instruction
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
-    assert detr_dp.status == PROJET_STATUS_PROCESSING
+    assert detr_dp.status == ProjetStatus.PROCESSING
     assert detr_dp.assiette is None
     assert detr_dp.montant_retenu is None
     assert not detr_dp.is_programmee
 
     dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
-    assert dsil_dp.status == PROJET_STATUS_PROCESSING
+    assert dsil_dp.status == ProjetStatus.PROCESSING
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.montant_retenu is None
     assert not dsil_dp.is_programmee

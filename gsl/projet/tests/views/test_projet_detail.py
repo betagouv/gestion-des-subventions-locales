@@ -14,10 +14,7 @@ from gsl_core.tests.factories import (
 from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
@@ -28,7 +25,7 @@ def test_projet_detail_page_has_no_notification_button_when_all_enveloppe_projet
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     url = reverse(
         "gsl_projet:get-projet",
         kwargs={"projet_id": projet.id},
@@ -42,7 +39,7 @@ def test_projet_detail_page_has_no_notification_button_when_all_enveloppe_projet
 
 
 @pytest.mark.parametrize(
-    "status", (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
 )
 def test_projet_detail_page_has_dotation_status_card_with_not_processing_simple_dotation(
     status,
@@ -67,15 +64,15 @@ def test_projet_detail_page_has_dotation_status_card_with_not_processing_simple_
 @pytest.mark.parametrize(
     "dotation_status_1, dotation_status_2",
     (
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING),
+        (ProjetStatus.ACCEPTED, ProjetStatus.ACCEPTED),
+        (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED),
+        (ProjetStatus.ACCEPTED, ProjetStatus.DISMISSED),
+        (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED),
+        (ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
+        (ProjetStatus.REFUSED, ProjetStatus.PROCESSING),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED),
+        (ProjetStatus.DISMISSED, ProjetStatus.PROCESSING),
     ),
 )
 def test_projet_detail_page_has_dotation_status_card_with_not_processing_double_dotations(
@@ -102,18 +99,18 @@ def test_projet_detail_page_has_dotation_status_card_with_not_processing_double_
 @pytest.mark.parametrize(
     "dotation_status_1, dotation_status_2",
     (
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_REFUSED),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_DISMISSED),
+        (ProjetStatus.ACCEPTED, ProjetStatus.ACCEPTED),
+        (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED),
+        (ProjetStatus.ACCEPTED, ProjetStatus.DISMISSED),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED),
+        (ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED),
+        (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING),
+        (ProjetStatus.REFUSED, ProjetStatus.PROCESSING),
+        (ProjetStatus.DISMISSED, ProjetStatus.PROCESSING),
+        (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED),
+        (ProjetStatus.PROCESSING, ProjetStatus.REFUSED),
+        (ProjetStatus.PROCESSING, ProjetStatus.DISMISSED),
     ),
 )
 def test_projet_detail_page_shows_to_generate_badge_for_decided_dotation_without_documents(
@@ -150,22 +147,22 @@ def test_projet_detail_page_shows_to_generate_badge_for_decided_dotation_without
     "dotation_status_1, dotation_status_2, notification_status_message",
     (
         (
-            PROJET_STATUS_ACCEPTED,
-            PROJET_STATUS_ACCEPTED,
+            ProjetStatus.ACCEPTED,
+            ProjetStatus.ACCEPTED,
             "Notifié",
         ),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, "Notifié"),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, "Notifié"),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, "Notifié"),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, "Notifié"),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, "Notifié"),
+        (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, "Notifié"),
+        (ProjetStatus.ACCEPTED, ProjetStatus.DISMISSED, "Notifié"),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED, "Notifié"),
+        (ProjetStatus.REFUSED, ProjetStatus.DISMISSED, "Notifié"),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED, "Notifié"),
         # These cases should not exist =>
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, "Notifié"),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, "Notifié"),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, "Notifié"),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED, "Notifié"),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_REFUSED, "Notifié"),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_DISMISSED, "Notifié"),
+        (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING, "Notifié"),
+        (ProjetStatus.REFUSED, ProjetStatus.PROCESSING, "Notifié"),
+        (ProjetStatus.DISMISSED, ProjetStatus.PROCESSING, "Notifié"),
+        (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED, "Notifié"),
+        (ProjetStatus.PROCESSING, ProjetStatus.REFUSED, "Notifié"),
+        (ProjetStatus.PROCESSING, ProjetStatus.DISMISSED, "Notifié"),
     ),
 )
 def test_projet_detail_page_has_correct_notification_status_message_when_already_notified(
@@ -205,7 +202,7 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
@@ -219,7 +216,7 @@ def test_unified_projet_page_hides_decision_card_and_notification_tab_for_proces
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
@@ -231,7 +228,7 @@ def test_unified_projet_page_back_button_defaults_to_projet_list():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
@@ -242,7 +239,7 @@ def test_unified_projet_page_back_button_returns_to_programmation_when_back_para
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
         kwargs={"dotation": DOTATION_DETR},
@@ -266,7 +263,7 @@ def test_primary_nav_highlights_programmation_when_opened_from_programmation():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
         kwargs={"dotation": DOTATION_DETR},
@@ -283,7 +280,7 @@ def test_primary_nav_highlights_projet_list_without_back_param():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_PROCESSING)
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
@@ -295,7 +292,7 @@ def test_primary_nav_highlights_projet_list_without_back_param():
 def _accepted_projet(perimetre):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
     )
     return projet
 
@@ -342,7 +339,7 @@ def test_assiette_form_shown_for_processing_non_notified_dotation():
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
     dp = EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
     )
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     assert response.status_code == 200
@@ -353,7 +350,7 @@ def test_assiette_form_shown_for_processing_non_notified_dotation():
 
 
 @pytest.mark.parametrize(
-    "status", [PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED]
+    "status", [ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED]
 )
 def test_readonly_block_shown_for_final_status_dotation(status):
     perimetre = PerimetreArrondissementFactory()
@@ -374,7 +371,7 @@ def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=timezone.now())
     dp = EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
     )
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     content = response.content.decode()

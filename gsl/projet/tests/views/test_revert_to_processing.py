@@ -20,7 +20,7 @@ from gsl_demarches_simplifiees.tests.factories import (
 from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
+    ProjetStatus,
 )
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
@@ -82,7 +82,7 @@ def notified_projet(collegue):
     )
     EnveloppeProjetFactory(
         projet=projet,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         dotation=DOTATION_DETR,
         assiette=10_000,
     )
@@ -97,7 +97,7 @@ def non_notified_projet(collegue):
     )
     EnveloppeProjetFactory(
         projet=projet,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         dotation=DOTATION_DETR,
     )
     return projet
@@ -129,7 +129,7 @@ def test_post_clears_notified_at(client, collegue):
     projet = ProjetFactory(dossier_ds=dossier, notified_at=timezone.now())
     EnveloppeProjetFactory(
         projet=projet,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         dotation=DOTATION_DETR,
         assiette=10_000,
         date_programmation=timezone.now(),
@@ -158,7 +158,7 @@ def test_post_preserves_enveloppe_projet_status(mock_repasser, client, notified_
     enveloppe_projet = notified_projet.enveloppeprojet_set.first()
     client.post(_url(notified_projet), {}, headers={"HX-Request": "true"})
     enveloppe_projet.refresh_from_db()
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
 
 
 @patch("gsl.projet.forms.DsService.repasser_en_instruction")
@@ -182,7 +182,7 @@ def test_get_returns_404_for_out_of_perimeter_projet():
         dossier_ds__perimetre=PerimetreDepartementalFactory(),
         notified_at=timezone.now(),
     )
-    EnveloppeProjetFactory(projet=projet, status=PROJET_STATUS_ACCEPTED)
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.ACCEPTED)
     client = ClientWithLoggedUserFactory(other_collegue)
     response = client.get(_url(projet), headers={"HX-Request": "true"})
     assert response.status_code == 404
@@ -195,10 +195,10 @@ def test_double_dotation_post_calls_ds_once(mock_repasser, collegue):
         notified_at=timezone.now(),
     )
     EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
     )
     EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DSIL
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DSIL
     )
     client = ClientWithLoggedUserFactory(collegue)
     client.post(_url(projet), {}, headers={"HX-Request": "true"})

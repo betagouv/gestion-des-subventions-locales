@@ -15,10 +15,7 @@ from django.urls import reverse
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
@@ -57,13 +54,13 @@ def double_enveloppe_projet(collegue):
     detr_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         assiette=10_000,
     )
     dsil_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         assiette=15_000,
     )
     return {
@@ -103,7 +100,7 @@ class TestModalForRefusing:
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
         _assert_uses_notify_later_modal(response)
-        assert response.context["new_projet_status"] == PROJET_STATUS_PROCESSING
+        assert response.context["new_projet_status"] == ProjetStatus.PROCESSING
         assert (
             response.context["new_simulation_status"] == SimulationProjet.STATUS_REFUSED
         )
@@ -134,7 +131,7 @@ class TestModalForRefusing:
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
         _assert_uses_notify_later_modal(response)
-        assert response.context["new_projet_status"] == PROJET_STATUS_REFUSED
+        assert response.context["new_projet_status"] == ProjetStatus.REFUSED
 
     def test_refuse_detr_with_dsil_accepted(
         self, client_with_user_logged, double_enveloppe_projet
@@ -164,7 +161,7 @@ class TestModalForRefusing:
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
         _assert_uses_notify_later_modal(response)
-        assert response.context["new_projet_status"] == PROJET_STATUS_ACCEPTED
+        assert response.context["new_projet_status"] == ProjetStatus.ACCEPTED
 
 
 class TestModalForDismissing:
@@ -190,7 +187,7 @@ class TestModalForDismissing:
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
         _assert_uses_notify_later_modal(response)
-        assert response.context["new_projet_status"] == PROJET_STATUS_PROCESSING
+        assert response.context["new_projet_status"] == ProjetStatus.PROCESSING
 
     def test_dismiss_dsil_with_detr_dismissed(
         self, client_with_user_logged, double_enveloppe_projet
@@ -220,7 +217,7 @@ class TestModalForDismissing:
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
         _assert_uses_notify_later_modal(response)
-        assert response.context["new_projet_status"] == PROJET_STATUS_DISMISSED
+        assert response.context["new_projet_status"] == ProjetStatus.DISMISSED
 
     def test_dismiss_dsil_with_detr_refused(
         self, client_with_user_logged, double_enveloppe_projet
@@ -248,7 +245,7 @@ class TestModalForDismissing:
         response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
 
         _assert_uses_notify_later_modal(response)
-        assert response.context["new_projet_status"] == PROJET_STATUS_DISMISSED
+        assert response.context["new_projet_status"] == ProjetStatus.DISMISSED
 
 
 class TestModalForAccepting:

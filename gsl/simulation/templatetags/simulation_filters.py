@@ -1,22 +1,17 @@
 from django import template
 from django.urls import reverse
 
-from gsl.projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
+from gsl.projet.constants import ProjetStatus
 
 from ..models import SimulationProjet
 
 register = template.Library()
 
 STATUS_LABELS = {
-    PROJET_STATUS_ACCEPTED: "Accepté",
-    PROJET_STATUS_REFUSED: "Refusé",
-    PROJET_STATUS_PROCESSING: "En traitement",
-    PROJET_STATUS_DISMISSED: "Classé sans suite",
+    ProjetStatus.ACCEPTED: "Accepté",
+    ProjetStatus.REFUSED: "Refusé",
+    ProjetStatus.PROCESSING: "En traitement",
+    ProjetStatus.DISMISSED: "Classé sans suite",
     SimulationProjet.STATUS_ACCEPTED: "Accepté",
     SimulationProjet.STATUS_REFUSED: "Refusé",
     SimulationProjet.STATUS_PROCESSING: "En traitement",
@@ -59,7 +54,7 @@ def status_to_adjective(status, feminine=False):
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: f"accepté{'e' if feminine else ''} provisoirement",
         SimulationProjet.STATUS_PROCESSING: "en traitement",
         SimulationProjet.STATUS_ACCEPTED: f"validé{'e' if feminine else ''}",
-        PROJET_STATUS_REFUSED: f"refusé{'e' if feminine else ''}",
+        ProjetStatus.REFUSED: f"refusé{'e' if feminine else ''}",
         SimulationProjet.STATUS_REFUSED: f"refusé{'e' if feminine else ''}",
         SimulationProjet.STATUS_DISMISSED: f"classé{'e' if feminine else ''} sans suite",
     }[status]
@@ -68,12 +63,12 @@ def status_to_adjective(status, feminine=False):
 @register.filter(name="status_to_action_word")
 def status_to_action_word(status):
     return {
-        PROJET_STATUS_ACCEPTED: "accepter",
+        ProjetStatus.ACCEPTED: "accepter",
         SimulationProjet.STATUS_ACCEPTED: "accepter",
         SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "refuser provisoirement",
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "accepter provisoirement",
         SimulationProjet.STATUS_PROCESSING: "remettre en traitement",
-        PROJET_STATUS_REFUSED: "refuser",
+        ProjetStatus.REFUSED: "refuser",
         SimulationProjet.STATUS_REFUSED: "refuser",
         SimulationProjet.STATUS_DISMISSED: "classer sans suite",
     }[status]
@@ -91,7 +86,7 @@ def status_to_past_participle_plural(status):
         SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED: "acceptés provisoirement",
         SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "refusés provisoirement",
         SimulationProjet.STATUS_PROCESSING: "remis en traitement",
-        PROJET_STATUS_REFUSED: "refusés",
+        ProjetStatus.REFUSED: "refusés",
         SimulationProjet.STATUS_REFUSED: "refusés",
         SimulationProjet.STATUS_DISMISSED: "classés sans suite",
     }[status]
@@ -101,9 +96,9 @@ def status_to_past_participle_plural(status):
 def status_to_fr_color(status):
     return {
         SimulationProjet.STATUS_ACCEPTED: "success",
-        PROJET_STATUS_REFUSED: "error",
+        ProjetStatus.REFUSED: "error",
         SimulationProjet.STATUS_REFUSED: "error",
-        PROJET_STATUS_DISMISSED: "warning",
+        ProjetStatus.DISMISSED: "warning",
         SimulationProjet.STATUS_DISMISSED: "warning",
     }[status]
 

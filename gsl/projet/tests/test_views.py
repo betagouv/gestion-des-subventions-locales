@@ -26,8 +26,7 @@ from gsl_notification.tests.factories import ArreteFactory, LettreNotificationFa
 from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from ..models import Projet
 from ..utils.projet_filters import ProjetFilters
@@ -529,10 +528,10 @@ def projets_with_montant_retenu(perimetre) -> list[Projet]:
             (DsilProjetFactory, dsil_montant),
         ):
             if montant is None:
-                dotation_factory(projet=projet, status=PROJET_STATUS_PROCESSING)
+                dotation_factory(projet=projet, status=ProjetStatus.PROCESSING)
             else:
                 dotation_factory(
-                    projet=projet, status=PROJET_STATUS_ACCEPTED, montant=montant
+                    projet=projet, status=ProjetStatus.ACCEPTED, montant=montant
                 )
 
         projets.append(projet)
@@ -659,7 +658,7 @@ def test_order_by_taux(req, view, perimetre):
     projet_low = ProjetFactory(dossier_ds__perimetre=perimetre)
     DetrProjetFactory(
         projet=projet_low,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         assiette=Decimal("100000"),
         montant=Decimal("10000"),
     )
@@ -668,7 +667,7 @@ def test_order_by_taux(req, view, perimetre):
     projet_high = ProjetFactory(dossier_ds__perimetre=perimetre)
     DetrProjetFactory(
         projet=projet_high,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         assiette=Decimal("100000"),
         montant=Decimal("80000"),
     )

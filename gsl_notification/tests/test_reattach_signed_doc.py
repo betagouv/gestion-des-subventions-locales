@@ -8,7 +8,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from pikepdf import Page, Pdf
 
-from gsl.projet.constants import PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import CollegueFactory
@@ -50,7 +50,7 @@ def _build_pdf_for_enveloppe_projet(ds_number, dotation=None, content_blocks=200
     kwargs = {"projet__dossier_ds__ds_number": ds_number}
     if dotation is not None:
         kwargs["dotation"] = dotation
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED, **kwargs)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, **kwargs)
     modele = ModeleLettreNotificationFactory(
         dotation=enveloppe_projet.dotation,
         perimetre=enveloppe_projet.projet.dossier_ds.perimetre,
@@ -123,7 +123,7 @@ def _build_refus_pdf_for_enveloppe_projet(ds_number, dotation=None, content_bloc
     kwargs = {"projet__dossier_ds__ds_number": ds_number}
     if dotation is not None:
         kwargs["dotation"] = dotation
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED, **kwargs)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, **kwargs)
     modele = ModeleLettreRefusFactory(
         dotation=enveloppe_projet.dotation,
         perimetre=enveloppe_projet.projet.dossier_ds.perimetre,

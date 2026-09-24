@@ -40,12 +40,7 @@ from .constants import (
     NOTIFICATION_STATUS_TO_NOTIFY,
     NOTIFICATION_STATUS_TO_SIGN,
     POSSIBLE_DOTATIONS,
-    PROJET_FINAL_STATUSES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_CHOICES,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from .utils.utils import compute_taux, floatize
 
@@ -67,7 +62,7 @@ class ProjetQuerySet(models.QuerySet):
     def annotate_status(self):
         has_processing = Exists(
             EnveloppeProjet.objects.filter(
-                projet=OuterRef("pk"), status=PROJET_STATUS_PROCESSING
+                projet=OuterRef("pk"), status=ProjetStatus.PROCESSING
             )
         )
 
@@ -75,21 +70,21 @@ class ProjetQuerySet(models.QuerySet):
         has_accepted = Exists(
             EnveloppeProjet.objects.filter(
                 projet=OuterRef("pk"),
-                status=PROJET_STATUS_ACCEPTED,
+                status=ProjetStatus.ACCEPTED,
             )
         )
 
         has_dismissed = Exists(
             EnveloppeProjet.objects.filter(
                 projet=OuterRef("pk"),
-                status=PROJET_STATUS_DISMISSED,
+                status=ProjetStatus.DISMISSED,
             )
         )
 
         has_refused = Exists(
             EnveloppeProjet.objects.filter(
                 projet=OuterRef("pk"),
-                status=PROJET_STATUS_REFUSED,
+                status=ProjetStatus.REFUSED,
             )
         )
 
@@ -98,22 +93,22 @@ class ProjetQuerySet(models.QuerySet):
                 # If not all dotations have programmation, return PROCESSING
                 When(
                     has_processing,
-                    then=Value(PROJET_STATUS_PROCESSING),
+                    then=Value(ProjetStatus.PROCESSING),
                 ),
                 # If any dotation is ACCEPTED, return ACCEPTED
                 When(
                     has_accepted,
-                    then=Value(PROJET_STATUS_ACCEPTED),
+                    then=Value(ProjetStatus.ACCEPTED),
                 ),
                 # If any dotation is DISMISSED, return DISMISSED
                 When(
                     has_dismissed,
-                    then=Value(PROJET_STATUS_DISMISSED),
+                    then=Value(ProjetStatus.DISMISSED),
                 ),
                 # If any dotation is REFUSED, return REFUSED
                 When(
                     has_refused,
-                    then=Value(PROJET_STATUS_REFUSED),
+                    then=Value(ProjetStatus.REFUSED),
                 ),
                 # Projects without any EnveloppeProjet have no status
                 default=Value(None),
@@ -190,7 +185,7 @@ class ProjetQuerySet(models.QuerySet):
             Exists(
                 EnveloppeProjet.objects.programmees().filter(
                     projet=OuterRef("pk"),
-                    status__in=PROJET_FINAL_STATUSES,
+                    status__in=ProjetStatus.FINAL,
                 )
             )
         )
@@ -199,7 +194,7 @@ class ProjetQuerySet(models.QuerySet):
         return self.filter(
             Exists(
                 EnveloppeProjet.objects.filter(
-                    projet=OuterRef("pk"), status=PROJET_STATUS_ACCEPTED
+                    projet=OuterRef("pk"), status=ProjetStatus.ACCEPTED
                 )
             )
         )
@@ -236,7 +231,7 @@ class ProjetQuerySet(models.QuerySet):
                 total_amount_asked=Sum("dossier_ds__demande_montant"),
                 total_amount_granted=Sum(
                     "enveloppeprojet__montant",
-                    filter=Q(enveloppeprojet__status=PROJET_STATUS_ACCEPTED),
+                    filter=Q(enveloppeprojet__status=ProjetStatus.ACCEPTED),
                 ),
             )
 
@@ -398,7 +393,7 @@ class Projet(BaseModel):
     @property
     def has_accepted_dotation(self) -> bool:
         return any(
-            dp.status == PROJET_STATUS_ACCEPTED for dp in self.enveloppeprojet_set.all()
+            dp.status == ProjetStatus.ACCEPTED for dp in self.enveloppeprojet_set.all()
         )
 
     @property
@@ -419,7 +414,7 @@ class Projet(BaseModel):
                 for dp in sorted(
                     self.enveloppeprojet_set.all(), key=lambda dp: dp.dotation
                 )
-                if dp.status == PROJET_STATUS_PROCESSING
+                if dp.status == ProjetStatus.PROCESSING
             ),
             None,
         )
@@ -427,7 +422,7 @@ class Projet(BaseModel):
     @property
     def all_dotations_have_processing_status(self) -> bool:
         return all(
-            dp.status == PROJET_STATUS_PROCESSING
+            dp.status == ProjetStatus.PROCESSING
             for dp in self.enveloppeprojet_set.all()
         )
 
@@ -500,7 +495,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
 
     def without_signed_document(self):
         return self.programmees().filter(
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             lettre_et_arrete_signes__isnull=True,
         )
 
@@ -520,13 +515,13 @@ class EnveloppeProjetQuerySet(models.QuerySet):
 
     def can_generate_accepted_documents(self):
         return self.programmees().filter(
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             projet__notified_at__isnull=True,
         )
 
     def can_generate_refus_documents(self):
         return self.programmees().filter(
-            status__in=(PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED),
+            status__in=(ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
             projet__notified_at__isnull=True,
         )
 
@@ -544,13 +539,13 @@ class EnveloppeProjetQuerySet(models.QuerySet):
                     then=Value(NOTIFICATION_STATUS_TO_NOTIFY),
                 ),
                 When(
-                    status=PROJET_STATUS_ACCEPTED,
+                    status=ProjetStatus.ACCEPTED,
                     arrete__isnull=False,
                     lettrenotification__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
                 When(
-                    status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED],
+                    status__in=[ProjetStatus.DISMISSED, ProjetStatus.REFUSED],
                     lettrerefus__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
@@ -570,8 +565,8 @@ class EnveloppeProjet(BaseModel):
     # TODO pr_dotation put back protected=True, once every status transition is handled ?
     status = FSMField(
         "Statut",
-        choices=PROJET_STATUS_CHOICES,
-        default=PROJET_STATUS_PROCESSING,
+        choices=ProjetStatus,
+        default=ProjetStatus.PROCESSING,
     )
     assiette = models.DecimalField(
         "Assiette subventionnable",
@@ -608,8 +603,8 @@ class EnveloppeProjet(BaseModel):
         verbose_name_plural = "Enveloppes projet"
         constraints = (
             models.CheckConstraint(
-                condition=Q(status=PROJET_STATUS_PROCESSING, enveloppe__isnull=True)
-                | ~Q(status=PROJET_STATUS_PROCESSING) & Q(enveloppe__isnull=False),
+                condition=Q(status=ProjetStatus.PROCESSING, enveloppe__isnull=True)
+                | ~Q(status=ProjetStatus.PROCESSING) & Q(enveloppe__isnull=False),
                 name="enveloppe_ssi_dotation_traitee",
                 violation_error_message="Une dotation en traitement ne peut pas porter "
                 "d'enveloppe, et une dotation traitée doit en porter une.",
@@ -690,7 +685,7 @@ class EnveloppeProjet(BaseModel):
             ]
 
     def _validate_montant_nul_si_refusee(self, errors):
-        if self.status == PROJET_STATUS_REFUSED and self.montant != 0:
+        if self.status == ProjetStatus.REFUSED and self.montant != 0:
             errors["montant"] = ["Un projet refusé doit avoir un montant nul."]
 
     def _validate_detr_avis_commission(self, errors):
@@ -741,7 +736,7 @@ class EnveloppeProjet(BaseModel):
         return [
             d.dotation
             for d in self.other_dotations
-            if d.status == PROJET_STATUS_ACCEPTED
+            if d.status == ProjetStatus.ACCEPTED
         ]
 
     @property
@@ -808,7 +803,7 @@ class EnveloppeProjet(BaseModel):
 
     @property
     def is_treated(self) -> bool:
-        return self.status in PROJET_FINAL_STATUSES
+        return self.status in ProjetStatus.FINAL
 
     @property
     def lettre(self):
@@ -844,7 +839,7 @@ class EnveloppeProjet(BaseModel):
 
         return summary
 
-    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    @transition(field=status, source="*", target=ProjetStatus.ACCEPTED)
     def accept_without_ds_update(
         self, montant: float, enveloppe: "Enveloppe", actor=None
     ):
@@ -855,7 +850,7 @@ class EnveloppeProjet(BaseModel):
                 "La dotation du projet et de l'enveloppe ne correspondent pas."
             )
 
-        status_is_changing = self.status != PROJET_STATUS_ACCEPTED
+        status_is_changing = self.status != ProjetStatus.ACCEPTED
         previous_enveloppe = self.enveloppe
         previous_montant = self.montant
 
@@ -878,7 +873,7 @@ class EnveloppeProjet(BaseModel):
                 source=source,
                 created_at=created_at,
                 dotation=self.dotation,
-                status=PROJET_STATUS_ACCEPTED,
+                status=ProjetStatus.ACCEPTED,
                 euro_field_value=montant,
                 enveloppe=enveloppe,
             )
@@ -894,7 +889,7 @@ class EnveloppeProjet(BaseModel):
             )
 
     @transaction.atomic
-    @transition(field=status, source="*", target=PROJET_STATUS_ACCEPTED)
+    @transition(field=status, source="*", target=ProjetStatus.ACCEPTED)
     def accept(
         self,
         montant: float,
@@ -915,7 +910,7 @@ class EnveloppeProjet(BaseModel):
             taux=floatize(self.taux_retenu),
         )
 
-    @transition(field=status, source="*", target=PROJET_STATUS_REFUSED)
+    @transition(field=status, source="*", target=ProjetStatus.REFUSED)
     def refuse(self, enveloppe: "Enveloppe", actor=None):
         from gsl.simulation.models import SimulationProjet
 
@@ -943,11 +938,11 @@ class EnveloppeProjet(BaseModel):
             source=source,
             created_at=created_at,
             dotation=self.dotation,
-            status=PROJET_STATUS_REFUSED,
+            status=ProjetStatus.REFUSED,
             enveloppe=enveloppe,
         )
 
-    @transition(field=status, source="*", target=PROJET_STATUS_DISMISSED)
+    @transition(field=status, source="*", target=ProjetStatus.DISMISSED)
     def dismiss(self, enveloppe: "Enveloppe", actor=None):
         from gsl.simulation.models import SimulationProjet
 
@@ -973,7 +968,7 @@ class EnveloppeProjet(BaseModel):
             source=source,
             created_at=created_at,
             dotation=self.dotation,
-            status=PROJET_STATUS_DISMISSED,
+            status=ProjetStatus.DISMISSED,
             enveloppe=enveloppe,
         )
 
@@ -997,8 +992,8 @@ class EnveloppeProjet(BaseModel):
 
     @transition(
         field=status,
-        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
-        target=PROJET_STATUS_PROCESSING,
+        source=ProjetStatus.FINAL,
+        target=ProjetStatus.PROCESSING,
     )
     def set_back_status_to_processing_without_ds(self, actor=None):
         from gsl.simulation.models import SimulationProjet
@@ -1021,14 +1016,14 @@ class EnveloppeProjet(BaseModel):
             if actor is not None
             else ProjetAction.SOURCE_DN,
             dotation=self.dotation,
-            status=PROJET_STATUS_PROCESSING,
+            status=ProjetStatus.PROCESSING,
         )
 
     @transaction.atomic
     @transition(
         field=status,
-        source=[PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
-        target=PROJET_STATUS_PROCESSING,
+        source=ProjetStatus.FINAL,
+        target=ProjetStatus.PROCESSING,
     )
     def set_back_status_to_processing(self, user: Collegue):
         is_notified = self.projet.has_been_notified
@@ -1062,22 +1057,22 @@ def projet_status_from_dotation_statuses(
         return None
 
     if any(
-        status == PROJET_STATUS_PROCESSING
+        status == ProjetStatus.PROCESSING
         or status == SimulationProjet.STATUS_PROCESSING
         for status in statuses
     ):
-        return PROJET_STATUS_PROCESSING
+        return ProjetStatus.PROCESSING
 
     if any(
-        status == PROJET_STATUS_ACCEPTED or status == SimulationProjet.STATUS_ACCEPTED
+        status == ProjetStatus.ACCEPTED or status == SimulationProjet.STATUS_ACCEPTED
         for status in statuses
     ):
-        return PROJET_STATUS_ACCEPTED
+        return ProjetStatus.ACCEPTED
 
     if any(
-        status == PROJET_STATUS_DISMISSED or status == SimulationProjet.STATUS_DISMISSED
+        status == ProjetStatus.DISMISSED or status == SimulationProjet.STATUS_DISMISSED
         for status in statuses
     ):
-        return PROJET_STATUS_DISMISSED
+        return ProjetStatus.DISMISSED
 
-    return PROJET_STATUS_REFUSED
+    return ProjetStatus.REFUSED

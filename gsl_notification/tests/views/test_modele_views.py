@@ -10,7 +10,7 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     LETTRE,
     LETTRE_REFUS,
-    PROJET_STATUS_ACCEPTED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
@@ -44,7 +44,7 @@ def perimetre():
 @pytest.fixture
 def enveloppe_projet(perimetre):
     return EnveloppeProjetFactory(
-        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
 
 

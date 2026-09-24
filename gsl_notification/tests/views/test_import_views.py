@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from pikepdf import Pdf
 
-from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -61,7 +61,7 @@ def _build_pdf_for_enveloppe_projet(ds_number, content_blocks=200, perimetre=Non
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__ds_number=ds_number,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         **extra,
     )
     modele = ModeleLettreNotificationFactory(

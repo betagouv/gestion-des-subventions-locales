@@ -8,9 +8,7 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import (
     EnveloppeProjet,
     Projet,
@@ -206,7 +204,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         if not commit:
             return instance
 
-        if instance.enveloppe_projet.status == PROJET_STATUS_ACCEPTED:
+        if instance.enveloppe_projet.status == ProjetStatus.ACCEPTED:
             instance.enveloppe_projet.accept(
                 montant=instance.montant,
                 enveloppe=instance.enveloppe,
@@ -301,7 +299,7 @@ class AssietteSingleFieldForm(forms.ModelForm):
     def save(self, commit=True):
         super().save(commit=commit)
 
-        if self.instance.status == PROJET_STATUS_ACCEPTED:
+        if self.instance.status == ProjetStatus.ACCEPTED:
             self.instance.accept(
                 montant=self.simulation_projet.montant,
                 enveloppe=self.simulation_projet.enveloppe,

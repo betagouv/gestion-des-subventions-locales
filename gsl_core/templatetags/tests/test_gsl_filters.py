@@ -2,13 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from gsl.projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_CHOICES,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl_core.templatetags.gsl_filters import (
     create_alert_data,
     euro,
@@ -60,11 +54,10 @@ def test_remove_first_word():
     assert remove_first_word("One more test") == "more test"
     assert remove_first_word("Single") == ""
 
-    mapping = dict(PROJET_STATUS_CHOICES)
-    assert remove_first_word(mapping[PROJET_STATUS_ACCEPTED]) == "Accepté"
-    assert remove_first_word(mapping[PROJET_STATUS_REFUSED]) == "Refusé"
-    assert remove_first_word(mapping[PROJET_STATUS_DISMISSED]) == "Classé sans suite"
-    assert remove_first_word(mapping[PROJET_STATUS_PROCESSING]) == "En traitement"
+    assert remove_first_word(ProjetStatus.ACCEPTED.label) == "Accepté"
+    assert remove_first_word(ProjetStatus.REFUSED.label) == "Refusé"
+    assert remove_first_word(ProjetStatus.DISMISSED.label) == "Classé sans suite"
+    assert remove_first_word(ProjetStatus.PROCESSING.label) == "En traitement"
 
 
 @pytest.mark.parametrize(

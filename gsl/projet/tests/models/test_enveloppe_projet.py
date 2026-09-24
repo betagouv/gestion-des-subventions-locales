@@ -33,10 +33,7 @@ from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     DOTATIONS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ...models import (
     EnveloppeProjet,
@@ -111,38 +108,38 @@ def test_assiette_or_cout_total():
 
 def test_montant_retenu_when_accepted():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED, montant=10_000
+        status=ProjetStatus.ACCEPTED, montant=10_000
     )
     assert enveloppe_projet.montant_retenu == 10_000
 
 
 def test_montant_retenu_when_not_programmed():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_PROCESSING)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
     assert enveloppe_projet.montant_retenu is None
 
 
 def test_montant_retenu_when_refused():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED, montant=0)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.REFUSED, montant=0)
     assert enveloppe_projet.montant_retenu == 0
 
 
 def test_taux_retenu_when_accepted():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED, montant=100, assiette=1_000
+        status=ProjetStatus.ACCEPTED, montant=100, assiette=1_000
     )
     assert enveloppe_projet.taux_retenu == 10
 
 
 def test_taux_retenu_when_not_programmed():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING, assiette=1_000
+        status=ProjetStatus.PROCESSING, assiette=1_000
     )
     assert enveloppe_projet.taux_retenu is None
 
 
 def test_taux_retenu_when_refused():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_REFUSED, montant=0, assiette=1_000
+        status=ProjetStatus.REFUSED, montant=0, assiette=1_000
     )
     assert enveloppe_projet.taux_retenu == 0
 
@@ -150,10 +147,10 @@ def test_taux_retenu_when_refused():
 @pytest.mark.parametrize(
     ("status", "expected"),
     (
-        (PROJET_STATUS_ACCEPTED, True),
-        (PROJET_STATUS_REFUSED, True),
-        (PROJET_STATUS_DISMISSED, True),
-        (PROJET_STATUS_PROCESSING, False),
+        (ProjetStatus.ACCEPTED, True),
+        (ProjetStatus.REFUSED, True),
+        (ProjetStatus.DISMISSED, True),
+        (ProjetStatus.PROCESSING, False),
     ),
 )
 def test_is_treated(status, expected):
@@ -227,7 +224,7 @@ def test_get_other_accepted_dotations_with_one_processing_dotation():
 
     dsil_dp = EnveloppeProjetFactory(
         projet=detr_dp.projet,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         dotation=DOTATION_DSIL,
     )
     assert detr_dp.other_accepted_dotations == []
@@ -242,7 +239,7 @@ def test_get_other_accepted_dotations_with_one_processing_dotation():
 
 def test_accept_enveloppe_projet_without_simulation_projet():
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     assert enveloppe_projet.projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
@@ -256,7 +253,7 @@ def test_accept_enveloppe_projet_without_simulation_projet():
 
     # --
 
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
         enveloppe_projet=enveloppe_projet, status=SimulationProjet.STATUS_ACCEPTED
     )
@@ -269,7 +266,7 @@ def test_accept_enveloppe_projet_without_simulation_projet():
 
 def test_accept_enveloppe_projet():
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
@@ -302,7 +299,7 @@ def test_accept_enveloppe_projet():
 
     # --
 
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
     simulation_projets = SimulationProjet.objects.filter(
         enveloppe_projet=enveloppe_projet, status=SimulationProjet.STATUS_ACCEPTED
     )
@@ -320,7 +317,7 @@ def test_accept_enveloppe_projet_replaces_a_previous_programmation():
     enveloppe = DetrEnveloppeFactory(annee=2025)
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=9_000,
-        status=PROJET_STATUS_REFUSED,
+        status=ProjetStatus.REFUSED,
         dotation=DOTATION_DETR,
         enveloppe=enveloppe,
         montant=0,
@@ -334,7 +331,7 @@ def test_accept_enveloppe_projet_replaces_a_previous_programmation():
 
     # --
 
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
     assert enveloppe_projet.enveloppe == enveloppe
     assert enveloppe_projet.montant == 5_000
     assert round(enveloppe_projet.taux_retenu, 4) == Decimal("55.5556")
@@ -343,7 +340,7 @@ def test_accept_enveloppe_projet_replaces_a_previous_programmation():
 def test_accept_enveloppe_projet_select_parent_enveloppe():
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=9_000,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         dotation=DOTATION_DSIL,
     )
     parent_enveloppe = DsilEnveloppeFactory()
@@ -361,7 +358,7 @@ def test_accept_enveloppe_projet_select_parent_enveloppe():
 def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
     )
     enveloppe = DsilEnveloppeFactory()
     with pytest.raises(ValidationError) as exc_info:
@@ -374,7 +371,7 @@ def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
 
 def test_accept_creates_status_change_action_when_status_was_different():
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
@@ -383,7 +380,7 @@ def test_accept_creates_status_change_action_when_status_was_different():
     actions = ProjetAction.objects.filter(
         projet=enveloppe_projet.projet,
         action_type=ProjetAction.TYPE_STATUS_CHANGE,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     assert actions.count() == 1
     assert actions.first().enveloppe == enveloppe
@@ -394,7 +391,7 @@ def test_accept_does_not_create_status_change_action_when_already_accepted_and_s
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=enveloppe,
     )
 
@@ -415,7 +412,7 @@ def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=old_enveloppe,
     )
 
@@ -424,7 +421,7 @@ def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe
     actions = ProjetAction.objects.filter(
         projet=enveloppe_projet.projet,
         action_type=ProjetAction.TYPE_STATUS_CHANGE,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     assert actions.count() == 1
     assert actions.first().enveloppe == new_enveloppe
@@ -435,9 +432,9 @@ def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe
 
 def test_refusing_a_enveloppe_projet_programmes_it():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+        status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
     )
-    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert enveloppe_projet.status == ProjetStatus.PROCESSING
     assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2024)
@@ -446,7 +443,7 @@ def test_refusing_a_enveloppe_projet_programmes_it():
     enveloppe_projet.save()
     enveloppe_projet.refresh_from_db()
 
-    assert enveloppe_projet.status == PROJET_STATUS_REFUSED
+    assert enveloppe_projet.status == ProjetStatus.REFUSED
 
     assert enveloppe_projet.enveloppe == enveloppe
     assert enveloppe_projet.montant == 0
@@ -455,9 +452,9 @@ def test_refusing_a_enveloppe_projet_programmes_it():
 
 def test_refusing_a_projet_updates_all_simulation_projet():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+        status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
     )
-    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert enveloppe_projet.status == ProjetStatus.PROCESSING
     assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2024)
@@ -500,7 +497,7 @@ def test_refusing_a_projet_updates_all_simulation_projet():
 def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
     )
     enveloppe = DsilEnveloppeFactory()
     with pytest.raises(ValidationError) as exc_info:
@@ -517,8 +514,8 @@ def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
 @pytest.mark.parametrize(
     ("status, montant"),
     (
-        (PROJET_STATUS_REFUSED, 0),
-        (PROJET_STATUS_ACCEPTED, 10_000),
+        (ProjetStatus.REFUSED, 0),
+        (ProjetStatus.ACCEPTED, 10_000),
     ),
 )
 def test_dismiss(status, montant):
@@ -529,7 +526,7 @@ def test_dismiss(status, montant):
 
     simulation_projet_status = (
         SimulationProjet.STATUS_REFUSED
-        if enveloppe_projet.status == PROJET_STATUS_REFUSED
+        if enveloppe_projet.status == ProjetStatus.REFUSED
         else SimulationProjet.STATUS_ACCEPTED
     )
 
@@ -544,7 +541,7 @@ def test_dismiss(status, montant):
     enveloppe_projet.save()
     enveloppe_projet.refresh_from_db()
 
-    assert enveloppe_projet.status == PROJET_STATUS_DISMISSED
+    assert enveloppe_projet.status == ProjetStatus.DISMISSED
     assert enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
         enveloppe_projet=enveloppe_projet
@@ -559,7 +556,7 @@ def test_dismiss(status, montant):
 def test_dismiss_from_processing():
     enveloppe = DetrEnveloppeFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING, dotation=DOTATION_DETR
+        status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
     )
     SimulationProjetFactory.create_batch(
         3,
@@ -572,7 +569,7 @@ def test_dismiss_from_processing():
     enveloppe_projet.save()
     enveloppe_projet.refresh_from_db()
 
-    assert enveloppe_projet.status == PROJET_STATUS_DISMISSED
+    assert enveloppe_projet.status == ProjetStatus.DISMISSED
     assert enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
         enveloppe_projet=enveloppe_projet
@@ -590,16 +587,16 @@ def test_dismiss_from_processing():
 @pytest.mark.parametrize(
     "transition_name, transition_kwargs, expected_status",
     (
-        ("accept_without_ds_update", {"montant": 5_000}, PROJET_STATUS_ACCEPTED),
-        ("refuse", {}, PROJET_STATUS_REFUSED),
-        ("dismiss", {}, PROJET_STATUS_DISMISSED),
+        ("accept_without_ds_update", {"montant": 5_000}, ProjetStatus.ACCEPTED),
+        ("refuse", {}, ProjetStatus.REFUSED),
+        ("dismiss", {}, ProjetStatus.DISMISSED),
     ),
 )
 def test_transition_action_uses_turgot_source_when_actor_given(
     transition_name, transition_kwargs, expected_status
 ):
     dotation_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     enveloppe = DetrEnveloppeFactory(annee=2025)
     actor = CollegueFactory()
@@ -620,9 +617,9 @@ def test_transition_action_uses_turgot_source_when_actor_given(
 @pytest.mark.parametrize(
     "transition_name, transition_kwargs, expected_status",
     (
-        ("accept_without_ds_update", {"montant": 5_000}, PROJET_STATUS_ACCEPTED),
-        ("refuse", {}, PROJET_STATUS_REFUSED),
-        ("dismiss", {}, PROJET_STATUS_DISMISSED),
+        ("accept_without_ds_update", {"montant": 5_000}, ProjetStatus.ACCEPTED),
+        ("refuse", {}, ProjetStatus.REFUSED),
+        ("dismiss", {}, ProjetStatus.DISMISSED),
     ),
 )
 def test_transition_action_uses_dn_source_and_now_when_no_actor_and_no_ds_date_traitement(
@@ -631,7 +628,7 @@ def test_transition_action_uses_dn_source_and_now_when_no_actor_and_no_ds_date_t
     dotation_projet = EnveloppeProjetFactory(
         assiette=10_000,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__ds_date_traitement=None,
     )
     enveloppe = DetrEnveloppeFactory(annee=2025)
@@ -653,9 +650,9 @@ def test_transition_action_uses_dn_source_and_now_when_no_actor_and_no_ds_date_t
 @pytest.mark.parametrize(
     "transition_name, transition_kwargs, expected_status",
     (
-        ("accept_without_ds_update", {"montant": 5_000}, PROJET_STATUS_ACCEPTED),
-        ("refuse", {}, PROJET_STATUS_REFUSED),
-        ("dismiss", {}, PROJET_STATUS_DISMISSED),
+        ("accept_without_ds_update", {"montant": 5_000}, ProjetStatus.ACCEPTED),
+        ("refuse", {}, ProjetStatus.REFUSED),
+        ("dismiss", {}, ProjetStatus.DISMISSED),
     ),
 )
 def test_transition_action_is_backdated_to_ds_date_traitement_when_no_actor(
@@ -665,7 +662,7 @@ def test_transition_action_is_backdated_to_ds_date_traitement_when_no_actor(
     dotation_projet = EnveloppeProjetFactory(
         assiette=10_000,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__ds_date_traitement=ds_date_traitement,
     )
     enveloppe = DetrEnveloppeFactory(annee=2025)
@@ -686,7 +683,7 @@ def test_transition_action_is_backdated_to_ds_date_traitement_when_no_actor(
 
 def test_set_back_status_to_processing_without_ds_from_accepted():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         assiette=50_000,
         montant=10_000,
         projet__notified_at=timezone.now(),
@@ -707,7 +704,7 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
 
     # --
 
-    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert enveloppe_projet.status == ProjetStatus.PROCESSING
     assert not enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
         enveloppe_projet=enveloppe_projet
@@ -723,8 +720,8 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
 @pytest.mark.parametrize(
     ("projet_status, simulation_projet_status"),
     [
-        (PROJET_STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
-        (PROJET_STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED),
+        (ProjetStatus.REFUSED, SimulationProjet.STATUS_REFUSED),
+        (ProjetStatus.DISMISSED, SimulationProjet.STATUS_DISMISSED),
     ],
 )
 def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
@@ -750,7 +747,7 @@ def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
 
     # --
 
-    assert enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert enveloppe_projet.status == ProjetStatus.PROCESSING
     assert not enveloppe_projet.is_programmee
     simulation_projets = SimulationProjet.objects.filter(
         enveloppe_projet=enveloppe_projet
@@ -763,7 +760,7 @@ def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
     assert enveloppe_projet.projet.notified_at is None
 
 
-@pytest.mark.parametrize(("status"), [PROJET_STATUS_PROCESSING])
+@pytest.mark.parametrize(("status"), [ProjetStatus.PROCESSING])
 def test_set_back_status_to_processing_without_ds_from_other_status_than_accepted_or_refused(
     status,
 ):
@@ -780,10 +777,10 @@ def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
     projet = ProjetFactory()
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     other_dotation = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
 
     enveloppe_projet.set_back_status_to_processing(user=user)
@@ -806,7 +803,7 @@ def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notifi
     projet = ProjetFactory(notified_at=timezone.now())
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     enveloppe_projet.set_back_status_to_processing(user=user)
@@ -827,7 +824,7 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
     projet = ProjetFactory(notified_at=None)
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     enveloppe_projet.set_back_status_to_processing(user=user)
@@ -910,7 +907,7 @@ def test_documents_summary_no_document():
 
 
 def test_documents_summary_arrete_genere():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     ArreteFactory(enveloppe_projet=enveloppe_projet)
     LettreNotificationFactory(enveloppe_projet=enveloppe_projet)
 
@@ -921,14 +918,14 @@ def test_documents_summary_arrete_genere():
     "annexes_count, expected_summary", ((0, []), (1, ["1 annexe"]), (2, ["2 annexes"]))
 )
 def test_documents_summary_annexes(annexes_count, expected_summary):
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     AnnexeFactory.create_batch(annexes_count, enveloppe_projet=enveloppe_projet)
 
     assert enveloppe_projet.documents_summary == expected_summary
 
 
 def test_documents_summary_lettre_et_arrete_signes_hides_arrete_and_lettre_generes():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_ACCEPTED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
     ArreteFactory(enveloppe_projet=enveloppe_projet)
     LettreNotificationFactory(enveloppe_projet=enveloppe_projet)
@@ -937,14 +934,14 @@ def test_documents_summary_lettre_et_arrete_signes_hides_arrete_and_lettre_gener
 
 
 def test_documents_summary_lettre_refus_generee():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.REFUSED)
     LettreRefusFactory(enveloppe_projet=enveloppe_projet)
 
     assert enveloppe_projet.documents_summary == ["1 lettre de refus"]
 
 
 def test_documents_summary_lettre_refus_signee_hides_lettre_refus_generee():
-    enveloppe_projet = EnveloppeProjetFactory(status=PROJET_STATUS_REFUSED)
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.REFUSED)
     LettreRefusSigneeFactory(enveloppe_projet=enveloppe_projet)
     LettreRefusFactory(enveloppe_projet=enveloppe_projet)
 
@@ -967,7 +964,7 @@ def test_taux_retenu_falls_back_on_cout_total(
     montant, assiette, finance_cout_total, expected_taux
 ):
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=montant,
         assiette=assiette,
         projet__dossier_ds__finance_cout_total=finance_cout_total,
@@ -980,7 +977,7 @@ def test_montant_cant_be_higher_than_assiette():
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=100,
         projet__dossier_ds__finance_cout_total=200,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=101,
     )
     with pytest.raises(ValidationError) as exc_info:
@@ -993,12 +990,12 @@ def test_montant_cant_be_higher_than_assiette():
 
 def test_a_projet_can_be_accepted_on_two_different_enveloppes():
     detr_dotation = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         projet=detr_dotation.projet,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=DsilEnveloppeFactory(annee=detr_dotation.enveloppe.annee),
     )
 
@@ -1011,7 +1008,7 @@ def test_clean_rejects_a_deleguee_enveloppe():
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=Decimal("100.00"),
         assiette=Decimal("1234.00"),
         enveloppe=DsilEnveloppeFactory(parent=mother, perimetre=perimetre),
@@ -1029,7 +1026,7 @@ def test_clean_accepts_a_coherent_programmation():
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=Decimal("100.00"),
         assiette=Decimal("1234.00"),
         enveloppe=DsilEnveloppeFactory(
@@ -1041,7 +1038,7 @@ def test_clean_accepts_a_coherent_programmation():
 
 def test_clean_rejects_a_refused_dotation_with_a_montant():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_REFUSED, assiette=Decimal("1234.00")
+        status=ProjetStatus.REFUSED, assiette=Decimal("1234.00")
     )
     enveloppe_projet.montant = Decimal("100.00")
     with pytest.raises(ValidationError) as exc_info:
@@ -1055,7 +1052,7 @@ def test_clean_rejects_a_refused_dotation_with_a_montant():
 def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=DsilEnveloppeFactory(),
     )
     with pytest.raises(ValidationError) as exc_info:
@@ -1069,7 +1066,7 @@ def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
 def test_clean_rejects_an_enveloppe_of_another_dotation():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=DsilEnveloppeFactory(),
     )
     with pytest.raises(ValidationError) as exc_info:
@@ -1082,16 +1079,16 @@ def test_clean_rejects_an_enveloppe_of_another_dotation():
 
 def test_to_notify():
     accepted_not_notified = EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED, projet__notified_at=None
+        status=ProjetStatus.ACCEPTED, projet__notified_at=None
     )
     EnveloppeProjetFactory(
-        status=PROJET_STATUS_ACCEPTED, projet__notified_at=timezone.now()
+        status=ProjetStatus.ACCEPTED, projet__notified_at=timezone.now()
     )
     refused_not_notified = EnveloppeProjetFactory(
-        status=PROJET_STATUS_REFUSED, projet__notified_at=None
+        status=ProjetStatus.REFUSED, projet__notified_at=None
     )
     EnveloppeProjetFactory(
-        status=PROJET_STATUS_REFUSED, projet__notified_at=timezone.now()
+        status=ProjetStatus.REFUSED, projet__notified_at=timezone.now()
     )
 
     result = EnveloppeProjet.objects.to_notify()
