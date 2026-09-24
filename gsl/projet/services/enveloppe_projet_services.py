@@ -422,7 +422,7 @@ class EnveloppeProjetService:
         enveloppe_qs = Enveloppe.objects.filter(
             dotation=enveloppe_projet.dotation,
             annee=year,
-            deleguee_by__isnull=True,
+            parent__isnull=True,
         )
         projet_perimetre = enveloppe_projet.projet.perimetre
         perimetre = cls._get_perimetre_from_dotation(

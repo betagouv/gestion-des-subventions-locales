@@ -347,7 +347,7 @@ def test_accept_enveloppe_projet_select_parent_enveloppe():
         dotation=DOTATION_DSIL,
     )
     parent_enveloppe = DsilEnveloppeFactory()
-    child_enveloppe = DsilEnveloppeFactory(deleguee_by=parent_enveloppe)
+    child_enveloppe = DsilEnveloppeFactory(parent=parent_enveloppe)
 
     # --
 
@@ -1014,7 +1014,7 @@ def test_clean_rejects_a_deleguee_enveloppe():
         status=PROJET_STATUS_ACCEPTED,
         montant=Decimal("100.00"),
         assiette=Decimal("1234.00"),
-        enveloppe=DsilEnveloppeFactory(deleguee_by=mother, perimetre=perimetre),
+        enveloppe=DsilEnveloppeFactory(parent=mother, perimetre=perimetre),
     )
     with pytest.raises(ValidationError) as exc_info:
         enveloppe_projet.clean()

@@ -103,7 +103,7 @@ class TestSimulationCreateView:
     def test_create_simulation_with_delegated_envelope(self):
         # Arrange: create an enveloppe delegated to a user's perimetre
         parent_enveloppe = DetrEnveloppeFactory()
-        delegated_enveloppe = DetrEnveloppeFactory(deleguee_by=parent_enveloppe)
+        delegated_enveloppe = DetrEnveloppeFactory(parent=parent_enveloppe)
 
         user = CollegueFactory(perimetre=parent_enveloppe.perimetre)
         client = ClientWithLoggedUserFactory(user)

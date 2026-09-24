@@ -245,7 +245,7 @@ class EnveloppeProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
                     dotation=enveloppe_projet.enveloppe.dotation,
                     perimetre=enveloppe_projet.enveloppe.perimetre,
                     annee=2025,
-                    deleguee_by=None,
+                    parent=None,
                 )
             except Enveloppe.DoesNotExist:
                 self.message_user(

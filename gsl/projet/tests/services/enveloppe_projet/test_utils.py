@@ -68,7 +68,7 @@ def test_get_root_enveloppe_from_enveloppe_projet_with_a_detr_and_arrondissement
     )
     dep_detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     _arr_detr_enveloppe = DetrEnveloppeFactory(
-        perimetre=arr_dijon, annee=2025, deleguee_by=dep_detr_enveloppe
+        perimetre=arr_dijon, annee=2025, parent=dep_detr_enveloppe
     )
 
     enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
@@ -88,10 +88,10 @@ def test_get_root_enveloppe_from_enveloppe_projet_with_a_dsil_and_region_projet(
     )
     region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     dep_dsil_enveloppe_delegated = DsilEnveloppeFactory(
-        perimetre=dep_21, annee=2025, deleguee_by=region_dsil_enveloppe
+        perimetre=dep_21, annee=2025, parent=region_dsil_enveloppe
     )
     _arr_dsil_enveloppe_delegated = DsilEnveloppeFactory(
-        perimetre=arr_dijon, annee=2025, deleguee_by=dep_dsil_enveloppe_delegated
+        perimetre=arr_dijon, annee=2025, parent=dep_dsil_enveloppe_delegated
     )
 
     enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)

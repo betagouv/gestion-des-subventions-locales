@@ -53,8 +53,8 @@ class SimulationForm(DsfrBaseForm, ModelForm):
         self.user = user
         self.fields["enveloppe"].queryset = Enveloppe.objects.filter(
             Q(perimetre=user.perimetre)
-            | Q(deleguee_by__perimetre=user.perimetre)
-            | Q(deleguee_by__deleguee_by__perimetre=user.perimetre)
+            | Q(parent__perimetre=user.perimetre)
+            | Q(parent__parent__perimetre=user.perimetre)
         ).order_by(
             "dotation",
             "-perimetre__region",

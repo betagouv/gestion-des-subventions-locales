@@ -62,7 +62,7 @@ def test_dsil_delegated_must_not_have_regional_perimeter(
         montant=Decimal("123.00"),
         annee=2025,
         perimetre=perimetre_region,
-        deleguee_by=dsil_enveloppe,
+        parent=dsil_enveloppe,
     )
     with pytest.raises(ValidationError) as exc_info:
         enveloppe.full_clean()
@@ -81,7 +81,7 @@ def test_dsil_not_delegated_must_have_regional_perimeter(
             montant=Decimal("123.00"),
             annee=2025,
             perimetre=perimetre_not_regional,
-            deleguee_by=None,
+            parent=None,
         )
         with pytest.raises(ValidationError) as exc_info:
             enveloppe.full_clean()
@@ -114,7 +114,7 @@ def test_departemental_detr_must_not_be_delegated(
         montant=Decimal("123.00"),
         annee=2025,
         perimetre=perimetre_departement,
-        deleguee_by=detr_enveloppe,
+        parent=detr_enveloppe,
     )
     with pytest.raises(ValidationError) as exc_info:
         enveloppe.full_clean()
@@ -165,7 +165,7 @@ def test_correct_dsil_delegated_to_departement(dsil_enveloppe, perimetre_departe
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_departement,
-        deleguee_by=dsil_enveloppe,
+        parent=dsil_enveloppe,
     )
     enveloppe_departement.full_clean()
 
@@ -178,7 +178,7 @@ def test_correct_dsil_delegated_to_arrondissement(
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_departement,
-        deleguee_by=dsil_enveloppe,
+        parent=dsil_enveloppe,
     )
     enveloppe_departement.full_clean()
     enveloppe_departement.save()
@@ -187,7 +187,7 @@ def test_correct_dsil_delegated_to_arrondissement(
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_arrondissement,
-        deleguee_by=enveloppe_departement,
+        parent=enveloppe_departement,
     )
     enveloppe_arrondissement.full_clean()
 
@@ -218,7 +218,7 @@ def test_correct_detr_delegated(detr_enveloppe, perimetre_arrondissement):
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_arrondissement,
-        deleguee_by=detr_enveloppe,
+        parent=detr_enveloppe,
     )
     enveloppe.full_clean()
 
@@ -247,7 +247,7 @@ def test_arrondissement_detr_enveloppe_must_be_delegated_by_its_departement(
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_arrondissement,
-        deleguee_by=other_departement_detr_enveloppe,
+        parent=other_departement_detr_enveloppe,
     )
     with pytest.raises(ValidationError) as exc_info:
         enveloppe.full_clean()

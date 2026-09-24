@@ -114,7 +114,7 @@ def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
     user,
 ):
     mother_enveloppe = DetrEnveloppeFactory()
-    child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
+    child_enveloppe = DetrEnveloppeFactory(parent=mother_enveloppe)
     simulation = SimulationFactory(enveloppe=child_enveloppe)
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING,
@@ -162,7 +162,7 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
     user,
 ):
     mother_enveloppe = DetrEnveloppeFactory()
-    child_enveloppe = DetrEnveloppeFactory(deleguee_by=mother_enveloppe)
+    child_enveloppe = DetrEnveloppeFactory(parent=mother_enveloppe)
     simulation = SimulationFactory(enveloppe=child_enveloppe)
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=child_enveloppe.perimetre,

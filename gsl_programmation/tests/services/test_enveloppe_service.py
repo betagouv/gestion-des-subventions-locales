@@ -86,7 +86,7 @@ def enveloppes_from_perimetre(perimetres):
         enveloppes["departements"]["dsil"].append(
             DsilEnveloppeFactory(
                 perimetre=departement,
-                deleguee_by=Enveloppe.objects.get(
+                parent=Enveloppe.objects.get(
                     dotation=DOTATION_DSIL, perimetre__region=departement.region
                 ),
             )
@@ -95,7 +95,7 @@ def enveloppes_from_perimetre(perimetres):
         enveloppes["arrondissements"]["detr"].append(
             DetrEnveloppeFactory(
                 perimetre=arrondissement,
-                deleguee_by=Enveloppe.objects.get(
+                parent=Enveloppe.objects.get(
                     dotation=DOTATION_DETR,
                     perimetre__departement=arrondissement.departement,
                 ),
@@ -104,7 +104,7 @@ def enveloppes_from_perimetre(perimetres):
         enveloppes["arrondissements"]["dsil"].append(
             DsilEnveloppeFactory(
                 perimetre=arrondissement,
-                deleguee_by=Enveloppe.objects.get(
+                parent=Enveloppe.objects.get(
                     dotation=DOTATION_DSIL,
                     perimetre__departement=arrondissement.departement,
                 ),
