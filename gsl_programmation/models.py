@@ -1,18 +1,12 @@
-from functools import cached_property
-
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
-from django.db.models import Sum
 
 from gsl.projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_REFUSED,
 )
-from gsl.projet.models import EnveloppeProjet, Projet
 from gsl_core.models import BaseModel, Perimetre
 
 
@@ -111,60 +105,6 @@ class Enveloppe(BaseModel):
             return self
         else:
             return self.deleguee_by.delegation_root
-
-    @cached_property
-    def enveloppe_projets_included(self):
-        return Projet.objects.active().included_in_enveloppe(self)
-
-    @property
-    def montant_asked(self):
-        return self.enveloppe_projets_included.aggregate(
-            Sum("dossier_ds__demande_montant")
-        )["dossier_ds__demande_montant__sum"]
-
-    @cached_property
-    def enveloppe_projets_processed(self):
-        if self.is_deleguee:
-            return EnveloppeProjet.objects.active().filter(
-                enveloppe=self.delegation_root,
-                projet__in=self.enveloppe_projets_included,
-            )
-        return EnveloppeProjet.objects.active().filter(enveloppe=self)
-
-    @property
-    def accepted_montant(self):
-        return (
-            self.enveloppe_projets_processed.filter(
-                status=PROJET_STATUS_ACCEPTED
-            ).aggregate(Sum("montant"))["montant__sum"]
-            or 0
-        )
-
-    @property
-    def reste_a_attribuer(self):
-        return self.montant - self.accepted_montant
-
-    @property
-    def validated_projets_count(self):
-        return self.enveloppe_projets_processed.filter(
-            status=PROJET_STATUS_ACCEPTED
-        ).count()
-
-    @property
-    def refused_projets_count(self):
-        return self.enveloppe_projets_processed.filter(
-            status=PROJET_STATUS_REFUSED
-        ).count()
-
-    @property
-    def demandeurs_count(self):
-        return self.enveloppe_projets_included.aggregate(
-            count=models.Count("dossier_ds__ds_demandeur", distinct=True)
-        )["count"]
-
-    @property
-    def projets_count(self):
-        return self.enveloppe_projets_included.count()
 
     @property
     def is_arrondissement(self):

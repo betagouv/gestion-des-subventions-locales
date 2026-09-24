@@ -11,13 +11,13 @@
     </td>
     <td>{{ enveloppe.perimetre.type|perimetre_type_abbrev }} {{ enveloppe.perimetre.entity_name }}</td>
     <td class="align-right">{{ enveloppe.montant | euro }}</td>
-    <td class="color-green-archipel align-right">{{ enveloppe.montant_asked | euro }}</td>
-    <td class="color-green-bourgeon align-right">{{ enveloppe.accepted_montant | euro }}</td>
-    <td class="align-right">{{ enveloppe.reste_a_attribuer | euro }}</td>
-    <td class="color-success fr-text--sm align-center">{{ enveloppe.validated_projets_count }}</td>
-    <td class="color-error fr-text--sm align-center">{{ enveloppe.refused_projets_count }}</td>
-    <td class="fr-text--sm align-center">{{ enveloppe.demandeurs_count }}</td>
-    <td class="fr-text--sm align-center">{{ enveloppe.projets_count }}</td>
+    <td class="color-green-archipel align-right">{{ montant_asked | euro }}</td>
+    <td class="color-green-bourgeon align-right">{{ accepted_montant | euro }}</td>
+    <td class="align-right">{{ reste_a_attribuer | euro }}</td>
+    <td class="color-success fr-text--sm align-center">{{ validated_projets_count }}</td>
+    <td class="color-error fr-text--sm align-center">{{ refused_projets_count }}</td>
+    <td class="fr-text--sm align-center">{{ demandeurs_count }}</td>
+    <td class="fr-text--sm align-center">{{ projets_count }}</td>
     {% if not hide_actions %}
         <td class="fr-text--sm">
             {% if enveloppe.is_deleguee %}

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static enveloppe_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/enveloppe_summary.css' %}">
@@ -109,14 +109,12 @@
                     </thead>
                     <tbody>
                         {% for enveloppe in enveloppes %}
-                            {% include "includes/_enveloppe_summary_line.html" with level=1 hide_actions=hide_actions %}
+                            {% enveloppe_summary_line enveloppe level=1 hide_actions=hide_actions %}
                             {% if enveloppes_with_children %}
                                 {% for sous_enveloppe in enveloppe.ordered_sous_enveloppes %}
-                                    {% include "includes/_enveloppe_summary_line.html" with enveloppe=sous_enveloppe level=2 hide_actions=hide_actions %}
+                                    {% enveloppe_summary_line sous_enveloppe level=2 hide_actions=hide_actions %}
                                 {% endfor %}
                             {% endif %}
-                        {% empty %}
-                            {% include "includes/_enveloppe_summary_line.html" with hide_actions=hide_actions %}
                         {% endfor %}
                     </tbody>
                 </table>
