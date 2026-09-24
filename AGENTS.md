@@ -606,7 +606,7 @@ def refuse(self, enveloppe, actor=None):
         source=ProjetAction.SOURCE_TURGOT if actor else ProjetAction.SOURCE_DS,
         actor=actor,
         dotation=self.dotation,
-        status=PROJET_STATUS_REFUSED,
+        status=ProjetStatus.REFUSED,
         enveloppe=enveloppe,
     )
 
