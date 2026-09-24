@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from gsl.projet.constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import DetrProjetFactory, EnveloppeProjetFactory
 from gsl_core.models import Collegue
 from gsl_core.tests.factories import CollegueFactory
@@ -69,7 +69,7 @@ def test_assiette_form_save_accepted_triggers_accept(mock_ds_update, user):
         projet__dossier_ds__finance_cout_total=100_000,
         detr_avis_commission=None,
         assiette=80_000,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
     simulation_projet = SimulationProjetFactory(
         enveloppe_projet=enveloppe_projet,
@@ -151,7 +151,7 @@ def test_montant_form_save_updates_montant(user):
 )
 def test_montant_form_save_accepted_triggers_accept(mock_ds_update, user):
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=1000, status=PROJET_STATUS_PROCESSING
+        assiette=1000, status=ProjetStatus.PROCESSING
     )
     simulation_projet = SimulationProjetFactory(
         enveloppe_projet=enveloppe_projet,
@@ -251,7 +251,7 @@ def test_taux_form_save_updates_montant_from_taux(user):
 )
 def test_taux_form_save_accepted_triggers_accept(mock_ds_update, user):
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=1000, status=PROJET_STATUS_PROCESSING
+        assiette=1000, status=ProjetStatus.PROCESSING
     )
     simulation_projet = SimulationProjetFactory(
         enveloppe_projet=enveloppe_projet,

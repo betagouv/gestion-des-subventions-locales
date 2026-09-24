@@ -5,10 +5,7 @@ import pytest
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
@@ -26,7 +23,7 @@ def test_create_or_update_simulation_projet_from_enveloppe_projet_when_no_simula
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=1_000,
         dotation=DOTATION_DETR,
     )
@@ -48,7 +45,7 @@ def test_create_or_update_simulation_projet_from_projet_when_simulation_projet_e
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
         projet__dossier_ds__finance_cout_total=10_000,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=1_000,
         dotation=simulation.enveloppe.dotation,
     )
@@ -91,7 +88,7 @@ def test_get_initial_montant_from_enveloppe_projet_must_log_if_there_is_a_proble
         if dotation == DOTATION_DSIL
         else None,
         dotation=dotation,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette,
     )
@@ -140,7 +137,7 @@ def test_get_initial_montant_from_enveloppe_projet(
         if dotation == DOTATION_DSIL
         else None,
         dotation=dotation,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__demande_montant=demande_montant,
         assiette=assiette_or_finance_cout_total if field == "assiette" else None,
         projet__dossier_ds__finance_cout_total=(
@@ -172,7 +169,7 @@ def test_get_initial_montant_from_enveloppe_projet_when_programmed(
         dossier_ds__demande_montant=100_202_500,
     )
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=dotation, status=PROJET_STATUS_ACCEPTED, montant=500
+        projet=projet, dotation=dotation, status=ProjetStatus.ACCEPTED, montant=500
     )
 
     montant = SimulationProjetService.get_initial_montant_from_enveloppe_projet(
@@ -186,10 +183,10 @@ def test_get_initial_montant_from_enveloppe_projet_when_programmed(
 @pytest.mark.parametrize(
     "projet_status, simulation_projet_status_expected",
     (
-        (PROJET_STATUS_ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
-        (PROJET_STATUS_REFUSED, SimulationProjet.STATUS_REFUSED),
-        (PROJET_STATUS_PROCESSING, SimulationProjet.STATUS_PROCESSING),
-        (PROJET_STATUS_DISMISSED, SimulationProjet.STATUS_DISMISSED),
+        (ProjetStatus.ACCEPTED, SimulationProjet.STATUS_ACCEPTED),
+        (ProjetStatus.REFUSED, SimulationProjet.STATUS_REFUSED),
+        (ProjetStatus.PROCESSING, SimulationProjet.STATUS_PROCESSING),
+        (ProjetStatus.DISMISSED, SimulationProjet.STATUS_DISMISSED),
     ),
 )
 def test_get_simulation_projet_status(projet_status, simulation_projet_status_expected):

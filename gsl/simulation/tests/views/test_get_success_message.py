@@ -12,10 +12,7 @@ import pytest
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
@@ -79,7 +76,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         """Test message when projet status is ACCEPTED."""
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -97,7 +94,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_ACCEPTED,
-            PROJET_STATUS_PROCESSING,
+            ProjetStatus.PROCESSING,
             client_with_user_logged,
         )
 
@@ -130,7 +127,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         """Test message when projet status is REFUSED or DISMISSED."""
         projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -148,9 +145,9 @@ class TestGetSuccessMessageWhenSimpleDotation:
         view = _create_view_instance(
             simulation_projet,
             status,
-            PROJET_STATUS_REFUSED
+            ProjetStatus.REFUSED
             if status == SimulationProjet.STATUS_REFUSED
-            else PROJET_STATUS_DISMISSED,
+            else ProjetStatus.DISMISSED,
             client_with_user_logged,
         )
 
@@ -176,10 +173,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -197,7 +194,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_ACCEPTED,
-            PROJET_STATUS_ACCEPTED,
+            ProjetStatus.ACCEPTED,
             client_with_user_logged,
         )
 
@@ -231,10 +228,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -252,7 +249,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             status,
-            PROJET_STATUS_ACCEPTED,
+            ProjetStatus.ACCEPTED,
             client_with_user_logged,
         )
 
@@ -274,10 +271,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_REFUSED,
+            status=ProjetStatus.REFUSED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -295,7 +292,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_ACCEPTED,
-            PROJET_STATUS_ACCEPTED,
+            ProjetStatus.ACCEPTED,
             client_with_user_logged,
         )
 
@@ -317,10 +314,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_REFUSED,
+            status=ProjetStatus.REFUSED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -338,7 +335,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_REFUSED,
-            PROJET_STATUS_REFUSED,
+            ProjetStatus.REFUSED,
             client_with_user_logged,
         )
 
@@ -363,10 +360,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_REFUSED,
+            status=ProjetStatus.REFUSED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -384,7 +381,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_DISMISSED,
-            PROJET_STATUS_DISMISSED,
+            ProjetStatus.DISMISSED,
             client_with_user_logged,
         )
 
@@ -406,10 +403,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_DISMISSED,
+            status=ProjetStatus.DISMISSED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -427,7 +424,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_ACCEPTED,
-            PROJET_STATUS_ACCEPTED,
+            ProjetStatus.ACCEPTED,
             client_with_user_logged,
         )
 
@@ -452,10 +449,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_DISMISSED,
+            status=ProjetStatus.DISMISSED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -473,7 +470,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_REFUSED,
-            PROJET_STATUS_DISMISSED,
+            ProjetStatus.DISMISSED,
             client_with_user_logged,
         )
 
@@ -495,10 +492,10 @@ class TestGetSuccessMessageWhenDoubleDotation:
         _other_enveloppe_projet = EnveloppeProjetFactory(
             projet=projet,
             dotation=OTHER_DOTATION[dotation],
-            status=PROJET_STATUS_DISMISSED,
+            status=ProjetStatus.DISMISSED,
         )
         enveloppe_projet = EnveloppeProjetFactory(
-            projet=projet, dotation=dotation, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
@@ -516,7 +513,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         view = _create_view_instance(
             simulation_projet,
             SimulationProjet.STATUS_DISMISSED,
-            PROJET_STATUS_DISMISSED,
+            ProjetStatus.DISMISSED,
             client_with_user_logged,
         )
 

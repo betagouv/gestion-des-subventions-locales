@@ -20,9 +20,7 @@ from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     DOTATIONS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_CHOICES,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet, ProjetNote
 
@@ -58,7 +56,7 @@ def _default_enveloppe(obj):
     """The enveloppe a treated dotation must carry. On the projet's own
     perimetre, the one spelling that always satisfies `contains_or_equal`
     whatever level that perimetre sits at."""
-    if obj.status == PROJET_STATUS_PROCESSING:
+    if obj.status == ProjetStatus.PROCESSING:
         return None
     perimetre = obj.projet.dossier_ds.perimetre
     if obj.dotation == DOTATION_DETR:
@@ -69,9 +67,9 @@ def _default_enveloppe(obj):
 
 
 def _default_montant(obj):
-    if obj.status == PROJET_STATUS_PROCESSING:
+    if obj.status == ProjetStatus.PROCESSING:
         return None
-    if obj.status != PROJET_STATUS_ACCEPTED:
+    if obj.status != ProjetStatus.ACCEPTED:
         return Decimal(0)
     ceiling = obj.assiette or obj.projet.dossier_ds.finance_cout_total
     return Decimal(randint(0, int(ceiling))) if ceiling else Decimal(randint(1, 99_999))
@@ -84,7 +82,7 @@ class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
 
     projet = factory.SubFactory(ProjetFactory)
     dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
-    status = factory.fuzzy.FuzzyChoice(choice[0] for choice in PROJET_STATUS_CHOICES)
+    status = factory.fuzzy.FuzzyChoice(ProjetStatus.values)
     detr_avis_commission = factory.Faker("boolean")
     assiette = None
 
@@ -93,7 +91,7 @@ class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
     enveloppe = factory.LazyAttribute(_default_enveloppe)
     montant = factory.LazyAttribute(_default_montant)
     date_programmation = factory.LazyAttribute(
-        lambda o: None if o.status == PROJET_STATUS_PROCESSING else timezone.now()
+        lambda o: None if o.status == ProjetStatus.PROCESSING else timezone.now()
     )
 
 

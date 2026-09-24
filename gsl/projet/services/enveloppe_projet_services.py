@@ -14,10 +14,7 @@ from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet
 
@@ -245,7 +242,7 @@ class EnveloppeProjetService:
         for dotation in dotations_to_remove:
             deleted_count, _ = (
                 EnveloppeProjet.objects.filter(projet=projet, dotation=dotation)
-                .exclude(status__in=[PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED])
+                .exclude(status__in=[ProjetStatus.REFUSED, ProjetStatus.DISMISSED])
                 .delete()
             )
             if deleted_count:
@@ -294,7 +291,7 @@ class EnveloppeProjetService:
     ) -> list[EnveloppeProjet]:
         enveloppe_projets = []
         for enveloppe_projet in projet.enveloppeprojet_set.all():
-            if enveloppe_projet.status != PROJET_STATUS_REFUSED:
+            if enveloppe_projet.status != ProjetStatus.REFUSED:
                 enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
                     enveloppe_projet, allow_next_year=True
                 )
@@ -310,8 +307,8 @@ class EnveloppeProjetService:
         enveloppe_projets = []
         for enveloppe_projet in projet.enveloppeprojet_set.all():
             if enveloppe_projet.status not in [
-                PROJET_STATUS_DISMISSED,
-                PROJET_STATUS_REFUSED,
+                ProjetStatus.DISMISSED,
+                ProjetStatus.REFUSED,
             ]:
                 enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
                     enveloppe_projet, allow_next_year=True
@@ -327,10 +324,10 @@ class EnveloppeProjetService:
     ) -> list[EnveloppeProjet]:
         projet_dps = projet.enveloppeprojet_set
 
-        if projet_dps.filter(status=PROJET_STATUS_ACCEPTED).count() == 1:
+        if projet_dps.filter(status=ProjetStatus.ACCEPTED).count() == 1:
             if (
                 projet_dps.filter(
-                    status__in=[PROJET_STATUS_DISMISSED, PROJET_STATUS_REFUSED]
+                    status__in=[ProjetStatus.DISMISSED, ProjetStatus.REFUSED]
                 ).count()
                 == 1
             ):
@@ -346,7 +343,7 @@ class EnveloppeProjetService:
                 enveloppe_projets.append(enveloppe_projet)
                 continue
 
-            if enveloppe_projet.status != PROJET_STATUS_PROCESSING:
+            if enveloppe_projet.status != ProjetStatus.PROCESSING:
                 enveloppe_projet.set_back_status_to_processing_without_ds()
                 enveloppe_projet.save()
 
@@ -359,7 +356,7 @@ class EnveloppeProjetService:
     ) -> list[EnveloppeProjet]:
         enveloppe_projets = []
         for enveloppe_projet in projet.enveloppeprojet_set.all():
-            if enveloppe_projet.status == PROJET_STATUS_ACCEPTED:
+            if enveloppe_projet.status == ProjetStatus.ACCEPTED:
                 if cls._is_programmation_date_after_passage_en_instruction(
                     enveloppe_projet
                 ):
@@ -374,7 +371,7 @@ class EnveloppeProjetService:
     @classmethod
     def _update_accepted_enveloppe_projets_montant_from_dn(cls, projet: Projet) -> None:
         for enveloppe_projet in projet.enveloppeprojet_set.filter(
-            status=PROJET_STATUS_ACCEPTED
+            status=ProjetStatus.ACCEPTED
         ):
             # Assiette is already updated (cf cls._update_assiette_from_dossier(projet) called in cls._update_enveloppe_projets_from_projet)
             # regardless of the projet/dossier statuses

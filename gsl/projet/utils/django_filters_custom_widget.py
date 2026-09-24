@@ -4,12 +4,7 @@ from django_filters.widgets import SuffixedMultiWidget
 
 from gsl.simulation.models import SimulationProjet
 
-from ..constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
+from ..constants import ProjetStatus
 
 
 class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
@@ -28,10 +23,10 @@ class CustomCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
             SimulationProjet.STATUS_PROVISIONALLY_REFUSED: "brown",
             SimulationProjet.STATUS_REFUSED: "red",
             SimulationProjet.STATUS_ACCEPTED: "green",
-            PROJET_STATUS_ACCEPTED: "green",
-            PROJET_STATUS_PROCESSING: "",
-            PROJET_STATUS_REFUSED: "red",
-            PROJET_STATUS_DISMISSED: "",
+            ProjetStatus.ACCEPTED: "green",
+            ProjetStatus.PROCESSING: "",
+            ProjetStatus.REFUSED: "red",
+            ProjetStatus.DISMISSED: "",
         }.get(option_value, "")
 
     def render(self, name, value, attrs=None, renderer=None):

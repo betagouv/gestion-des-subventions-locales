@@ -10,12 +10,7 @@ from gsl_core.tests.factories import (
     PerimetreArrondissementFactory,
 )
 
-from ...constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
-)
+from ...constants import ProjetStatus
 from ..factories import (
     DetrProjetFactory,
     EnveloppeProjetFactory,
@@ -35,7 +30,7 @@ def url(projet):
 
 @pytest.mark.parametrize(
     "dotation_status",
-    [PROJET_STATUS_PROCESSING, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+    [ProjetStatus.PROCESSING, ProjetStatus.REFUSED, ProjetStatus.DISMISSED],
 )
 def test_returns_404_without_accepted_dotation(dotation_status):
     perimetre = PerimetreArrondissementFactory()
@@ -54,7 +49,7 @@ def test_displays_chorus_lines_grouped_by_dotation():
         dossier_ds__perimetre=perimetre, dossier_ds__ds_number=DS_NUMBER
     )
     DetrProjetFactory(
-        projet=projet, status=PROJET_STATUS_ACCEPTED, montant=Decimal("13000")
+        projet=projet, status=ProjetStatus.ACCEPTED, montant=Decimal("13000")
     )
     SuiviFinancier.objects.create(
         ej="2105003612", dn=DS_NUMBER, dotation="DETR", montant=Decimal("10000")

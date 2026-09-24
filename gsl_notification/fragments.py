@@ -9,11 +9,7 @@ from pikepdf import PdfError
 from pypdfium2 import PdfiumError
 
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl_core.matomo import queue_matomo_event
@@ -42,9 +38,9 @@ from gsl_notification.qr.reattach import (
 logger = logging.getLogger(__name__)
 
 NOTIFICATION_RESULT_TO_MATOMO_ACTION = {
-    PROJET_STATUS_ACCEPTED: "accepte",
-    PROJET_STATUS_REFUSED: "refuse",
-    PROJET_STATUS_DISMISSED: "classe_sans_suite",
+    ProjetStatus.ACCEPTED: "accepte",
+    ProjetStatus.REFUSED: "refuse",
+    ProjetStatus.DISMISSED: "classe_sans_suite",
 }
 
 UPLOAD_MODAL_ID = "upload-document-modal"

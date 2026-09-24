@@ -1,5 +1,8 @@
 from typing import Literal
 
+from django.db import models
+from django.utils.functional import classproperty
+
 # TODO move this file in gsl/core
 
 DOTATION_DETR = "DETR"
@@ -10,21 +13,17 @@ DOTATION_CHOICES = ((DOTATION_DETR, DOTATION_DETR), (DOTATION_DSIL, DOTATION_DSI
 # TYPE
 POSSIBLE_DOTATIONS = Literal["DETR", "DSIL"]
 
-PROJET_STATUS_ACCEPTED = "accepted"
-PROJET_STATUS_REFUSED = "refused"
-PROJET_STATUS_PROCESSING = "processing"
-PROJET_STATUS_DISMISSED = "dismissed"
-PROJET_STATUS_CHOICES = (
-    (PROJET_STATUS_ACCEPTED, "✅ Accepté"),
-    (PROJET_STATUS_REFUSED, "❌ Refusé"),
-    (PROJET_STATUS_PROCESSING, "🔄 En traitement"),
-    (PROJET_STATUS_DISMISSED, "⛔️ Classé sans suite"),
-)
-PROJET_FINAL_STATUSES = [
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_REFUSED,
-    PROJET_STATUS_DISMISSED,
-]
+
+class ProjetStatus(models.TextChoices):
+    ACCEPTED = "accepted", "✅ Accepté"
+    REFUSED = "refused", "❌ Refusé"
+    PROCESSING = "processing", "🔄 En traitement"
+    DISMISSED = "dismissed", "⛔️ Classé sans suite"
+
+    @classproperty
+    def FINAL(cls):
+        return (cls.ACCEPTED, cls.REFUSED, cls.DISMISSED)
+
 
 NOTIFICATION_STATUS_TO_GENERATE = "to_generate"
 NOTIFICATION_STATUS_TO_SIGN = "to_sign"

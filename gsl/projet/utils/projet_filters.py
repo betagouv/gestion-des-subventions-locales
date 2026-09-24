@@ -29,11 +29,7 @@ from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     NOTIFICATION_STATUS_CHOICES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_CHOICES,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet
 from .django_filters_custom_widget import (
@@ -499,17 +495,17 @@ class ProjetFilters(CommonFiltersFields):
     )
 
     ordered_status: tuple[str, ...] = (
-        PROJET_STATUS_PROCESSING,
-        PROJET_STATUS_REFUSED,
-        PROJET_STATUS_ACCEPTED,
-        PROJET_STATUS_DISMISSED,
+        ProjetStatus.PROCESSING,
+        ProjetStatus.REFUSED,
+        ProjetStatus.ACCEPTED,
+        ProjetStatus.DISMISSED,
     )
 
     status = MultipleChoiceFilter(
         label="Statut",
         method="filter_status",
         choices=order_couples_tuple_by_first_value(
-            PROJET_STATUS_CHOICES, ordered_status
+            ProjetStatus.choices, ordered_status
         ),
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )

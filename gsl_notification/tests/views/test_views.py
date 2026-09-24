@@ -13,7 +13,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     LETTRE,
-    PROJET_STATUS_ACCEPTED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
@@ -44,7 +44,7 @@ def perimetre():
 @pytest.fixture
 def enveloppe_projet(perimetre):
     return EnveloppeProjetFactory(
-        projet__dossier_ds__perimetre=perimetre, status=PROJET_STATUS_ACCEPTED
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
 
 
@@ -70,7 +70,7 @@ def accepted_detr_enveloppe_projet(perimetre):
     return EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
 
 
@@ -328,7 +328,7 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=departement_1,
     )
 
@@ -775,7 +775,7 @@ def test_document_download_includes_qr_by_default_and_respects_stored_choice(
     without_qr = factory(
         enveloppe_projet=EnveloppeProjetFactory(
             dotation=enveloppe_projet.dotation,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             projet__dossier_ds__perimetre=perimetre,
         ),
         content="<p>" + ("Contenu de test. " * 200) + "</p>",

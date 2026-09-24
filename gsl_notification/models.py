@@ -14,9 +14,7 @@ from gsl.projet.constants import (
     DOTATION_CHOICES,
     LETTRE,
     LETTRE_REFUS,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_core.utils import kebab_case
@@ -267,7 +265,7 @@ class Arrete(GeneratedDocument):
     delete_question = "Êtes-vous sûr de vouloir supprimer cet arrêté ?"
     short_name = "Arrêté"
     modele = models.ForeignKey(ModeleArrete, on_delete=models.PROTECT)
-    required_enveloppe_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_enveloppe_projet_statuses = (ProjetStatus.ACCEPTED,)
     status_mismatch_message = (
         "Un arrêté ne peut être associé qu'à un projet de programmation accepté."
     )
@@ -286,7 +284,7 @@ class LettreNotification(GeneratedDocument):
     )
     short_name = "Lettre"
     modele = models.ForeignKey(ModeleLettreNotification, on_delete=models.PROTECT)
-    required_enveloppe_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_enveloppe_projet_statuses = (ProjetStatus.ACCEPTED,)
     status_mismatch_message = (
         "Une lettre de notification ne peut être associée qu'à un projet de "
         "programmation accepté."
@@ -305,8 +303,8 @@ class LettreRefus(GeneratedDocument):
     short_name = "Lettre de refus"
     modele = models.ForeignKey(ModeleLettreRefus, on_delete=models.PROTECT)
     required_enveloppe_projet_statuses = (
-        PROJET_STATUS_REFUSED,
-        PROJET_STATUS_DISMISSED,
+        ProjetStatus.REFUSED,
+        ProjetStatus.DISMISSED,
     )
     status_mismatch_message = (
         "Une lettre de refus ou de classement sans suite ne peut être associée "
@@ -417,7 +415,7 @@ class UploadedDocument(VerboseNameMixin, models.Model):
 
 class LettreEtArreteSignes(UploadedDocument):
     document_type = "lettre_et_arrete_signes"
-    required_enveloppe_projet_statuses = (PROJET_STATUS_ACCEPTED,)
+    required_enveloppe_projet_statuses = (ProjetStatus.ACCEPTED,)
     reattach_source_document_types = (ARRETE, LETTRE)
     status_mismatch_message = (
         "La lettre et l'arrêté signés ne peuvent être importés que pour un "
@@ -445,8 +443,8 @@ class LettreEtArreteSignes(UploadedDocument):
 class LettreRefusSignee(UploadedDocument):
     document_type = "lettre_refus_signee"
     required_enveloppe_projet_statuses = (
-        PROJET_STATUS_REFUSED,
-        PROJET_STATUS_DISMISSED,
+        ProjetStatus.REFUSED,
+        ProjetStatus.DISMISSED,
     )
     reattach_source_document_types = (LETTRE_REFUS,)
     status_mismatch_message = (
@@ -474,11 +472,7 @@ class LettreRefusSignee(UploadedDocument):
 
 class Annexe(UploadedDocument):
     document_type = "annexe"
-    required_enveloppe_projet_statuses = (
-        PROJET_STATUS_ACCEPTED,
-        PROJET_STATUS_REFUSED,
-        PROJET_STATUS_DISMISSED,
-    )
+    required_enveloppe_projet_statuses = ProjetStatus.FINAL
     allow_multiple = True
     delete_label = "Suppression de l’annexe"
     delete_question = "Êtes-vous sûr de vouloir supprimer cette annexe ?"

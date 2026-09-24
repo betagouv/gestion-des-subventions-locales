@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from freezegun import freeze_time
 
-from gsl.projet.constants import DOTATION_DETR, LETTRE, PROJET_STATUS_ACCEPTED
+from gsl.projet.constants import DOTATION_DETR, LETTRE, ProjetStatus
 from gsl.projet.models import Projet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
@@ -51,7 +51,7 @@ def enveloppe_projets(perimetre):
         3,
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )
 
@@ -195,7 +195,7 @@ def test_launch_no_projects_renders_error_body(client):
 def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )
     response = _post_launch(client, ids=str(wrong_enveloppe_projet.id))
@@ -743,7 +743,7 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
         EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre,
             dotation=DOTATION_DETR,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             projet__notified_at=None,
         )
     ]
@@ -810,7 +810,7 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )
     _drive_through_format_step(

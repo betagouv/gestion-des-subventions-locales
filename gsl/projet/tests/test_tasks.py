@@ -16,9 +16,7 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ..models import EnveloppeProjet
 from ..tasks import (
@@ -70,7 +68,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
     )
     projet = ProjetFactory(dossier_ds=dossier)
     detr_enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     # --
@@ -83,7 +81,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
     assert enveloppe_projets.count() == 1
 
     detr_enveloppe_projet.refresh_from_db()  # always exists
-    assert detr_enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert detr_enveloppe_projet.status == ProjetStatus.ACCEPTED
 
 
 @pytest.mark.django_db
@@ -102,7 +100,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=400,
     )
     SimulationProjetFactory.create_batch(
@@ -113,7 +111,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     )
     # Notified or not, projet should stay accepted
 
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     # --
 
@@ -122,14 +120,14 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     # --
 
     projet.refresh_from_db()
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()  # always exists
     assert enveloppe_projet.dotation == DOTATION_DETR
     assert enveloppe_projet.assiette == 4_000
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED  # always exists
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED  # always exists
 
     for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -160,7 +158,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=400,
     )
     SimulationProjetFactory.create_batch(
@@ -170,19 +168,19 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         montant=400,
     )
 
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
     assert enveloppe_projet.dotation == DOTATION_DETR
     assert enveloppe_projet.assiette == 4_000
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
     assert enveloppe_projet.projet.notified_at is None
 
     for simulation_projet in enveloppe_projet.simulationprojet_set.all():
@@ -212,7 +210,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         montant=400,
     )
     SimulationProjetFactory.create_batch(
@@ -222,7 +220,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         montant=400,
     )
 
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     # --
 
@@ -231,14 +229,14 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     # --
 
     projet.refresh_from_db()
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
     assert enveloppe_projet.dotation == DOTATION_DETR
     assert enveloppe_projet.assiette == 4_000
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
 
     for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -268,7 +266,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_REFUSED,
+        status=ProjetStatus.REFUSED,
         enveloppe=detr_enveloppe,
     )
     SimulationProjetFactory.create_batch(
@@ -277,19 +275,19 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
     )
-    assert projet.status == PROJET_STATUS_REFUSED
+    assert projet.status == ProjetStatus.REFUSED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
     assert enveloppe_projet.dotation == DOTATION_DETR
     assert enveloppe_projet.assiette == 50_000
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
 
     for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -314,7 +312,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
     )
@@ -324,19 +322,19 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
     )
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == PROJET_STATUS_REFUSED
+    assert projet.status == ProjetStatus.REFUSED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
     assert enveloppe_projet.dotation == DOTATION_DETR
     assert enveloppe_projet.assiette is None
-    assert enveloppe_projet.status == PROJET_STATUS_REFUSED
+    assert enveloppe_projet.status == ProjetStatus.REFUSED
     assert enveloppe_projet.projet.notified_at == datetime(
         2024, 1, 15, 10, 30, tzinfo=UTC
     )
@@ -364,7 +362,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
     )
@@ -374,19 +372,19 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
     )
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == PROJET_STATUS_DISMISSED
+    assert projet.status == ProjetStatus.DISMISSED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
     assert enveloppe_projet.dotation == DOTATION_DETR
     assert enveloppe_projet.assiette is None
-    assert enveloppe_projet.status == PROJET_STATUS_DISMISSED
+    assert enveloppe_projet.status == ProjetStatus.DISMISSED
     assert enveloppe_projet.projet.notified_at == datetime(
         2024, 1, 15, 10, 30, tzinfo=UTC
     )
@@ -424,7 +422,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
     EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         assiette=50_000,
         enveloppe=detr_enveloppe,
         montant=500,

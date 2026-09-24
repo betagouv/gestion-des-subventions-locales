@@ -14,8 +14,7 @@ from gsl_demarches_simplifiees.services import DsService
 from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from ...forms import ProjetBudgetVertForm, ProjetForm
 from ...models import EnveloppeProjet
@@ -191,7 +190,7 @@ def test_update_dotation_from_one_dotation_to_another(
     mock_create_simulation_projets, dotation, projet_0, user
 ):
     original_enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation, status=PROJET_STATUS_PROCESSING
+        projet=projet_0, dotation=dotation, status=ProjetStatus.PROCESSING
     )
     SimulationProjetFactory.create_batch(3, enveloppe_projet=original_enveloppe_projet)
 
@@ -235,7 +234,7 @@ def test_update_dotation_from_one_to_two(
         pk=original_enveloppe_projet.pk
     ).first()
     mock_create_simulation_projets.assert_called_once_with(new_enveloppe_projet)
-    assert new_enveloppe_projet.status == PROJET_STATUS_PROCESSING
+    assert new_enveloppe_projet.status == ProjetStatus.PROCESSING
     assert new_enveloppe_projet.assiette is None
     assert new_enveloppe_projet.detr_avis_commission is None
 
@@ -251,7 +250,7 @@ def test_update_dotation_removes_accepted_dotation_calls_ds_service(
 ):
     """Test that removing an ACCEPTED enveloppe_projet calls DS service"""
     accepted_enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation, status=PROJET_STATUS_ACCEPTED
+        projet=projet_0, dotation=dotation, status=ProjetStatus.ACCEPTED
     )
 
     new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
@@ -280,7 +279,7 @@ def test_update_dotation_removes_processing_dotation_no_ds_service_call(
 ):
     """Test that removing a PROCESSING enveloppe_projet does NOT call DS service"""
     processing_enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation, status=PROJET_STATUS_PROCESSING
+        projet=projet_0, dotation=dotation, status=ProjetStatus.PROCESSING
     )
 
     new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
@@ -311,10 +310,10 @@ def test_update_dotation_removes_accepted_dotation_keeps_other_accepted_dotation
         DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
     )
     accepted_dotation_to_remove = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation_to_remove, status=PROJET_STATUS_ACCEPTED
+        projet=projet_0, dotation=dotation_to_remove, status=ProjetStatus.ACCEPTED
     )
     accepted_dotation_to_keep = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation_to_keep, status=PROJET_STATUS_ACCEPTED
+        projet=projet_0, dotation=dotation_to_keep, status=ProjetStatus.ACCEPTED
     )
 
     # Remove one dotation
@@ -353,10 +352,10 @@ def test_update_dotation_removes_accepted_dotation_with_processing_dotation(
         DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
     )
     accepted_dotation_to_remove = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation_to_remove, status=PROJET_STATUS_ACCEPTED
+        projet=projet_0, dotation=dotation_to_remove, status=ProjetStatus.ACCEPTED
     )
     processing_dotation_to_keep = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation_to_keep, status=PROJET_STATUS_PROCESSING
+        projet=projet_0, dotation=dotation_to_keep, status=ProjetStatus.PROCESSING
     )
 
     # Remove the accepted dotation
@@ -410,7 +409,7 @@ def test_update_dotation_sets_dotations_has_been_updated_when_removing_dotation(
 ):
     """Test that dotations_updated_in_app is set to True when removing a dotation"""
     EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation, status=PROJET_STATUS_PROCESSING
+        projet=projet_0, dotation=dotation, status=ProjetStatus.PROCESSING
     )
     assert projet_0.dotations_updated_in_app is False
 
@@ -478,10 +477,10 @@ def test_update_dotation_with_dn_error_cancel_update(
         DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
     )
     accepted_dotation_to_remove = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation_to_remove, status=PROJET_STATUS_ACCEPTED
+        projet=projet_0, dotation=dotation_to_remove, status=ProjetStatus.ACCEPTED
     )
     processing_dotation_to_keep = EnveloppeProjetFactory(
-        projet=projet_0, dotation=dotation_to_keep, status=PROJET_STATUS_PROCESSING
+        projet=projet_0, dotation=dotation_to_keep, status=ProjetStatus.PROCESSING
     )
     mock_update_ds_annotations.side_effect = DsServiceException("Error in DS service")
 

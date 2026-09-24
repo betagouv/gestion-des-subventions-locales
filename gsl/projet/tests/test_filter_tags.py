@@ -16,7 +16,7 @@ from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
-from ..constants import DOTATION_DETR, PROJET_STATUS_ACCEPTED
+from ..constants import DOTATION_DETR, ProjetStatus
 from .factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -155,7 +155,7 @@ def test_programmation_list_renders_fixed_fields_and_tags(client, perimetre):
     EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=enveloppe,
     )
     url = reverse(

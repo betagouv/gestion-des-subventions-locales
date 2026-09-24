@@ -16,10 +16,7 @@ import pytest
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.models import Collegue
@@ -48,13 +45,13 @@ def double_enveloppe_projet_detr_dsil():
     detr_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         assiette=10_000,
     )
     dsil_dotation = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DSIL,
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         assiette=15_000,
     )
     return {
@@ -92,9 +89,9 @@ class TestRefuseOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_REFUSED
-        assert dsil_dotation.status == PROJET_STATUS_PROCESSING
-        assert projet.status == PROJET_STATUS_PROCESSING
+        assert detr_dotation.status == ProjetStatus.REFUSED
+        assert dsil_dotation.status == ProjetStatus.PROCESSING
+        assert projet.status == ProjetStatus.PROCESSING
         assert projet.notified_at is None
 
     def test_refuse_detr_when_dsil_already_refused(
@@ -131,9 +128,9 @@ class TestRefuseOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_REFUSED
-        assert dsil_dotation.status == PROJET_STATUS_REFUSED
-        assert projet.status == PROJET_STATUS_REFUSED
+        assert detr_dotation.status == ProjetStatus.REFUSED
+        assert dsil_dotation.status == ProjetStatus.REFUSED
+        assert projet.status == ProjetStatus.REFUSED
         assert projet.notified_at is None
 
     def test_refuse_detr_when_dsil_accepted(
@@ -166,9 +163,9 @@ class TestRefuseOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_REFUSED
-        assert dsil_dotation.status == PROJET_STATUS_ACCEPTED
-        assert projet.status == PROJET_STATUS_ACCEPTED
+        assert detr_dotation.status == ProjetStatus.REFUSED
+        assert dsil_dotation.status == ProjetStatus.ACCEPTED
+        assert projet.status == ProjetStatus.ACCEPTED
         assert projet.notified_at is None
 
 
@@ -200,9 +197,9 @@ class TestDismissOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_PROCESSING
-        assert dsil_dotation.status == PROJET_STATUS_DISMISSED
-        assert projet.status == PROJET_STATUS_PROCESSING
+        assert detr_dotation.status == ProjetStatus.PROCESSING
+        assert dsil_dotation.status == ProjetStatus.DISMISSED
+        assert projet.status == ProjetStatus.PROCESSING
         assert projet.notified_at is None
 
     def test_dismiss_dsil_when_detr_dismissed(
@@ -239,9 +236,9 @@ class TestDismissOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_DISMISSED
-        assert dsil_dotation.status == PROJET_STATUS_DISMISSED
-        assert projet.status == PROJET_STATUS_DISMISSED
+        assert detr_dotation.status == ProjetStatus.DISMISSED
+        assert dsil_dotation.status == ProjetStatus.DISMISSED
+        assert projet.status == ProjetStatus.DISMISSED
         assert projet.notified_at is None
 
     def test_dismiss_dsil_when_detr_refused(
@@ -278,9 +275,9 @@ class TestDismissOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_REFUSED
-        assert dsil_dotation.status == PROJET_STATUS_DISMISSED
-        assert projet.status == PROJET_STATUS_DISMISSED
+        assert detr_dotation.status == ProjetStatus.REFUSED
+        assert dsil_dotation.status == ProjetStatus.DISMISSED
+        assert projet.status == ProjetStatus.DISMISSED
         assert projet.notified_at is None
 
 
@@ -326,9 +323,9 @@ class TestAcceptOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_ACCEPTED
-        assert dsil_dotation.status == PROJET_STATUS_PROCESSING
-        assert projet.status == PROJET_STATUS_PROCESSING
+        assert detr_dotation.status == ProjetStatus.ACCEPTED
+        assert dsil_dotation.status == ProjetStatus.PROCESSING
+        assert projet.status == ProjetStatus.PROCESSING
 
         assert detr_dotation.is_programmee
         assert not dsil_dotation.is_programmee
@@ -367,7 +364,7 @@ class TestAcceptOneDoubleDotation:
         form_detr.save(user)
 
         projet.refresh_from_db()
-        assert projet.status == PROJET_STATUS_PROCESSING
+        assert projet.status == ProjetStatus.PROCESSING
 
         form_dsil = SimulationProjetStatusForm(
             instance=dsil_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
@@ -380,9 +377,9 @@ class TestAcceptOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_ACCEPTED
-        assert dsil_dotation.status == PROJET_STATUS_ACCEPTED
-        assert projet.status == PROJET_STATUS_ACCEPTED
+        assert detr_dotation.status == ProjetStatus.ACCEPTED
+        assert dsil_dotation.status == ProjetStatus.ACCEPTED
+        assert projet.status == ProjetStatus.ACCEPTED
 
         assert detr_dotation.is_programmee
         assert dsil_dotation.is_programmee
@@ -418,9 +415,9 @@ class TestAcceptOneDoubleDotation:
         dsil_dotation.refresh_from_db()
         projet.refresh_from_db()
 
-        assert detr_dotation.status == PROJET_STATUS_ACCEPTED
-        assert dsil_dotation.status == PROJET_STATUS_REFUSED
-        assert projet.status == PROJET_STATUS_ACCEPTED
+        assert detr_dotation.status == ProjetStatus.ACCEPTED
+        assert dsil_dotation.status == ProjetStatus.REFUSED
+        assert projet.status == ProjetStatus.ACCEPTED
 
 
 # Silence unused-import warnings for the factory used only in fixtures above.

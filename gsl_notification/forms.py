@@ -18,10 +18,7 @@ from gsl.projet.constants import (
     DOTATIONS,
     LETTRE,
     LETTRE_REFUS,
-    PROJET_FINAL_STATUSES,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet, EnveloppeProjetQuerySet, Projet
 from gsl_demarches_simplifiees.models import Dossier
@@ -193,7 +190,7 @@ def uploadable_document_choices(projet) -> list[tuple[str, str]]:
     """
     choices = []
     enveloppe_projets = projet.enveloppeprojet_set.filter(
-        status__in=PROJET_FINAL_STATUSES
+        status__in=ProjetStatus.FINAL
     ).order_by("dotation")
     for enveloppe_projet in enveloppe_projets:
         dotation = enveloppe_projet.dotation
@@ -350,9 +347,9 @@ class RefusedOrDismissedDotationDocumentFields(DotationDocumentFields):
 
 
 DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS = {
-    PROJET_STATUS_ACCEPTED: AcceptedDotationDocumentFields,
-    PROJET_STATUS_REFUSED: RefusedOrDismissedDotationDocumentFields,
-    PROJET_STATUS_DISMISSED: RefusedOrDismissedDotationDocumentFields,
+    ProjetStatus.ACCEPTED: AcceptedDotationDocumentFields,
+    ProjetStatus.REFUSED: RefusedOrDismissedDotationDocumentFields,
+    ProjetStatus.DISMISSED: RefusedOrDismissedDotationDocumentFields,
 }
 
 
@@ -377,9 +374,9 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
         super().__init__(*args, **kwargs)
         self.user = user
         self.treated_enveloppe_projets = list(
-            projet.enveloppeprojet_set.filter(
-                status__in=PROJET_FINAL_STATUSES
-            ).order_by("dotation")
+            projet.enveloppeprojet_set.filter(status__in=ProjetStatus.FINAL).order_by(
+                "dotation"
+            )
         )
 
         self.dotation_fields = {
@@ -550,7 +547,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.status != PROJET_STATUS_ACCEPTED:
+        if self.instance.status != ProjetStatus.ACCEPTED:
             self.fields["message"].required = True
 
     def clean(self):
@@ -581,14 +578,14 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         with transaction.atomic():
             ds_service = DsService()
 
-            if status == PROJET_STATUS_ACCEPTED:
+            if status == ProjetStatus.ACCEPTED:
                 ds_service.accept_in_ds(
                     self.instance.dossier_ds,
                     user,
                     document=justificatif_file,
                     motivation=motivation,
                 )
-            elif status == PROJET_STATUS_DISMISSED:
+            elif status == ProjetStatus.DISMISSED:
                 ds_service.dismiss_in_ds(
                     self.instance.dossier_ds,
                     user,

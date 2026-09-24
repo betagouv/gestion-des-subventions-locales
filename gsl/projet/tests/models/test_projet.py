@@ -13,10 +13,7 @@ from gsl_notification.tests.factories import (
 from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ...models import Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
@@ -117,14 +114,14 @@ def test_to_notify_false_with_prcessing_enveloppe_projet():
     """Project without any programmation should return False."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
 
     assert projet.to_notify is False
 
 
 @pytest.mark.parametrize(
-    "status", (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED)
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
 )
 def test_to_notify_true_with_treated_enveloppe_projet(status):
     """Project with programmation but not notified should return True."""
@@ -137,7 +134,7 @@ def test_to_notify_false_when_projet_already_notified():
     """Project already notified should return False."""
     projet = ProjetFactory(notified_at=timezone.now())
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     assert projet.to_notify is False
@@ -147,10 +144,10 @@ def test_to_notify_with_double_dotation_all_notified():
     """Double dotation project returns False only if all dotations are notified."""
     projet = ProjetFactory(notified_at=timezone.now())
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
 
     assert projet.to_notify is False
@@ -160,10 +157,10 @@ def test_to_notify_with_double_dotation_partial_programmation():
     """Double dotation project returns False if any dotation lacks programmation."""
     projet = ProjetFactory(notified_at=None)
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
     )
 
     assert projet.to_notify is False
@@ -173,7 +170,7 @@ def test_with_at_least_one_treated_dotation():
     """Project with at least one accepted programmation should be included."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
@@ -183,7 +180,7 @@ def test_with_at_least_one_treated_dotation_without_programmation():
     """Project without programmation should not be included."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 0
     assert projet not in Projet.objects.with_at_least_one_treated_dotation()
@@ -193,7 +190,7 @@ def test_with_at_least_one_treated_dotation_with_refused_status():
     """Project with a refused programmation should be included."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_REFUSED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.REFUSED
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
@@ -203,7 +200,7 @@ def test_with_at_least_one_treated_dotation_with_dismissed_status():
     """Project with a dismissed programmation should be included."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_DISMISSED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.DISMISSED
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
@@ -213,10 +210,10 @@ def test_with_at_least_one_treated_dotation_when_projet_has_two_accepted_program
     """Project with two accepted programmations should be included once."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
@@ -226,10 +223,10 @@ def test_with_at_least_one_treated_dotation_with_one_accepted_one_refused():
     """Project with one accepted and one refused programmation should be included."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.REFUSED
     )
     assert Projet.objects.with_at_least_one_treated_dotation().count() == 1
     assert projet in Projet.objects.with_at_least_one_treated_dotation()
@@ -241,14 +238,14 @@ def test_with_at_least_one_treated_dotation_for_user():
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
 
     projet_not_in_perimeter = ProjetFactory()
     EnveloppeProjetFactory(
         projet=projet_not_in_perimeter,
         dotation=DOTATION_DETR,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
     )
 
     assert (
@@ -271,7 +268,7 @@ def test_can_display_notification_tab_with_accepted_dotation():
     """Project with processing dotation should return False."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     assert projet.can_display_notification_tab is True
 
@@ -280,14 +277,14 @@ def test_can_display_notification_tab_with_processing_dotation():
     """Project with only a processing dotation should return False."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     assert projet.can_display_notification_tab is False
 
 
 @pytest.mark.parametrize(
     "dotation_status",
-    [PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+    [ProjetStatus.REFUSED, ProjetStatus.DISMISSED],
 )
 def test_can_display_notification_tab_with_refused_or_dismissed_dotation(
     dotation_status,
@@ -304,16 +301,16 @@ def test_can_display_notification_tab_with_refused_or_dismissed_dotation(
 @pytest.mark.parametrize(
     "first_dotation_status, second_dotation_status, expected_can_display_notification_tab",
     [
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED, True),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, True),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, True),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, True),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, True),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, True),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, True),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, True),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, True),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, False),
+        (ProjetStatus.ACCEPTED, ProjetStatus.ACCEPTED, True),
+        (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, True),
+        (ProjetStatus.ACCEPTED, ProjetStatus.DISMISSED, True),
+        (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING, True),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED, True),
+        (ProjetStatus.REFUSED, ProjetStatus.DISMISSED, True),
+        (ProjetStatus.REFUSED, ProjetStatus.PROCESSING, True),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED, True),
+        (ProjetStatus.DISMISSED, ProjetStatus.PROCESSING, True),
+        (ProjetStatus.PROCESSING, ProjetStatus.PROCESSING, False),
     ],
 )
 def test_can_display_notification_tab_with_multiple_dotations(
@@ -339,14 +336,14 @@ def test_dotation_not_treated_with_processing_dotation():
     """Project with processing dotation should return that dotation."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_PROCESSING
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
     assert projet.dotation_not_treated == DOTATION_DETR
 
 
 @pytest.mark.parametrize(
     "dotation_status",
-    [PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED],
+    [ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED],
 )
 def test_dotation_not_treated_with_not_processing_dotation(dotation_status):
     """Project with non-processing dotation should return None."""
@@ -360,11 +357,11 @@ def test_dotation_not_treated_with_not_processing_dotation(dotation_status):
 @pytest.mark.parametrize(
     "first_status, second_status, expected_dotation_not_treated",
     [
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, DOTATION_DSIL),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_ACCEPTED, DOTATION_DETR),
+        (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING, DOTATION_DSIL),
+        (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED, DOTATION_DETR),
         (
-            PROJET_STATUS_PROCESSING,
-            PROJET_STATUS_PROCESSING,
+            ProjetStatus.PROCESSING,
+            ProjetStatus.PROCESSING,
             DOTATION_DETR,
         ),  # Should return the first one encountered (DETR)
     ],
@@ -381,10 +378,10 @@ def test_dotation_not_treated_with_multiple_dotations_one_processing(
 @pytest.mark.parametrize(
     "status, expected_value",
     (
-        (PROJET_STATUS_ACCEPTED, False),
-        (PROJET_STATUS_REFUSED, False),
-        (PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_PROCESSING, True),
+        (ProjetStatus.ACCEPTED, False),
+        (ProjetStatus.REFUSED, False),
+        (ProjetStatus.DISMISSED, False),
+        (ProjetStatus.PROCESSING, True),
     ),
 )
 def test_all_dotations_have_processing_status_when_simple_dotation(
@@ -398,16 +395,16 @@ def test_all_dotations_have_processing_status_when_simple_dotation(
 @pytest.mark.parametrize(
     "first_status, second_status, expected_value",
     (
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_ACCEPTED, False),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED, False),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_ACCEPTED, PROJET_STATUS_PROCESSING, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_REFUSED, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_REFUSED, PROJET_STATUS_PROCESSING, False),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_DISMISSED, False),
-        (PROJET_STATUS_DISMISSED, PROJET_STATUS_PROCESSING, False),
-        (PROJET_STATUS_PROCESSING, PROJET_STATUS_PROCESSING, True),
+        (ProjetStatus.ACCEPTED, ProjetStatus.ACCEPTED, False),
+        (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, False),
+        (ProjetStatus.ACCEPTED, ProjetStatus.DISMISSED, False),
+        (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING, False),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED, False),
+        (ProjetStatus.REFUSED, ProjetStatus.DISMISSED, False),
+        (ProjetStatus.REFUSED, ProjetStatus.PROCESSING, False),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED, False),
+        (ProjetStatus.DISMISSED, ProjetStatus.PROCESSING, False),
+        (ProjetStatus.PROCESSING, ProjetStatus.PROCESSING, True),
     ),
 )
 def test_all_dotations_have_processing_status_when_double_dotations(
@@ -504,10 +501,10 @@ def test_zonage_and_contracts_provided_by_instructor_excludes_other_fields():
 def test_generated_documents_sorted_by_dotation_then_type():
     projet = ProjetFactory()
     detr_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     dsil_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
     # Created in a deliberately mixed order to prove the sort, not the creation order.
     lettre_dsil = LettreNotificationFactory(enveloppe_projet=dsil_dp)
@@ -526,10 +523,10 @@ def test_generated_documents_sorted_by_dotation_then_type():
 def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
     projet = ProjetFactory()
     detr_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     dsil_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
     # Created in a deliberately mixed order to prove the sort, not the creation order.
     annexe_dsil = AnnexeFactory(enveloppe_projet=dsil_dp)
@@ -549,10 +546,10 @@ def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
 def test_imported_documents_includes_signed_refusal_letter():
     projet = ProjetFactory()
     accepted_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=PROJET_STATUS_ACCEPTED
+        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
     )
     refused_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_REFUSED
+        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.REFUSED
     )
     lettre_et_arrete_signes = LettreEtArreteSignesFactory(enveloppe_projet=accepted_dp)
     lettre_refus_signee = LettreRefusSigneeFactory(enveloppe_projet=refused_dp)

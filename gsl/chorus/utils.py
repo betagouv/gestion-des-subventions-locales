@@ -1,7 +1,7 @@
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
+    ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet
 
@@ -19,7 +19,7 @@ def resume_dotation(projet, dotation):
         .filter(
             projet=projet,
             dotation=dotation,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
         )
         .values_list("montant", flat=True)
         .first()

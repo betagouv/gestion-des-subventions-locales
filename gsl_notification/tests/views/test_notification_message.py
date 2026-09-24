@@ -21,10 +21,7 @@ from gsl.historique.tests.factories import ProjetActionFactory
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.models import Collegue
@@ -116,7 +113,7 @@ def _accepted_dotation(perimetre, projet, dotation, with_signed_document):
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
         dotation=dotation,
-        status=PROJET_STATUS_ACCEPTED,
+        status=ProjetStatus.ACCEPTED,
         enveloppe=enveloppe,
     )
     if with_signed_document:
@@ -147,7 +144,7 @@ def _treated_dotation(perimetre, projet, dotation, status, with_signed_document=
 def _refused_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=False):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     _treated_dotation(
-        perimetre, projet, dotation, PROJET_STATUS_REFUSED, with_signed_document
+        perimetre, projet, dotation, ProjetStatus.REFUSED, with_signed_document
     )
     return projet
 
@@ -155,7 +152,7 @@ def _refused_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=Fals
 def _dismissed_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=False):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     _treated_dotation(
-        perimetre, projet, dotation, PROJET_STATUS_DISMISSED, with_signed_document
+        perimetre, projet, dotation, ProjetStatus.DISMISSED, with_signed_document
     )
     return projet
 
@@ -306,7 +303,7 @@ class TestForm:
 
         passer_en_instruction.assert_called_once()
         enveloppe_projet.refresh_from_db()
-        assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+        assert enveloppe_projet.status == ProjetStatus.ACCEPTED
         projet.refresh_from_db()
         assert projet.notified_at is not None
 
@@ -445,7 +442,7 @@ class TestForm:
             perimetre,
             projet,
             DOTATION_DETR,
-            PROJET_STATUS_REFUSED,
+            ProjetStatus.REFUSED,
             with_signed_document=True,
         )
         annexe = AnnexeFactory(enveloppe_projet=enveloppe_projet)
@@ -482,14 +479,14 @@ class TestForm:
             perimetre,
             projet,
             DOTATION_DETR,
-            PROJET_STATUS_REFUSED,
+            ProjetStatus.REFUSED,
             with_signed_document=True,
         )
         _treated_dotation(
             perimetre,
             projet,
             DOTATION_DSIL,
-            PROJET_STATUS_DISMISSED,
+            ProjetStatus.DISMISSED,
             with_signed_document=True,
         )
 
@@ -505,8 +502,8 @@ class TestForm:
     ):
         """REFUSED + DISMISSED resolves to DISMISSED (optimistic)."""
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-        _treated_dotation(perimetre, projet, DOTATION_DETR, PROJET_STATUS_REFUSED)
-        _treated_dotation(perimetre, projet, DOTATION_DSIL, PROJET_STATUS_DISMISSED)
+        _treated_dotation(perimetre, projet, DOTATION_DETR, ProjetStatus.REFUSED)
+        _treated_dotation(perimetre, projet, DOTATION_DSIL, ProjetStatus.DISMISSED)
 
         with (
             mock.patch(
@@ -670,7 +667,7 @@ class TestView:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _treated_dotation(perimetre, projet, DOTATION_DETR, PROJET_STATUS_REFUSED)
+        _treated_dotation(perimetre, projet, DOTATION_DETR, ProjetStatus.REFUSED)
 
         url = reverse(
             "fragment:gsl_notification:notification_message",
@@ -711,7 +708,7 @@ class TestView:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _treated_dotation(perimetre, projet, DOTATION_DETR, PROJET_STATUS_DISMISSED)
+        _treated_dotation(perimetre, projet, DOTATION_DETR, ProjetStatus.DISMISSED)
 
         url = reverse(
             "fragment:gsl_notification:notification_message",
@@ -795,7 +792,7 @@ class TestView:
         """One dotation still being processed means the projet isn't notifiable yet."""
         projet = _accepted_projet(perimetre, dotation=DOTATION_DETR)
         EnveloppeProjetFactory(
-            projet=projet, dotation=DOTATION_DSIL, status=PROJET_STATUS_PROCESSING
+            projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
         )
 
         url = reverse(

@@ -5,10 +5,7 @@ from gsl_programmation.tests.factories import DetrEnveloppeFactory
 from ..constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_DISMISSED,
-    PROJET_STATUS_PROCESSING,
-    PROJET_STATUS_REFUSED,
+    ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet
 from .factories import EnveloppeProjetFactory, ProjetFactory
@@ -26,53 +23,53 @@ def test_update_projet_status_on_post_save():
     enveloppe = DetrEnveloppeFactory()
     enveloppe_projet: EnveloppeProjet = EnveloppeProjetFactory(
         projet=projet,
-        status=PROJET_STATUS_DISMISSED,
+        status=ProjetStatus.DISMISSED,
         dotation=DOTATION_DETR,
         enveloppe=enveloppe,
     )
 
     enveloppe_projet.save()
-    assert projet.status == PROJET_STATUS_DISMISSED
+    assert projet.status == ProjetStatus.DISMISSED
 
     enveloppe_projet.refuse(enveloppe=enveloppe)
     enveloppe_projet.save()
-    assert projet.status == PROJET_STATUS_REFUSED
+    assert projet.status == ProjetStatus.REFUSED
 
     enveloppe_projet.set_back_status_to_processing_without_ds()
     enveloppe_projet.save()
-    assert projet.status == PROJET_STATUS_PROCESSING
+    assert projet.status == ProjetStatus.PROCESSING
 
     enveloppe_projet.accept_without_ds_update(montant=1_000, enveloppe=enveloppe)
     enveloppe_projet.save()
-    assert projet.status == PROJET_STATUS_ACCEPTED
+    assert projet.status == ProjetStatus.ACCEPTED
 
 
 def test_update_projet_status_on_post_delete():
     projet = ProjetFactory()
     accepted_enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
     )
     EnveloppeProjetFactory(
-        projet=projet, status=PROJET_STATUS_REFUSED, dotation=DOTATION_DSIL
+        projet=projet, status=ProjetStatus.REFUSED, dotation=DOTATION_DSIL
     )
 
     accepted_enveloppe_projet.delete()
-    assert projet.status is PROJET_STATUS_REFUSED
+    assert projet.status is ProjetStatus.REFUSED
 
 
 @pytest.mark.parametrize(
     "accepted, processing, refused, dismissed, expected_status",
     (
-        (True, False, False, False, PROJET_STATUS_ACCEPTED),
-        (False, True, False, False, PROJET_STATUS_PROCESSING),
-        (False, False, True, False, PROJET_STATUS_REFUSED),
-        (False, False, False, True, PROJET_STATUS_DISMISSED),
-        (True, True, False, False, PROJET_STATUS_PROCESSING),
-        (True, False, True, False, PROJET_STATUS_ACCEPTED),
-        (True, False, False, True, PROJET_STATUS_ACCEPTED),
-        (False, True, True, False, PROJET_STATUS_PROCESSING),
-        (False, True, False, True, PROJET_STATUS_PROCESSING),
-        (False, False, True, True, PROJET_STATUS_DISMISSED),
+        (True, False, False, False, ProjetStatus.ACCEPTED),
+        (False, True, False, False, ProjetStatus.PROCESSING),
+        (False, False, True, False, ProjetStatus.REFUSED),
+        (False, False, False, True, ProjetStatus.DISMISSED),
+        (True, True, False, False, ProjetStatus.PROCESSING),
+        (True, False, True, False, ProjetStatus.ACCEPTED),
+        (True, False, False, True, ProjetStatus.ACCEPTED),
+        (False, True, True, False, ProjetStatus.PROCESSING),
+        (False, True, False, True, ProjetStatus.PROCESSING),
+        (False, False, True, True, ProjetStatus.DISMISSED),
     ),
 )
 def test_status_mixed_dotations(
@@ -84,28 +81,28 @@ def test_status_mixed_dotations(
     if accepted:
         EnveloppeProjetFactory(
             projet=projet,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if processing:
         EnveloppeProjetFactory(
             projet=projet,
-            status=PROJET_STATUS_PROCESSING,
+            status=ProjetStatus.PROCESSING,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if refused:
         EnveloppeProjetFactory(
             projet=projet,
-            status=PROJET_STATUS_REFUSED,
+            status=ProjetStatus.REFUSED,
             dotation=current_dotation,
         )
         current_dotation = DOTATION_DSIL
     if dismissed:
         EnveloppeProjetFactory(
             projet=projet,
-            status=PROJET_STATUS_DISMISSED,
+            status=ProjetStatus.DISMISSED,
             dotation=current_dotation,
         )
 

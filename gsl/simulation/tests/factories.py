@@ -4,7 +4,7 @@ from typing import cast
 from factory import LazyAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
-from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
+from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
@@ -46,7 +46,7 @@ def make_detr_simu_projet(
     perimetre,
     simulation,
     *,
-    dotation_status=PROJET_STATUS_PROCESSING,
+    dotation_status=ProjetStatus.PROCESSING,
     simu_status=SimulationProjet.STATUS_PROCESSING,
     assiette=10_000,
     montant=1000,

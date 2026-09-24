@@ -6,7 +6,7 @@ from django.urls import reverse
 from gsl.projet.constants import (
     DS_STATE_ACCEPTE,
     DS_STATE_EN_INSTRUCTION,
-    PROJET_STATUS_ACCEPTED,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import DetrProjetFactory, ProjetFactory
 from gsl.stats.models import Subvention
@@ -172,7 +172,7 @@ class TestCollectiviteDetailView:
         projet = ProjetFactory(dossier_ds=DossierFactory(ds_demandeur=pm))
         DetrProjetFactory(
             projet=projet,
-            status=PROJET_STATUS_ACCEPTED,
+            status=ProjetStatus.ACCEPTED,
             assiette=Decimal("2000"),
             montant=Decimal("1500"),
         )

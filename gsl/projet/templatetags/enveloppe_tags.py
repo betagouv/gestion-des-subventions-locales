@@ -1,7 +1,7 @@
 from django import template
 from django.db.models import Count, Sum
 
-from ..constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_REFUSED
+from ..constants import ProjetStatus
 from ..models import EnveloppeProjet, Projet
 
 register = template.Library()
@@ -18,7 +18,7 @@ def enveloppe_summary_line(
         )
     else:
         processed = EnveloppeProjet.objects.active().filter(enveloppe=enveloppe)
-    accepted = processed.filter(status=PROJET_STATUS_ACCEPTED)
+    accepted = processed.filter(status=ProjetStatus.ACCEPTED)
 
     accepted_montant = accepted.aggregate(Sum("montant"))["montant__sum"] or 0
     return {
@@ -33,7 +33,7 @@ def enveloppe_summary_line(
         "accepted_montant": accepted_montant,
         "reste_a_attribuer": enveloppe.montant - accepted_montant,
         "validated_projets_count": accepted.count(),
-        "refused_projets_count": processed.filter(status=PROJET_STATUS_REFUSED).count(),
+        "refused_projets_count": processed.filter(status=ProjetStatus.REFUSED).count(),
         "demandeurs_count": included.aggregate(
             count=Count("dossier_ds__ds_demandeur", distinct=True)
         )["count"],

@@ -4,7 +4,7 @@ import pytest
 from django.contrib.messages import get_messages
 from django.urls import reverse
 
-from gsl.projet.constants import DOTATION_DETR, PROJET_STATUS_PROCESSING
+from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -49,7 +49,7 @@ def client_with_user_logged(collegue):
 @pytest.fixture
 def simulation_projet(collegue, simulation):
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
         assiette=10_000,

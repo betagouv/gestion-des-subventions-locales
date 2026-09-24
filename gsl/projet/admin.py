@@ -12,7 +12,7 @@ from gsl_core.models import Arrondissement
 from gsl_core.templatetags.gsl_filters import percent
 from gsl_programmation.models import Enveloppe
 
-from .constants import PROJET_STATUS_ACCEPTED, PROJET_STATUS_CHOICES
+from .constants import ProjetStatus
 from .models import EnveloppeProjet, Projet, ProjetQuerySet
 
 
@@ -27,7 +27,7 @@ class ProjetStatusFilter(admin.SimpleListFilter):
     parameter_name = "status"
 
     def lookups(self, request, model_admin):
-        return PROJET_STATUS_CHOICES
+        return ProjetStatus.choices
 
     def queryset(self, request, queryset: ProjetQuerySet):
         if self.value():
@@ -132,7 +132,7 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         return ", ".join(obj.dotations)
 
     def get_status_display(self, obj: Projet):
-        return dict(PROJET_STATUS_CHOICES)[obj.status] if obj.status else None
+        return ProjetStatus(obj.status).label if obj.status else None
 
     get_status_display.short_description = "Statut"
 
@@ -226,7 +226,7 @@ class EnveloppeProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     @admin.action(description="Associer ce projet à l'enveloppe 2025")
     @transaction.atomic
     def associer_enveloppe_2025(self, request, queryset):
-        invalid = queryset.exclude(status=PROJET_STATUS_ACCEPTED, enveloppe__annee=2026)
+        invalid = queryset.exclude(status=ProjetStatus.ACCEPTED, enveloppe__annee=2026)
         if invalid.exists():
             self.message_user(
                 request,
@@ -235,7 +235,7 @@ class EnveloppeProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
             )
 
         valid_qs = queryset.filter(
-            status=PROJET_STATUS_ACCEPTED, enveloppe__annee=2026
+            status=ProjetStatus.ACCEPTED, enveloppe__annee=2026
         ).select_related("enveloppe__perimetre")
         enveloppe_projet_ids = list(valid_qs.values_list("id", flat=True))
         success_count = 0

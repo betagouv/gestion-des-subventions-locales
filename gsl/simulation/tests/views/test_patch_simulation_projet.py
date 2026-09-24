@@ -9,8 +9,7 @@ from django.urls import reverse
 
 from gsl.projet.constants import (
     DOTATION_DETR,
-    PROJET_STATUS_ACCEPTED,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -64,7 +63,7 @@ def client_with_user_logged(collegue):
 @pytest.fixture
 def simulation_projet(collegue, simulation):
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
         assiette=10_000,
@@ -107,7 +106,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
     assert response.status_code == 200
     assert "HX-Redirect" in response.headers
     assert updated_simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert enveloppe_projet.status == PROJET_STATUS_ACCEPTED
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
 
 
 data_test = (
@@ -213,7 +212,7 @@ def test_patch_status_simulation_projet_invalid_status(
 @pytest.fixture
 def accepted_simulation_projet(collegue, simulation):
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         assiette=10_000,
         projet__dossier_ds__perimetre=collegue.perimetre,
         projet__is_budget_vert=False,
@@ -265,7 +264,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     simulation_projet.refresh_from_db()
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING  # Not updated
     assert (
-        simulation_projet.enveloppe_projet.status == PROJET_STATUS_PROCESSING
+        simulation_projet.enveloppe_projet.status == ProjetStatus.PROCESSING
     )  # Not updated
 
 

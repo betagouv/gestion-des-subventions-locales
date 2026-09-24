@@ -17,7 +17,7 @@ from django.urls import reverse
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    PROJET_STATUS_PROCESSING,
+    ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_core.tests.factories import (
@@ -62,7 +62,7 @@ def simulation(detr_enveloppe):
 
 def _make_simulation_projet(collegue, simulation, *, assiette, montant):
     enveloppe_projet = EnveloppeProjetFactory(
-        status=PROJET_STATUS_PROCESSING,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
         dotation=DOTATION_DETR,
         assiette=assiette,
@@ -205,13 +205,13 @@ class TestAcceptanceModalView:
         detr_dotation = EnveloppeProjetFactory(
             projet=projet,
             dotation=DOTATION_DETR,
-            status=PROJET_STATUS_PROCESSING,
+            status=ProjetStatus.PROCESSING,
             assiette=3_000,
         )
         EnveloppeProjetFactory(
             projet=projet,
             dotation=DOTATION_DSIL,
-            status=PROJET_STATUS_PROCESSING,
+            status=ProjetStatus.PROCESSING,
             assiette=15_000,
         )
         simulation_projet = SimulationProjetFactory(
