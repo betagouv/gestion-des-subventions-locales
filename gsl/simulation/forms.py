@@ -160,7 +160,7 @@ class SimulationProjetForm(ModelForm, DsfrBaseForm):
         simulation_projet = self.instance
         enveloppe_projet: EnveloppeProjet = self.instance.enveloppe_projet
 
-        if enveloppe_projet.projet.notified_at:
+        if enveloppe_projet.projet.has_been_notified:
             financial_fields_changed = any(
                 field in self.changed_data for field in ("assiette", "montant", "taux")
             )

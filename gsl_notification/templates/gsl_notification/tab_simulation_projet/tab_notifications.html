@@ -31,7 +31,7 @@
             <h3 class="fr-mt-6w">2 - Importer</h3>
             <button type="button"
                     class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-upload-line"
-                    {% if projet.notified_at %}disabled{% else %}aria-controls="upload-document-modal" data-fr-opened="false"{% endif %}>
+                    {% if projet.has_been_notified %}disabled{% else %}aria-controls="upload-document-modal" data-fr-opened="false"{% endif %}>
                 Importer un document
             </button>
             {% render_fragment "gsl_notification:imported_documents" projet %}
@@ -71,7 +71,7 @@
 {% endblock extra_js %}
 
 {% block modal %}
-    {% if not projet.notified_at %}
+    {% if not projet.has_been_notified %}
         <dialog class="fr-modal"
                 id="upload-document-modal"
                 aria-labelledby="upload-document-modal-title">

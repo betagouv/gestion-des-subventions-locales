@@ -77,7 +77,7 @@ def _process_one(
         simulation_projet.pk
     )
 
-    if simulation_projet.projet.notified_at is not None:
+    if simulation_projet.projet.has_been_notified:
         return _error(
             simulation_projet, label, "Le projet a été notifié depuis la sélection."
         )

@@ -45,7 +45,7 @@
 
         <button type="submit"
                 class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left"
-                {% if projet.notified_at %}disabled{% endif %}>
+                {% if projet.has_been_notified %}disabled{% endif %}>
             Générer les documents
         </button>
     </form>

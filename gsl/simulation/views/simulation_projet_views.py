@@ -507,9 +507,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
                 )
             )
 
-        if any(
-            sp.enveloppe_projet.projet.notified_at is not None for sp in all_projets
-        ):
+        if any(sp.enveloppe_projet.projet.has_been_notified for sp in all_projets):
             raise Http404(
                 user_message=(
                     "Un ou plusieurs des projets sélectionnés a déjà été notifié "

@@ -129,7 +129,7 @@ class BulkStatusJobProgressView(DetailView):
             sp.id
             for sp in simulation_projets_to_refresh
             if sp.status in BulkStatusJob.ALLOWED_TARGET_STATUSES
-            and sp.enveloppe_projet.projet.notified_at is None
+            and not sp.enveloppe_projet.projet.has_been_notified
         ]
         context["columns"] = SIMULATION_TABLE_COLUMNS
         context["dotations"] = DOTATIONS

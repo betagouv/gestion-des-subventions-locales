@@ -306,7 +306,7 @@
                         {{ projet.dossier_ds.dotations_demande|join:", " }}
                     </p>
                     {% if projet_form %}
-                        {% if not projet.notified_at %}
+                        {% if not projet.has_been_notified %}
                             {% include "includes/forms/_dotations_form.html" %}
                         {% else %}
                             {% for dp in enveloppe_projets %}
@@ -365,7 +365,7 @@
                         </p>
                     </div>
                     {% for dp in enveloppe_projets %}
-                        {% if dp.status == 'processing' and not projet.notified_at %}
+                        {% if dp.status == 'processing' and not projet.has_been_notified %}
                             {% render_fragment "gsl_projet:assiette_dotation_form" dp %}
                         {% else %}
                             {% include "includes/projet_detail/_enveloppe_projet_readonly_block.html" %}
