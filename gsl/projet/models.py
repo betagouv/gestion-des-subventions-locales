@@ -559,6 +559,11 @@ class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySe
     pass
 
 
+class EnveloppeProjetCourantManager(EnveloppeProjetManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_courant=True)
+
+
 class EnveloppeProjet(BaseModel):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
@@ -594,14 +599,23 @@ class EnveloppeProjet(BaseModel):
     date_programmation = models.DateTimeField(
         "Date de programmation", blank=True, null=True
     )
+    is_courant = models.BooleanField("Courant", default=True)
 
-    objects = EnveloppeProjetManager()
+    objects = EnveloppeProjetCourantManager()
+    all_objects = EnveloppeProjetManager()
 
     class Meta:
-        unique_together = ("projet", "dotation")
+        default_manager_name = "objects"
         verbose_name = "Enveloppe projet"
         verbose_name_plural = "Enveloppes projet"
         constraints = (
+            models.UniqueConstraint(
+                fields=("projet", "dotation"),
+                condition=Q(is_courant=True),
+                name="un_seul_enveloppe_projet_courant_par_dotation",
+                violation_error_message="Ce projet a déjà un enveloppe projet courant "
+                "pour cette dotation.",
+            ),
             models.CheckConstraint(
                 condition=Q(status=ProjetStatus.PROCESSING, enveloppe__isnull=True)
                 | ~Q(status=ProjetStatus.PROCESSING) & Q(enveloppe__isnull=False),
