@@ -200,7 +200,7 @@ class TestForm:
                 ),
             ) as ds,
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -236,7 +236,7 @@ class TestForm:
                 ),
             ),
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -293,7 +293,7 @@ class TestForm:
                 ),
             ),
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -331,7 +331,7 @@ class TestForm:
                 return_value=None,
             ),
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ) as merge_mock,
         ):
@@ -382,7 +382,7 @@ class TestForm:
                 return_value=None,
             ) as accepter,
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -411,7 +411,7 @@ class TestForm:
                 return_value=None,
             ) as accepter,
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -433,7 +433,7 @@ class TestForm:
                 "gsl_demarches_simplifiees.services.DsService.refuser_in_ds",
                 return_value=None,
             ) as refuser,
-            mock.patch("gsl.notification.utils.merge_documents_into_pdf") as merge_mock,
+            mock.patch("gsl.projet.models.merge_documents_into_pdf") as merge_mock,
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
@@ -461,7 +461,7 @@ class TestForm:
                 return_value=None,
             ),
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ) as merge_mock,
         ):
@@ -562,7 +562,7 @@ class TestView:
                 ),
             ),
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -626,7 +626,7 @@ class TestView:
                 ),
             ),
             mock.patch(
-                "gsl.notification.utils.merge_documents_into_pdf",
+                "gsl.projet.models.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):

@@ -545,7 +545,7 @@ aware, fully implemented):
   (see `Projet.dotation_not_treated`).
 - All imported documents (across every dotation) are concatenated into a
   single PDF sent to DN (`merge_documents_into_pdf`,
-  `gsl/notification/utils.py`).
+  `gsl/projet/utils/utils.py`).
 - The notification message is **mandatory** for a refused/dismissed,
   **optional** for an accepted.
 

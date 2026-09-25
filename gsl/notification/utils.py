@@ -6,13 +6,11 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 
-import img2pdf
 import requests
 from bs4 import BeautifulSoup, NavigableString
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -23,12 +21,10 @@ from pikepdf import Pdf
 from weasyprint import HTML
 
 from gsl.core.models import Perimetre
-from gsl.core.s3 import get_s3_object
 from gsl.core.templatetags.gsl_filters import euro, percent
 from gsl.historique.models import ProjetAction
 from gsl.notification.models import (
     GeneratedDocument,
-    UploadedDocument,
 )
 from gsl.notification.qr.codec import build_payload, generate_qr_png_data_uri
 from gsl.projet.constants import (
@@ -36,6 +32,7 @@ from gsl.projet.constants import (
     POSSIBLE_DOTATIONS,
 )
 from gsl.projet.models import EnveloppeProjet
+from gsl.projet.utils.utils import merge_pdf_bytes
 
 
 def get_nested_attribute(obj, attribute_path):
@@ -305,24 +302,6 @@ def get_logo_base64(url):
     return "data:image/png;base64," + base64.b64encode(response.content).decode("utf-8")
 
 
-def _get_uploaded_document_pdf(document: UploadedDocument) -> io.BytesIO:
-    s3_object = get_s3_object(document.file.name)
-    content = s3_object["Body"].read()
-
-    output = io.BytesIO()
-    output.write(
-        content
-        if s3_object["ContentType"] == "application/pdf"
-        else img2pdf.convert(
-            content,
-            layout_fun=img2pdf.get_layout_fun(
-                (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
-            ),  # A4
-        )
-    )
-    return output
-
-
 def fix_empty_paragraphs_for_weasyprint(html: str) -> str:
     """
     WeasyPrint (comme les navigateurs) collapse les <p> qui ne contiennent que du
@@ -522,18 +501,6 @@ def log_generated_document_action(user, enveloppe_projet, document_class, is_cre
     )
 
 
-def merge_documents_into_pdf(
-    documents: list[UploadedDocument],
-    filename: str = "documents.pdf",
-) -> SimpleUploadedFile:
-    documents_file_bytes = [_get_uploaded_document_pdf(doc) for doc in documents]
-    return SimpleUploadedFile(
-        name=filename,
-        content=_merge_pdf_bytes(documents_file_bytes),
-        content_type="application/pdf",
-    )
-
-
 def merge_generated_documents_into_pdf(
     documents: list[GeneratedDocument],
 ) -> bytes:
@@ -545,16 +512,4 @@ def merge_generated_documents_into_pdf(
         )
         for doc in documents
     ]
-    return _merge_pdf_bytes(documents_file_bytes)
-
-
-def _merge_pdf_bytes(files: list[io.BytesIO]) -> bytes:
-    pdf = Pdf.new()
-
-    for file in files:
-        src = Pdf.open(file)
-        pdf.pages.extend(src.pages)
-
-    output = io.BytesIO()
-    pdf.save(output)
-    return output.getvalue()
+    return merge_pdf_bytes(documents_file_bytes)
