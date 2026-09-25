@@ -6,8 +6,8 @@ from django.db import transaction
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
-from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
 

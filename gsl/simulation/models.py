@@ -6,9 +6,9 @@ from django.db.models import Count, Q, QuerySet, Sum
 from django.forms import ValidationError
 from django_extensions.db.fields import AutoSlugField
 
+from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.utils import compute_taux
-from gsl_core.models import BaseModel, Collegue, Perimetre
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.services.enveloppe_service import EnveloppeService
 

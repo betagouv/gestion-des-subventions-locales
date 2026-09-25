@@ -1,7 +1,7 @@
 import pytest
 
-from gsl_core.models import Arrondissement, Departement
-from gsl_core.tests.factories import (
+from gsl.core.models import Arrondissement, Departement
+from gsl.core.tests.factories import (
     ArrondissementFactory,
     DepartementFactory,
     RegionFactory,

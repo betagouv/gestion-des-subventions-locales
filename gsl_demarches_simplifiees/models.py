@@ -5,6 +5,14 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
+from gsl.core.models import (
+    Adresse,
+    Arrondissement,
+    BaseModel,
+    Collegue,
+    Departement,
+    Perimetre,
+)
 from gsl.projet.constants import (
     ANNUAIRE_ENTREPRISE_URL,
     DOTATION_DETR,
@@ -18,14 +26,6 @@ from gsl.projet.constants import (
     DS_TREATED_STATES,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
-)
-from gsl_core.models import (
-    Adresse,
-    Arrondissement,
-    BaseModel,
-    Collegue,
-    Departement,
-    Perimetre,
 )
 
 logger = getLogger(__name__)

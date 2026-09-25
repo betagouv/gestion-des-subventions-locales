@@ -2,12 +2,12 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
 
+from gsl.core.models import BaseModel, Perimetre
 from gsl.projet.constants import (
     DOTATION_CHOICES,
     DOTATION_DETR,
     DOTATION_DSIL,
 )
-from gsl_core.models import BaseModel, Perimetre
 
 
 class EnveloppeQueryset(models.QuerySet):

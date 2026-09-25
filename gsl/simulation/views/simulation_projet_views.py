@@ -16,15 +16,10 @@ from django_htmx.http import (
     trigger_client_event,
 )
 
-from gsl.projet.constants import (
-    DOTATIONS,
-    ProjetStatus,
-)
-from gsl.projet.models import projet_status_from_dotation_statuses
-from gsl_core.decorators import htmx_only
-from gsl_core.exceptions import Http404
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
+from gsl.core.decorators import htmx_only
+from gsl.core.exceptions import Http404
+from gsl.core.matomo import queue_matomo_event
+from gsl.core.matomo_constants import (
     MATOMO_ACTION_CHANGEMENT_STATUT,
     MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
     MATOMO_ACTION_CHANGEMENT_STATUT_CONFIRME,
@@ -36,8 +31,13 @@ from gsl_core.matomo_constants import (
     MATOMO_CATEGORY_PROGRAMMATION,
     MATOMO_CATEGORY_SIMULATION,
 )
-from gsl_core.templatetags.gsl_filters import euro
-from gsl_core.view_mixins import OpenHtmxModalMixin
+from gsl.core.templatetags.gsl_filters import euro
+from gsl.core.view_mixins import OpenHtmxModalMixin
+from gsl.projet.constants import (
+    DOTATIONS,
+    ProjetStatus,
+)
+from gsl.projet.models import projet_status_from_dotation_statuses
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_programmation.models import Enveloppe
 

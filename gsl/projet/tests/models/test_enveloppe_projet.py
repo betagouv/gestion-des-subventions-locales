@@ -7,14 +7,14 @@ from django.forms import ValidationError
 from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
-from gsl.historique.models import ProjetAction
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
     PerimetreRegionalFactory,
 )
+from gsl.historique.models import ProjetAction
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_notification.tests.factories import (
     AnnexeFactory,

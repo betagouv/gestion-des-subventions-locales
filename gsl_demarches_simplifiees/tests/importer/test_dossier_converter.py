@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from gsl_core.models import Adresse
-from gsl_core.tests.factories import (
+from gsl.core.models import Adresse
+from gsl.core.tests.factories import (
     ArrondissementFactory,
     DepartementFactory,
     RegionFactory,

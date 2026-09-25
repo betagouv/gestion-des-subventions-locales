@@ -8,6 +8,11 @@ from django.test import override_settings
 from django.urls import reverse
 from pikepdf import Pdf
 
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreFactory,
+)
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
     ANNEXE,
@@ -15,11 +20,6 @@ from gsl.projet.constants import (
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueFactory,
-    PerimetreFactory,
-)
 from gsl_notification.models import (
     DocumentImportJob,
     LettreEtArreteSignes,

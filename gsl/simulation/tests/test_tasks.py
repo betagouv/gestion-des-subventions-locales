@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )

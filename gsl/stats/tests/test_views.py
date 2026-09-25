@@ -3,14 +3,7 @@ from decimal import Decimal
 import pytest
 from django.urls import reverse
 
-from gsl.projet.constants import (
-    DS_STATE_ACCEPTE,
-    DS_STATE_EN_INSTRUCTION,
-    ProjetStatus,
-)
-from gsl.projet.tests.factories import DetrProjetFactory, ProjetFactory
-from gsl.stats.models import Subvention
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     AdresseFactory,
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -18,6 +11,13 @@ from gsl_core.tests.factories import (
     DepartementFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.projet.constants import (
+    DS_STATE_ACCEPTE,
+    DS_STATE_EN_INSTRUCTION,
+    ProjetStatus,
+)
+from gsl.projet.tests.factories import DetrProjetFactory, ProjetFactory
+from gsl.stats.models import Subvention
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     PersonneMoraleFactory,

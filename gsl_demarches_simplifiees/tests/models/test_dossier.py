@@ -1,6 +1,6 @@
 import pytest
 
-from gsl_core.tests.factories import CollegueFactory
+from gsl.core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.models import Dossier, DossierData
 from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,

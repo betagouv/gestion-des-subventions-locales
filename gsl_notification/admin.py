@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from gsl_core.admin import AllPermsForStaffUser
+from gsl.core.admin import AllPermsForStaffUser
 
 from .models import (
     Annexe,

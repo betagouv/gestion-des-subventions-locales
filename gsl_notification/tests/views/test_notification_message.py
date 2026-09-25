@@ -16,6 +16,12 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
+from gsl.core.models import Collegue
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueWithDSProfileFactory,
+    PerimetreDepartementalFactory,
+)
 from gsl.historique.models import ProjetAction
 from gsl.historique.tests.factories import ProjetActionFactory
 from gsl.projet.constants import (
@@ -24,12 +30,6 @@ from gsl.projet.constants import (
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
-from gsl_core.models import Collegue
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueWithDSProfileFactory,
-    PerimetreDepartementalFactory,
-)
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,

@@ -7,6 +7,8 @@ from django.db.models import Q
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl.core.models import Collegue
+from gsl.core.templatetags.gsl_filters import euro
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import (
@@ -14,8 +16,6 @@ from gsl.projet.models import (
     Projet,
 )
 from gsl.projet.utils.utils import compute_taux
-from gsl_core.models import Collegue
-from gsl_core.templatetags.gsl_filters import euro
 from gsl_programmation.models import Enveloppe
 
 from .models import BulkStatusJob, Simulation, SimulationProjet

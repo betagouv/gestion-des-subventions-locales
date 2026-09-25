@@ -5,14 +5,14 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import CreateView
 from django_htmx.http import trigger_client_event
 
-from gsl.projet.constants import DOTATIONS
-from gsl_core.decorators import htmx_only
-from gsl_core.exceptions import Http404
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
+from gsl.core.decorators import htmx_only
+from gsl.core.exceptions import Http404
+from gsl.core.matomo import queue_matomo_event
+from gsl.core.matomo_constants import (
     MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
     MATOMO_CATEGORY_SIMULATION,
 )
+from gsl.projet.constants import DOTATIONS
 
 from ..forms import BulkStatusJobForm
 from ..models import BulkStatusJob, Simulation, SimulationProjet

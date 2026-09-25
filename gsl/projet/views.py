@@ -31,16 +31,16 @@ from django_htmx.http import HttpResponseClientRedirect
 
 from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
-from gsl.historique.models import ProjetAction
-from gsl.simulation.forms import SimulationProjetForm
-from gsl.simulation.models import SimulationProjet
-from gsl_core.decorators import htmx_only
-from gsl_core.models import Perimetre
-from gsl_core.view_mixins import (
+from gsl.core.decorators import htmx_only
+from gsl.core.models import Perimetre
+from gsl.core.view_mixins import (
     FilterSkiplinksMixin,
     OpenHtmxModalMixin,
     SafeRedirectMixin,
 )
+from gsl.historique.models import ProjetAction
+from gsl.simulation.forms import SimulationProjetForm
+from gsl.simulation.models import SimulationProjet
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,

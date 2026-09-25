@@ -23,14 +23,14 @@ class ModeleArreteFactory(factory.django.DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"Modele {n}")
     description = "La description du modèle"
-    perimetre = factory.SubFactory("gsl_core.tests.factories.PerimetreFactory")
+    perimetre = factory.SubFactory("gsl.core.tests.factories.PerimetreFactory")
     dotation = factory.Iterator([DOTATION_DETR, DOTATION_DSIL])
     logo = factory.django.ImageField(filename="logo.png")
     logo_alt_text = factory.Faker("word")
     top_right_text = "Le texte en haut à droite du modèle"
     content = "<p>Contenu du modèle</p>"
     created_at = factory.Faker("date_time")
-    created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
+    created_by = factory.SubFactory("gsl.core.tests.factories.CollegueFactory")
     updated_at = factory.Faker("date_time")
 
 
@@ -56,7 +56,7 @@ class ArreteFactory(factory.django.DjangoModelFactory):
             dotation=obj.enveloppe_projet.dotation,
         )
     )
-    created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
+    created_by = factory.SubFactory("gsl.core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
     updated_at = datetime.datetime.now(datetime.UTC)
     content = "<p>Contenu du doc</p>"
@@ -100,7 +100,7 @@ class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
     enveloppe_projet = factory.SubFactory(
         "gsl.projet.tests.factories.EnveloppeProjetFactory", status="accepted"
     )
-    created_by = factory.SubFactory("gsl_core.tests.factories.CollegueFactory")
+    created_by = factory.SubFactory("gsl.core.tests.factories.CollegueFactory")
     created_at = datetime.datetime.now(datetime.UTC)
 
 

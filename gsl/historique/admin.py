@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from gsl_core.models import Collegue
+from gsl.core.models import Collegue
 
 from .models import CollegueLogEntry, ProjetAction
 

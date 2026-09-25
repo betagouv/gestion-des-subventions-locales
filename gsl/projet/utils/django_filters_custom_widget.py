@@ -87,7 +87,7 @@ class DsfrRangeWidget(SuffixedMultiWidget):
 
     def active_tag_label(self, value, label):
         """Euro span ("de … à …" / "supérieur à …" / "inférieur à …"), or ''."""
-        from gsl_core.templatetags.gsl_filters import euro
+        from gsl.core.templatetags.gsl_filters import euro
 
         if value is None:
             return ""

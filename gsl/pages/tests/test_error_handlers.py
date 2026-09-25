@@ -2,8 +2,8 @@ import pytest
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.test import override_settings
 
-from gsl_core.exceptions import Http404, PermissionDenied
-from gsl_core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
+from gsl.core.exceptions import Http404, PermissionDenied
+from gsl.core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
 
 
 @pytest.mark.django_db

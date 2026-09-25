@@ -1,0 +1,193 @@
+{% load static i18n dsfr_tags gsl_filters %}
+<!DOCTYPE html>
+<html lang="{% block lang %} {% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }} {% endblock lang %}"
+      data-fr-scheme="system"
+      {% if SITE_CONFIG.mourning %}data-fr-mourning{% endif %}>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+        {% dsfr_css %}
+        {% dsfr_favicon %}
+
+        <link rel="stylesheet" href="{% static "css/gsl.css" %}">
+        <link rel="stylesheet" href="{% static "css/messages.css" %}">
+        {% block extra_css %}
+        {% endblock extra_css %}
+
+        {% block title %}
+            <title>
+                {% if title %}
+                    {{ title }} — Turgot
+                {% else %}
+                    Turgot
+                {% endif %}
+            </title>
+        {% endblock title %}
+
+        {% block meta_description %}
+            <meta name="description"
+                  content="La plateforme Turgot est un outil numérique qui permet aux services des préfectures françaises de gérer les subventions locales.">
+        {% endblock meta_description %}
+
+        {% block meta_keywords %}
+            <meta name="keywords"
+                  content="GSL, subventions, locales, préfectures, gestion, numérique, turgot">
+        {% endblock meta_keywords %}
+
+        <meta name="format-detection"
+              content="telephone=no,date=no,address=no,email=no,url=no">
+
+        {% block opengraph %}
+        {% endblock opengraph %}
+
+        {% block importmap %}
+            <script type="importmap" nonce="{{ csp_nonce }}">
+            {
+                "imports": {
+                    "stimulus": "{% static 'vendor/stimulus.js' %}",
+                    "tiptap": "{% static 'vendor/tiptap.js' %}",
+                    "tiptapEditor": "{% static 'ui/controllers/tiptapEditor.js' %}",
+                    "modal": "{% static 'ui/controllers/modal.js' %}",
+                    "documentImport": "{% static 'ui/controllers/document_import_controller.js' %}",
+                    "fileDropzone": "{% static 'ui/controllers/file_dropzone_controller.js' %}",
+                    "doubleDotation": "{% static 'js/controllers/doubleDotation.js' %}",
+                    "modeleArreteForm": "{% static 'js/modeleArreteForm.js' %}",
+                    "deleteNotificationDocumentModal": "{% static 'js/deleteNotificationDocumentModal.js' %}",
+                    "skipDocumentToggle": "{% static 'js/skipDocumentToggle.js' %}",
+                    "checkboxSelection": "{% static 'js/checkboxSelection.js' %}",
+                    "bindAmountFields": "{% static 'js/controllers/bindAmountFields.js' %}",
+                    "cancelPollOnModalClose": "{% static 'js/controllers/cancelPollOnModalClose.js' %}",
+                    "formUtils": "{% static 'js/controllers/formUtils.js' %}",
+                    "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
+                    "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
+                    "conditionalField": "{% static 'js/controllers/conditionalField.js' %}",
+                    "enableOnChange": "{% static 'js/controllers/enableOnChange.js' %}",
+                    "projetNotes": "{% static 'js/controllers/projetNotes.js' %}",
+                    "projetNoteCard": "{% static 'js/controllers/projetNoteCard.js' %}",
+                    "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}",
+                    "formatMontant": "{% static 'js/controllers/formatMontant.js' %}",
+                    "autoDismiss": "{% static 'js/controllers/autoDismiss.js' %}",
+                    "htmxError": "{% static 'js/controllers/htmxError.js' %}"
+                }
+            }
+            </script>
+        {% endblock importmap %}
+        <script type="module" src="{% static 'vendor/htmx.esm.js' %}"></script>
+        <meta name="htmx-config"
+              content='{"includeIndicatorStyles":false,"allowScriptTags":false,"allowEval":false}'>
+
+        {% if MATOMO_SITE_ID %}
+            <script nonce="{{ csp_nonce }}">window.MATOMO_SITE_ID = {{ MATOMO_SITE_ID }};</script>
+            <script src="{% static "js/matomo.js" %}" nonce="{{ csp_nonce }}" defer></script>
+        {% endif %}
+
+        {% block extra_head_js %}
+        {% endblock extra_head_js %}
+    </head>
+    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          data-controller="htmx-error">
+        {% block skiplinks %}
+            {% dsfr_skiplinks skiplinks|add:extra_skiplinks %}
+        {% endblock skiplinks %}
+
+        {% block header %}
+            {% include "blocks/header.html" %}
+        {% endblock header %}
+
+        {% dsfr_theme_modale %}
+
+        {% if SITE_CONFIG.notice_title or SITE_CONFIG.notice_description %}
+            {% dsfr_notice title=SITE_CONFIG.notice_title description=SITE_CONFIG.notice_description link=SITE_CONFIG.notice_link type=SITE_CONFIG.notice_type icon=SITE_CONFIG.notice_icon_class is_collapsible=SITE_CONFIG.notice_is_collapsible %}
+        {% endif %}
+
+        {% block messages %}
+            {% include "blocks/messages.html" %}
+        {% endblock messages %}
+
+        <div class="fr-container fr-mt-4w fr-mb-6w">
+            <main id="content" role="main" tabindex="-1">
+                {% block content %}
+                {% endblock content %}
+            </main>
+        </div>
+
+        {% block follow_newsletter_social_media %}
+        {% endblock follow_newsletter_social_media %}
+
+        {% block footer %}
+            {% include "blocks/footer.html" %}
+        {% endblock footer %}
+
+        {% dsfr_js nonce=csp_nonce %}
+
+        {% block modal %}
+        {% endblock modal %}
+
+        <script src="{% static "js/gsl.js" %}" defer></script>
+        <script src="{% static "js/sticky_table_headers.js" %}" defer></script>
+        <script type="module" nonce="{{ csp_nonce }}">
+            import { Application } from "stimulus"
+            import { AutoDismiss } from "autoDismiss"
+            import { BindAmountFields } from "bindAmountFields"
+            import { CancelPollOnModalClose } from "cancelPollOnModalClose"
+            import { CheckboxSelection } from "checkboxSelection"
+            import { CommentArbitrage } from "commentArbitrage"
+            import { ConditionalField } from "conditionalField"
+            import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
+            import { DocumentImport } from "documentImport"
+            import { DotationDropdown } from "dotationDropdown"
+            import { DoubleDotation } from "doubleDotation"
+            import { FormatMontant } from "formatMontant"
+            import { FormUtils } from "formUtils"
+            import { HtmxError } from "htmxError"
+            import { Modal } from "modal"
+            import { EnableOnChange } from "enableOnChange"
+            import { FileDropzone } from "fileDropzone"
+            import { ModeleArreteForm } from "modeleArreteForm"
+            import { ProjetNoteCard } from "projetNoteCard"
+            import { ProjetNotes } from "projetNotes"
+            import { RadioNavigate } from "radioNavigate"
+            import { SkipDocumentToggle } from "skipDocumentToggle"
+            import { TipTapEditor } from "tiptapEditor"
+
+            window.Stimulus = Application.start()
+
+            Stimulus.register("double-dotation", DoubleDotation)
+            Stimulus.register("modal", Modal)
+            Stimulus.register("document-import", DocumentImport)
+            Stimulus.register("file-dropzone", FileDropzone)
+            Stimulus.register("tiptap-editor", TipTapEditor)
+            Stimulus.register("modele-arrete-form", ModeleArreteForm)
+            Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)
+            Stimulus.register("skip-document-toggle", SkipDocumentToggle)
+            Stimulus.register("checkbox-selection", CheckboxSelection)
+            Stimulus.register("bind-amount-fields", BindAmountFields)
+            Stimulus.register("cancel-poll-on-modal-close", CancelPollOnModalClose)
+            Stimulus.register("form-utils", FormUtils)
+            Stimulus.register("dotation-dropdown", DotationDropdown)
+            Stimulus.register("comment-arbitrage", CommentArbitrage)
+            Stimulus.register("conditional-field", ConditionalField)
+            Stimulus.register("enable-on-change", EnableOnChange)
+            Stimulus.register("projet-notes", ProjetNotes)
+            Stimulus.register("projet-note-card", ProjetNoteCard)
+            Stimulus.register("radio-navigate", RadioNavigate)
+            Stimulus.register("format-montant", FormatMontant)
+            Stimulus.register("auto-dismiss", AutoDismiss)
+            Stimulus.register("htmx-error", HtmxError)
+        </script>
+
+        {% block extra_js %}
+        {% endblock extra_js %}
+
+        {% if MATOMO_SITE_ID and matomo_pending_events %}
+            <script nonce="{{ csp_nonce }}">
+                window.addEventListener("DOMContentLoaded", () => {
+                    var _paq = (window._paq = window._paq || []);% for event in matomo_pending_events %
+                        _paq.push(["trackEvent", "{{ event.category|escapejs }}", "{{ event.action|escapejs }}", "{{ event.name|escapejs }}"]);% endfor %
+                });
+            </script>
+        {% endif %}
+    </body>
+</html>

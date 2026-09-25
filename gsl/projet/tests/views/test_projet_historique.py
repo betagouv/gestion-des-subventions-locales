@@ -2,9 +2,9 @@ import pytest
 from django.shortcuts import reverse
 from django.utils import timezone
 
+from gsl.core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
 from gsl.historique.models import ProjetAction
 from gsl.projet.tests.factories import ProjetFactory
-from gsl_core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
 
 pytestmark = pytest.mark.django_db()
 

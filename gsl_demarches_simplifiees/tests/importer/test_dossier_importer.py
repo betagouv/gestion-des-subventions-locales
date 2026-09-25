@@ -5,7 +5,7 @@ import pytest
 from django.contrib import messages
 from django.utils.timezone import datetime
 
-from gsl_core.tests.factories import DepartementFactory
+from gsl.core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import (

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from gsl_core.models import Adresse
+from gsl.core.models import Adresse
 from gsl_demarches_simplifiees.models import (
     FormeJuridique,
     Naf,

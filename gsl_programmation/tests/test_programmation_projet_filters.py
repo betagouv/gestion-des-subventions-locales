@@ -4,6 +4,13 @@ from decimal import Decimal
 import pytest
 from django.test import RequestFactory
 
+from gsl.core.tests.factories import (
+    ArrondissementFactory,
+    CollegueFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -12,13 +19,6 @@ from gsl.projet.constants import (
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,
-)
-from gsl_core.tests.factories import (
-    ArrondissementFactory,
-    CollegueFactory,
-    PerimetreArrondissementFactory,
-    PerimetreDepartementalFactory,
-    PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (

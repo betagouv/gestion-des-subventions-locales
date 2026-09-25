@@ -4,9 +4,9 @@ from typing import Any, Literal
 
 from django.db import transaction
 
+from gsl.core.models import Perimetre
 from gsl.historique.models import ProjetAction
 from gsl.simulation.models import Simulation, SimulationProjet
-from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_programmation.models import Enveloppe
 

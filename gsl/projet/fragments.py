@@ -1,4 +1,4 @@
-from gsl_core.fragments import Fragment
+from gsl.core.fragments import Fragment
 
 from .forms import (
     EnveloppeProjetAssietteForm,

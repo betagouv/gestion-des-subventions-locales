@@ -4,8 +4,8 @@ from django.shortcuts import render
 from django.views import View
 from django.views.generic import ListView
 
+from gsl.core.models import Perimetre
 from gsl.projet.models import Projet
-from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import PersonneMorale
 
 from .models import Subvention

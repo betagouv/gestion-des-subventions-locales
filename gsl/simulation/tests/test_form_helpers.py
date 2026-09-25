@@ -3,6 +3,11 @@ from decimal import Decimal
 
 import pytest
 
+from gsl.core.tests.factories import (
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     ProjetStatus,
@@ -13,11 +18,6 @@ from gsl.projet.tests.factories import (
     DsilProjetFactory,
     EnveloppeProjetFactory,
     ProjetFactory,
-)
-from gsl_core.tests.factories import (
-    PerimetreArrondissementFactory,
-    PerimetreDepartementalFactory,
-    PerimetreRegionalFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory

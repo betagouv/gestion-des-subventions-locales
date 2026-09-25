@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_ACCEPTE,
@@ -14,7 +15,6 @@ from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION,
     DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
 )
-from gsl_core.models import Collegue
 
 if TYPE_CHECKING:
     from gsl.projet.models import Projet

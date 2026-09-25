@@ -11,9 +11,9 @@ from django_json_widget.widgets import JSONEditorWidget
 from import_export.admin import ImportExportMixin
 
 from gsl.celery import TASK_PRIORITY_LOW, priority_for_dispatch_count
+from gsl.core.admin import AllPermsForStaffUser
+from gsl.core.models import Arrondissement
 from gsl.utils.csp import csp_update
-from gsl_core.admin import AllPermsForStaffUser
-from gsl_core.models import Arrondissement
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.demarche import save_demarche_from_ds
 

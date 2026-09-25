@@ -9,16 +9,16 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from gsl.core.tests.factories import (
+    CollegueFactory,
+    PerimetreDepartementalFactory,
+)
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
 )
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
-from gsl_core.tests.factories import (
-    CollegueFactory,
-    PerimetreDepartementalFactory,
-)
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,

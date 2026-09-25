@@ -5,8 +5,8 @@ from unittest import mock
 import pytest
 from django.core.management import call_command
 
+from gsl.core.tests.factories import PerimetreArrondissementFactory
 from gsl.projet.tests.factories import ProjetFactory
-from gsl_core.tests.factories import PerimetreArrondissementFactory
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 

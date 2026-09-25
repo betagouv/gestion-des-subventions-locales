@@ -11,14 +11,14 @@ from django.utils import timezone
 from django.utils.text import slugify
 from freezegun import freeze_time
 
-from gsl.projet.constants import DOTATION_DETR, LETTRE, ProjetStatus
-from gsl.projet.models import Projet
-from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreFactory,
 )
+from gsl.projet.constants import DOTATION_DETR, LETTRE, ProjetStatus
+from gsl.projet.models import Projet
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_notification.forms import (
     ARRETE_ET_LETTRE,
     EXPORT_FORMAT_ONE_PDF_ALL,

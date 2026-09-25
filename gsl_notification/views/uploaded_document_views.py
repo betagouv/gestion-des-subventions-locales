@@ -3,8 +3,8 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
 
+from gsl.core.exceptions import Http404
 from gsl.projet.models import Projet
-from gsl_core.exceptions import Http404
 from gsl_notification.models import UPLOADED_DOCUMENTS
 from gsl_notification.utils import get_s3_object
 

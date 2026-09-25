@@ -4,8 +4,8 @@ from datetime import timezone as tz
 import pytest
 from django.db import connection
 
-from gsl_core.models import Departement, Perimetre
-from gsl_core.tests.factories import (
+from gsl.core.models import Departement, Perimetre
+from gsl.core.tests.factories import (
     ArrondissementFactory,
     CollegueFactory,
     DepartementFactory,

@@ -4,7 +4,7 @@ from random import randint
 import factory
 from django.utils import timezone
 
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     AdresseFactory,
     CollegueFactory,
     DepartementFactory,

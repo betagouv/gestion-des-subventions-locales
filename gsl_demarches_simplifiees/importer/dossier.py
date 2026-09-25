@@ -4,10 +4,10 @@ from typing import Iterable, NamedTuple
 from django.contrib import messages
 
 from gsl.celery import TASK_PRIORITY_HIGH, TASK_PRIORITY_LOW
+from gsl.core.models import Departement
 from gsl.historique.models import ProjetAction
 from gsl.projet.models import Projet
 from gsl.projet.services.projet_services import ProjetService
-from gsl_core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.importer.dossier_converter import DossierConverter

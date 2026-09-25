@@ -14,7 +14,7 @@ from django_filters import (
     RangeFilter,
 )
 
-from gsl_core.models import Perimetre
+from gsl.core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,

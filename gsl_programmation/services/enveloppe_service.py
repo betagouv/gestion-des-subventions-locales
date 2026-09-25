@@ -1,7 +1,7 @@
 from typing_extensions import deprecated
 
+from gsl.core.models import Collegue, Perimetre
 from gsl.projet.constants import DOTATION_DSIL
-from gsl_core.models import Collegue, Perimetre
 from gsl_programmation.models import Enveloppe
 
 

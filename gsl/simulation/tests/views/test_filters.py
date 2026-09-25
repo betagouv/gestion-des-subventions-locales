@@ -4,13 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import resolve, reverse
 
-from gsl.projet.models import Projet
-from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
-from gsl.projet.tests.factories import (
-    EnveloppeProjetFactory,
-    ProjetFactory,
-)
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ArrondissementFactory,
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -18,6 +12,12 @@ from gsl_core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
     RequestFactory,
+)
+from gsl.projet.models import Projet
+from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
+from gsl.projet.tests.factories import (
+    EnveloppeProjetFactory,
+    ProjetFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import (

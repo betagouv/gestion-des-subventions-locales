@@ -3,13 +3,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from gsl.projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, ProjetStatus
-from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreFactory,
 )
+from gsl.projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, ProjetStatus
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,

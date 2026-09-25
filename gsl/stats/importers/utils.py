@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
-from gsl_core.models import Commune, Departement
+from gsl.core.models import Commune, Departement
 
 DEPARTEMENTS: dict[str, Departement] = {}
 COMMUNES: dict[str, Commune] = {}

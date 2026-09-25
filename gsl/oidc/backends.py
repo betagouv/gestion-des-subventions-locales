@@ -9,8 +9,8 @@ from mozilla_django_oidc.auth import (
     default_username_algo,
 )
 
-from gsl_core.auth_backends import LastLoginDeactivationMixin
-from gsl_core.models import Collegue
+from gsl.core.auth_backends import LastLoginDeactivationMixin
+from gsl.core.models import Collegue
 
 logger = getLogger(__name__)
 

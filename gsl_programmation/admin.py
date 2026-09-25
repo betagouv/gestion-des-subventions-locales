@@ -2,8 +2,8 @@ from django.contrib import admin
 from django.db.models import Count
 from import_export.admin import ImportExportMixin
 
-from gsl_core.admin import AllPermsForStaffUser
-from gsl_core.templatetags.gsl_filters import euro
+from gsl.core.admin import AllPermsForStaffUser
+from gsl.core.templatetags.gsl_filters import euro
 
 from .models import Enveloppe
 from .resources import EnveloppeDETRResource, EnveloppeDSILResource

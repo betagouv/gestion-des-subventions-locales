@@ -2,7 +2,7 @@ import pytest
 import responses
 from freezegun import freeze_time
 
-from gsl_core.api.fonds_vert import FONDS_VERT_BASE_URL
+from gsl.core.api.fonds_vert import FONDS_VERT_BASE_URL
 
 from ...importers.fonds_vert import (
     FONDS_VERT_DISPOSITIF,
@@ -93,7 +93,7 @@ class TestImportFondsVertDossier:
 
 class TestImportFondsVertPage:
     """`_import_fonds_vert_page` traite une page brute (cf.
-    `gsl_core.api.fonds_vert.iter_dossiers_pages`)."""
+    `gsl.core.api.fonds_vert.iter_dossiers_pages`)."""
 
     def test_reports_created_and_updated_counts(self):
         first = _fonds_vert_item(dossier_number=1)
@@ -130,7 +130,7 @@ class TestImportFondsVertPage:
 
 class TestImportFondsVertSubventions:
     """`import_fonds_vert_subventions` : connexion (cf.
-    `gsl_core.api.fonds_vert`) + filtre de date (`FondsVertImportState`)."""
+    `gsl.core.api.fonds_vert`) + filtre de date (`FondsVertImportState`)."""
 
     @pytest.fixture(autouse=True)
     def fonds_vert_credentials(self, settings):

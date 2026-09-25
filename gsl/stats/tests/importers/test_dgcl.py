@@ -1,8 +1,8 @@
 import pytest
 import responses
 
-from gsl_core.api.data_gouv import get_dataset_api_url
-from gsl_core.tests.factories import CommuneFactory, DepartementFactory
+from gsl.core.api.data_gouv import get_dataset_api_url
+from gsl.core.tests.factories import CommuneFactory, DepartementFactory
 
 from ...importers.dgcl import (
     DGCL_DATASET_ID,

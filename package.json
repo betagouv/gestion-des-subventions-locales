@@ -38,7 +38,7 @@
     ],
     "ignore": [
       "static/vendor",
-      "gsl_core/static/js/matomo.js"
+      "gsl/core/static/js/matomo.js"
     ]
   }
 }

@@ -10,6 +10,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
+from gsl.core.tests.factories import CollegueFactory
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
     DOTATION_DETR,
@@ -19,7 +20,6 @@ from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_REFUSE,
 )
 from gsl.projet.tests.factories import ProjetFactory
-from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_demarches_simplifiees.services import (
     DsService,

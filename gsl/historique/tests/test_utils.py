@@ -2,6 +2,8 @@ from datetime import UTC, datetime
 
 import pytest
 
+from gsl.core.models import Collegue
+from gsl.core.tests.factories import CollegueFactory
 from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_ACCEPTE,
     DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT,
@@ -17,8 +19,6 @@ from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
 )
 from gsl.projet.tests.factories import ProjetFactory
-from gsl_core.models import Collegue
-from gsl_core.tests.factories import CollegueFactory
 from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 
 from ..models import ProjetAction

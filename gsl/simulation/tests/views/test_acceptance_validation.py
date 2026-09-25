@@ -14,17 +14,17 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueWithDSProfileFactory,
+    PerimetreDepartementalFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueWithDSProfileFactory,
-    PerimetreDepartementalFactory,
-)
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 

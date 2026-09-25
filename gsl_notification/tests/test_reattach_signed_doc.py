@@ -8,10 +8,10 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from pikepdf import Page, Pdf
 
+from gsl.core.tests.factories import CollegueFactory
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.models import LettreEtArreteSignes, LettreRefusSignee
 from gsl_notification.qr.codec import (
     RENDER_SCALE,
