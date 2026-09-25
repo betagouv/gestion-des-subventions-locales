@@ -22,12 +22,12 @@ from django_fsm import FSMField, transition
 
 from gsl.core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl.historique.models import ProjetAction
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.services import DsService
-from gsl_notification.models import (
+from gsl.notification.models import (
     GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
 )
+from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.services import DsService
 
 from .constants import (
     DOTATION_CHOICES,

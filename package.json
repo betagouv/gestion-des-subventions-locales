@@ -26,8 +26,8 @@
   "scripts": {
     "lint:css": "stylelint \"**/*.css\"",
     "lint-fix:css": "stylelint --fix \"**/*.css\"",
-    "format:js": "standard \"gsl_*/**/*.js\"",
-    "format-fix:js": "standard --fix \"gsl_*/**/*.js\"",
+    "format:js": "standard \"gsl/**/*.js\"",
+    "format-fix:js": "standard --fix \"gsl/**/*.js\"",
     "build": "esbuild static/to_bundle/tiptap.js --bundle --format=esm --outfile=static/vendor/tiptap.js --minify"
   },
   "standard": {

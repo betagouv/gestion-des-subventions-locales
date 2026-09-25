@@ -545,13 +545,13 @@ aware, fully implemented):
   (see `Projet.dotation_not_treated`).
 - All imported documents (across every dotation) are concatenated into a
   single PDF sent to DN (`merge_documents_into_pdf`,
-  `gsl_notification/utils.py`).
+  `gsl/notification/utils.py`).
 - The notification message is **mandatory** for a refused/dismissed,
   **optional** for an accepted.
 
 Single entry point for all three outcomes: the "3 - Notifier" step of the
 notification tab (`NotificationMessageForm`/`NotificationMessageFormView`,
-`gsl_notification/forms.py` / `gsl_notification/views/views.py`) branches on
+`gsl/notification/forms.py` / `gsl/notification/views/views.py`) branches on
 `projet.status` — `DsMutator().dossier_accepter(...)` for accepted,
 `DsService().refuser_in_ds`/`dismiss_in_ds` for refused/dismissed — and
 merges `projet.imported_documents` (which already spans `LettreEtArreteSignes`,
@@ -564,9 +564,9 @@ sent to DN.
 - User manually triggers notification to send documents to applicant
 
 **Adding a new document template:**
-1. Create model class in `gsl_notification/models.py` (e.g., `ModeleMonDocument`)
+1. Create model class in `gsl/notification/models.py` (e.g., `ModeleMonDocument`)
 2. Add admin inline to configure templates
-3. Create template file in `gsl_notification/templates/`
+3. Create template file in `gsl/notification/templates/`
 4. Add generation method in views to render template
 5. Implement file upload for signed documents like `LettreEtArreteSignes` or
    `LettreRefusSignee`
@@ -766,7 +766,7 @@ See `.env.example` for required variables:
 | `gsl_demarches_simplifiees/models.py` | Dossier, DS integration models |
 | `gsl_projet/models.py` | Project, DotationProjet models |
 | `gsl/programmation/models.py` | Enveloppe, ProgrammationProjet models |
-| `gsl_notification/models.py` | Template and document models |
+| `gsl/notification/models.py` | Template and document models |
 | `package.json` | JS dependencies and build scripts |
 | `pyproject.toml` | Python dependencies, declared for uv (main deps + `dev` group) |
 | `uv.lock` | Pinned Python dependency lockfile (managed by uv) |

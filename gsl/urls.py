@@ -41,7 +41,7 @@ urlpatterns = [
     ),
     path(
         "notification/",
-        include(("gsl_notification.urls", "gsl_notification"), "notification"),
+        include(("gsl.notification.urls", "gsl_notification"), "notification"),
     ),
     path(
         "ds-proxy/",

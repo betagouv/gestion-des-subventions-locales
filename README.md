@@ -100,7 +100,7 @@ Les raccourcis suivants existent :
 ## Configurer le bucket S3 (import/export de documents)
 
 L'import de scans se fait par envoi direct du navigateur vers le bucket S3 (POST
-présigné, voir `gsl_notification.views.import_views`). Pour que le navigateur soit
+présigné, voir `gsl.notification.views.import_views`). Pour que le navigateur soit
 autorisé à uploader, le bucket doit porter une règle CORS autorisant les requêtes
 `POST` depuis l'origine de l'app. Sans cette règle, S3/Scaleway répond `403` sans
 en-tête `Access-Control-Allow-Origin` et le navigateur signale une erreur
