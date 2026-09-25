@@ -1,3 +1,4 @@
+import os
 from datetime import UTC, date, datetime
 from datetime import timezone as tz
 from functools import cached_property
@@ -42,7 +43,7 @@ from .constants import (
     POSSIBLE_DOTATIONS,
     ProjetStatus,
 )
-from .utils.utils import compute_taux, floatize
+from .utils.utils import compute_taux, floatize, merge_documents_into_pdf
 
 if TYPE_CHECKING:
     from gsl.programmation.models import Enveloppe
@@ -459,6 +460,40 @@ class Projet(BaseModel):
                 list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
+
+    def notify(self, user: Collegue, motivation: str = "") -> None:
+        documents = self.imported_documents
+        justificatif_file = None
+        if documents:
+            justificatif_file = merge_documents_into_pdf(
+                documents, filename=self._notification_filename(documents)
+            )
+
+        ds_service = DsService()
+        # Dossier was recently refreshed DN
+        # Race conditions remain possible, but should be rare enough and just fail without any side effect.
+        if self.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+            ds_service.passer_en_instruction(dossier=self.dossier_ds, user=user)
+
+        notify_in_ds = {
+            ProjetStatus.ACCEPTED: ds_service.accept_in_ds,
+            ProjetStatus.REFUSED: ds_service.refuser_in_ds,
+            ProjetStatus.DISMISSED: ds_service.dismiss_in_ds,
+        }[self.status]
+        with transaction.atomic():
+            notify_in_ds(
+                self.dossier_ds,
+                user,
+                motivation=motivation,
+                document=justificatif_file,
+            )
+
+    def _notification_filename(self, documents) -> str:
+        if len(documents) <= 1:
+            return os.path.splitext(documents[0].name)[0] + ".pdf"
+        dotations = {doc.enveloppe_projet.dotation for doc in documents}
+        ordered = [d for d in DOTATIONS if d in dotations]
+        return f"Notification {self.dossier_ds.ds_number} {'-'.join(ordered)}.pdf"
 
     @property
     def areas_and_contracts_provided_by_instructor(self) -> List[str]:
