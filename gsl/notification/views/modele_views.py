@@ -143,6 +143,7 @@ class ChooseModeleDocumentType(FormView):
         context = super().get_context_data(**kwargs)
         context.update(
             {
+                "title": "Création d'un modèle",
                 "dotation": self.dotation,
                 "current_tab": self.dotation,
             }

@@ -43,10 +43,26 @@
 
         {{ form.hide_qr_code.as_field_group }}
 
-        <button type="submit"
-                class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left"
-                {% if projet.has_been_notified %}disabled{% endif %}>
-            Générer les documents
-        </button>
+        {% if projet.has_been_notified %}
+            <div class="fr-mt-3w">
+                {% comment %} The button is wrapped in a span with tabindex and aria-describedby for accessibility{% endcomment %}
+                <span tabindex="0" aria-describedby="tooltip-generate-documents-disabled">
+                    <button type="submit"
+                            class="fr-btn fr-icon-file-text-line fr-btn--icon-left"
+                            disabled>
+                        Générer les documents
+                    </button>
+                </span>
+            </div>
+            <span class="fr-tooltip fr-placement"
+                  id="tooltip-generate-documents-disabled"
+                  role="tooltip"
+                  aria-hidden="true">Le projet a déjà été notifié, vous ne pouvez plus générer de documents</span>
+        {% else %}
+            <button type="submit"
+                    class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left">
+                Générer les documents
+            </button>
+        {% endif %}
     </form>
 </div>
