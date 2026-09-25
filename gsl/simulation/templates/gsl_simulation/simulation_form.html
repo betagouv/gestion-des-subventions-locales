@@ -4,7 +4,7 @@
     <h1>{{ title }}</h1>
     <div class="fr-grid-row">
         <div class="fr-col-12 fr-col-md-6">
-            <form id="simulation-form" method="POST">
+            <form id="simulation-form" method="post">
                 {% csrf_token %}
                 {{ form }}
                 <p class="text-align-right">

@@ -365,7 +365,7 @@
                         </p>
                     </div>
                     {% for dp in enveloppe_projets %}
-                        {% if dp.status == 'processing' and not projet.has_been_notified %}
+                        {% if dp.status == "processing" and not projet.has_been_notified %}
                             {% render_fragment "gsl_projet:assiette_dotation_form" dp %}
                         {% else %}
                             {% include "includes/projet_detail/_enveloppe_projet_readonly_block.html" %}

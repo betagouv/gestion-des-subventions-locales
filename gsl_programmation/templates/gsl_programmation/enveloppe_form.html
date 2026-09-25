@@ -17,7 +17,7 @@
                 <p>{{ object }}</p>
             {% endif %}
             <form id="enveloppe-form"
-                  method="POST"
+                  method="post"
                   data-controller="form-utils"
                   data-action="submit->form-utils#disableButtons">
                 {% csrf_token %}

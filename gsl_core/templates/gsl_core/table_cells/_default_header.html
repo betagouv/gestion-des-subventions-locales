@@ -7,9 +7,9 @@
             <a href="{% querystring order=next_order %}"
                title="Trier par {{ column.label }}">
                 {{ column.label }}
-                {% if sort_state == 'ascending' %}
+                {% if sort_state == "ascending" %}
                     <span class="fr-sr-only">(ascendant)</span>
-                {% elif sort_state == 'descending' %}
+                {% elif sort_state == "descending" %}
                     <span class="fr-sr-only">(descendant)</span>
                 {% endif %}
                 <i class="fr-icon--sm {% if sort_state == 'ascending' %}fr-icon-arrow-up-s-fill{% elif sort_state == 'descending' %}fr-icon-arrow-down-s-fill{% else %}fr-icon-arrow-up-down-line{% endif %}"
