@@ -1,6 +1,6 @@
 from django.urls import path
 
-from gsl_programmation.views import (
+from gsl.programmation.views import (
     EnveloppeCreateView,
     EnveloppeDeleteView,
     EnveloppeUpdateView,

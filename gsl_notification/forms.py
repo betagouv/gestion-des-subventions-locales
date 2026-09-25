@@ -13,6 +13,7 @@ from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
+from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
 from gsl.projet.constants import (
     ARRETE,
     DOTATIONS,
@@ -43,7 +44,6 @@ from gsl_notification.utils import (
     replace_mentions_in_html,
 )
 from gsl_notification.validators import document_file_validator
-from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
 class PresignedUploadForm(forms.Form):

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from gsl_programmation.views import ProgrammationListView
+from gsl.programmation.views import ProgrammationListView
 
 app_name = "gsl_programmation"
 

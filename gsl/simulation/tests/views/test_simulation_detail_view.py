@@ -11,16 +11,16 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     RequestFactory,
 )
+from gsl.programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl.projet.models import Projet
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 from ...models import SimulationProjet

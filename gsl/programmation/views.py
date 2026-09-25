@@ -18,15 +18,15 @@ from gsl.core.matomo_constants import (
 )
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import FilterSkiplinksMixin
+from gsl.programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
+from gsl.programmation.models import Enveloppe
+from gsl.programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
+from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
 )
 from gsl.projet.models import EnveloppeProjet
-from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
-from gsl_programmation.models import Enveloppe
-from gsl_programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
-from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
 class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):

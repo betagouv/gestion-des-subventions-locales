@@ -19,6 +19,7 @@ from gsl.core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -26,7 +27,6 @@ from gsl.projet.constants import (
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet

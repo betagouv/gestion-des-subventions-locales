@@ -45,9 +45,9 @@ from .constants import (
 from .utils.utils import compute_taux, floatize
 
 if TYPE_CHECKING:
+    from gsl.programmation.models import Enveloppe
     from gsl.simulation.models import SimulationProjet
     from gsl_demarches_simplifiees.models import Dossier
-    from gsl_programmation.models import Enveloppe
 
 
 class ProjetQuerySet(models.QuerySet):

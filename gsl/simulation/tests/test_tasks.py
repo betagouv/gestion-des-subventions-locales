@@ -7,8 +7,8 @@ from gsl.core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ..models import BulkStatusJob, SimulationProjet
 from ..tasks import run_bulk_status_job

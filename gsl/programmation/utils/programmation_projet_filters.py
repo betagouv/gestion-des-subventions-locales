@@ -7,6 +7,7 @@ from django_filters import (
 )
 
 from gsl.core.models import Perimetre
+from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -31,7 +32,6 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
-from gsl_programmation.models import Enveloppe
 
 PROGRAMMATION_ORDERING_MAP = {
     "projet__dossier_ds__finance_cout_total": "cout",

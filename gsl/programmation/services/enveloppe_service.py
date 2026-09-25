@@ -1,8 +1,8 @@
 from typing_extensions import deprecated
 
 from gsl.core.models import Collegue, Perimetre
+from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import DOTATION_DSIL
-from gsl_programmation.models import Enveloppe
 
 
 class EnveloppeService:

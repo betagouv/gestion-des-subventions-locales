@@ -37,7 +37,7 @@ urlpatterns = [
     ),
     path(
         "programmation/",
-        include(("gsl_programmation.urls", "gsl_programmation"), "programmation"),
+        include(("gsl.programmation.urls", "gsl_programmation"), "programmation"),
     ),
     path(
         "notification/",

@@ -7,7 +7,7 @@ from gsl.core.tests.factories import (
     DepartementFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from .factories import SimulationFactory
 

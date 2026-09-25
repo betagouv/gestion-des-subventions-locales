@@ -7,9 +7,9 @@ from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import DOTATION_DETR
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import Simulation, SimulationProjet
 from ..factories import SimulationFactory

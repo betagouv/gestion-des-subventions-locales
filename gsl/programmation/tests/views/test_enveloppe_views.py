@@ -8,13 +8,13 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl.simulation.tests.factories import SimulationFactory
-from gsl_programmation.models import Enveloppe
-from gsl_programmation.tests.factories import (
+from gsl.programmation.models import Enveloppe
+from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
 

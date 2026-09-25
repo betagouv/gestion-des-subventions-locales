@@ -7,8 +7,8 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl_programmation.models import Enveloppe
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):

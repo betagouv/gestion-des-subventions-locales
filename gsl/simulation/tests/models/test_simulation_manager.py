@@ -4,11 +4,11 @@ from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreRegionalFactory,
 )
-from gsl.projet.constants import DOTATION_DETR
-from gsl.projet.models import Projet
-from gsl_programmation.tests.factories import (
+from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
+from gsl.projet.constants import DOTATION_DETR
+from gsl.projet.models import Projet
 
 from ...models import Simulation, SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory

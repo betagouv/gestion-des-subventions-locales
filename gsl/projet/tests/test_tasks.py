@@ -7,11 +7,11 @@ from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import (
     DOTATION_DETR,

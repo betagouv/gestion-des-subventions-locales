@@ -10,13 +10,13 @@ from dsfr.forms import DsfrBaseForm
 from gsl.core.models import Collegue
 from gsl.core.templatetags.gsl_filters import euro
 from gsl.historique.models import ProjetAction
+from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import (
     EnveloppeProjet,
     Projet,
 )
 from gsl.projet.utils.utils import compute_taux
-from gsl_programmation.models import Enveloppe
 
 from .models import BulkStatusJob, Simulation, SimulationProjet
 from .services.simulation_projet_service import SimulationProjetService

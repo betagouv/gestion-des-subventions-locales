@@ -5,7 +5,7 @@ from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import Simulation
 from ..factories import SimulationFactory
