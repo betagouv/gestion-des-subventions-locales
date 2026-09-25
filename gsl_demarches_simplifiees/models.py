@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from decimal import Decimal
 from logging import getLogger
 
 from django.db import models
@@ -23,6 +25,12 @@ from gsl.projet.constants import (
 )
 
 logger = getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class AnnotationsDotation:
+    assiette: Decimal | None
+    montant: Decimal | None
 
 
 class Demarche(BaseModel):
@@ -771,26 +779,39 @@ class Dossier(BaseModel):
 
     @property
     def dotations_demande(self) -> list[POSSIBLE_DOTATIONS]:
-        dotations = []
+        return self._parse_dotations("demande_dispositif_sollicite")
 
-        if not self.demande_dispositif_sollicite:
-            return dotations
+    @property
+    def dotations_annotees(self) -> list[POSSIBLE_DOTATIONS]:
+        return self._parse_dotations("annotations_dotation")
 
-        if DOTATION_DETR in self.demande_dispositif_sollicite:
-            dotations.append(DOTATION_DETR)
-        if DOTATION_DSIL in self.demande_dispositif_sollicite:
-            dotations.append(DOTATION_DSIL)
+    def _parse_dotations(self, field: str) -> list[POSSIBLE_DOTATIONS]:
+        value = getattr(self, field)
+        if not value or value == "[]":
+            return []
 
+        dotations = [
+            dotation for dotation in (DOTATION_DETR, DOTATION_DSIL) if dotation in value
+        ]
         if not dotations:
             logger.warning(
-                "Champ demande_dispositif_sollicite invalide.",
-                extra={
-                    "dossier_ds_number": self.ds_number,
-                    "value": self.demande_dispositif_sollicite,
-                },
+                f"Champ {field} invalide.",
+                extra={"dossier_ds_number": self.ds_number, "value": value},
             )
-
         return dotations
+
+    def annotations_for(self, dotation: POSSIBLE_DOTATIONS) -> AnnotationsDotation:
+        if dotation == DOTATION_DETR:
+            return AnnotationsDotation(
+                assiette=self.annotations_assiette_detr,
+                montant=self.annotations_montant_accorde_detr,
+            )
+        if dotation == DOTATION_DSIL:
+            return AnnotationsDotation(
+                assiette=self.annotations_assiette_dsil,
+                montant=self.annotations_montant_accorde_dsil,
+            )
+        raise ValueError(f"Dotation inconnue : {dotation}")
 
     @property
     def cofinancements_avec_montants(self) -> list[dict]:
