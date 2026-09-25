@@ -215,7 +215,7 @@ def test_start_view_e2e_attaches_signed_document(client, user, perimetre):
 
     fake_s3.download_fileobj.side_effect = _download
 
-    with patch("gsl.notification.utils.get_s3_client", return_value=fake_s3):
+    with patch("gsl.core.s3.get_s3_client", return_value=fake_s3):
         response = client.post(
             reverse("gsl_notification:import-start"),
             {"s3_keys": json.dumps(["imports/abc/scan.pdf"])},
@@ -257,7 +257,7 @@ def test_start_view_merges_pages_of_same_project_across_files(client, user, peri
     fake_s3 = MagicMock()
     fake_s3.download_fileobj.side_effect = lambda b, k, f: f.write(blobs[k])
 
-    with patch("gsl.notification.utils.get_s3_client", return_value=fake_s3):
+    with patch("gsl.core.s3.get_s3_client", return_value=fake_s3):
         client.post(
             reverse("gsl_notification:import-start"),
             {"s3_keys": json.dumps(list(blobs))},
@@ -292,7 +292,7 @@ def test_start_view_does_not_attach_out_of_perimetre(client, user):
     fake_s3 = MagicMock()
     fake_s3.download_fileobj.side_effect = lambda b, k, f: f.write(pdf_bytes)
 
-    with patch("gsl.notification.utils.get_s3_client", return_value=fake_s3):
+    with patch("gsl.core.s3.get_s3_client", return_value=fake_s3):
         client.post(
             reverse("gsl_notification:import-start"),
             {"s3_keys": json.dumps(["imports/abc/scan.pdf"])},
@@ -323,7 +323,7 @@ def test_start_view_reports_unreadable_pages(client, user):
     fake_s3 = MagicMock()
     fake_s3.download_fileobj.side_effect = lambda b, k, f: f.write(pdf_bytes)
 
-    with patch("gsl.notification.utils.get_s3_client", return_value=fake_s3):
+    with patch("gsl.core.s3.get_s3_client", return_value=fake_s3):
         client.post(
             reverse("gsl_notification:import-start"),
             {"s3_keys": json.dumps(["imports/abc/blank.pdf"])},

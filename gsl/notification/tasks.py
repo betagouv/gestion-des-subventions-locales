@@ -191,7 +191,7 @@ def run_document_import_job(job_id: str) -> None:
     job row;
     temporary S3 objects are deleted once the job completes.
     """
-    from gsl.notification.utils import get_s3_client
+    from gsl.core.s3 import get_s3_client
 
     job = DocumentImportJob.objects.select_related("created_by").get(pk=job_id)
     result = _empty_import_result()
