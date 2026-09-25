@@ -56,9 +56,7 @@ class ImportReport:
 
 class NotifiedFragment(BaseProjetFragment):
     name = "notified"
-    template_name = (
-        "gsl_notification/tab_simulation_projet/tab_notifications.html#notified"
-    )
+    template_name = "gsl_notification/tab_notifications.html#notified"
 
     def get_context(self):
         return {
@@ -135,10 +133,7 @@ class NotificationMessageFragment(BaseProjetFragment):
 
 class ImportedDocumentsFragment(BaseProjetFragment):
     name = "imported_documents"
-    template_name = (
-        "gsl_notification/tab_simulation_projet/"
-        "tab_notifications.html#imported_documents"
-    )
+    template_name = "gsl_notification/tab_notifications.html#imported_documents"
 
     def get_context(self):
         return {

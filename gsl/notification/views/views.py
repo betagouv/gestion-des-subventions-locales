@@ -36,7 +36,7 @@ from gsl.utils.csp import csp_update
 
 
 class NotificationDocumentsView(BaseProjetDetailView):
-    template_name = "gsl_notification/tab_simulation_projet/tab_notifications.html"
+    template_name = "gsl_notification/tab_notifications.html"
 
     def get_queryset(self):
         return (
