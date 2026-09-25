@@ -10,7 +10,7 @@ This only affects user imports, not other model imports.
 {% block content %}
     {% if confirm_form %}
         {% block confirm_import_form %}
-            <form action="{% url opts|admin_urlname:"process_import" %}" method="POST">
+            <form action="{% url opts|admin_urlname:"process_import" %}" method="post">
                 {% csrf_token %}
                 {{ confirm_form.as_p }}
                 <p>
@@ -181,13 +181,13 @@ This only affects user imports, not other model imports.
                     {% for row in result.valid_rows %}
                         <tr class="{{ row.import_type }}">
                             <td class="import-type">
-                                {% if row.import_type == 'new' %}
+                                {% if row.import_type == "new" %}
                                     {% translate "New" %}
-                                {% elif row.import_type == 'skip' %}
+                                {% elif row.import_type == "skip" %}
                                     {% translate "Skipped" %}
-                                {% elif row.import_type == 'delete' %}
+                                {% elif row.import_type == "delete" %}
                                     {% translate "Delete" %}
-                                {% elif row.import_type == 'update' %}
+                                {% elif row.import_type == "update" %}
                                     {% translate "Update" %}
                                 {% endif %}
                             </td>

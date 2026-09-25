@@ -10,7 +10,7 @@
         </li>
         <li>
             <b>Montant accordé :</b>
-            {% if dp.status == 'accepted' %}
+            {% if dp.status == "accepted" %}
                 {{ dp.montant_retenu|euro:2 }}
             {% else %}
                 —
@@ -18,7 +18,7 @@
         </li>
         <li>
             <b>Taux de subvention :</b>
-            {% if dp.status == 'accepted' %}
+            {% if dp.status == "accepted" %}
                 {{ dp.taux_retenu|percent:3 }}
             {% else %}
                 —

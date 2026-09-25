@@ -23,7 +23,8 @@
                                     <td>{{ document.created_at|date:"d/m/Y H\hi" }}</td>
                                     <td>{{ document.enveloppe_projet.dotation }}</td>
                                     <td>
-                                        <span class="document-name-cell" title="{{ document.name }}">{{ document.name }}</span>
+                                        <span class="document-name-cell"
+                                              title="{{ document.name }}">{{ document.name }}</span>
                                     </td>
                                     <td>
                                         {% if is_imported %}
