@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from pikepdf import Pdf
 
-from gsl.notification.forms import (
+from gsl.notification.forms.bulk_generation_forms import (
     ARRETE_ET_LETTRE,
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,

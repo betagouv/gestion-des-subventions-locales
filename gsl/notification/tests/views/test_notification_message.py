@@ -24,7 +24,7 @@ from gsl.core.tests.factories import (
 )
 from gsl.historique.models import ProjetAction
 from gsl.historique.tests.factories import ProjetActionFactory
-from gsl.notification.forms import NotificationMessageForm
+from gsl.notification.forms.notification_forms import NotificationMessageForm
 from gsl.notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,
@@ -200,7 +200,7 @@ class TestForm:
                 ),
             ) as ds,
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -236,7 +236,7 @@ class TestForm:
                 ),
             ),
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -293,7 +293,7 @@ class TestForm:
                 ),
             ),
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -327,10 +327,11 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl.notification.forms.DsService.accept_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.accept_in_ds",
+                return_value=None,
             ),
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ) as merge_mock,
         ):
@@ -369,16 +370,19 @@ class TestForm:
         projet = _refused_projet(perimetre, with_signed_document=True)
         with (
             mock.patch(
-                "gsl.notification.forms.DsService.refuser_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.refuser_in_ds",
+                return_value=None,
             ) as refuser,
             mock.patch(
-                "gsl.notification.forms.DsService.dismiss_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.dismiss_in_ds",
+                return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl.notification.forms.DsService.accept_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.accept_in_ds",
+                return_value=None,
             ) as accepter,
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -395,16 +399,19 @@ class TestForm:
         projet = _dismissed_projet(perimetre, with_signed_document=True)
         with (
             mock.patch(
-                "gsl.notification.forms.DsService.dismiss_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.dismiss_in_ds",
+                return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl.notification.forms.DsService.refuser_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.refuser_in_ds",
+                return_value=None,
             ) as refuser,
             mock.patch(
-                "gsl.notification.forms.DsService.accept_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.accept_in_ds",
+                return_value=None,
             ) as accepter,
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -423,9 +430,12 @@ class TestForm:
         projet = _refused_projet(perimetre, with_signed_document=False)
         with (
             mock.patch(
-                "gsl.notification.forms.DsService.refuser_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.refuser_in_ds",
+                return_value=None,
             ) as refuser,
-            mock.patch("gsl.notification.forms.merge_documents_into_pdf") as merge_mock,
+            mock.patch(
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf"
+            ) as merge_mock,
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
@@ -449,10 +459,11 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl.notification.forms.DsService.refuser_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.refuser_in_ds",
+                return_value=None,
             ),
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ) as merge_mock,
         ):
@@ -507,10 +518,12 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl.notification.forms.DsService.dismiss_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.dismiss_in_ds",
+                return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl.notification.forms.DsService.refuser_in_ds", return_value=None
+                "gsl.notification.forms.notification_forms.DsService.refuser_in_ds",
+                return_value=None,
             ) as refuser,
         ):
             form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
@@ -555,7 +568,7 @@ class TestView:
                 ),
             ),
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
@@ -619,7 +632,7 @@ class TestView:
                 ),
             ),
             mock.patch(
-                "gsl.notification.forms.merge_documents_into_pdf",
+                "gsl.notification.forms.notification_forms.merge_documents_into_pdf",
                 return_value=_merged_pdf(),
             ),
         ):
