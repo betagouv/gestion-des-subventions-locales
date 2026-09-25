@@ -26,7 +26,7 @@ from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
 )
-from gsl.projet.models import EnveloppeProjet
+from gsl.projet.models import EnveloppeProjet, Projet
 
 
 class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
@@ -124,6 +124,11 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
                     self.object_list.can_generate_refus_documents().values_list(
                         "id", flat=True
                     )
+                ),
+                "can_be_notified_as_accepted_ids": list(
+                    self.object_list.filter(
+                        projet__in=Projet.objects.accepted().has_document_ready()
+                    ).values_list("id", flat=True)
                 ),
                 "current_order": self.request.GET.get("order", ""),
                 "columns": PROGRAMMATION_TABLE_COLUMNS,

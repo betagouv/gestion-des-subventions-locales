@@ -8,6 +8,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -185,3 +186,56 @@ class TestProgrammationProjetListViewExcludesInactiveDossiers:
         enveloppe_projets = response.context["enveloppe_projets"]
         assert enveloppe_projets.count() == 1
         assert enveloppe_projets.first() == active_enveloppe_projet
+
+
+class TestProgrammationProjetListViewCanBeNotifiedAsAccepted:
+    @pytest.fixture
+    def detr_enveloppe(self, user_with_perimetre):
+        return DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre, annee=2024)
+
+    def _get(self, user):
+        client = ClientWithLoggedUserFactory(user=user)
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": DOTATION_DETR},
+        )
+        return client.get(url)
+
+    def test_context_lists_accepted_projets_with_signed_document(
+        self, user_with_perimetre, detr_enveloppe
+    ):
+        ready = EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
+            dotation=DOTATION_DETR,
+            status=ProjetStatus.ACCEPTED,
+            enveloppe=detr_enveloppe,
+        )
+        LettreEtArreteSignesFactory(enveloppe_projet=ready)
+        without_document = EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
+            dotation=DOTATION_DETR,
+            status=ProjetStatus.ACCEPTED,
+            enveloppe=detr_enveloppe,
+        )
+        refused = EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
+            dotation=DOTATION_DETR,
+            status=ProjetStatus.REFUSED,
+            enveloppe=detr_enveloppe,
+        )
+
+        response = self._get(user_with_perimetre)
+
+        assert response.status_code == 200
+        ids = response.context["can_be_notified_as_accepted_ids"]
+        assert ready.pk in ids
+        assert without_document.pk not in ids
+        assert refused.pk not in ids
+
+    def test_renders_notify_accepted_action(self, user_with_perimetre, detr_enveloppe):
+        response = self._get(user_with_perimetre)
+
+        content = response.content.decode()
+        assert 'id="checkbox-selection-notify-accepted-ids"' in content
+        assert 'data-checkbox-selection-target="notifyAcceptedCounter"' in content
+        assert "projets acceptés" in content
