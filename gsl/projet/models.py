@@ -43,7 +43,7 @@ from .constants import (
     POSSIBLE_DOTATIONS,
     ProjetStatus,
 )
-from .utils.utils import compute_taux, floatize
+from .utils.utils import compute_taux, floatize, merge_documents_into_pdf
 
 if TYPE_CHECKING:
     from gsl.programmation.models import Enveloppe
@@ -462,9 +462,6 @@ class Projet(BaseModel):
         )
 
     def notify(self, user: Collegue, motivation: str = "") -> None:
-        # Local import: gsl.notification.utils imports gsl.projet.models.
-        from gsl.notification.utils import merge_documents_into_pdf
-
         documents = self.imported_documents
         justificatif_file = None
         if documents:
