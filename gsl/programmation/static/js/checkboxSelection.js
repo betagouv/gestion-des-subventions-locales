@@ -18,7 +18,9 @@ export class CheckboxSelection extends Controller {
     'acceptedCounter',
     'acceptedActionButton',
     'refusCounter',
-    'refusActionButton'
+    'refusActionButton',
+    'notifyAcceptedCounter',
+    'notifyAcceptedActionButton'
   ]
 
   initialize () {
@@ -31,6 +33,9 @@ export class CheckboxSelection extends Controller {
     )
     this.refusEligibleIds = new Set(
       this._readIdsScript('checkbox-selection-refus-ids')
+    )
+    this.notifyAcceptedEligibleIds = new Set(
+      this._readIdsScript('checkbox-selection-notify-accepted-ids')
     )
     this._loadFromStorage()
   }
@@ -133,6 +138,10 @@ export class CheckboxSelection extends Controller {
     }
     this._refreshEligibleCounter('accepted', this.acceptedEligibleIds)
     this._refreshEligibleCounter('refus', this.refusEligibleIds)
+    this._refreshEligibleCounter(
+      'notifyAccepted',
+      this.notifyAcceptedEligibleIds
+    )
     this._syncIdsInputs()
     this._saveToStorage()
   }
