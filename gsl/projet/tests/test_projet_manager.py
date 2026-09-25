@@ -474,6 +474,63 @@ def test_has_document_ready_includes_double_dotation_projet(detr_status, dsil_st
     assert projet in Projet.objects.has_document_ready()
 
 
+# Filter accepted ======================================================================
+
+
+def test_accepted_includes_single_dotation_accepted_projet():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+
+    assert projet in Projet.objects.accepted()
+
+
+@pytest.mark.parametrize(
+    "status",
+    (ProjetStatus.PROCESSING, ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
+)
+def test_accepted_excludes_single_dotation_not_accepted_projet(status):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, status)
+
+    assert projet not in Projet.objects.accepted()
+
+
+def test_accepted_excludes_projet_without_enveloppe_projet():
+    projet = ProjetFactory()
+
+    assert projet not in Projet.objects.accepted()
+
+
+@pytest.mark.parametrize(
+    "other_status",
+    (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
+)
+def test_accepted_includes_double_dotation_projet_with_an_accepted_dotation(
+    other_status,
+):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, other_status)
+
+    assert projet in Projet.objects.accepted()
+
+
+def test_accepted_excludes_double_dotation_projet_with_a_processing_dotation():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.PROCESSING)
+
+    assert projet not in Projet.objects.accepted()
+
+
+def test_accepted_excludes_double_dotation_projet_refused_and_dismissed():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.DISMISSED)
+
+    assert projet not in Projet.objects.accepted()
+
+
 def _create_enveloppe_projet(projet, dotation, status):
     if status == ACCEPTED_WITH_DOC:
         enveloppe_projet = EnveloppeProjetFactory(
