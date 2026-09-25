@@ -157,7 +157,9 @@ def test_presigned_upload_requires_authentication():
 
 def test_start_view_creates_job_and_enqueues(client, user):
     keys = ["imports/abc/scan.pdf", "imports/def/scan2.pdf"]
-    with patch("gsl.notification.forms.run_document_import_job.delay") as delay:
+    with patch(
+        "gsl.notification.forms.upload_forms.run_document_import_job.delay"
+    ) as delay:
         response = client.post(
             reverse("gsl_notification:import-start"),
             # The form's hidden input carries "true" by default (checkbox checked).
@@ -175,7 +177,7 @@ def test_start_view_creates_job_and_enqueues(client, user):
 
 def test_start_view_keeps_qr_when_remove_qr_code_is_false(client):
     keys = ["imports/abc/scan.pdf"]
-    with patch("gsl.notification.forms.run_document_import_job.delay"):
+    with patch("gsl.notification.forms.upload_forms.run_document_import_job.delay"):
         client.post(
             reverse("gsl_notification:import-start"),
             {"s3_keys": json.dumps(keys), "remove_qr_code": "false"},
@@ -187,7 +189,7 @@ def test_start_view_keeps_qr_when_remove_qr_code_is_false(client):
 
 
 def test_start_view_filters_out_foreign_keys(client):
-    with patch("gsl.notification.forms.run_document_import_job.delay"):
+    with patch("gsl.notification.forms.upload_forms.run_document_import_job.delay"):
         client.post(
             reverse("gsl_notification:import-start"),
             {"s3_keys": json.dumps(["imports/ok/a.pdf", "secret/elsewhere.pdf"])},

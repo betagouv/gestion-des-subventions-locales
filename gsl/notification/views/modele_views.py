@@ -23,7 +23,7 @@ from gsl.core.matomo_constants import (
     MATOMO_CATEGORY_MODELE,
 )
 from gsl.core.models import Perimetre
-from gsl.notification.forms import (
+from gsl.notification.forms.modele_forms import (
     ModeleDocumentStepOneForm,
     ModeleDocumentStepThreeForm,
     ModeleDocumentStepTwoForm,

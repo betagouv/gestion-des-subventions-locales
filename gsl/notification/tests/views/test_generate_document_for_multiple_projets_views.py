@@ -16,7 +16,7 @@ from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreFactory,
 )
-from gsl.notification.forms import (
+from gsl.notification.forms.bulk_generation_forms import (
     ARRETE_ET_LETTRE,
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,

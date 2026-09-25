@@ -11,7 +11,7 @@ from formtools.wizard.views import SessionWizardView
 from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
-from gsl.notification.forms import (
+from gsl.notification.forms.bulk_generation_forms import (
     DOCUMENT_TYPE_DISPLAY_ORDER,
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,

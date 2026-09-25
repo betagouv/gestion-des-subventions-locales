@@ -10,7 +10,7 @@ from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 
 from gsl.core.exceptions import Http404
 from gsl.historique.models import ProjetAction
-from gsl.notification.forms import (
+from gsl.notification.forms.update_doc_forms import (
     GENERATED_DOCUMENT_TO_FORM,
     ChoixModeleForm,
 )
