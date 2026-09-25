@@ -1,0 +1,163 @@
+from django.urls import path
+
+from gsl.notification.views.generate_document_for_multiple_projets_views import (
+    GenerateAcceptedDocumentsStatusView,
+    GenerateAcceptedDocumentsWizard,
+    GenerateLettreRefusStatusView,
+    GenerateLettreRefusWizard,
+)
+from gsl.notification.views.import_views import (
+    ImportDocumentsModalView,
+    ImportJobProgressView,
+    ImportJobStartView,
+    PresignedUploadView,
+)
+from gsl.notification.views.modele_views import (
+    ChooseModeleDocumentType,
+    CreateModelDocumentWizard,
+    DeleteModeleView,
+    DuplicateModele,
+    ModeleListView,
+    UpdateModele,
+    get_generic_modele,
+)
+from gsl.notification.views.uploaded_document_views import (
+    download_uploaded_document,
+    view_uploaded_document,
+)
+from gsl.notification.views.views import (
+    ChangeDocumentView,
+    DeleteDocumentView,
+    DownloadDocumentView,
+    DownloadMergedGeneratedDocumentsView,
+    NotificationDocumentsView,
+    PrintDocumentView,
+    SelectModeleView,
+)
+
+urlpatterns = [
+    path(
+        "<int:projet_id>/documents/",
+        NotificationDocumentsView.as_view(),
+        name="documents",
+    ),
+    path(
+        "<int:projet_id>/documents-generes/telecharger/",
+        DownloadMergedGeneratedDocumentsView.as_view(),
+        name="generated-documents-download",
+    ),
+    # Generated files
+    path(
+        "<int:projet_id>/selection-d-un-modele/<str:dotation>/<str:document_type>",
+        SelectModeleView.as_view(),
+        name="select-modele",
+    ),
+    path(
+        "<int:projet_id>/modifier-document/<str:dotation>/<str:document_type>",
+        ChangeDocumentView.as_view(),
+        name="modifier-document",
+    ),
+    path(
+        "document/<str:document_type>/<int:document_id>/download/",
+        DownloadDocumentView.as_view(),
+        name="document-download",
+    ),
+    path(
+        "document/<str:document_type>/<int:document_id>/view/",
+        PrintDocumentView.as_view(),
+        name="document-view",
+    ),
+    path(
+        "document/<str:document_type>/<int:document_id>/delete/",
+        DeleteDocumentView.as_view(),
+        name="delete-document",
+    ),
+    # Modal HTMX - génération en masse
+    path(
+        "<str:dotation>/generer/",
+        GenerateAcceptedDocumentsWizard.as_view(),
+        name="generate-documents-modal",
+    ),
+    path(
+        "<str:dotation>/generer/status/<uuid:job_id>/",
+        GenerateAcceptedDocumentsStatusView.as_view(),
+        name="generate-documents-status",
+    ),
+    path(
+        "<str:dotation>/generer-refus/",
+        GenerateLettreRefusWizard.as_view(),
+        name="generate-refus-documents-modal",
+    ),
+    path(
+        "<str:dotation>/generer-refus/status/<uuid:job_id>/",
+        GenerateLettreRefusStatusView.as_view(),
+        name="generate-refus-documents-status",
+    ),
+    # Modal HTMX - import des documents signés
+    path(
+        "import-documents-modal/<str:dotation>/",
+        ImportDocumentsModalView.as_view(),
+        name="import-documents-modal",
+    ),
+    path(
+        "import/presigned-upload/",
+        PresignedUploadView.as_view(),
+        name="import-presigned-upload",
+    ),
+    path(
+        "import/start/",
+        ImportJobStartView.as_view(),
+        name="import-start",
+    ),
+    path(
+        "import/<uuid:pk>/progress/",
+        ImportJobProgressView.as_view(),
+        name="import-progress",
+    ),
+    path(
+        "document-televerse/<str:document_type>/<int:document_id>/download/",
+        download_uploaded_document,
+        name="uploaded-document-download",
+    ),
+    path(
+        "document-televerse/<str:document_type>/<int:document_id>/view/",
+        view_uploaded_document,
+        name="uploaded-document-view",
+    ),
+    # Modèles d'arrêtés
+    path(
+        "modeles/liste/<str:dotation>/",
+        ModeleListView.as_view(),
+        name="modele-liste",
+    ),
+    path(
+        "modeles/nouveau/<str:dotation>/",
+        ChooseModeleDocumentType.as_view(),
+        name="modele-creer-choix-du-type",
+    ),
+    path(
+        "modeles/nouveau/<str:modele_type>/<str:dotation>/",
+        CreateModelDocumentWizard.as_view(),
+        name="modele-creer",
+    ),
+    path(
+        "modeles/modifier/<str:modele_type>/<str:modele_id>/",
+        UpdateModele.as_view(),
+        name="modele-modifier",
+    ),
+    path(
+        "modeles/dupliquer/<str:modele_type>/<str:modele_id>/",
+        DuplicateModele.as_view(),
+        name="modele-dupliquer",
+    ),
+    path(
+        "modeles/generique/<str:dotation>/",
+        get_generic_modele,
+        name="get-generic-modele-template",
+    ),
+    path(
+        "modeles/<str:modele_type>/<str:modele_id>/",
+        DeleteModeleView.as_view(),
+        name="delete-modele",
+    ),
+]

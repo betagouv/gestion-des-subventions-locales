@@ -1,0 +1,61 @@
+import pytest
+
+from gsl.notification.models import (
+    Annexe,
+    LettreEtArreteSignes,
+    ModeleArrete,
+    ModeleLettreNotification,
+)
+from gsl.notification.tests.factories import (
+    AnnexeFactory,
+    LettreEtArreteSignesFactory,
+    ModeleArreteFactory,
+    ModeleLettreNotificationFactory,
+)
+
+
+@pytest.mark.parametrize(
+    "klass, factory",
+    ((LettreEtArreteSignes, LettreEtArreteSignesFactory), (Annexe, AnnexeFactory)),
+)
+@pytest.mark.django_db
+def test_delete_file_on_post_delete(settings, tmp_path, klass, factory):
+    # Isoler MEDIA_ROOT pour ne pas polluer les vrais fichiers.
+    settings.MEDIA_ROOT = tmp_path
+
+    doc = factory()
+    storage = doc.file.storage
+    name = doc.file.name
+
+    assert storage.exists(name)
+
+    doc.delete()
+
+    assert not storage.exists(name)
+    with pytest.raises(klass.DoesNotExist):
+        doc.refresh_from_db()
+
+
+@pytest.mark.parametrize(
+    "klass, factory",
+    (
+        (ModeleArrete, ModeleArreteFactory),
+        (ModeleLettreNotification, ModeleLettreNotificationFactory),
+    ),
+)
+@pytest.mark.django_db
+def test_delete_logo_on_modele_post_delete(settings, tmp_path, klass, factory):
+    # Isoler MEDIA_ROOT pour ne pas polluer les vrais fichiers.
+    settings.MEDIA_ROOT = tmp_path
+
+    modele = factory()
+    storage = modele.logo.storage
+    name = modele.logo.name
+
+    assert storage.exists(name)
+
+    modele.delete()
+
+    assert not storage.exists(name)
+    with pytest.raises(klass.DoesNotExist):
+        modele.refresh_from_db()

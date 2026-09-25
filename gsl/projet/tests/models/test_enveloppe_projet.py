@@ -13,14 +13,7 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl.historique.models import ProjetAction
-from gsl.programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
-)
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationProjetFactory
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_notification.tests.factories import (
+from gsl.notification.tests.factories import (
     AnnexeFactory,
     ArreteFactory,
     LettreEtArreteSignesFactory,
@@ -28,6 +21,13 @@ from gsl_notification.tests.factories import (
     LettreRefusFactory,
     LettreRefusSigneeFactory,
 )
+from gsl.programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationProjetFactory
+from gsl_demarches_simplifiees.models import Dossier
 
 from ...constants import (
     DOTATION_DETR,

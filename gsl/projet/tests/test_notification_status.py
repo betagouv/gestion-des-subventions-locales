@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from gsl_notification.tests.factories import (
+from gsl.notification.tests.factories import (
     ArreteFactory,
     LettreEtArreteSignesFactory,
     LettreNotificationFactory,

@@ -19,9 +19,9 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
     RequestFactory,
 )
+from gsl.notification.tests.factories import ArreteFactory, LettreNotificationFactory
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
-from gsl_notification.tests.factories import ArreteFactory, LettreNotificationFactory
 
 from ..constants import (
     DOTATION_DETR,

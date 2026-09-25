@@ -1,0 +1,584 @@
+import io
+from unittest.mock import MagicMock, patch
+
+import pytest
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from django.urls import reverse
+from pikepdf import Pdf
+
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreFactory,
+)
+from gsl.historique.models import ProjetAction
+from gsl.notification.models import (
+    DocumentImportJob,
+    LettreEtArreteSignes,
+    LettreRefusSignee,
+)
+from gsl.notification.tests.factories import (
+    AnnexeFactory,
+    LettreEtArreteSignesFactory,
+    LettreNotificationFactory,
+    ModeleLettreNotificationFactory,
+)
+from gsl.notification.utils import generate_pdf_for_generated_document
+from gsl.projet.constants import (
+    ANNEXE,
+    LETTRE_ET_ARRETE_SIGNES,
+    ProjetStatus,
+)
+from gsl.projet.tests.factories import EnveloppeProjetFactory
+
+LETTRE_REFUS_SIGNEE = LettreRefusSignee.document_type
+
+pytestmark = pytest.mark.django_db
+
+
+## FIXTURES
+
+
+@pytest.fixture
+def perimetre():
+    return PerimetreFactory()
+
+
+@pytest.fixture
+def enveloppe_projet(perimetre):
+    return EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
+    )
+
+
+@pytest.fixture
+def refused_enveloppe_projet(perimetre):
+    return EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        status=ProjetStatus.REFUSED,
+    )
+
+
+@pytest.fixture
+def correct_perimetre_client_with_user_logged(perimetre):
+    user = CollegueFactory(perimetre=perimetre)
+    return ClientWithLoggedUserFactory(user)
+
+
+@pytest.fixture
+def different_perimetre_client_with_user_logged():
+    user = CollegueFactory()
+    return ClientWithLoggedUserFactory(user)
+
+
+HTMX = {"HX-Request": "true"}
+
+
+def _analyze_url(projet):
+    return reverse(
+        "fragment:gsl_notification:upload_document_analyze", kwargs={"pk": projet.id}
+    )
+
+
+def _attach_url(projet):
+    return reverse(
+        "fragment:gsl_notification:manual_document_attach", kwargs={"pk": projet.id}
+    )
+
+
+def _pdf(name="scan.pdf", content=b"dummy"):
+    return SimpleUploadedFile(name, content, content_type="application/pdf")
+
+
+def _parked_pdf(name="scan.pdf"):
+    """A file waiting under the temporary prefix, where the analyse step leaves
+    one it could not identify."""
+    return default_storage.save(DocumentImportJob.temp_s3_key(name), _pdf(name))
+
+
+### upload-document-analyze -----------------------------
+
+
+def test_opening_the_modal_serves_a_fresh_upload_step(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    """The dialog fetches this on every opening, so a step left in error is
+    never what the agent comes back to."""
+    projet = enveloppe_projet.projet
+
+    response = correct_perimetre_client_with_user_logged.get(
+        _analyze_url(projet), headers=HTMX
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/modal/projet_import/upload_step.html"
+    )
+    assert not response.context["form"].is_bound
+
+    content = response.content.decode()
+    assert 'data-controller="file-dropzone"' in content
+    assert 'accept=".pdf,.png,.jpg,.jpeg"' in content
+    assert 'name="file"' in content
+
+
+def test_analyze_is_htmx_only(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    projet = enveloppe_projet.projet
+
+    response = correct_perimetre_client_with_user_logged.get(_analyze_url(projet))
+
+    assert response.status_code == 400
+
+
+def test_analyze_without_qr_code_asks_for_the_document_type(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    projet = enveloppe_projet.projet
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _analyze_url(projet), {"file": _pdf()}, headers=HTMX
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/modal/projet_import/choice_step.html"
+    )
+    form = response.context["form"]
+    assert "document" in form.fields
+    # Nothing has been chosen yet, so the step must not open on an error.
+    assert not form.is_bound
+    assert not form.errors
+    assert not enveloppe_projet.annexes.exists()
+
+    key = response.context["key"]
+    assert key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
+    assert default_storage.open(key).read() == b"dummy"
+    assert f'name="key" value="{key}"' in response.content.decode()
+
+
+def test_analyze_of_an_image_skips_qr_detection(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    """An image can't carry a QR page, so it goes straight to the choice step."""
+    projet = enveloppe_projet.projet
+    image = SimpleUploadedFile("scan.png", b"dummy", content_type="image/png")
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _analyze_url(projet), {"file": image}, headers=HTMX
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/modal/projet_import/choice_step.html"
+    )
+
+
+def test_analyze_requires_a_file(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    projet = enveloppe_projet.projet
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _analyze_url(projet), {}, headers=HTMX
+    )
+
+    assert response.status_code == 200
+    assert response.context["form"].errors["file"] == [
+        "Sélectionnez un document à importer."
+    ]
+
+
+def test_analyze_out_of_perimetre_is_404(
+    enveloppe_projet, different_perimetre_client_with_user_logged
+):
+    projet = enveloppe_projet.projet
+
+    response = different_perimetre_client_with_user_logged.post(
+        _analyze_url(projet), {"file": _pdf()}, headers=HTMX
+    )
+
+    assert response.status_code == 404
+
+
+### upload-document-analyze, QR code path -----------------------------
+
+
+@pytest.fixture
+def _mock_logo():
+    with patch("gsl.notification.utils.get_logo_base64", return_value="mocked_base64"):
+        yield
+
+
+def _merged_pdf(*pdf_bytes_list) -> bytes:
+    """One scan holding several documents, as a feeder produces it."""
+    merged = Pdf.new()
+    for pdf_bytes in pdf_bytes_list:
+        with Pdf.open(io.BytesIO(pdf_bytes)) as src:
+            merged.pages.extend(src.pages)
+    buf = io.BytesIO()
+    merged.save(buf)
+    return buf.getvalue()
+
+
+def _signed_scan_for(enveloppe_projet):
+    """The PDF of a generated lettre de notification, QR codes included — what
+    the user gets back after printing, signing and scanning it."""
+    modele = ModeleLettreNotificationFactory(
+        dotation=enveloppe_projet.dotation,
+        perimetre=enveloppe_projet.projet.dossier_ds.perimetre,
+    )
+    document = LettreNotificationFactory(
+        enveloppe_projet=enveloppe_projet,
+        modele=modele,
+        content="<p>Contenu de la lettre.</p>",
+    )
+    return generate_pdf_for_generated_document(document)
+
+
+def test_analyze_attaches_the_document_read_from_its_qr_code(
+    perimetre, correct_perimetre_client_with_user_logged, _mock_logo
+):
+    """The whole point of the flow: a scan carrying the QR codes is attached
+    without ever asking the user what it is."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    enveloppe_projet = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        status=ProjetStatus.ACCEPTED,
+    )
+    projet = enveloppe_projet.projet
+    scan = SimpleUploadedFile(
+        "scan.pdf",
+        _signed_scan_for(enveloppe_projet),
+        content_type="application/pdf",
+    )
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _analyze_url(projet), {"file": scan}, headers=HTMX
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/modal/projet_import/summary_step.html"
+    )
+    assert enveloppe_projet.lettre_et_arrete_signes is not None
+    assert ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOC_UPLOADED
+    ).exists()
+
+
+def test_analyze_refuses_a_scan_belonging_to_another_projet(
+    perimetre, correct_perimetre_client_with_user_logged, _mock_logo
+):
+    """The QR code names another dossier: attaching it here would file the wrong
+    projet's signed document, so the import is refused rather than guessed."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    other_enveloppe_projet = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=9999999,
+        status=ProjetStatus.ACCEPTED,
+    )
+    target_enveloppe_projet = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=1111111,
+        status=ProjetStatus.ACCEPTED,
+    )
+    scan = SimpleUploadedFile(
+        "scan.pdf",
+        _signed_scan_for(other_enveloppe_projet),
+        content_type="application/pdf",
+    )
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _analyze_url(target_enveloppe_projet.projet),
+        {"file": scan},
+        headers=HTMX,
+    )
+
+    assert response.status_code == 200
+    assert "9999999" in response.context["form"].errors["file"][0]
+    assert not LettreEtArreteSignes.objects.filter(
+        enveloppe_projet=target_enveloppe_projet
+    ).exists()
+    assert not LettreEtArreteSignes.objects.filter(
+        enveloppe_projet=other_enveloppe_projet
+    ).exists()
+
+
+def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
+    perimetre, correct_perimetre_client_with_user_logged, _mock_logo
+):
+    """A page of another dossier left in the feeder costs the agent nothing:
+    his own document is attached, the stray one is named in the summary."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("zxingcpp")
+
+    target_enveloppe_projet = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=1111111,
+        status=ProjetStatus.ACCEPTED,
+    )
+    other_enveloppe_projet = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        projet__dossier_ds__ds_number=9999999,
+        status=ProjetStatus.ACCEPTED,
+    )
+    scan = SimpleUploadedFile(
+        "scan.pdf",
+        _merged_pdf(
+            _signed_scan_for(target_enveloppe_projet),
+            _signed_scan_for(other_enveloppe_projet),
+        ),
+        content_type="application/pdf",
+    )
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _analyze_url(target_enveloppe_projet.projet), {"file": scan}, headers=HTMX
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/modal/projet_import/summary_step.html"
+    )
+    assert LettreEtArreteSignes.objects.filter(
+        enveloppe_projet=target_enveloppe_projet
+    ).exists()
+    assert not LettreEtArreteSignes.objects.filter(
+        enveloppe_projet=other_enveloppe_projet
+    ).exists()
+
+    report = response.context["report"]
+    assert len(report.attached) == 1
+    assert "9999999" in report.rejected[0]
+    assert "9999999" in response.content.decode()
+
+
+### upload-document-attach -----------------------------
+
+
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
+def test_attach_imports_the_document(
+    enveloppe_projet, correct_perimetre_client_with_user_logged, doc_type
+):
+    projet = enveloppe_projet.projet
+    dotation = enveloppe_projet.dotation
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _attach_url(projet),
+        {"key": _parked_pdf("test.pdf"), "document": f"{doc_type}-{dotation}"},
+        headers=HTMX,
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.templates[0].name
+        == "gsl_notification/modal/projet_import/summary_step.html"
+    )
+    # The summary ends the flow: it carries the step wrapper htmx swaps out, so
+    # it replaces the step the form posted from rather than nesting inside it.
+    assert 'id="upload-document-modal-step"' in response.content.decode()
+
+    if doc_type == LETTRE_ET_ARRETE_SIGNES:
+        document = enveloppe_projet.lettre_et_arrete_signes
+    else:
+        assert enveloppe_projet.annexes.count() == 1
+        document = enveloppe_projet.annexes.first()
+
+    assert document.file.name.startswith(
+        f"{doc_type}/enveloppe_projet_{enveloppe_projet.id}/test"
+    )
+    assert document.created_by == correct_perimetre_client_with_user_logged.user
+
+
+def test_import_refreshes_the_page_behind_the_modal(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    """The summary carries what the import changed, swapped out-of-band: the
+    imported documents table, and the notification step whose "Notifier" button
+    a signed lettre unblocks."""
+    projet = enveloppe_projet.projet
+    dotation = enveloppe_projet.dotation
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _attach_url(projet),
+        {"key": _parked_pdf(), "document": f"{LETTRE_ET_ARRETE_SIGNES}-{dotation}"},
+        headers=HTMX,
+    )
+
+    content = response.content.decode()
+    assert 'id="imported-documents-block"' in content
+    assert 'id="notification-message-block"' in content
+    assert content.count('hx-swap-oob="true"') == 2
+    assert "Il n’y a pas de document importé pour le moment." not in content
+
+
+def test_attach_logs_a_projet_action(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    projet = enveloppe_projet.projet
+    dotation = enveloppe_projet.dotation
+
+    correct_perimetre_client_with_user_logged.post(
+        _attach_url(projet),
+        {"key": _parked_pdf(), "document": f"{LETTRE_ET_ARRETE_SIGNES}-{dotation}"},
+        headers=HTMX,
+    )
+
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == ProjetAction.TYPE_DOC_UPLOADED
+    assert action.actor == correct_perimetre_client_with_user_logged.user
+    assert action.dotation == dotation
+
+
+def test_attach_refuses_a_type_the_dotation_status_forbids(
+    refused_enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    """`lettre_et_arrete_signes` only applies to an accepted dotation, so it is
+    not even offered as a choice for a refused one."""
+    enveloppe_projet = refused_enveloppe_projet
+    projet = enveloppe_projet.projet
+    dotation = enveloppe_projet.dotation
+
+    key = _parked_pdf()
+    response = correct_perimetre_client_with_user_logged.post(
+        _attach_url(projet),
+        {"key": key, "document": f"{LETTRE_ET_ARRETE_SIGNES}-{dotation}"},
+        headers=HTMX,
+    )
+
+    assert response.status_code == 200
+    assert "document" in response.context["form"].errors
+    assert not LettreEtArreteSignes.objects.exists()
+    # The agent fixes his choice on the document he already uploaded.
+    assert f'name="key" value="{key}"' in response.content.decode()
+
+
+def test_attach_imports_a_lettre_refus_signee(
+    refused_enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    enveloppe_projet = refused_enveloppe_projet
+    projet = enveloppe_projet.projet
+    dotation = enveloppe_projet.dotation
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _attach_url(projet),
+        {"key": _parked_pdf(), "document": f"{LETTRE_REFUS_SIGNEE}-{dotation}"},
+        headers=HTMX,
+    )
+
+    assert response.status_code == 200
+    assert enveloppe_projet.lettre_refus_signee is not None
+
+
+def test_attach_out_of_perimetre_is_404(
+    enveloppe_projet, different_perimetre_client_with_user_logged
+):
+    projet = enveloppe_projet.projet
+    dotation = enveloppe_projet.dotation
+
+    response = different_perimetre_client_with_user_logged.post(
+        _attach_url(projet),
+        {"key": _parked_pdf(), "document": f"{LETTRE_ET_ARRETE_SIGNES}-{dotation}"},
+        headers=HTMX,
+    )
+
+    assert response.status_code == 404
+
+
+### uploaded-document-download
+
+
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
+def test_uploaded_document_download_url_with_correct_perimetre_and_without_arrete(
+    correct_perimetre_client_with_user_logged, doc_type
+):
+    url = reverse(
+        "notification:uploaded-document-download",
+        kwargs={"document_type": doc_type, "document_id": 1000},
+    )
+    assert url == f"/notification/document-televerse/{doc_type}/1000/download/"
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+@override_settings(BYPASS_ANTIVIRUS=True)
+@pytest.mark.parametrize(
+    "doc_type, factory",
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
+)
+def test_uploaded_document_download_url_with_correct_perimetre_and_with_arrete(
+    correct_perimetre_client_with_user_logged, enveloppe_projet, doc_type, factory
+):
+    doc = factory(enveloppe_projet=enveloppe_projet)
+    url = doc.get_download_url()
+    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
+
+    # Mock boto3.client().get_object
+    with patch("boto3.client") as mock_boto_client:
+        mock_s3 = MagicMock()
+        mock_body = MagicMock()
+        mock_body.iter_chunks.return_value = [b"dummy data"]
+        mock_s3.get_object.return_value = {
+            "Body": mock_body,
+            "ContentType": "application/pdf",
+        }
+        mock_boto_client.return_value = mock_s3
+
+        response = correct_perimetre_client_with_user_logged.get(url)
+        assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "doc_type, factory",
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
+)
+def test_uploaded_document_download_url_without_correct_perimetre_and_without_arrete(
+    different_perimetre_client_with_user_logged, doc_type, factory
+):
+    doc = factory()
+    url = doc.get_download_url()
+    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
+    response = different_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+### uploaded-document-view
+
+
+@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
+def test_uploaded_document_view_url_with_correct_perimetre_and_without_arrete(
+    correct_perimetre_client_with_user_logged, doc_type
+):
+    url = reverse(
+        "notification:uploaded-document-view",
+        kwargs={"document_type": doc_type, "document_id": 1000},
+    )
+    assert url == f"/notification/document-televerse/{doc_type}/1000/view/"
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "doc_type, factory",
+    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
+)
+def test_uploaded_document_view_url_without_correct_perimetre_and_without_arrete(
+    different_perimetre_client_with_user_logged, doc_type, factory
+):
+    doc = factory()
+    url = doc.get_view_url()
+    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/view/"
+    response = different_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 404

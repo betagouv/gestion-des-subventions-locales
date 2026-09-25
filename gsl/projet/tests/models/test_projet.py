@@ -2,7 +2,7 @@ import pytest
 from django.utils import timezone
 
 from gsl.core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
-from gsl_notification.tests.factories import (
+from gsl.notification.tests.factories import (
     AnnexeFactory,
     ArreteFactory,
     LettreEtArreteSignesFactory,

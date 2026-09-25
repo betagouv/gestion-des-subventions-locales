@@ -5,8 +5,8 @@
 
 from django.core.management.base import BaseCommand
 
-from gsl_notification.models import Arrete, LettreNotification
-from gsl_notification.utils import generate_pdf_for_generated_document
+from gsl.notification.models import Arrete, LettreNotification
+from gsl.notification.utils import generate_pdf_for_generated_document
 
 
 class Command(BaseCommand):
