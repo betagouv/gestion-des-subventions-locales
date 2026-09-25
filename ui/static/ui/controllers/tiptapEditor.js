@@ -233,93 +233,67 @@ export class TipTapEditor extends Controller {
         items: ({ query }) => {
           const fields = this.mentionsValue
           return fields
-            .filter(field => field.label.toLowerCase().startsWith(query.toLowerCase()))
+            .filter(field => field.label.toLowerCase().includes(query.toLowerCase()))
         },
         render: () => {
           let popup
           let selectedIndex = 0
-          let originalItems = []
+          let currentItems = []
           let divItems = []
+          let selectItem
+
           function updateSelection (newIndex) {
-            divItems[selectedIndex].classList.remove('selected')
+            divItems[selectedIndex]?.classList.remove('selected')
             selectedIndex = newIndex
-            divItems[selectedIndex].classList.add('selected')
-            divItems[selectedIndex].scrollIntoView({
+            divItems[selectedIndex]?.classList.add('selected')
+            divItems[selectedIndex]?.scrollIntoView({
               block: 'nearest'
             })
           }
-          function reinitializeVariables () {
+
+          // Depuis tiptap 3.30, onStart est appelé avec une liste vide (loading),
+          // les items arrivent ensuite de manière asynchrone via onUpdate.
+          function renderItems (props) {
+            currentItems = props.items
+            selectItem = (item) => props.command(item)
             selectedIndex = 0
             divItems = []
+            popup.replaceChildren()
+
+            props.items.forEach(item => {
+              const div = document.createElement('div')
+              div.className = 'tiptap-dropdown-item'
+              div.textContent = item.label
+              div.dataset.id = item.id
+              div.addEventListener('click', () => {
+                props.command(item)
+              })
+              div.addEventListener('mouseover', () => {
+                updateSelection(divItems.indexOf(div))
+              })
+              popup.appendChild(div)
+              divItems.push(div)
+            })
+            updateSelection(0)
+
+            const rect = props.clientRect?.()
+            if (rect) {
+              popup.style.top = `${rect.bottom + window.scrollY}px`
+              popup.style.left = `${rect.left + window.scrollX}px`
+            }
           }
 
-          let selectItem
-
           return {
-            onStart: props => {
-              originalItems = props.items
-              reinitializeVariables()
-
-              selectItem = (item) => {
-                props.command(item)
-              }
-
-              // Créer le conteneur
+            onStart: (props) => {
               popup = document.createElement('div')
               popup.className = 'tiptap-dropdown-list mention-dynamic-list'
               popup.setAttribute('tabindex', '-1') // Rendre focusable
-
-              // Ajouter les éléments
-              props.items.forEach(item => {
-                const div = document.createElement('div')
-                div.className = 'tiptap-dropdown-item'
-                div.textContent = item.label
-                div.dataset.id = item.id
-                div.addEventListener('click', () => {
-                  props.command(item)
-                })
-                div.addEventListener('mouseover', () => {
-                  const index = divItems.indexOf(div)
-                  updateSelection(index)
-                })
-                popup.appendChild(div)
-                divItems.push(div)
-              })
-
-              updateSelection(0)
-
-              // Positionner le popup
-              const rect = props.clientRect()
-              if (rect) {
-                popup.style.top = `${rect.bottom + window.scrollY}px`
-                popup.style.left = `${rect.left + window.scrollX}px`
-              }
-
               document.body.appendChild(popup)
+              renderItems(props)
             },
-            onUpdate: props => {
-              reinitializeVariables()
-
-              while (popup.firstChild) {
-                popup.removeChild(popup.firstChild)
-              }
-
-              props.items.forEach(item => {
-                const div = document.createElement('div')
-                div.className = 'tiptap-dropdown-item'
-                div.textContent = item.label
-                div.dataset.id = item.id
-                div.addEventListener('click', () => {
-                  props.command(item)
-                })
-                div.addEventListener('mouseover', () => {
-                  const index = divItems.indexOf(div)
-                  updateSelection(index)
-                })
-                popup.appendChild(div)
-                divItems.push(div)
-              })
-              updateSelection(0)
+            onUpdate: (props) => {
+              if (!popup) return
+              renderItems(props)
             },
             onKeyDown (props) {
               if (props.event.key === 'Escape') {
@@ -339,18 +313,8 @@ export class TipTapEditor extends Controller {
                 return true
               }
               if (props.event.key === 'Enter') {
-                if (divItems[selectedIndex]) {
-                  // Astuce pour supprimer le texte tapé
-                  const { state, dispatch } = props.view
-                  const { from, to } = props.range
-                  dispatch(
-                    state.tr.delete(from, to - 1)
-                  )
-
-                  const divItem = divItems[selectedIndex]
-                  const item = originalItems.find(i => i.id === divItem.dataset.id)
-                  selectItem(item)
-                }
+                const item = currentItems[selectedIndex]
+                if (item) selectItem(item)
                 return true
               }
               return false
