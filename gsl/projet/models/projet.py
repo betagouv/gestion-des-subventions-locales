@@ -20,6 +20,7 @@ from gsl.notification.models import (
     GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
 )
+from gsl.programmation.models import Enveloppe
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
@@ -34,7 +35,6 @@ from .enveloppe_projet import EnveloppeProjet
 from .mixins import ProjetDNActionsMixin
 
 if TYPE_CHECKING:
-    from gsl.programmation.models import Enveloppe
     from gsl_demarches_simplifiees.models import Dossier
 
 
@@ -160,7 +160,7 @@ class ProjetQuerySet(models.QuerySet):
             dotations_count=Count("enveloppeprojet"),
             programmation_count=Count(
                 "enveloppeprojet",
-                filter=Q(enveloppeprojet__enveloppe__isnull=False),
+                filter=Q(enveloppeprojet__status__in=ProjetStatus.FINAL),
             ),
         ).filter(
             dotations_count__gt=0,
@@ -341,6 +341,11 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def perimetre(self):
         return self.dossier_ds.perimetre
+
+    def root_enveloppe(self, dotation: str) -> Enveloppe:
+        return Enveloppe.objects.root_for(
+            dotation, self.perimetre, self.dossier_ds.annee_de_campagne
+        )
 
     @property
     def status(self):

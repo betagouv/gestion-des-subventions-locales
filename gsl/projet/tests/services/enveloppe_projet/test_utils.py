@@ -9,7 +9,6 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl.programmation.models import Enveloppe
 from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -100,50 +99,62 @@ def test_get_root_enveloppe_from_enveloppe_projet_with_a_dsil_and_region_projet(
 
 @pytest.mark.django_db
 @freeze_time("2026-05-06")
-def test_get_enveloppe_from_enveloppe_projet_with_a_next_year_date(perimetres, caplog):
+def test_get_root_enveloppe_from_enveloppe_projet_creates_the_missing_enveloppe(
+    perimetres,
+):
     arr_dijon, _, region_bfc, *_ = perimetres
-    region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    enveloppe_2025 = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
         status=ProjetStatus.ACCEPTED,
-        enveloppe=region_dsil_enveloppe,
+        enveloppe=enveloppe_2025,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             2026, 1, 15, tzinfo=UTC
         ),
     )
 
-    with pytest.raises(Enveloppe.DoesNotExist):  # No enveloppe for 2026
-        dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
 
-    record = caplog.records[0]
-    assert record.message == "No enveloppe found for a enveloppe projet"
-    assert record.levelname == "WARNING"
-    assert (
-        getattr(record, "dossier_ds_number", None)
-        == enveloppe_projet.dossier_ds.ds_number
+    assert enveloppe.annee == 2026
+    assert enveloppe.perimetre == region_bfc
+    assert enveloppe.montant == enveloppe_2025.montant
+
+
+@pytest.mark.django_db
+@freeze_time("2026-05-06")
+def test_get_root_enveloppe_from_enveloppe_projet_creates_it_without_montant_if_no_enveloppe_exists(
+    perimetres,
+):
+    arr_dijon, _, region_bfc, *_ = perimetres
+    enveloppe_projet = EnveloppeProjetFactory(
+        dotation=DOTATION_DSIL,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DsilEnveloppeFactory(perimetre=region_bfc, annee=2020),
+        projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_date_traitement=timezone.datetime(
+            2026, 1, 15, tzinfo=UTC
+        ),
     )
-    assert getattr(record, "dotation", None) == enveloppe_projet.dotation
-    assert getattr(record, "year", None) == 2026
-    assert getattr(record, "perimetre", None) == arr_dijon
+
+    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+
+    assert enveloppe.annee == 2026
+    assert enveloppe.montant == 0
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "date_traitement, allow_next_year, expected_annee",
+    "date_traitement, expected_annee",
     [
-        (timezone.datetime(2025, 10, 1, tzinfo=UTC), False, 2025),
-        (timezone.datetime(2025, 11, 1, tzinfo=UTC), False, 2025),
-        (timezone.datetime(2026, 10, 1, tzinfo=UTC), False, 2026),
-        (timezone.datetime(2026, 11, 1, tzinfo=UTC), False, 2026),
-        (timezone.datetime(2025, 10, 1, tzinfo=UTC), True, 2025),
-        (timezone.datetime(2025, 11, 1, tzinfo=UTC), True, 2026),
-        (timezone.datetime(2026, 10, 1, tzinfo=UTC), True, 2026),
-        (timezone.datetime(2026, 11, 1, tzinfo=UTC), True, 2027),
+        (timezone.datetime(2025, 10, 1, tzinfo=UTC), 2025),
+        (timezone.datetime(2025, 11, 1, tzinfo=UTC), 2025),
+        (timezone.datetime(2026, 10, 1, tzinfo=UTC), 2026),
+        (timezone.datetime(2026, 11, 1, tzinfo=UTC), 2026),
     ],
 )
-def test_get_enveloppe_from_enveloppe_projet_with_a_date_traitement_after_november(
-    perimetres, date_traitement, allow_next_year, expected_annee
+def test_get_root_enveloppe_from_enveloppe_projet_follows_the_treatment_year(
+    perimetres, date_traitement, expected_annee
 ):
     arr_dijon, _, region_bfc, *_ = perimetres
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -157,9 +168,8 @@ def test_get_enveloppe_from_enveloppe_projet_with_a_date_traitement_after_novemb
         projet__dossier_ds__ds_date_traitement=date_traitement,
     )
 
-    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(
-        enveloppe_projet, allow_next_year=allow_next_year
-    )
+    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+
     assert enveloppe.annee == expected_annee
 
 

@@ -498,6 +498,12 @@ def test_update_enveloppe_projets_from_projet_sans_suite_does_not_update_already
     assert dsil_dp.status == ProjetStatus.REFUSED
 
 
+def date_programmation_avant_instruction(status):
+    if status == ProjetStatus.PROCESSING:
+        return None
+    return timezone.datetime(2025, 1, 10, tzinfo=UTC)
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "status_1, status_2",
@@ -529,13 +535,13 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction(
         projet=projet,
         dotation=DOTATION_DETR,
         status=status_1,
-        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
+        date_programmation=date_programmation_avant_instruction(status_1),
     )
     dsil_dp = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DSIL,
         status=status_2,
-        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
+        date_programmation=date_programmation_avant_instruction(status_2),
     )
 
     enveloppe_projets = dps._update_enveloppe_projets_from_projet(projet)

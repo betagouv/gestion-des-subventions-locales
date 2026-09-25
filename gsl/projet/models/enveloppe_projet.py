@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 class EnveloppeProjetQuerySet(models.QuerySet):
     def programmees(self):
-        return self.filter(enveloppe__isnull=False)
+        return self.filter(status__in=ProjetStatus.FINAL)
 
     def without_signed_document(self):
         return self.programmees().filter(
@@ -74,7 +74,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def annotate_notification_status(self):
         return self.annotate(
             _notification_status=Case(
-                When(enveloppe__isnull=True, then=Value(None)),
+                When(status=ProjetStatus.PROCESSING, then=Value(None)),
                 When(
                     projet__notified_at__isnull=False,
                     then=Value(NOTIFICATION_STATUS_NOTIFIED),
@@ -136,8 +136,6 @@ class EnveloppeProjet(BaseModel):
         "gsl_programmation.Enveloppe",
         verbose_name="Enveloppe",
         on_delete=models.PROTECT,
-        blank=True,
-        null=True,
     )
     montant = models.DecimalField(
         "Montant", max_digits=14, decimal_places=2, blank=True, null=True
@@ -156,18 +154,24 @@ class EnveloppeProjet(BaseModel):
         verbose_name_plural = "Enveloppes projet"
         constraints = (
             models.UniqueConstraint(
-                fields=("projet", "dotation"),
+                fields=("projet", "enveloppe"),
                 condition=Q(is_courant=True),
-                name="un_seul_enveloppe_projet_courant_par_dotation",
+                name="un_seul_enveloppe_projet_courant_par_enveloppe",
                 violation_error_message="Ce projet a déjà un enveloppe projet courant "
-                "pour cette dotation.",
+                "sur cette enveloppe.",
             ),
             models.CheckConstraint(
-                condition=Q(status=ProjetStatus.PROCESSING, enveloppe__isnull=True)
-                | ~Q(status=ProjetStatus.PROCESSING) & Q(enveloppe__isnull=False),
-                name="enveloppe_ssi_dotation_traitee",
-                violation_error_message="Une dotation en traitement ne peut pas porter "
-                "d'enveloppe, et une dotation traitée doit en porter une.",
+                condition=Q(
+                    status=ProjetStatus.PROCESSING,
+                    montant__isnull=True,
+                    date_programmation__isnull=True,
+                )
+                | ~Q(status=ProjetStatus.PROCESSING)
+                & Q(montant__isnull=False, date_programmation__isnull=False),
+                name="montant_et_date_ssi_dotation_traitee",
+                violation_error_message="Une dotation en traitement ne peut porter ni "
+                "montant ni date de programmation, et une dotation traitée doit porter "
+                "les deux.",
             ),
         )
 
@@ -282,7 +286,7 @@ class EnveloppeProjet(BaseModel):
 
     @property
     def is_programmee(self) -> bool:
-        return self.enveloppe_id is not None
+        return self.status in ProjetStatus.FINAL
 
     @property
     def other_dotations(self) -> List["EnveloppeProjet"]:
@@ -360,7 +364,7 @@ class EnveloppeProjet(BaseModel):
 
     @property
     def is_treated(self) -> bool:
-        return self.status in ProjetStatus.FINAL
+        return self.is_programmee
 
     @property
     def lettre(self):
@@ -559,7 +563,6 @@ class EnveloppeProjet(BaseModel):
             status=SimulationProjet.STATUS_PROCESSING,
         )
 
-        self.enveloppe = None
         self.montant = None
         self.date_programmation = None
         self.projet.notified_at = None

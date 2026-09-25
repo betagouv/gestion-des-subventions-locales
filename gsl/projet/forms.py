@@ -94,7 +94,10 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
         for dotation in new_dotations:
             enveloppe_projet = EnveloppeProjet.objects.create(
-                projet=projet, dotation=dotation, status=ProjetStatus.PROCESSING
+                projet=projet,
+                dotation=dotation,
+                status=ProjetStatus.PROCESSING,
+                enveloppe=projet.root_enveloppe(dotation),
             )
             EnveloppeProjetService.create_simulation_projets_from_enveloppe_projet(
                 enveloppe_projet

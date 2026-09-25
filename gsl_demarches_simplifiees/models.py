@@ -22,6 +22,7 @@ from gsl.projet.constants import (
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
+    PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE,
 )
 
 logger = getLogger(__name__)
@@ -937,6 +938,12 @@ class Dossier(BaseModel):
     @property
     def is_treated(self) -> bool:
         return self.ds_state in self.State.PROGRAMME
+
+    @property
+    def annee_de_campagne(self) -> int:
+        if self.ds_date_depot.month >= PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE:
+            return self.ds_date_depot.year + 1
+        return self.ds_date_depot.year
 
     def update_data(self, dossier_data: dict) -> None:
         """Fusionne dans `self.data.raw_data` les seuls champs présents dans

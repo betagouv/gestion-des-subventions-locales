@@ -2,7 +2,6 @@ from decimal import Decimal
 from unittest import mock
 
 import pytest
-from django.db import IntegrityError
 from django.forms import ValidationError
 from django.utils import timezone
 from django_fsm import TransitionNotAllowed
@@ -32,7 +31,6 @@ from gsl_demarches_simplifiees.models import Dossier
 from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    DOTATIONS,
     ProjetStatus,
 )
 from ...models import (
@@ -72,14 +70,6 @@ def test_compute_montant_from_taux():
 
     enveloppe_projet = EnveloppeProjetFactory()
     assert enveloppe_projet.compute_montant_from_taux(25) == 0
-
-
-@pytest.mark.parametrize(("dotation"), DOTATIONS)
-def test_enveloppe_projet_unicity(dotation):
-    projet = ProjetFactory()
-    EnveloppeProjet(projet=projet, dotation=dotation).save()
-    with pytest.raises(IntegrityError):
-        EnveloppeProjet(projet=projet, dotation=dotation).save()
 
 
 def test_dsil_enveloppe_projet_must_have_a_detr_avis_commission_null():

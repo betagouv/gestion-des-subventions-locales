@@ -46,6 +46,24 @@ class EnveloppeQueryset(models.QuerySet):
     def for_current_year(self):
         return self.filter(annee=timezone.now().year)
 
+    def root_for(self, dotation: str, perimetre: Perimetre, annee: int) -> "Enveloppe":
+        perimetre_racine = perimetre.for_dotation(dotation)
+        existante = self.filter(
+            dotation=dotation, annee=annee, perimetre=perimetre_racine
+        ).first()
+        if existante is not None:
+            return existante
+
+        precedente = self.filter(
+            dotation=dotation, annee=annee - 1, perimetre=perimetre_racine
+        ).first()
+        return self.create(
+            dotation=dotation,
+            annee=annee,
+            perimetre=perimetre_racine,
+            montant=precedente.montant if precedente else 0,
+        )
+
 
 class EnveloppeManager(models.Manager.from_queryset(EnveloppeQueryset)):
     pass

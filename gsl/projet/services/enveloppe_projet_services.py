@@ -4,7 +4,6 @@ from decimal import Decimal
 
 from django.db import transaction
 
-from gsl.core.models import Perimetre
 from gsl.historique.models import ProjetAction
 from gsl.programmation.models import Enveloppe
 from gsl.simulation.models import Simulation, SimulationProjet
@@ -12,7 +11,6 @@ from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
     DOTATION_DETR,
-    DOTATION_DSIL,
     POSSIBLE_DOTATIONS,
     ProjetStatus,
 )
@@ -124,9 +122,7 @@ class EnveloppeProjetService:
         enveloppe_projets = []
         for dotation in dotations:
             enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
-                enveloppe_projet, allow_next_year=True
-            )
+            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
             enveloppe_projet.refuse(enveloppe=enveloppe)
             enveloppe_projet.save()
             enveloppe_projets.append(enveloppe_projet)
@@ -140,9 +136,7 @@ class EnveloppeProjetService:
         enveloppe_projets = []
         for dotation in dotations:
             enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
-                enveloppe_projet, allow_next_year=True
-            )
+            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
             enveloppe_projet.dismiss(enveloppe=enveloppe)
             enveloppe_projet.save()
             enveloppe_projets.append(enveloppe_projet)
@@ -163,18 +157,14 @@ class EnveloppeProjetService:
     def _create_enveloppe_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ) -> EnveloppeProjet:
-        detr_avis_commission = cls._get_detr_avis_commission(
-            dotation, projet.dossier_ds
+        return EnveloppeProjet.objects.create(
+            projet=projet,
+            dotation=dotation,
+            detr_avis_commission=cls._get_detr_avis_commission(
+                dotation, projet.dossier_ds
+            ),
+            enveloppe=projet.root_enveloppe(dotation),
         )
-        assiette = projet.dossier_ds.annotations_for(dotation).assiette
-        kwargs = {
-            "projet": projet,
-            "dotation": dotation,
-            "detr_avis_commission": detr_avis_commission,
-        }
-        if assiette is not None:
-            kwargs["assiette"] = assiette
-        return EnveloppeProjet.objects.create(**kwargs)
 
     ## -------------------------- Update Enveloppe Projets --------------------------
 
@@ -256,6 +246,7 @@ class EnveloppeProjetService:
         enveloppe_projet, _ = EnveloppeProjet.objects.get_or_create(
             projet=projet,
             dotation=dotation,
+            defaults={"enveloppe": projet.root_enveloppe(dotation)},
         )
 
         assiette = projet.dossier_ds.annotations_for(dotation).assiette
@@ -289,7 +280,7 @@ class EnveloppeProjetService:
         for enveloppe_projet in projet.enveloppeprojet_set.all():
             if enveloppe_projet.status != ProjetStatus.REFUSED:
                 enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
-                    enveloppe_projet, allow_next_year=True
+                    enveloppe_projet
                 )
                 enveloppe_projet.refuse(enveloppe=enveloppe)
                 enveloppe_projet.save()
@@ -307,7 +298,7 @@ class EnveloppeProjetService:
                 ProjetStatus.REFUSED,
             ]:
                 enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
-                    enveloppe_projet, allow_next_year=True
+                    enveloppe_projet
                 )
                 enveloppe_projet.dismiss(enveloppe=enveloppe)
                 enveloppe_projet.save()
@@ -394,64 +385,15 @@ class EnveloppeProjetService:
 
     @classmethod
     def _get_root_enveloppe_from_enveloppe_projet(
-        cls, enveloppe_projet: EnveloppeProjet, allow_next_year: bool = False
+        cls, enveloppe_projet: EnveloppeProjet
     ):
-        """
-        Get the root enveloppe from a enveloppe projet.
-        Args:
-            allow_next_year: If True, allow the use of the next year if the dossier is accepted after November.
-        """
-
-        year = enveloppe_projet.dossier_ds.ds_date_traitement.year
-        if (
-            allow_next_year
-            and enveloppe_projet.dossier_ds.ds_date_traitement.month >= 11
-        ):
-            year = year + 1
-
-        enveloppe_qs = Enveloppe.objects.filter(
-            dotation=enveloppe_projet.dotation,
-            annee=year,
-            parent__isnull=True,
+        """A treatment coming from DN carries no campagne, so its year is the one
+        of its treatment date, whatever the deposit date says."""
+        return Enveloppe.objects.root_for(
+            enveloppe_projet.dotation,
+            enveloppe_projet.projet.perimetre,
+            enveloppe_projet.dossier_ds.ds_date_traitement.year,
         )
-        projet_perimetre = enveloppe_projet.projet.perimetre
-        perimetre = cls._get_perimetre_from_dotation(
-            projet_perimetre, enveloppe_projet.dotation
-        )
-        try:
-            return enveloppe_qs.get(perimetre=perimetre)
-        except Enveloppe.DoesNotExist:
-            logger.warning(
-                "No enveloppe found for a enveloppe projet",
-                extra={
-                    "dossier_ds_number": enveloppe_projet.dossier_ds.ds_number,
-                    "dotation": enveloppe_projet.dotation,
-                    "year": year,
-                    "perimetre": projet_perimetre,
-                    "date_traitement": enveloppe_projet.dossier_ds.ds_date_traitement,
-                },
-            )
-            raise Enveloppe.DoesNotExist(
-                f"No enveloppe found for dotation {enveloppe_projet.dotation}, perimetre {projet_perimetre} and year {year}"
-            )
-
-    @classmethod
-    def _get_perimetre_from_dotation(
-        cls, projet_perimetre: Perimetre, dotation: str
-    ) -> Perimetre | None:
-        if dotation == DOTATION_DETR:
-            return Perimetre.objects.get(
-                departement=projet_perimetre.departement, arrondissement=None
-            )
-
-        elif dotation == DOTATION_DSIL:
-            return Perimetre.objects.get(
-                region=projet_perimetre.departement.region,
-                departement=None,
-                arrondissement=None,
-            )
-
-        return None
 
     @classmethod
     def _update_assiette_from_dossier(cls, projet: Projet):

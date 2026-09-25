@@ -53,11 +53,8 @@ class ProcessedProjetFactory(ProjetFactory):
 
 
 def _default_enveloppe(obj):
-    """The enveloppe a treated dotation must carry. On the projet's own
-    perimetre, the one spelling that always satisfies `contains_or_equal`
-    whatever level that perimetre sits at."""
-    if obj.status == ProjetStatus.PROCESSING:
-        return None
+    """On the projet's own perimetre, the one spelling that always satisfies
+    `contains_or_equal` whatever level that perimetre sits at."""
     perimetre = obj.projet.dossier_ds.perimetre
     if obj.dotation == DOTATION_DETR:
         enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
@@ -86,9 +83,10 @@ class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
     detr_avis_commission = factory.Faker("boolean")
     assiette = None
 
-    # The three below travel together: a treated dotation is a programmed one,
-    # a dotation still being processed carries none of them.
     enveloppe = factory.LazyAttribute(_default_enveloppe)
+
+    # These two travel together: a treated dotation carries both, a dotation
+    # still being processed carries neither.
     montant = factory.LazyAttribute(_default_montant)
     date_programmation = factory.LazyAttribute(
         lambda o: None if o.status == ProjetStatus.PROCESSING else timezone.now()
