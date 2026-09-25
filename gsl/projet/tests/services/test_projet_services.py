@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
 )

@@ -3,8 +3,8 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from gsl_core.admin import AllPermsForStaffUser
-from gsl_core.models import Perimetre
+from gsl.core.admin import AllPermsForStaffUser
+from gsl.core.models import Perimetre
 
 from .models import BulkStatusJob, Simulation, SimulationProjet
 

@@ -54,7 +54,7 @@ python -m celery --app gsl worker --beat --scheduler django_celery_beat.schedule
 # Python
 ruff format                         # Format all Python files
 ruff check --fix                    # Fix linting errors
-ruff check gsl_core/                # Check specific app
+ruff check gsl/core/                # Check specific app
 
 # JavaScript
 npm run format:js                   # Check JS style (Standard)
@@ -388,7 +388,7 @@ dossier.dossier_dotation_dsil.status = "refused"
 ### View Architecture Patterns
 
 - **CBVs (Class-Based Views)** are the standard pattern, with `DsfrBaseForm` for DSFR-compliant forms
-- **HTMX-specific mixins** in `gsl_core/view_mixins.py`:
+- **HTMX-specific mixins** in `gsl/core/view_mixins.py`:
   - `OpenHtmxModalMixin` - Auto-opens DSFR modal after HTMX swap
   - `NoFeedbackHtmxFormViewMixin` - Handles HTMX form submissions (204 on success, 400 on error)
 - **Business logic placement:** `Form.save()` for complex mutations, `Model.clean()`/`clean_fields()` for validation
@@ -413,7 +413,7 @@ dossier.dossier_dotation_dsil.status = "refused"
 ### Async Tasks & Celery
 
 Tasks are spread across multiple apps:
-- `gsl_core/tasks.py`: `associate_or_update_ds_profile_to_users()` - Link DS profiles to user accounts
+- `gsl/core/tasks.py`: `associate_or_update_ds_profile_to_users()` - Link DS profiles to user accounts
 - `gsl_demarches_simplifiees/tasks.py`: DS dossier import/refresh (fetch, save, refresh dossiers and démarches)
 - `gsl_projet/tasks.py`: Project and dotation creation/update from imported dossiers
 
@@ -762,7 +762,7 @@ See `.env.example` for required variables:
 | `manage.py` | Django CLI entry point |
 | `justfile` | Task automation (build, test, deploy) |
 | `conftest.py` | pytest configuration and fixtures |
-| `gsl_core/models.py` | User, Perimetre, Geography models |
+| `gsl/core/models.py` | User, Perimetre, Geography models |
 | `gsl_demarches_simplifiees/models.py` | Dossier, DS integration models |
 | `gsl_projet/models.py` | Project, DotationProjet models |
 | `gsl_programmation/models.py` | Enveloppe, ProgrammationProjet models |
@@ -770,8 +770,8 @@ See `.env.example` for required variables:
 | `package.json` | JS dependencies and build scripts |
 | `pyproject.toml` | Python dependencies, declared for uv (main deps + `dev` group) |
 | `uv.lock` | Pinned Python dependency lockfile (managed by uv) |
-| `gsl_core/view_mixins.py` | Reusable HTMX/DSFR view mixins (`OpenHtmxModalMixin`, `NoFeedbackHtmxFormViewMixin`) |
-| `gsl_core/middlewares.py` | OTP verification and Perimeter check middlewares |
+| `gsl/core/view_mixins.py` | Reusable HTMX/DSFR view mixins (`OpenHtmxModalMixin`, `NoFeedbackHtmxFormViewMixin`) |
+| `gsl/core/middlewares.py` | OTP verification and Perimeter check middlewares |
 
 ## Architecture Diagrams
 

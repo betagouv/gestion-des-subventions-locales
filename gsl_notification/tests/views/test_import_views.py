@@ -6,13 +6,13 @@ import pytest
 from django.urls import reverse
 from pikepdf import Pdf
 
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
-from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreFactory,
 )
+from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_notification.models import DocumentImportJob, LettreEtArreteSignes
 from gsl_notification.tests.factories import (
     LettreNotificationFactory,

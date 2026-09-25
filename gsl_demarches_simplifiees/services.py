@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import models
 from django.utils import timezone
 
+from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
     DOTATION_DSIL,
@@ -17,7 +18,6 @@ from gsl.projet.constants import (
     DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
     POSSIBLE_DOTATIONS,
 )
-from gsl_core.models import Collegue
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.exceptions import (
     DsServiceException,

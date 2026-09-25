@@ -7,8 +7,8 @@ from django.db.models import Count, F, Q
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl_core.models import Collegue, Departement, Perimetre
-from gsl_core.tests.factories import (
+from gsl.core.models import Collegue, Departement, Perimetre
+from gsl.core.tests.factories import (
     ArrondissementFactory,
     ClientWithLoggedUserFactory,
     CollegueFactory,

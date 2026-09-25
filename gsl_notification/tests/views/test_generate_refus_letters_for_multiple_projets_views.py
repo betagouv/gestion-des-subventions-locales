@@ -9,17 +9,17 @@ from django.core.files.storage import default_storage
 from django.test import override_settings
 from freezegun import freeze_time
 
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     LETTRE_REFUS,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueFactory,
-    PerimetreFactory,
-)
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_PER_DOC,

@@ -16,19 +16,19 @@ from django.views.generic import FormView, ListView
 from django.views.generic.edit import DeleteView
 from formtools.wizard.views import SessionWizardView
 
+from gsl.core.exceptions import Http404
+from gsl.core.matomo import queue_matomo_event
+from gsl.core.matomo_constants import (
+    MATOMO_ACTION_CREATION_MODELE,
+    MATOMO_CATEGORY_MODELE,
+)
+from gsl.core.models import Perimetre
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     DOTATIONS,
 )
 from gsl.utils.csp import csp_update
-from gsl_core.exceptions import Http404
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
-    MATOMO_ACTION_CREATION_MODELE,
-    MATOMO_CATEGORY_MODELE,
-)
-from gsl_core.models import Perimetre
 from gsl_notification.forms import (
     ModeleDocumentStepOneForm,
     ModeleDocumentStepThreeForm,

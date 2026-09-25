@@ -4,7 +4,7 @@ import secrets
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from gsl_core.models import BaseModel
+from gsl.core.models import BaseModel
 
 
 class ProxyToken(BaseModel):

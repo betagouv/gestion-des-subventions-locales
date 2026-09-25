@@ -17,8 +17,8 @@ from pathlib import Path
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 
+from gsl.core.models import Collegue
 from gsl.projet.models import EnveloppeProjet
-from gsl_core.models import Collegue
 from gsl_notification.qr.reattach import (
     DOCUMENT_TYPE_ORDER,
     DecodeStarted,

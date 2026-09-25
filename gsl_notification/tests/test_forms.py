@@ -7,6 +7,7 @@ from django.db import connection
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 
+from gsl.core.tests.factories import CollegueFactory
 from gsl.projet.constants import (
     ANNEXE,
     ARRETE,
@@ -18,7 +19,6 @@ from gsl.projet.constants import (
 )
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
-from gsl_core.tests.factories import CollegueFactory
 from gsl_notification.forms import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     ArreteForm,

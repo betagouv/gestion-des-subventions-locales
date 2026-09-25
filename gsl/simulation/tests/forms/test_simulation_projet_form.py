@@ -5,10 +5,10 @@ from unittest.mock import patch
 import pytest
 from django import forms
 
+from gsl.core.models import Collegue
+from gsl.core.tests.factories import CollegueWithDSProfileFactory
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import DetrProjetFactory
-from gsl_core.models import Collegue
-from gsl_core.tests.factories import CollegueWithDSProfileFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from ...forms import SimulationProjetForm

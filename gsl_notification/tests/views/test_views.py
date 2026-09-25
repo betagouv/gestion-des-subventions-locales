@@ -8,6 +8,14 @@ from django.utils.text import slugify
 from freezegun import freeze_time
 from pikepdf import Pdf
 
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreArrondissementFactory,
+    PerimetreDepartementalFactory,
+    PerimetreFactory,
+    PerimetreRegionalFactory,
+)
 from gsl.projet.constants import (
     ARRETE,
     DOTATION_DETR,
@@ -16,14 +24,6 @@ from gsl.projet.constants import (
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueFactory,
-    PerimetreArrondissementFactory,
-    PerimetreDepartementalFactory,
-    PerimetreFactory,
-    PerimetreRegionalFactory,
-)
 from gsl_notification.models import Arrete, LettreNotification
 from gsl_notification.tests.factories import (
     ArreteFactory,

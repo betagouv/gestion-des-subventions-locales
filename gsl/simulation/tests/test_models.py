@@ -3,13 +3,13 @@ from decimal import Decimal
 import pytest
 from django.forms import ValidationError
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ..models import Simulation, SimulationProjet

@@ -5,7 +5,7 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,

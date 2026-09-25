@@ -8,11 +8,11 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 
+from gsl.core.exceptions import Http404
 from gsl.historique.models import ProjetAction
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.views import BaseProjetDetailView
 from gsl.utils.csp import csp_update
-from gsl_core.exceptions import Http404
 from gsl_notification.forms import (
     GENERATED_DOCUMENT_TO_FORM,
     ChoixModeleForm,

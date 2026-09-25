@@ -1,15 +1,15 @@
 import pytest
 from django.urls import reverse
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
-from gsl.simulation.tests.factories import SimulationFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.simulation.tests.factories import SimulationFactory
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -32,7 +32,7 @@ class TestSubEnveloppeSecurity:
         parent_enveloppe = DetrEnveloppeFactory(perimetre=perimetre_dept, annee=2024)
 
         # Delegated child envelope at arrondissement level within the same department
-        from gsl_core.tests.factories import ArrondissementFactory
+        from gsl.core.tests.factories import ArrondissementFactory
 
         arrondissement = ArrondissementFactory(departement=perimetre_dept.departement)
         perimetre_arr = PerimetreArrondissementFactory(arrondissement=arrondissement)
@@ -104,7 +104,7 @@ class TestSubEnveloppeSecurity:
         client = ClientWithLoggedUserFactory(user=user)
 
         # Create an arrondissement perimeter in another department (same region)
-        from gsl_core.tests.factories import ArrondissementFactory, DepartementFactory
+        from gsl.core.tests.factories import ArrondissementFactory, DepartementFactory
 
         other_dept = DepartementFactory(region=perimetre_dept.region)
         other_arrondissement = ArrondissementFactory(departement=other_dept)

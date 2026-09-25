@@ -2,8 +2,8 @@ from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from gsl.core.models import Perimetre
 from gsl.projet.constants import DOTATION_DSIL
-from gsl_core.models import Perimetre
 from gsl_programmation.models import Enveloppe
 
 

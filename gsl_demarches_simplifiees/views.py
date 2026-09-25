@@ -9,7 +9,7 @@ from django.views import View
 from django.views.generic import UpdateView
 from django.views.generic.detail import SingleObjectMixin
 
-from gsl_core.view_mixins import SafeRedirectMixin
+from gsl.core.view_mixins import SafeRedirectMixin
 
 from .exceptions import DsServiceException
 from .forms import DossierReporteSansPieceForm

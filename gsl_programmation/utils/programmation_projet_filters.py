@@ -6,6 +6,7 @@ from django_filters import (
     RangeFilter,
 )
 
+from gsl.core.models import Perimetre
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -22,7 +23,6 @@ from gsl.projet.utils.projet_filters import (
     ProjetOrderingFilter,
     make_filter_search,
 )
-from gsl_core.models import Perimetre
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
     CategorieDsil,

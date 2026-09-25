@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from pytest_django.asserts import assertTemplateUsed
 
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedStaffUserFactory,
     ClientWithLoggedUserFactory,
     CollegueFactory,

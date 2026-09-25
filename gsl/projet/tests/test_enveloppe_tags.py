@@ -2,12 +2,12 @@ from datetime import UTC, datetime
 
 import pytest
 
-from gsl.simulation.tests.factories import SimulationFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.simulation.tests.factories import SimulationFactory
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,

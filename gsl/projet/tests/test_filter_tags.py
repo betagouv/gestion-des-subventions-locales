@@ -6,12 +6,12 @@ import pytest
 from bs4 import BeautifulSoup
 from django.urls import reverse
 
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory

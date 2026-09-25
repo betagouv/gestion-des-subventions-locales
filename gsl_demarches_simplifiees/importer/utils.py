@@ -3,7 +3,7 @@ from logging import getLogger
 
 from django.utils import timezone
 
-from gsl_core.models import Arrondissement, Departement, Perimetre
+from gsl.core.models import Arrondissement, Departement, Perimetre
 from gsl_demarches_simplifiees.models import CategorieDetr, Demarche, Dossier, Profile
 
 logger = getLogger(__name__)

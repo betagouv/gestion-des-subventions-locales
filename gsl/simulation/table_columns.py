@@ -4,8 +4,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import format_html
 
-from gsl.projet.table_columns import _wrap_emoji
-from gsl_core.table_columns import (
+from gsl.core.table_columns import (
     COLUMN_ANNOTATIONS_CHAMP_LIBRE_1,
     COLUMN_ANNOTATIONS_CHAMP_LIBRE_2,
     COLUMN_ANNOTATIONS_CHAMP_LIBRE_3,
@@ -32,7 +31,8 @@ from gsl_core.table_columns import (
     StickyPosition,
     TextAlign,
 )
-from gsl_core.templatetags.gsl_filters import euro_value, percent, percent_value
+from gsl.core.templatetags.gsl_filters import euro_value, percent, percent_value
+from gsl.projet.table_columns import _wrap_emoji
 from ui.templatetags.ui_tags import ui_status_badge
 
 

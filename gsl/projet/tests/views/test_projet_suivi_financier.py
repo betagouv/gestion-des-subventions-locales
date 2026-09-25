@@ -4,7 +4,7 @@ import pytest
 from django.shortcuts import reverse
 
 from gsl.chorus.models import SuiviFinancier
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     PerimetreArrondissementFactory,

@@ -4,7 +4,7 @@ import logging
 import openpyxl
 from django.db import transaction
 
-from gsl_core.models import Commune
+from gsl.core.models import Commune
 
 from ..models import Subvention
 from .utils import (

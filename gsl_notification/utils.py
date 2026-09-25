@@ -23,15 +23,15 @@ from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
+from gsl.core.exceptions import Http404
+from gsl.core.models import Perimetre
+from gsl.core.templatetags.gsl_filters import euro, percent
 from gsl.historique.models import ProjetAction
 from gsl.projet.constants import (
     DOTATION_DETR,
     POSSIBLE_DOTATIONS,
 )
 from gsl.projet.models import EnveloppeProjet
-from gsl_core.exceptions import Http404
-from gsl_core.models import Perimetre
-from gsl_core.templatetags.gsl_filters import euro, percent
 from gsl_notification.models import (
     GeneratedDocument,
     UploadedDocument,

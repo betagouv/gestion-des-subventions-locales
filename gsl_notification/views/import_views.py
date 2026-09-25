@@ -7,15 +7,15 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import DetailView, FormView, TemplateView
 
-from gsl.projet.constants import DOTATIONS
-from gsl_core.decorators import htmx_only
-from gsl_core.exceptions import Http404
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
+from gsl.core.decorators import htmx_only
+from gsl.core.exceptions import Http404
+from gsl.core.matomo import queue_matomo_event
+from gsl.core.matomo_constants import (
     MATOMO_ACTION_IMPORT_DOCUMENT,
     MATOMO_CATEGORY_DOCUMENT,
 )
-from gsl_core.view_mixins import OpenHtmxModalMixin
+from gsl.core.view_mixins import OpenHtmxModalMixin
+from gsl.projet.constants import DOTATIONS
 from gsl_notification.forms import ImportJobStartForm, PresignedUploadForm
 from gsl_notification.models import DocumentImportJob
 from gsl_notification.utils import get_s3_client

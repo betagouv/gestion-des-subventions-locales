@@ -2,7 +2,7 @@ import pytest
 from django import forms
 from django.db import IntegrityError, transaction
 
-from gsl_core.tests.factories import CollegueFactory
+from gsl.core.tests.factories import CollegueFactory
 
 from ...forms import ProjetNoteForm
 from ...models import ProjetNote

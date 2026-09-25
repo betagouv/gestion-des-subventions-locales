@@ -169,7 +169,7 @@ class ProjetAction(models.Model):
     @property
     def precision_display(self):
         if self.euro_field_value is not None:
-            from gsl_core.templatetags.gsl_filters import euro
+            from gsl.core.templatetags.gsl_filters import euro
 
             return euro(self.euro_field_value)
         if self.boolean_value is not None:

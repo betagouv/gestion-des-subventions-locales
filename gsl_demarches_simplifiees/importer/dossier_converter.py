@@ -5,7 +5,7 @@ from logging import getLogger
 
 from django.db import models
 
-from gsl_core.models import Adresse, Arrondissement, Departement
+from gsl.core.models import Adresse, Arrondissement, Departement
 from gsl_demarches_simplifiees.importer.utils import (
     get_arrondissement_from_value,
     get_categorie_detr_from_value,

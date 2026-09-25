@@ -1,8 +1,8 @@
 from django.db import models
 
+from gsl.core.models import ImportState
 from gsl.projet.constants import DS_STATE_VALUES
 from gsl.projet.utils.utils import compute_taux
-from gsl_core.models import ImportState
 
 
 class Subvention(models.Model):
@@ -101,7 +101,7 @@ class Subvention(models.Model):
 class FondsVertImportState(ImportState):
     """Proxy vers `gsl_core.ImportState` (ligne `key="fonds_vert"`), qui garde
     l'état de la synchronisation Fonds Vert visible dans l'admin "Suivi
-    financier" alors que le modèle générique vit dans gsl_core, réutilisable
+    financier" alors que le modèle générique vit dans gsl.core, réutilisable
     par d'autres imports.
 
     Retient dans `data` :

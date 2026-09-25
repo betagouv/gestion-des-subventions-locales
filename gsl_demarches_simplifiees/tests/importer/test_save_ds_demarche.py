@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone
 
-from gsl_core.models import Departement
-from gsl_core.tests.factories import DepartementFactory
+from gsl.core.models import Departement
+from gsl.core.tests.factories import DepartementFactory
 from gsl_demarches_simplifiees.importer.demarche import (
     _get_departement_from_field_mapping,
     _save_categorie_detr_from_field,

@@ -19,9 +19,9 @@ from django.db import transaction
 from django.db.models import QuerySet
 from pikepdf import Pdf
 
+from gsl.core.models import Collegue
 from gsl.projet.constants import ARRETE, LETTRE
 from gsl.projet.models import EnveloppeProjet
-from gsl_core.models import Collegue
 from gsl_notification.models import UPLOADED_DOCUMENTS, UploadedDocument
 
 from .codec import iter_decoded_pages

@@ -3,7 +3,7 @@ import io
 import openpyxl
 import pytest
 
-from gsl_core.tests.factories import CommuneFactory
+from gsl.core.tests.factories import CommuneFactory
 
 from ...importers.fnadt import (
     FNADT_DISPOSITIF,

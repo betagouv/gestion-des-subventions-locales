@@ -2,18 +2,18 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+    PerimetreDepartementalFactory,
+    PerimetreRegionalFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueFactory,
-    PerimetreDepartementalFactory,
-    PerimetreRegionalFactory,
-)
 from gsl_programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,

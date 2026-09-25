@@ -9,17 +9,17 @@ from decimal import Decimal
 
 import pytest
 
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueWithDSProfileFactory,
+    PerimetreDepartementalFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
-from gsl_core.tests.factories import (
-    ClientWithLoggedUserFactory,
-    CollegueWithDSProfileFactory,
-    PerimetreDepartementalFactory,
-)
 from gsl_programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ...models import SimulationProjet

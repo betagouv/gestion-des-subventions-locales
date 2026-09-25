@@ -3,17 +3,17 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    ProjetStatus,
-)
-from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.projet.constants import (
+    DOTATION_DETR,
+    ProjetStatus,
+)
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import SimulationProjet

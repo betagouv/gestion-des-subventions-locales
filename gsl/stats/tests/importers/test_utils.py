@@ -1,6 +1,6 @@
 import pytest
 
-from gsl_core.tests.factories import CommuneFactory, DepartementFactory
+from gsl.core.tests.factories import CommuneFactory, DepartementFactory
 
 from ...importers.utils import (
     parse_excel_decimal,

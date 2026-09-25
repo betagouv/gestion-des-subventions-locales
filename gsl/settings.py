@@ -71,7 +71,7 @@ INSTALLED_APPS = [
     "django_otp.plugins.otp_totp",
     # gsl apps:
     "ui",
-    "gsl_core",
+    "gsl.core",
     "gsl_demarches_simplifiees",
     "gsl_ds_proxy",
     "gsl.projet",
@@ -100,9 +100,9 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
-    "gsl_core.middlewares.MatomoHtmxMiddleware",
-    "gsl_core.middlewares.OTPVerificationMiddleware",
-    "gsl_core.middlewares.CheckPerimeterMiddleware",
+    "gsl.core.middlewares.MatomoHtmxMiddleware",
+    "gsl.core.middlewares.OTPVerificationMiddleware",
+    "gsl.core.middlewares.CheckPerimeterMiddleware",
     "axes.middleware.AxesMiddleware",  # should be the last middleware in the MIDDLEWARE list.
 ]
 
@@ -122,7 +122,7 @@ if ENABLE_QUERY_COUNTER:
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesBackend",
     "gsl.oidc.backends.OIDCAuthenticationBackend",
-    "gsl_core.auth_backends.LastLoginDeactivationBackend",
+    "gsl.core.auth_backends.LastLoginDeactivationBackend",
 ]
 
 AUTH_USER_MODEL = "gsl_core.Collegue"
@@ -151,7 +151,7 @@ TEMPLATES = [
 
 STORAGES = {
     "default": {
-        "BACKEND": "gsl_core.storages.MediaStorage",
+        "BACKEND": "gsl.core.storages.MediaStorage",
         "OPTIONS": {},
     },
     "staticfiles": {

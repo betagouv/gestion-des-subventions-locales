@@ -5,7 +5,7 @@ import logging
 import requests
 from django.db import transaction
 
-from gsl_core.api.data_gouv import get_dataset_resources
+from gsl.core.api.data_gouv import get_dataset_resources
 
 from ..models import Subvention
 from .utils import (

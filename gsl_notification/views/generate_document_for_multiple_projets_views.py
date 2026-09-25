@@ -9,10 +9,10 @@ from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
 from gsl.celery import TASK_PRIORITY_NORMAL
+from gsl.core.decorators import htmx_only
+from gsl.core.exceptions import Http404
 from gsl.projet.constants import DOTATIONS, LETTRE_REFUS
 from gsl.projet.models import EnveloppeProjet
-from gsl_core.decorators import htmx_only
-from gsl_core.exceptions import Http404
 from gsl_notification.forms import (
     DOCUMENT_TYPE_DISPLAY_ORDER,
     EXPORT_FORMAT_ONE_PDF_ALL,

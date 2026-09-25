@@ -2,7 +2,7 @@ from logging import getLogger
 
 from django.utils import timezone
 
-from gsl_core.models import Departement
+from gsl.core.models import Departement
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.importer.utils import (
     get_departement_from_field_label,

@@ -4,13 +4,13 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from gsl.simulation.models import SimulationProjet
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...constants import DOTATION_DETR, ProjetStatus

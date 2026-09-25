@@ -7,14 +7,14 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
-from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 from gsl_notification.models import (
     Annexe,

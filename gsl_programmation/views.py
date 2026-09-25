@@ -10,19 +10,19 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
+from gsl.core.exceptions import Http404
+from gsl.core.matomo import queue_matomo_event
+from gsl.core.matomo_constants import (
+    MATOMO_ACTION_CREATION_SOUS_ENVELOPPE,
+    MATOMO_CATEGORY_SOUS_ENVELOPPE,
+)
+from gsl.core.models import Perimetre
+from gsl.core.view_mixins import FilterSkiplinksMixin
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
 )
 from gsl.projet.models import EnveloppeProjet
-from gsl_core.exceptions import Http404
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
-    MATOMO_ACTION_CREATION_SOUS_ENVELOPPE,
-    MATOMO_CATEGORY_SOUS_ENVELOPPE,
-)
-from gsl_core.models import Perimetre
-from gsl_core.view_mixins import FilterSkiplinksMixin
 from gsl_programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateForm
 from gsl_programmation.models import Enveloppe
 from gsl_programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS

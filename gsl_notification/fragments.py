@@ -8,17 +8,17 @@ from django_htmx.http import HttpResponseClientRefresh
 from pikepdf import PdfError
 from pypdfium2 import PdfiumError
 
-from gsl.historique.models import ProjetAction
-from gsl.projet.constants import ProjetStatus
-from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
-from gsl.projet.models import EnveloppeProjet, Projet
-from gsl_core.matomo import queue_matomo_event
-from gsl_core.matomo_constants import (
+from gsl.core.matomo import queue_matomo_event
+from gsl.core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
     MATOMO_ACTION_IMPORT_DOCUMENT,
     MATOMO_CATEGORY_DOCUMENT,
     MATOMO_CATEGORY_NOTIFICATION,
 )
+from gsl.historique.models import ProjetAction
+from gsl.projet.constants import ProjetStatus
+from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
+from gsl.projet.models import EnveloppeProjet, Projet
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_notification.forms import (
     GenerateDotationsDocumentsForm,

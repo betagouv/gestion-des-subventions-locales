@@ -4,11 +4,11 @@ import pytest
 from django.contrib import messages
 from django.urls import reverse
 
-from gsl.projet.tests.factories import ProjetFactory
-from gsl_core.tests.factories import (
+from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
 )
+from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 
 pytestmark = pytest.mark.django_db

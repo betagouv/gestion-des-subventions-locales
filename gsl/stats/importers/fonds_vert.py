@@ -2,8 +2,8 @@ import logging
 
 from django.utils import timezone
 
+from gsl.core.api.fonds_vert import FondsVertClient, FondsVertCredentialsMissing
 from gsl.projet.constants import DS_STATE_VALUES
-from gsl_core.api.fonds_vert import FondsVertClient, FondsVertCredentialsMissing
 
 from ..models import FondsVertImportState, Subvention
 from .utils import resolve_commune, resolve_departement
@@ -86,7 +86,7 @@ def import_fonds_vert_subventions(restart=False) -> None:
 
 def _import_fonds_vert_page(items):
     """Importe chaque dossier Fonds Vert d'une page (cf.
-    `gsl_core.api.fonds_vert.iter_dossiers_pages`). Retourne
+    `gsl.core.api.fonds_vert.iter_dossiers_pages`). Retourne
     `(nb_created, nb_updated, errors)`."""
     nb_created = nb_updated = 0
     errors = []
