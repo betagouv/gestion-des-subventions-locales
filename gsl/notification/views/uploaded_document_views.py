@@ -4,8 +4,8 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
 
 from gsl.core.exceptions import Http404
+from gsl.core.s3 import get_s3_object
 from gsl.notification.models import UPLOADED_DOCUMENTS
-from gsl.notification.utils import get_s3_object
 from gsl.projet.models import Projet
 
 

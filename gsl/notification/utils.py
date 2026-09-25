@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 
-import boto3
 import img2pdf
 import requests
 from bs4 import BeautifulSoup, NavigableString
@@ -23,8 +22,8 @@ from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
-from gsl.core.exceptions import Http404
 from gsl.core.models import Perimetre
+from gsl.core.s3 import get_s3_object
 from gsl.core.templatetags.gsl_filters import euro, percent
 from gsl.historique.models import ProjetAction
 from gsl.notification.models import (
@@ -297,26 +296,6 @@ def duplicate_field_file(field_file: FieldFile):
     with storage.open(field_file.name, "rb") as src:
         # File() wrappe le descripteur ouvert pour Django
         return new_name, File(src, name=new_name)
-
-
-def get_s3_client():
-    return boto3.client(
-        "s3",
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_S3_REGION_NAME,
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-    )
-
-
-def get_s3_object(file_name):
-    s3 = get_s3_client()
-    bucket = settings.AWS_STORAGE_BUCKET_NAME
-
-    try:
-        return s3.get_object(Bucket=bucket, Key=file_name)
-    except s3.exceptions.NoSuchKey:
-        raise Http404(user_message="Fichier non trouvé")
 
 
 @lru_cache(maxsize=32)
