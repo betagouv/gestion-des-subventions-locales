@@ -14,10 +14,10 @@ from gsl.core.matomo_constants import (
     MATOMO_ACTION_IMPORT_DOCUMENT,
     MATOMO_CATEGORY_DOCUMENT,
 )
+from gsl.core.s3 import get_s3_client
 from gsl.core.view_mixins import OpenHtmxModalMixin
 from gsl.notification.forms.upload_forms import ImportJobStartForm, PresignedUploadForm
 from gsl.notification.models import DocumentImportJob
-from gsl.notification.utils import get_s3_client
 from gsl.projet.constants import DOTATIONS
 
 IMPORT_MODAL_ID = "import-modal"

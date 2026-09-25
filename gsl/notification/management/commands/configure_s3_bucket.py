@@ -21,9 +21,9 @@ each environment configures its own bucket without a hardcoded host.
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
+from gsl.core.s3 import get_s3_client
 from gsl.notification.exports import EXPORT_PREFIX
 from gsl.notification.models import DocumentImportJob
-from gsl.notification.utils import get_s3_client
 
 # Temporary import uploads are deleted at the end of a successful job; this
 # lifecycle rule is the backstop that reaps objects orphaned by an abandoned
