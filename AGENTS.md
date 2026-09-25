@@ -576,7 +576,7 @@ sent to DN.
 Use `EnveloppeService` or query filters:
 
 ```python
-from gsl_programmation.services import EnveloppeService
+from gsl.programmation.services import EnveloppeService
 
 # Get envelopes visible to a user
 envelopes = EnveloppeService.get_enveloppes_visible_for_a_user(user=request.user)
@@ -643,7 +643,7 @@ Tests are in `gsl_*/tests/` directories:
 
 ### Double Dotation Display Tests
 
-#### Programmation Page Tests (`gsl_programmation/tests/test_double_dotation_display.py`)
+#### Programmation Page Tests (`gsl/programmation/tests/test_double_dotation_display.py`)
 
 Tests that ensure when viewing DETR/DSIL programming pages, the other dotation information is displayed under each project line for user reference:
 
@@ -661,7 +661,7 @@ Tests that ensure when viewing DETR/DSIL programming pages, the other dotation i
 
 **Template Structure:** The programmation list uses `other-dotation-row` class for secondary rows displaying complementary dotation info.
 
-**Implementation Reference:** See `gsl_programmation/templates/gsl_programmation/programmation_projet_list.html` lines 244-282 for the existing template structure that renders other-dotation rows.
+**Implementation Reference:** See `gsl/programmation/templates/gsl_programmation/programmation_projet_list.html` lines 244-282 for the existing template structure that renders other-dotation rows.
 
 #### Simulation Page Tests (`gsl_simulation/tests/test_double_dotation_display.py`)
 
@@ -765,7 +765,7 @@ See `.env.example` for required variables:
 | `gsl/core/models.py` | User, Perimetre, Geography models |
 | `gsl_demarches_simplifiees/models.py` | Dossier, DS integration models |
 | `gsl_projet/models.py` | Project, DotationProjet models |
-| `gsl_programmation/models.py` | Enveloppe, ProgrammationProjet models |
+| `gsl/programmation/models.py` | Enveloppe, ProgrammationProjet models |
 | `gsl_notification/models.py` | Template and document models |
 | `package.json` | JS dependencies and build scripts |
 | `pyproject.toml` | Python dependencies, declared for uv (main deps + `dev` group) |

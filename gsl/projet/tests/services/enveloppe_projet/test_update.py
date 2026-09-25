@@ -11,12 +11,12 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl.historique.models import ProjetAction
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import (
+from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ....constants import (
     DOTATION_DETR,

@@ -9,8 +9,8 @@ from django.utils.safestring import mark_safe
 from gsl.core.admin import AllPermsForStaffUser
 from gsl.core.models import Arrondissement
 from gsl.core.templatetags.gsl_filters import percent
+from gsl.programmation.models import Enveloppe
 from gsl.simulation.models import SimulationProjet
-from gsl_programmation.models import Enveloppe
 
 from .constants import ProjetStatus
 from .models import EnveloppeProjet, Projet, ProjetQuerySet

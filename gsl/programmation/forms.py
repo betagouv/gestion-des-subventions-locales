@@ -3,8 +3,8 @@ from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
 from gsl.core.models import Perimetre
+from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import DOTATION_DSIL
-from gsl_programmation.models import Enveloppe
 
 
 class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):

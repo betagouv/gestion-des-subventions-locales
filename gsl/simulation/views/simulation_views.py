@@ -21,9 +21,9 @@ from gsl.core.matomo_constants import (
 )
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import FilterSkiplinksMixin, NoFeedbackHtmxFormViewMixin
+from gsl.programmation.services.enveloppe_service import EnveloppeService
 from gsl.projet.constants import DOTATION_DSIL, DOTATIONS
 from gsl.projet.models import EnveloppeProjet, Projet
-from gsl_programmation.services.enveloppe_service import EnveloppeService
 
 from ..filters import SimulationProjetFilters
 from ..forms import (

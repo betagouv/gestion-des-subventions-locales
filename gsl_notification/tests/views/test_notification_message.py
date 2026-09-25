@@ -24,6 +24,10 @@ from gsl.core.tests.factories import (
 )
 from gsl.historique.models import ProjetAction
 from gsl.historique.tests.factories import ProjetActionFactory
+from gsl.programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -40,10 +44,6 @@ from gsl_notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,
     LettreRefusSigneeFactory,
-)
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
 )
 
 DS_FIXTURES_DIR = (

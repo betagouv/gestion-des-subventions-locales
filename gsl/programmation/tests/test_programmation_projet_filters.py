@@ -11,6 +11,8 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
+from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -26,8 +28,6 @@ from gsl_demarches_simplifiees.tests.factories import (
     NaturePorteurProjetFactory,
     PersonneMoraleFactory,
 )
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
-from gsl_programmation.utils.programmation_projet_filters import ProgrammationFilters
 
 
 @pytest.fixture

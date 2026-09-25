@@ -5,12 +5,12 @@ import pytest
 
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import CollegueFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import (
     DOTATION_DETR,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet

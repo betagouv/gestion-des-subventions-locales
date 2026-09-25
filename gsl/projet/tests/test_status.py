@@ -1,6 +1,6 @@
 import pytest
 
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import (
     DOTATION_DETR,

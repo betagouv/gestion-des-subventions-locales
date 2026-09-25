@@ -8,6 +8,10 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.programmation.tests.factories import (
+    DetrEnveloppeFactory,
+    DsilEnveloppeFactory,
+)
 from gsl.projet.constants import (
     DOTATION_DETR,
     ProjetStatus,
@@ -21,10 +25,6 @@ from gsl.projet.tests.factories import (
 )
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
-from gsl_programmation.tests.factories import (
-    DetrEnveloppeFactory,
-    DsilEnveloppeFactory,
-)
 
 from ..forms import _add_enveloppe_projets_to_simulation
 from ..models import SimulationProjet

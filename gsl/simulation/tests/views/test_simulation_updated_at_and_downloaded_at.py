@@ -13,10 +13,10 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     RequestFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
-from gsl_programmation.tests.factories import DetrEnveloppeFactory
 
 from ...models import SimulationProjet
 from ...views.simulation_views import FilteredProjetsExportView

@@ -33,13 +33,13 @@ from gsl.core.matomo_constants import (
 )
 from gsl.core.templatetags.gsl_filters import euro
 from gsl.core.view_mixins import OpenHtmxModalMixin
+from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import (
     DOTATIONS,
     ProjetStatus,
 )
 from gsl.projet.models import projet_status_from_dotation_statuses
 from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_programmation.models import Enveloppe
 
 from ..filters import SimulationProjetFilters
 from ..forms import (
