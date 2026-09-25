@@ -240,6 +240,26 @@ class ProjetQuerySet(models.QuerySet):
     def active(self):
         return self.filter(dossier_ds__is_active=True)
 
+    def has_document_ready(self):
+        """Projets dont toutes les dotations sont traitées, et dont chaque
+        dotation acceptée a son document signé importé."""
+        return self.filter(
+            Exists(EnveloppeProjet.objects.filter(projet=OuterRef("pk")))
+        ).exclude(
+            Exists(
+                EnveloppeProjet.objects.filter(projet=OuterRef("pk")).filter(
+                    Q(status=ProjetStatus.PROCESSING)
+                    | Q(
+                        status=ProjetStatus.ACCEPTED,
+                        lettre_et_arrete_signes__isnull=True,
+                    )
+                )
+            )
+        )
+
+    def accepted(self):
+        return self.annotate_status().filter(_status=ProjetStatus.ACCEPTED)
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):

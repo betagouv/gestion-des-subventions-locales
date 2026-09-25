@@ -12,10 +12,12 @@ from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
 )
+from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
+from ..constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
 from ..models import Projet
 from .factories import (
     EnveloppeProjetFactory,
@@ -387,3 +389,155 @@ def test_with_missing_annotations():
     assert len(ids) == 2
     assert with_missing.pk in ids
     assert with_missing_detr.pk in ids
+
+
+# Filter has_document_ready ============================================================
+
+ACCEPTED_WITH_DOC = "accepted_with_doc"
+ACCEPTED_WITHOUT_DOC = "accepted_without_doc"
+
+
+def test_has_document_ready_excludes_processing_projet():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+
+    assert projet not in Projet.objects.has_document_ready()
+
+
+def test_has_document_ready_excludes_accepted_projet_without_signed_document():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ACCEPTED_WITHOUT_DOC)
+
+    assert projet not in Projet.objects.has_document_ready()
+
+
+@pytest.mark.parametrize(
+    "other_status",
+    (
+        ProjetStatus.PROCESSING,
+        ProjetStatus.REFUSED,
+        ProjetStatus.DISMISSED,
+        ACCEPTED_WITH_DOC,
+        ACCEPTED_WITHOUT_DOC,
+    ),
+)
+def test_has_document_ready_excludes_double_dotation_projet_with_a_processing_dotation(
+    other_status,
+):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, other_status)
+
+    assert projet not in Projet.objects.has_document_ready()
+
+
+@pytest.mark.parametrize(
+    "other_status",
+    (
+        ProjetStatus.REFUSED,
+        ProjetStatus.DISMISSED,
+        ACCEPTED_WITH_DOC,
+        ACCEPTED_WITHOUT_DOC,
+    ),
+)
+def test_has_document_ready_excludes_double_dotation_projet_with_an_accepted_dotation_without_signed_document(
+    other_status,
+):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ACCEPTED_WITHOUT_DOC)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, other_status)
+
+    assert projet not in Projet.objects.has_document_ready()
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.REFUSED, ProjetStatus.DISMISSED, ACCEPTED_WITH_DOC)
+)
+def test_has_document_ready_includes_single_dotation_projet(status):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, status)
+
+    assert projet in Projet.objects.has_document_ready()
+
+
+@pytest.mark.parametrize(
+    "detr_status", (ProjetStatus.REFUSED, ProjetStatus.DISMISSED, ACCEPTED_WITH_DOC)
+)
+@pytest.mark.parametrize(
+    "dsil_status", (ProjetStatus.REFUSED, ProjetStatus.DISMISSED, ACCEPTED_WITH_DOC)
+)
+def test_has_document_ready_includes_double_dotation_projet(detr_status, dsil_status):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, detr_status)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, dsil_status)
+
+    assert projet in Projet.objects.has_document_ready()
+
+
+# Filter accepted ======================================================================
+
+
+def test_accepted_includes_single_dotation_accepted_projet():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+
+    assert projet in Projet.objects.accepted()
+
+
+@pytest.mark.parametrize(
+    "status",
+    (ProjetStatus.PROCESSING, ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
+)
+def test_accepted_excludes_single_dotation_not_accepted_projet(status):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, status)
+
+    assert projet not in Projet.objects.accepted()
+
+
+def test_accepted_excludes_projet_without_enveloppe_projet():
+    projet = ProjetFactory()
+
+    assert projet not in Projet.objects.accepted()
+
+
+@pytest.mark.parametrize(
+    "other_status",
+    (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
+)
+def test_accepted_includes_double_dotation_projet_with_an_accepted_dotation(
+    other_status,
+):
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, other_status)
+
+    assert projet in Projet.objects.accepted()
+
+
+def test_accepted_excludes_double_dotation_projet_with_a_processing_dotation():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.PROCESSING)
+
+    assert projet not in Projet.objects.accepted()
+
+
+def test_accepted_excludes_double_dotation_projet_refused_and_dismissed():
+    projet = ProjetFactory()
+    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED)
+    _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.DISMISSED)
+
+    assert projet not in Projet.objects.accepted()
+
+
+def _create_enveloppe_projet(projet, dotation, status):
+    if status == ACCEPTED_WITH_DOC:
+        enveloppe_projet = EnveloppeProjetFactory(
+            projet=projet, dotation=dotation, status=ProjetStatus.ACCEPTED
+        )
+        LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+        return enveloppe_projet
+    if status == ACCEPTED_WITHOUT_DOC:
+        status = ProjetStatus.ACCEPTED
+    return EnveloppeProjetFactory(projet=projet, dotation=dotation, status=status)
