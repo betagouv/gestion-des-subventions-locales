@@ -257,6 +257,9 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    def accepted(self):
+        return self.annotate_status().filter(_status=ProjetStatus.ACCEPTED)
+
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
     def get_queryset(self):
