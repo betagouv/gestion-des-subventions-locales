@@ -62,7 +62,7 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_annotations_dota
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        dossier_ds__ds_state=Dossier.State.ACCEPTE,
         dossier_ds__annotations_dotation="DETR et DSIL",
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=20_000,
@@ -103,7 +103,7 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_empty_annotation
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        dossier_ds__ds_state=Dossier.State.ACCEPTE,
         dossier_ds__annotations_dotation="",  # Empty
         dossier_ds__demande_dispositif_sollicite="DETR",
         dossier_ds__annotations_assiette_detr=None,
@@ -160,7 +160,7 @@ def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_REFUSE,
+        dossier_ds__ds_state=Dossier.State.REFUSE,
         dossier_ds__demande_dispositif_sollicite="DETR et DSIL",
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=None,
@@ -199,7 +199,7 @@ def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_state=Dossier.State.SANS_SUITE,
         dossier_ds__demande_dispositif_sollicite="DETR et DSIL",
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=None,
@@ -229,7 +229,7 @@ def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
 def test_initialize_enveloppe_projets_from_projet_en_construction_or_instruction():
     """Test _initialize_enveloppe_projets_from_projet_en_construction_or_instruction"""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="DETR et DSIL",
         dossier_ds__annotations_assiette_detr=None,
         dossier_ds__annotations_assiette_dsil=20_000,

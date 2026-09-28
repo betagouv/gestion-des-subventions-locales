@@ -100,9 +100,9 @@ def projets(simulation, perimetre_departemental):
     for perimetre in (perimetre_departemental, other_perimeter):
         for dotation in ("DETR", "DSIL"):
             for state in (
-                Dossier.STATE_ACCEPTE,
-                Dossier.STATE_REFUSE,
-                Dossier.STATE_SANS_SUITE,
+                Dossier.State.ACCEPTE,
+                Dossier.State.REFUSE,
+                Dossier.State.SANS_SUITE,
             ):
                 dossier_last_year = DossierFactory(
                     ds_state=state,
@@ -136,7 +136,7 @@ def projets(simulation, perimetre_departemental):
                     dossier_ds=dossier_current_year,
                 )
                 projets.append(projet_current_year)
-            for state in (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION):
+            for state in (Dossier.State.EN_CONSTRUCTION, Dossier.State.EN_INSTRUCTION):
                 dossier_last_year = DossierFactory(
                     ds_state=state,
                     ds_date_depot=datetime(CURRENT_YEAR - 1, 2, 12, tzinfo=UTC),
@@ -302,7 +302,7 @@ def test_view_with_order(req, simulation, create_simulation_projets):
 
 
 def test_view_with_multiple_simulations(req, perimetre_departemental):
-    state = Dossier.STATE_EN_INSTRUCTION
+    state = Dossier.State.EN_INSTRUCTION
     dossier_current_year = DossierFactory(
         ds_state=state,
         ds_date_depot=datetime(CURRENT_YEAR - 1, 10, 1, tzinfo=UTC),

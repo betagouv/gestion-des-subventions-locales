@@ -241,7 +241,7 @@ def test_accept_enveloppe_projet_without_simulation_projet():
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
-    assert enveloppe_projet.projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
@@ -268,7 +268,7 @@ def test_accept_enveloppe_projet():
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
-    assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
 
     SimulationProjetFactory(
         enveloppe_projet=enveloppe_projet,
@@ -435,7 +435,7 @@ def test_refusing_a_enveloppe_projet_programmes_it():
         status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
     )
     assert enveloppe_projet.status == ProjetStatus.PROCESSING
-    assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2024)
 
@@ -455,7 +455,7 @@ def test_refusing_a_projet_updates_all_simulation_projet():
         status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
     )
     assert enveloppe_projet.status == ProjetStatus.PROCESSING
-    assert enveloppe_projet.dossier_ds.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert enveloppe_projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
 
     enveloppe = DetrEnveloppeFactory(annee=2024)
 

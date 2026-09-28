@@ -839,7 +839,7 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
     original_champs_count = len(full_raw_data["champs"])
 
     DossierDataFactory(dossier=dossier, raw_data=full_raw_data)
-    dossier.ds_state = Dossier.STATE_EN_CONSTRUCTION
+    dossier.ds_state = Dossier.State.EN_CONSTRUCTION
     dossier.porteur_de_projet_arrondissement = dossier.perimetre.arrondissement
     dossier.save()
     projet = ProjetFactory(dossier_ds=dossier)
@@ -886,7 +886,7 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
 
     # Verify dossier state was updated
     dossier.refresh_from_db()
-    assert dossier.ds_state == Dossier.STATE_EN_INSTRUCTION
+    assert dossier.ds_state == Dossier.State.EN_INSTRUCTION
     assert dossier.data.raw_data["traitements"] == new_traitements
     assert len(dossier.data.raw_data["champs"]) == original_champs_count
 

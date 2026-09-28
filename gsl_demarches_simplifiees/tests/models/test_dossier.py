@@ -63,28 +63,28 @@ def test_has_annotations_champ_libre(
     "ds_state, annotations_dotation, annotations_assiette_detr, annotations_montant_accorde_detr, annotations_assiette_dsil, annotations_montant_accorde_dsil, expected",
     [
         # Non-accepted state → always False
-        (Dossier.STATE_EN_INSTRUCTION, "", None, None, None, None, False),
-        (Dossier.STATE_REFUSE, "DETR", 100, 50, None, None, False),
+        (Dossier.State.EN_INSTRUCTION, "", None, None, None, None, False),
+        (Dossier.State.REFUSE, "DETR", 100, 50, None, None, False),
         # Accepted but no annotations_dotation → True (missing)
-        (Dossier.STATE_ACCEPTE, "", None, None, None, None, True),
-        (Dossier.STATE_ACCEPTE, "[]", None, None, None, None, True),
-        (Dossier.STATE_ACCEPTE, None, None, None, None, None, True),
+        (Dossier.State.ACCEPTE, "", None, None, None, None, True),
+        (Dossier.State.ACCEPTE, "[]", None, None, None, None, True),
+        (Dossier.State.ACCEPTE, None, None, None, None, None, True),
         # DETR: missing assiette or montant → True
-        (Dossier.STATE_ACCEPTE, "DETR", None, 50, None, None, True),
-        (Dossier.STATE_ACCEPTE, "DETR", 100, None, None, None, True),
-        (Dossier.STATE_ACCEPTE, "DETR", None, None, None, None, True),
+        (Dossier.State.ACCEPTE, "DETR", None, 50, None, None, True),
+        (Dossier.State.ACCEPTE, "DETR", 100, None, None, None, True),
+        (Dossier.State.ACCEPTE, "DETR", None, None, None, None, True),
         # DETR: both filled → False
-        (Dossier.STATE_ACCEPTE, "DETR", 100, 50, None, None, False),
+        (Dossier.State.ACCEPTE, "DETR", 100, 50, None, None, False),
         # DSIL: missing assiette or montant → True
-        (Dossier.STATE_ACCEPTE, "DSIL", None, None, None, 50, True),
-        (Dossier.STATE_ACCEPTE, "DSIL", None, None, 100, None, True),
-        (Dossier.STATE_ACCEPTE, "DSIL", None, None, None, None, True),
+        (Dossier.State.ACCEPTE, "DSIL", None, None, None, 50, True),
+        (Dossier.State.ACCEPTE, "DSIL", None, None, 100, None, True),
+        (Dossier.State.ACCEPTE, "DSIL", None, None, None, None, True),
         # DSIL: both filled → False
-        (Dossier.STATE_ACCEPTE, "DSIL", None, None, 100, 50, False),
+        (Dossier.State.ACCEPTE, "DSIL", None, None, 100, 50, False),
         # DETR, DSIL combined: DETR checked first, so if DETR missing → True
-        (Dossier.STATE_ACCEPTE, "DETR, DSIL", None, 50, 100, 50, True),
+        (Dossier.State.ACCEPTE, "DETR, DSIL", None, 50, 100, 50, True),
         # Both dotations complete → False
-        (Dossier.STATE_ACCEPTE, "DETR, DSIL", 100, 50, 100, 50, False),
+        (Dossier.State.ACCEPTE, "DETR, DSIL", 100, 50, 100, 50, False),
     ],
 )
 def test_has_missing_annotations(
@@ -222,11 +222,11 @@ def test_update_data_merges_only_present_fields():
 @pytest.mark.parametrize(
     "ds_state, expected",
     [
-        (Dossier.STATE_ACCEPTE, True),
-        (Dossier.STATE_REFUSE, True),
-        (Dossier.STATE_SANS_SUITE, True),
-        (Dossier.STATE_EN_CONSTRUCTION, False),
-        (Dossier.STATE_EN_INSTRUCTION, False),
+        (Dossier.State.ACCEPTE, True),
+        (Dossier.State.REFUSE, True),
+        (Dossier.State.SANS_SUITE, True),
+        (Dossier.State.EN_CONSTRUCTION, False),
+        (Dossier.State.EN_INSTRUCTION, False),
     ],
 )
 def test_is_treated(ds_state, expected):

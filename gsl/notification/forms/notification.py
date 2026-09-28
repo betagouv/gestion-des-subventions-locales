@@ -49,7 +49,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
         # Dossier was recently refreshed DN
         # Race conditions remain possible, but should be rare enough and just fail without any side effect.
-        if self.instance.dossier_ds.ds_state == Dossier.STATE_EN_CONSTRUCTION:
+        if self.instance.dossier_ds.ds_state == Dossier.State.EN_CONSTRUCTION:
             ds = DsService()
             ds.passer_en_instruction(dossier=self.instance.dossier_ds, user=user)
 

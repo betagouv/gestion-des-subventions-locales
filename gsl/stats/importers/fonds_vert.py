@@ -3,7 +3,7 @@ import logging
 from django.utils import timezone
 
 from gsl.core.api.fonds_vert import FondsVertClient, FondsVertCredentialsMissing
-from gsl.projet.constants import DS_STATE_VALUES
+from gsl_demarches_simplifiees.models import Dossier
 
 from ..models import FondsVertImportState, Subvention
 from .utils import resolve_commune, resolve_departement
@@ -19,8 +19,10 @@ FONDS_VERT_PROGRAMME = 380
 
 # L'API Fonds Vert renvoie le statut du dossier sous forme de libellé DS
 # ("Accepté", "En instruction", ...) : on le fait correspondre au code
-# Subvention.status (choices=DS_STATE_VALUES) attendu.
-_FONDS_VERT_STATUS_LABEL_TO_CODE = {label: code for code, label in DS_STATE_VALUES}
+# Subvention.status (choices=Dossier.State) attendu.
+_FONDS_VERT_STATUS_LABEL_TO_CODE = {
+    label: code for code, label in Dossier.State.choices
+}
 
 
 def import_fonds_vert_subventions(restart=False) -> None:

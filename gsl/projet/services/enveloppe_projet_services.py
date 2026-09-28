@@ -73,15 +73,15 @@ class EnveloppeProjetService:
         cls, projet: Projet
     ) -> list[EnveloppeProjet]:
         dossier_status = projet.dossier_ds.ds_state
-        if dossier_status == Dossier.STATE_ACCEPTE:
+        if dossier_status == Dossier.State.ACCEPTE:
             return cls._initialize_enveloppe_projets_from_projet_accepted(projet)
-        elif dossier_status == Dossier.STATE_REFUSE:
+        elif dossier_status == Dossier.State.REFUSE:
             return cls._initialize_enveloppe_projets_from_projet_refused(projet)
-        elif dossier_status == Dossier.STATE_SANS_SUITE:
+        elif dossier_status == Dossier.State.SANS_SUITE:
             return cls._initialize_enveloppe_projets_from_projet_sans_suite(projet)
         elif dossier_status in [
-            Dossier.STATE_EN_CONSTRUCTION,
-            Dossier.STATE_EN_INSTRUCTION,
+            Dossier.State.EN_CONSTRUCTION,
+            Dossier.State.EN_INSTRUCTION,
         ]:
             return cls._initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
                 projet
@@ -192,15 +192,15 @@ class EnveloppeProjetService:
         cls._update_assiette_from_dossier(projet)
 
         dossier_status = projet.dossier_ds.ds_state
-        if dossier_status == Dossier.STATE_ACCEPTE:
+        if dossier_status == Dossier.State.ACCEPTE:
             return cls._update_enveloppe_projets_from_projet_accepted(projet)
-        elif dossier_status == Dossier.STATE_REFUSE:
+        elif dossier_status == Dossier.State.REFUSE:
             return cls._update_enveloppe_projets_from_projet_refused(projet)
-        elif dossier_status == Dossier.STATE_SANS_SUITE:
+        elif dossier_status == Dossier.State.SANS_SUITE:
             return cls._update_enveloppe_projets_from_projet_sans_suite(projet)
         elif dossier_status in [
-            Dossier.STATE_EN_CONSTRUCTION,
-            Dossier.STATE_EN_INSTRUCTION,
+            Dossier.State.EN_CONSTRUCTION,
+            Dossier.State.EN_INSTRUCTION,
         ]:
             cls._update_accepted_enveloppe_projets_montant_from_dn(projet)
             is_dossier_back_to_instruction = cls._is_dossier_back_to_instruction(projet)
@@ -394,7 +394,7 @@ class EnveloppeProjetService:
 
     @classmethod
     def _get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
-        if dotation == DOTATION_DETR and ds_dossier.ds_state == Dossier.STATE_ACCEPTE:
+        if dotation == DOTATION_DETR and ds_dossier.ds_state == Dossier.State.ACCEPTE:
             return True
 
         return None
@@ -591,7 +591,7 @@ class EnveloppeProjetService:
 
         if (
             enveloppe_projet.dossier_ds.ds_state
-            in [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE]
+            in [Dossier.State.ACCEPTE, Dossier.State.SANS_SUITE, Dossier.State.REFUSE]
             and enveloppe_projet.dossier_ds.ds_date_traitement is not None
         ):
             qs = qs.exclude(
@@ -626,7 +626,7 @@ class EnveloppeProjetService:
             # Once dotations have been updated in Turgot, we don't update dotations from DN
             return False
 
-        if projet.dossier_ds.ds_state != Dossier.STATE_EN_CONSTRUCTION:
+        if projet.dossier_ds.ds_state != Dossier.State.EN_CONSTRUCTION:
             # Dotations can only be updated for in construction dossiers
             return False
 

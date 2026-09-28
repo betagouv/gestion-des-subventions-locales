@@ -3,6 +3,7 @@ from logging import getLogger
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.functional import classproperty
 from django.utils.text import slugify
 
 from gsl.core.models import (
@@ -17,13 +18,6 @@ from gsl.projet.constants import (
     ANNUAIRE_ENTREPRISE_URL,
     DOTATION_DETR,
     DOTATION_DSIL,
-    DS_STATE_ACCEPTE,
-    DS_STATE_EN_CONSTRUCTION,
-    DS_STATE_EN_INSTRUCTION,
-    DS_STATE_REFUSE,
-    DS_STATE_SANS_SUITE,
-    DS_STATE_VALUES,
-    DS_TREATED_STATES,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     POSSIBLE_DOTATIONS,
 )
@@ -264,12 +258,16 @@ class Dossier(BaseModel):
     See https://www.demarches-simplifiees.fr/graphql/schema/types/Dossier
     """
 
-    # TODO, now use values in constants.py
-    STATE_ACCEPTE = DS_STATE_ACCEPTE
-    STATE_EN_CONSTRUCTION = DS_STATE_EN_CONSTRUCTION
-    STATE_EN_INSTRUCTION = DS_STATE_EN_INSTRUCTION
-    STATE_REFUSE = DS_STATE_REFUSE
-    STATE_SANS_SUITE = DS_STATE_SANS_SUITE
+    class State(models.TextChoices):
+        ACCEPTE = "accepte", "Accepté"
+        EN_CONSTRUCTION = "en_construction", "En construction"
+        EN_INSTRUCTION = "en_instruction", "En instruction"
+        REFUSE = "refuse", "Refusé"
+        SANS_SUITE = "sans_suite", "Classé sans suite"
+
+        @classproperty
+        def PROGRAMME(cls):
+            return (cls.ACCEPTE, cls.REFUSE, cls.SANS_SUITE)
 
     RAISON_DESACTIVATION_ARCHIVE = "archive"
     RAISON_DESACTIVATION_CORBEILLE = "corbeille"
@@ -296,7 +294,7 @@ class Dossier(BaseModel):
     ds_demarche = models.ForeignKey(Demarche, on_delete=models.PROTECT)
     ds_id = models.CharField("Identifiant DS")
     ds_number = models.IntegerField("Numéro DS", unique=True)
-    ds_state = models.CharField("État DS", choices=DS_STATE_VALUES)
+    ds_state = models.CharField("État DS", choices=State)
     ds_date_depot = models.DateTimeField("Date de dépôt", null=True, blank=True)
     ds_date_passage_en_construction = models.DateTimeField(
         "Date de passage en construction", null=True, blank=True
@@ -850,7 +848,7 @@ class Dossier(BaseModel):
 
     @property
     def has_missing_annotations(self):
-        if self.ds_state != self.STATE_ACCEPTE:
+        if self.ds_state != self.State.ACCEPTE:
             return False
 
         if not self.annotations_dotation or self.annotations_dotation in ("[]", ""):
@@ -917,7 +915,7 @@ class Dossier(BaseModel):
 
     @property
     def is_treated(self) -> bool:
-        return self.ds_state in DS_TREATED_STATES
+        return self.ds_state in self.State.PROGRAMME
 
     def update_data(self, dossier_data: dict) -> None:
         """Fusionne dans `self.data.raw_data` les seuls champs présents dans

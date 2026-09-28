@@ -252,9 +252,9 @@ def filter_dossier_complet(queryset, name, values):
 
     q = Q()
     if "oui" in values:
-        q |= ~Q(**{name: Dossier.STATE_EN_CONSTRUCTION})
+        q |= ~Q(**{name: Dossier.State.EN_CONSTRUCTION})
     if "non" in values:
-        q |= Q(**{name: Dossier.STATE_EN_CONSTRUCTION})
+        q |= Q(**{name: Dossier.State.EN_CONSTRUCTION})
 
     return queryset.filter(q)
 

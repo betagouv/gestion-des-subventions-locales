@@ -65,7 +65,7 @@ def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetr
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_ACCEPTE,
+        ds_state=Dossier.State.ACCEPTE,
         demande_dispositif_sollicite="DETR et DSIL",
         annotations_dotation="DETR et DSIL",
         annotations_assiette_detr=10_000,
@@ -104,7 +104,7 @@ def test_update_accepted_creates_dotation_removed_action_when_dotation_dropped(
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
 
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_ACCEPTE,
+        ds_state=Dossier.State.ACCEPTE,
         demande_dispositif_sollicite="DETR et DSIL",
         annotations_dotation="DETR",
         annotations_assiette_detr=10_000,
@@ -141,7 +141,7 @@ def test_update_accepted_does_not_create_removed_action_for_already_refused_dota
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
 
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_ACCEPTE,
+        ds_state=Dossier.State.ACCEPTE,
         demande_dispositif_sollicite="DETR",
         annotations_dotation="DETR",
         annotations_assiette_detr=10_000,
@@ -176,7 +176,7 @@ def test_update_enveloppe_projets_from_projet_accepted_creates_new_enveloppe_pro
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        ds_state=Dossier.State.EN_INSTRUCTION,
         demande_dispositif_sollicite="DETR",
         annotations_assiette_detr=None,
         annotations_montant_accorde_detr=None,
@@ -234,7 +234,7 @@ def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_i
     dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        ds_state=Dossier.State.EN_INSTRUCTION,
         demande_dispositif_sollicite="DETR et DSIL",
         ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
         perimetre=arr_dijon,
@@ -287,7 +287,7 @@ def test_update_enveloppe_projets_from_projet_accepted_removes_enveloppe_projets
     dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        ds_state=Dossier.State.EN_INSTRUCTION,
         demande_dispositif_sollicite="DETR et DSIL",
         ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
         perimetre=arr_dijon,
@@ -339,7 +339,7 @@ def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_do
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="DETR",
         dossier_ds__ds_date_traitement=None,
         dossier_ds__perimetre=arr_dijon,
@@ -348,7 +348,7 @@ def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_do
     dps._initialize_enveloppe_projets_from_projet(projet)
     assert projet.enveloppeprojet_set.count() == 1
 
-    projet.dossier_ds.ds_state = Dossier.STATE_ACCEPTE
+    projet.dossier_ds.ds_state = Dossier.State.ACCEPTE
     projet.dossier_ds.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
     projet.dossier_ds.annotations_dotation = ""
     projet.dossier_ds.save()
@@ -384,7 +384,7 @@ def test_update_enveloppe_projets_from_projet_refused(perimetres):
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_REFUSE,
+        dossier_ds__ds_state=Dossier.State.REFUSE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
         dossier_ds__perimetre=arr_dijon,
     )
@@ -417,7 +417,7 @@ def test_update_enveloppe_projets_from_projet_refused_does_not_update_already_re
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_REFUSE,
+        dossier_ds__ds_state=Dossier.State.REFUSE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
         dossier_ds__perimetre=arr_dijon,
     )
@@ -443,7 +443,7 @@ def test_update_enveloppe_projets_from_projet_sans_suite(perimetres):
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_state=Dossier.State.SANS_SUITE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
         dossier_ds__perimetre=arr_dijon,
     )
@@ -476,7 +476,7 @@ def test_update_enveloppe_projets_from_projet_sans_suite_does_not_update_already
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_state=Dossier.State.SANS_SUITE,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
         dossier_ds__perimetre=arr_dijon,
     )
@@ -516,7 +516,7 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction(
 ):
     """Test _update_enveloppe_projets_from_projet_back_to_instruction"""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 10, tzinfo=UTC),
         dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
             2025, 1, 15, tzinfo=UTC
@@ -561,7 +561,7 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accep
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 10, tzinfo=UTC),
         dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
             2025, 1, 15, tzinfo=UTC
@@ -619,7 +619,7 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_a_program
     arr_dijon, *_ = perimetres
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
             2025, 1, 20, tzinfo=UTC
         ),
@@ -675,7 +675,7 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accep
     arr_dijon, *_ = perimetres
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
             2025, 1, 20, tzinfo=UTC
         ),

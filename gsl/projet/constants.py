@@ -49,22 +49,6 @@ ANNUAIRE_ENTREPRISE_URL = "https://annuaire-entreprises.data.gouv.fr/entreprise/
 
 # DN
 
-DS_STATE_ACCEPTE = "accepte"
-DS_STATE_EN_CONSTRUCTION = "en_construction"
-DS_STATE_EN_INSTRUCTION = "en_instruction"
-DS_STATE_REFUSE = "refuse"
-DS_STATE_SANS_SUITE = "sans_suite"
-
-DS_STATE_VALUES = (
-    (DS_STATE_ACCEPTE, "Accepté"),
-    (DS_STATE_EN_CONSTRUCTION, "En construction"),
-    (DS_STATE_EN_INSTRUCTION, "En instruction"),
-    (DS_STATE_REFUSE, "Refusé"),
-    (DS_STATE_SANS_SUITE, "Classé sans suite"),
-)
-
-DS_TREATED_STATES = (DS_STATE_ACCEPTE, DS_STATE_REFUSE, DS_STATE_SANS_SUITE)
-
 # Valeurs de l'enum GraphQL `TraitementEvent` de Démarches Simplifiées
 # (https://www.demarches-simplifiees.fr/graphql/schema/enums/TraitementEvent),
 DS_TRAITEMENT_EVENT_DEPOSE = "depose"
