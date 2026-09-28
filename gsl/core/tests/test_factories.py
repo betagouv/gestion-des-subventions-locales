@@ -4,6 +4,7 @@ from django.test import Client
 from ..models import (
     Adresse,
     Arrondissement,
+    BulkActionsJob,
     Collegue,
     Commune,
     Departement,
@@ -13,6 +14,7 @@ from ..models import (
 from .factories import (
     AdresseFactory,
     ArrondissementFactory,
+    BulkActionsJobFactory,
     ClientWithLoggedStaffUserFactory,
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -32,6 +34,7 @@ test_data = (
     (CommuneFactory, Commune),
     (AdresseFactory, Adresse),
     (PerimetreFactory, Perimetre),
+    (BulkActionsJobFactory, BulkActionsJob),
 )
 
 

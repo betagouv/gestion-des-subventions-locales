@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from gsl.core.tests.factories import CollegueFactory
+from gsl.core.tests.factories import BulkActionsJobFactory, CollegueFactory
 
 
 @pytest.fixture
@@ -101,3 +101,26 @@ class TestCollegueAdminReadonlyFields:
 
         staff_user.refresh_from_db()
         assert staff_user.is_staff
+
+
+@pytest.mark.django_db
+class TestBulkActionsJobAdmin:
+    def test_changelist_can_be_filtered_by_action(self, otp_verified_client, superuser):
+        notification_job = BulkActionsJobFactory(action="bulk_notification")
+        BulkActionsJobFactory(action="bulk_status")
+        client = otp_verified_client(superuser)
+
+        response = client.get(
+            reverse("admin:gsl_core_bulkactionsjob_changelist"),
+            {"action": "bulk_notification"},
+        )
+
+        assert response.status_code == 200
+        assert list(response.context["cl"].result_list) == [notification_job]
+
+    def test_staff_user_has_no_access(self, otp_verified_client, staff_user):
+        client = otp_verified_client(staff_user)
+
+        response = client.get(reverse("admin:gsl_core_bulkactionsjob_changelist"))
+
+        assert response.status_code == 403

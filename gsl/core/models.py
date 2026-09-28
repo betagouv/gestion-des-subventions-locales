@@ -1,7 +1,10 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, UniqueConstraint
+from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
@@ -407,3 +410,71 @@ class Collegue(AbstractUser):
         if self.first_name or self.last_name:
             return f"{self.first_name} {self.last_name}".strip()
         return self.username
+
+
+class BulkActionsJob(BaseModel):
+    """
+    Tracks an async bulk action run item by item by a Celery task. Generic: the
+    creator stores the ids to process in `object_ids` and whatever its task
+    needs in `params`; the task records each item's outcome on this row, and the
+    browser polls a view that reads it.
+    """
+
+    STATUS_PENDING = "pending"
+    STATUS_RUNNING = "running"
+    STATUS_DONE = "done"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "En attente"),
+        (STATUS_RUNNING, "En cours"),
+        (STATUS_DONE, "Terminé"),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Set by the creator, e.g. "bulk_notification"
+    action = models.CharField("Action", max_length=64)
+    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
+    object_ids = models.JSONField(default=list)
+    params = models.JSONField(default=dict)
+    status = models.CharField(
+        max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    processed = models.PositiveIntegerField(default=0)
+    # [{"object_id": ..., "label": str, "message": str}, ...]
+    errors = models.JSONField(default=list)
+
+    class Meta:
+        verbose_name = "Action en masse"
+        verbose_name_plural = "Actions en masse"
+        ordering = ("-created_at",)
+
+    @property
+    def total(self) -> int:
+        return len(self.object_ids)
+
+    @property
+    def is_running(self) -> bool:
+        return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
+
+    @property
+    def succeeded_count(self) -> int:
+        return self.processed - len(self.errors)
+
+    def record_success(self) -> None:
+        type(self).objects.filter(pk=self.pk).update(
+            processed=F("processed") + 1, updated_at=timezone.now()
+        )
+        self.refresh_from_db(fields=["processed", "updated_at"])
+
+    def record_error(self, object_id, label: str, message: str) -> None:
+        self.errors.append({"object_id": object_id, "label": label, "message": message})
+        type(self).objects.filter(pk=self.pk).update(
+            processed=F("processed") + 1, errors=self.errors, updated_at=timezone.now()
+        )
+        self.refresh_from_db(fields=["processed", "errors", "updated_at"])
+
+    def errors_summary(self) -> dict[str, list[str]]:
+        """Error labels grouped by message, in order of first occurrence."""
+        summary: dict[str, list[str]] = {}
+        for error in self.errors:
+            summary.setdefault(error["message"], []).append(error["label"])
+        return summary

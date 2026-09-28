@@ -22,6 +22,7 @@ from gsl.core.admin_alerts import notify_admins
 from gsl.core.models import (
     Adresse,
     Arrondissement,
+    BulkActionsJob,
     Collegue,
     Commune,
     Departement,
@@ -781,6 +782,61 @@ class PerimetreAdmin(AllPermsForSuperUserAndViewOnlyForStaffUser, admin.ModelAdm
 
     user_count.admin_order_field = "user_count"
     user_count.short_description = "Nb d’utilisateurs"
+
+
+@admin.register(BulkActionsJob)
+class BulkActionsJobAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "action",
+        "status",
+        "processed_display",
+        "error_count",
+        "created_by",
+        "created_at",
+    )
+    list_filter = ("action", "status")
+    search_fields = ("created_by__email",)
+    raw_id_fields = ("created_by",)
+    readonly_fields = (
+        "id",
+        "created_at",
+        "updated_at",
+        "processed",
+        "errors",
+        "total_display",
+        "error_count",
+    )
+    fields = (
+        "id",
+        "action",
+        "created_by",
+        "object_ids",
+        "params",
+        "status",
+        "processed",
+        "total_display",
+        "error_count",
+        "errors",
+        "created_at",
+        "updated_at",
+    )
+    list_select_related = ("created_by",)
+
+    def processed_display(self, obj):
+        return f"{obj.processed} / {obj.total}"
+
+    processed_display.short_description = "Avancement"
+
+    def total_display(self, obj):
+        return obj.total
+
+    total_display.short_description = "Total"
+
+    def error_count(self, obj):
+        return len(obj.errors or [])
+
+    error_count.short_description = "Nb d’erreurs"
 
 
 admin.site.unregister(Group)
