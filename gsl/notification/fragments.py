@@ -16,9 +16,9 @@ from gsl.core.matomo_constants import (
     MATOMO_CATEGORY_NOTIFICATION,
 )
 from gsl.historique.models import ProjetAction
-from gsl.notification.forms.generate_doc_forms import GenerateDotationsDocumentsForm
-from gsl.notification.forms.notification_forms import NotificationMessageForm
-from gsl.notification.forms.upload_forms import (
+from gsl.notification.forms.generate_doc import GenerateDotationsDocumentsForm
+from gsl.notification.forms.notification import NotificationMessageForm
+from gsl.notification.forms.upload import (
     ManualDocumentAttachForm,
     UploadedDocumentAnalyzeForm,
 )
