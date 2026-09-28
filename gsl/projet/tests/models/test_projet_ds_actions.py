@@ -52,7 +52,7 @@ def test_notify_merges_imported_documents_into_one_pdf():
     with (
         _patch_ds_notify_methods() as mocks,
         mock.patch(
-            "gsl.projet.mixins.merge_documents_into_pdf", return_value=merged_pdf
+            "gsl.projet.models.mixins.merge_documents_into_pdf", return_value=merged_pdf
         ) as merge_mock,
     ):
         projet.notify(CollegueFactory())
@@ -69,7 +69,7 @@ def test_notify_without_imported_documents_does_not_merge():
 
     with (
         _patch_ds_notify_methods(),
-        mock.patch("gsl.projet.mixins.merge_documents_into_pdf") as merge_mock,
+        mock.patch("gsl.projet.models.mixins.merge_documents_into_pdf") as merge_mock,
     ):
         projet.notify(CollegueFactory(), motivation="Motif")
 

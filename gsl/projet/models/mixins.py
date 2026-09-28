@@ -6,8 +6,8 @@ from gsl.core.models import Collegue
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 
-from .constants import DOTATIONS, ProjetStatus
-from .utils.utils import merge_documents_into_pdf
+from ..constants import DOTATIONS, ProjetStatus
+from ..utils.utils import merge_documents_into_pdf
 
 
 class ProjetDNActionsMixin:
