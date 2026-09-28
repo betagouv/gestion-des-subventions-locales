@@ -107,10 +107,7 @@ def test_get_documents_with_correct_perimetre_and_without_arrete(
     assert url == f"/notification/{projet.id}/documents/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
-    assert (
-        response.templates[0].name
-        == "gsl_notification/tab_simulation_projet/tab_notifications.html"
-    )
+    assert response.templates[0].name == "gsl_notification/tab_notifications.html"
 
 
 def test_get_documents_renders_the_table_of_existing_documents(

@@ -1,5 +1,5 @@
 
-{% extends "gsl_notification/tab_simulation_projet/tab_notifications.html" %}
+{% extends "gsl_notification/tab_notifications.html" %}
 {% load static gsl_filters %}
 {% block notification_content %}
     <a class="fr-btn fr-btn--icon-left fr-btn--tertiary fr-icon-arrow-left-s-line fr-mb-4w"
@@ -14,8 +14,7 @@
             <b>Modèle choisi :</b> {{ modele.name }}
         </p>
         <a class="fr-btn fr-btn--secondary"
-           href="{% url 'gsl_notification:select-modele' enveloppe_projet.projet.id modele.dotation document_type %}">Modifier
-        le modèle</a>
+           href="{% url 'gsl_notification:select-modele' enveloppe_projet.projet.id modele.dotation document_type %}">Modifier le modèle</a>
         {% include "includes/_generated_document_form.html" %}
     </div>
 {% endblock notification_content %}
