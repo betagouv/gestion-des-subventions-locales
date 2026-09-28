@@ -8,16 +8,17 @@ from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 
 from gsl.core.tests.factories import CollegueFactory
-from gsl.notification.forms import (
+from gsl.notification.forms.bulk_generation import (
     EXPORT_FORMAT_ONE_PDF_ALL,
-    ArreteForm,
     GenerateDocumentsCreateForm,
     GenerateDocumentsFormatForm,
     GenerateDocumentsModeleSelectionForm,
-    GenerateDotationsDocumentsForm,
-    LettreNotificationForm,
+)
+from gsl.notification.forms.generate_doc import GenerateDotationsDocumentsForm
+from gsl.notification.forms.modele import ModeleDocumentStepTwoForm
+from gsl.notification.forms.update_doc import ArreteForm, LettreNotificationForm
+from gsl.notification.forms.upload import (
     ManualDocumentAttachForm,
-    ModeleDocumentStepTwoForm,
     UploadedDocumentAnalyzeForm,
 )
 from gsl.notification.models import (
