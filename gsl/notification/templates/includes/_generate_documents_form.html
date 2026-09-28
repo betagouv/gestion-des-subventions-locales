@@ -45,7 +45,7 @@
 
         {% if projet.has_been_notified %}
             <div class="fr-mt-3w">
-                {% comment %} The button is wrapped in a span with tabindex and aria-describedby for accessibility{% endcomment %}
+                {% comment %}Nécessaire pour qu'à la navigation clavier, on puisse être focus sur le boutton disabled et donc qu'on puisse lire le tooltip{% endcomment %}
                 <span tabindex="0" aria-describedby="tooltip-generate-documents-disabled">
                     <button type="submit"
                             class="fr-btn fr-icon-file-text-line fr-btn--icon-left"
