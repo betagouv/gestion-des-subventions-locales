@@ -636,6 +636,22 @@ def test_delete_detr_modele_by_region_user_is_forbidden():
     assert ModeleArrete.objects.count() == 1
 
 
+def test_delete_dsil_modele_by_region_user():
+    regional_perimetre = PerimetreRegionalFactory()
+    user = CollegueFactory(perimetre=regional_perimetre)
+    client = ClientWithLoggedUserFactory(user)
+    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=DOTATION_DSIL)
+    url = reverse(
+        "gsl_notification:delete-modele",
+        kwargs={"modele_type": ARRETE, "modele_id": modele.id},
+    )
+
+    response = client.post(url)
+
+    assert response.status_code == 302
+    assert ModeleArrete.objects.count() == 0
+
+
 def test_delete_detr_modele_from_dept_by_arrondissement_user():
     arr_perimetre = PerimetreArrondissementFactory()
     dept_perimetre = PerimetreDepartementalFactory(

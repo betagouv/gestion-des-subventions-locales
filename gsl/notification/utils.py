@@ -244,10 +244,8 @@ def get_modele_perimetres(
                 ]
             elif perimetre.type == Perimetre.TYPE_DEPARTEMENT:
                 return [perimetre]
-            else:
-                raise ValueError(
-                    "Les modèles de la dotation DETR ne sont pas accessibles pour les utilisateurs dont le périmètre n'est pas de type arrondissement ou départemental."
-                )
+            # La DETR est une dotation départementale, donc la région n'y a pas accès
+            return []
 
         # DSIL
         if perimetre.type == Perimetre.TYPE_ARRONDISSEMENT:
