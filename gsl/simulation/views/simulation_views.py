@@ -32,7 +32,7 @@ from ..forms import (
     SimulationRenameForm,
 )
 from ..models import (
-    BulkStatusJob,
+    BULK_STATUS_ALLOWED_TARGET_STATUSES,
     Simulation,
     SimulationProjet,
 )
@@ -134,7 +134,7 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
             SimulationProjet.objects.active()
             .filter(
                 simulation=simulation,
-                status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
+                status__in=BULK_STATUS_ALLOWED_TARGET_STATUSES,
                 enveloppe_projet__projet__in=self.filterset.qs,
                 enveloppe_projet__projet__notified_at__isnull=True,
             )
@@ -145,7 +145,7 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
                 "simulation": simulation,
                 "selectable_ids_list": selectable_ids_list,
                 "selectable_count": len(selectable_ids_list),
-                "bulk_status_choices": BulkStatusJob.ALLOWED_TARGET_STATUSES,
+                "bulk_status_choices": BULK_STATUS_ALLOWED_TARGET_STATUSES,
                 "title": f"{simulation.enveloppe.dotation} {simulation.enveloppe.annee} – {simulation.title}",
                 "status_summary": simulation.get_projet_status_summary(),
                 "enveloppe": simulation.enveloppe,

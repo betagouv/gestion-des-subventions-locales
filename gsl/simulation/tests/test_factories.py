@@ -1,13 +1,20 @@
 import pytest
 
+from gsl.core.models import BulkActionsJob
+
 from ..models import Simulation, SimulationProjet
-from .factories import SimulationFactory, SimulationProjetFactory
+from .factories import (
+    BulkStatusJobFactory,
+    SimulationFactory,
+    SimulationProjetFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
 test_data = (
     (SimulationFactory, Simulation),
     (SimulationProjetFactory, SimulationProjet),
+    (BulkStatusJobFactory, BulkActionsJob),
 )
 
 

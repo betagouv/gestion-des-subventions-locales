@@ -16,7 +16,7 @@
         {% if job.is_running %}
             <h1 class="fr-modal__title" id="{{ modal_id }}-title">
                 <span class="fr-icon-arrow-right-line fr-icon--lg" aria-hidden="true"></span>
-                Modifier à «&nbsp;{{ job.target_status|status_to_action_word }}&nbsp;» {{ job.total }} projet{{ job.total|custom_pluralize }} en cours
+                Modifier à «&nbsp;{{ job.params.target_status|status_to_action_word }}&nbsp;» {{ job.total }} projet{{ job.total|custom_pluralize }} en cours
             </h1>
             <div class="gsl-bulk-status-spinner fr-py-6w" role="status">
                 <span class="gsl-bulk-status-spinner__icon fr-icon-refresh-line fr-icon-spin"
@@ -30,7 +30,7 @@
             <h1 class="fr-modal__title" id="{{ modal_id }}-title">
                 <span class="fr-icon-checkbox-circle-fill fr-icon--lg fr-text-default--success"
                       aria-hidden="true"></span>
-                Les {{ job.succeeded_count }} projet{{ job.succeeded_count|custom_pluralize }} ont bien été {{ job.target_status|status_to_past_participle_plural }}
+                Les {{ job.succeeded_count }} projet{{ job.succeeded_count|custom_pluralize }} ont bien été {{ job.params.target_status|status_to_past_participle_plural }}
             </h1>
             {% if job.errors %}
                 <div class="fr-alert fr-alert--warning fr-mt-2w" role="alert">

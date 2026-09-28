@@ -395,7 +395,7 @@ dossier.dossier_dotation_dsil.status = "refused"
 
 ### Admin Permissions
 
-- To reserve a `ModelAdmin` to super-users only (e.g. background-plumbing models like `BulkStatusJob`), inherit directly from `admin.ModelAdmin` and **don't** override `has_*_permission`, and **don't** mix in `AllPermsForStaffUser`. Django's default behavior is enough: a user only sees the module if they have the explicit Django permissions (`add`, `change`, `view`, `delete`) on the model — which by default no one has, so only super-users (who bypass all permissions) get access.
+- To reserve a `ModelAdmin` to super-users only (e.g. background-plumbing models like `BulkActionsJob`), inherit directly from `admin.ModelAdmin` and **don't** override `has_*_permission`, and **don't** mix in `AllPermsForStaffUser`. Django's default behavior is enough: a user only sees the module if they have the explicit Django permissions (`add`, `change`, `view`, `delete`) on the model — which by default no one has, so only super-users (who bypass all permissions) get access.
 - Use `AllPermsForStaffUser` only when the admin is intended for the business team (`is_staff` users) and the model is part of the day-to-day workflow.
 
 ### State Machines & Workflows

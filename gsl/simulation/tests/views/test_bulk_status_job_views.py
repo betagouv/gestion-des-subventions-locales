@@ -4,6 +4,7 @@ import pytest
 from django.db import IntegrityError
 from django.urls import reverse
 
+from gsl.core.models import BulkActionsJob
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -13,8 +14,9 @@ from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
-from ...models import BulkStatusJob, SimulationProjet
+from ...models import SimulationProjet
 from ..factories import (
+    BulkStatusJobFactory,
     SimulationFactory,
     SimulationProjetFactory,
     make_detr_simu_projet,
@@ -72,12 +74,12 @@ def test_start_view_creates_job_and_enqueues_task(
         )
 
     assert response.status_code == 200
-    assert BulkStatusJob.objects.count() == 1
-    job = BulkStatusJob.objects.get()
-    assert job.simulation == simulation
+    assert BulkActionsJob.objects.count() == 1
+    job = BulkActionsJob.objects.get()
+    assert job.params["simulation_id"] == simulation.pk
     assert job.created_by == collegue
-    assert job.target_status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
-    assert sorted(job.simulation_projet_ids) == sorted([sp1.id, sp2.id])
+    assert job.params["target_status"] == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
+    assert sorted(job.object_ids) == sorted([sp1.id, sp2.id])
     assert job.total == 2
     assert job.processed == 0
     task_delay.assert_called_once_with(str(job.pk))
@@ -102,7 +104,7 @@ def test_start_view_rejects_invalid_target_status(
             headers={"HX-Request": "true"},
         )
     assert response.status_code == 404
-    assert BulkStatusJob.objects.count() == 0
+    assert BulkActionsJob.objects.count() == 0
     task_delay.assert_not_called()
 
 
@@ -139,19 +141,19 @@ def test_start_view_rejects_foreign_perimeter_ids(
             headers={"HX-Request": "true"},
         )
     assert response.status_code == 404
-    assert BulkStatusJob.objects.count() == 0
+    assert BulkActionsJob.objects.count() == 0
 
 
 def test_start_view_refuses_duplicate_job_for_same_simulation(
     client_with_user_logged, collegue, simulation
 ):
     sp = _make_simu_projet(collegue, simulation)
-    BulkStatusJob.objects.create(
+    BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp.id],
-        status=BulkStatusJob.STATUS_RUNNING,
+        status=BulkActionsJob.STATUS_RUNNING,
     )
 
     with mock.patch(
@@ -169,7 +171,7 @@ def test_start_view_refuses_duplicate_job_for_same_simulation(
 
     assert response.status_code == 200
     assert "Traitement déjà en cours".encode() in response.content
-    assert BulkStatusJob.objects.count() == 1
+    assert BulkActionsJob.objects.count() == 1
     task_delay.assert_not_called()
     # The OOB swap removes the previous (still-open) confirm dialog from the
     # DOM, so the response must trigger a click on the new modal's hidden
@@ -182,20 +184,20 @@ def test_start_view_refuses_duplicate_job_for_same_simulation(
 def test_db_constraint_rejects_two_active_jobs_for_same_simulation(
     collegue, simulation
 ):
-    BulkStatusJob.objects.create(
+    BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[],
-        status=BulkStatusJob.STATUS_RUNNING,
+        status=BulkActionsJob.STATUS_RUNNING,
     )
     with pytest.raises(IntegrityError):
-        BulkStatusJob.objects.create(
+        BulkStatusJobFactory(
             simulation=simulation,
             created_by=collegue,
             target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
             simulation_projet_ids=[],
-            status=BulkStatusJob.STATUS_PENDING,
+            status=BulkActionsJob.STATUS_PENDING,
         )
 
 
@@ -210,7 +212,7 @@ def test_start_view_handles_race_with_integrity_error(
         ) as task_delay,
         mock.patch(
             "gsl.simulation.forms.BulkStatusJobForm.save",
-            side_effect=IntegrityError("uq_bulkstatusjob_active_per_simulation"),
+            side_effect=IntegrityError("uq_bulkactionsjob_active_per_lock_key"),
         ),
     ):
         response = client_with_user_logged.post(
@@ -235,12 +237,12 @@ def test_start_view_allows_new_job_once_previous_is_done(
     client_with_user_logged, collegue, simulation
 ):
     sp = _make_simu_projet(collegue, simulation)
-    BulkStatusJob.objects.create(
+    BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp.id],
-        status=BulkStatusJob.STATUS_DONE,
+        status=BulkActionsJob.STATUS_DONE,
         processed=1,
     )
 
@@ -258,19 +260,19 @@ def test_start_view_allows_new_job_once_previous_is_done(
         )
 
     assert response.status_code == 200
-    assert BulkStatusJob.objects.count() == 2
+    assert BulkActionsJob.objects.count() == 2
     task_delay.assert_called_once()
 
 
 def test_progress_view_returns_running_fragment_with_counts(
     client_with_user_logged, collegue, simulation
 ):
-    job = BulkStatusJob.objects.create(
+    job = BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[10, 20, 30, 40, 50],
-        status=BulkStatusJob.STATUS_RUNNING,
+        status=BulkActionsJob.STATUS_RUNNING,
         processed=2,
     )
     response = client_with_user_logged.get(
@@ -286,16 +288,16 @@ def test_progress_view_returns_running_fragment_with_counts(
 def test_progress_view_returns_done_fragment_with_errors(
     client_with_user_logged, collegue, simulation
 ):
-    job = BulkStatusJob.objects.create(
+    job = BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[10, 20, 30],
-        status=BulkStatusJob.STATUS_DONE,
+        status=BulkActionsJob.STATUS_DONE,
         processed=3,
         errors=[
             {
-                "simulation_projet_id": 123,
+                "object_id": 123,
                 "label": "Projet test",
                 "message": "L'assiette est manquante.",
             }
@@ -335,12 +337,12 @@ def test_progress_view_running_does_not_render_row_oob(
     client_with_user_logged, collegue, simulation
 ):
     sp = _make_simu_projet(collegue, simulation)
-    job = BulkStatusJob.objects.create(
+    job = BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp.id],
-        status=BulkStatusJob.STATUS_RUNNING,
+        status=BulkActionsJob.STATUS_RUNNING,
         processed=0,
     )
 
@@ -360,12 +362,12 @@ def test_progress_view_done_renders_row_oob_for_each_projet(
 ):
     sp1 = _make_simu_projet(collegue, simulation)
     sp2 = _make_simu_projet(collegue, simulation)
-    job = BulkStatusJob.objects.create(
+    job = BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp1.id, sp2.id],
-        status=BulkStatusJob.STATUS_DONE,
+        status=BulkActionsJob.STATUS_DONE,
         processed=2,
     )
 
@@ -392,7 +394,7 @@ def test_progress_view_rejects_foreign_perimeter_job(
     other_env = DetrEnveloppeFactory(perimetre=other_perim, annee=2025)
     other_simu = SimulationFactory(enveloppe=other_env)
     other_user = CollegueWithDSProfileFactory(perimetre=other_perim)
-    job = BulkStatusJob.objects.create(
+    job = BulkStatusJobFactory(
         simulation=other_simu,
         created_by=other_user,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,

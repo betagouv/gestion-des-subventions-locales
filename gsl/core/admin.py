@@ -796,7 +796,7 @@ class BulkActionsJobAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = ("action", "status")
-    search_fields = ("created_by__email",)
+    search_fields = ("created_by__email", "lock_key")
     raw_id_fields = ("created_by",)
     readonly_fields = (
         "id",
@@ -813,6 +813,7 @@ class BulkActionsJobAdmin(admin.ModelAdmin):
         "created_by",
         "object_ids",
         "params",
+        "lock_key",
         "status",
         "processed",
         "total_display",
@@ -837,6 +838,18 @@ class BulkActionsJobAdmin(admin.ModelAdmin):
         return len(obj.errors or [])
 
     error_count.short_description = "Nb d’erreurs"
+
+    def has_add_permission(self, request):
+        """Disable add permission - keep autocomplete but prevent creation."""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Disable change permission - keep autocomplete but prevent editing."""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Disable delete permission - keep autocomplete but prevent deletion."""
+        return False
 
 
 admin.site.unregister(Group)

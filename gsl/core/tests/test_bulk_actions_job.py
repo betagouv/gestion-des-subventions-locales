@@ -1,4 +1,5 @@
 import pytest
+from django.db import IntegrityError
 
 from gsl.core.models import BulkActionsJob
 from gsl.core.tests.factories import BulkActionsJobFactory
@@ -104,3 +105,42 @@ def test_errors_summary_groups_labels_by_message():
         "Document signé manquant": ["222", "444"],
     }
     assert list(job.errors_summary()) == ["Erreur DN", "Document signé manquant"]
+
+
+@pytest.mark.parametrize(
+    "existing_status, new_status",
+    (
+        (BulkActionsJob.STATUS_RUNNING, BulkActionsJob.STATUS_RUNNING),
+        (BulkActionsJob.STATUS_RUNNING, BulkActionsJob.STATUS_PENDING),
+        (BulkActionsJob.STATUS_PENDING, BulkActionsJob.STATUS_PENDING),
+        (BulkActionsJob.STATUS_PENDING, BulkActionsJob.STATUS_RUNNING),
+    ),
+)
+def test_two_active_jobs_cannot_share_a_lock_key(existing_status, new_status):
+    BulkActionsJobFactory(lock_key="simulation:1", status=existing_status)
+
+    with pytest.raises(IntegrityError):
+        BulkActionsJobFactory(lock_key="simulation:1", status=new_status)
+
+
+@pytest.mark.parametrize(
+    "new_status",
+    (
+        BulkActionsJob.STATUS_PENDING,
+        BulkActionsJob.STATUS_RUNNING,
+        BulkActionsJob.STATUS_DONE,
+    ),
+)
+def test_a_done_job_does_not_hold_its_lock_key(new_status):
+    BulkActionsJobFactory(lock_key="simulation:1", status=BulkActionsJob.STATUS_DONE)
+
+    BulkActionsJobFactory(lock_key="simulation:1", status=new_status)
+
+    assert BulkActionsJob.objects.filter(lock_key="simulation:1").count() == 2
+
+
+def test_jobs_without_lock_key_can_run_concurrently():
+    BulkActionsJobFactory(status=BulkActionsJob.STATUS_RUNNING)
+    BulkActionsJobFactory(status=BulkActionsJob.STATUS_RUNNING)
+
+    assert BulkActionsJob.objects.count() == 2

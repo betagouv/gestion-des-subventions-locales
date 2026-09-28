@@ -441,11 +441,21 @@ class BulkActionsJob(BaseModel):
     processed = models.PositiveIntegerField(default=0)
     # [{"object_id": ..., "label": str, "message": str}, ...]
     errors = models.JSONField(default=list)
+    # Optional: at most one active job per lock_key (e.g. "simulation:<id>")
+    lock_key = models.CharField(max_length=128, blank=True, default="")
 
     class Meta:
         verbose_name = "Action en masse"
         verbose_name_plural = "Actions en masse"
         ordering = ("-created_at",)
+        constraints = (
+            UniqueConstraint(
+                fields=("lock_key",),
+                condition=models.Q(status__in=("pending", "running"))
+                & ~models.Q(lock_key=""),
+                name="uq_bulkactionsjob_active_per_lock_key",
+            ),
+        )
 
     @property
     def total(self) -> int:
