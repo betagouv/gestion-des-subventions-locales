@@ -3,7 +3,8 @@
     {{ simu.enveloppe_projet.assiette|euro_value:2 }}
 {% else %}
     <span>{{ simu.enveloppe_projet.assiette|euro_value:2 }}</span>
-    <button class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line gsl-cell-edit-btn"
+    <button type="button"
+            class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line gsl-cell-edit-btn"
             aria-expanded="false"
             aria-controls="edit-assiette-{{ simu.pk }}"
             hx-get="{% url 'simulation:edit-assiette' simu.pk %}{% querystring %}"

@@ -5,7 +5,8 @@
         <span class="max-3-lines" title="{{ cell_value }}">{{ cell_value|linebreaksbr }}</span>
     {% else %}
         <span class="max-3-lines" title="{{ cell_value }}">{{ cell_value|linebreaksbr }}</span>
-        <button class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line gsl-cell-edit-btn"
+        <button type="button"
+                class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-edit-line gsl-cell-edit-btn"
                 aria-expanded="false"
                 aria-controls="edit-comment-{{ comment_number }}-{{ simu.pk }}"
                 hx-get="{% url 'simulation:edit-comment' simu.pk comment_number %}{% querystring %}"

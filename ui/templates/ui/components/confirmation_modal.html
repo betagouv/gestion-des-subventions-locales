@@ -23,7 +23,8 @@
                     </div>
 
                     <div class="fr-modal__footer confirmation-modal-footer">
-                        <button class="fr-btn fr-btn--secondary close-modal"
+                        <button type="button"
+                                class="fr-btn fr-btn--secondary close-modal"
                                 aria-controls="{{ self.modal_id }}"
                                 {% if self.form %} data-action="modal#close"{% endif %}>
                             Annuler
