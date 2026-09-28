@@ -20,7 +20,6 @@ from gsl.projet.utils.utils import compute_taux
 
 from .models import (
     BULK_STATUS_ACTION,
-    BULK_STATUS_ALLOWED_TARGET_STATUSES,
     Simulation,
     SimulationProjet,
 )
@@ -442,11 +441,7 @@ class BulkStatusJobForm(forms.Form):
     simulation = forms.ModelChoiceField(queryset=Simulation.objects.none())
     target_status = forms.ChoiceField(
         label="Statut cible",
-        choices=[
-            (key, label)
-            for key, label in SimulationProjet.STATUS_CHOICES
-            if key in BULK_STATUS_ALLOWED_TARGET_STATUSES
-        ],
+        choices=SimulationProjet.STATUS_CHOICES,
     )
     simulation_projet_ids = forms.CharField()
 

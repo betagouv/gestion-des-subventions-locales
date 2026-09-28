@@ -269,10 +269,3 @@ class SimulationProjet(BaseModel):
 
 # BulkActionsJob.action of a bulk SimulationProjet status change
 BULK_STATUS_ACTION = "simulation_status"
-
-BULK_STATUS_ALLOWED_TARGET_STATUSES = (
-    SimulationProjet.STATUS_ACCEPTED,
-    SimulationProjet.STATUS_REFUSED,
-    SimulationProjet.STATUS_DISMISSED,
-    *SimulationProjet.SIMULATION_PENDING_STATUSES,
-)
