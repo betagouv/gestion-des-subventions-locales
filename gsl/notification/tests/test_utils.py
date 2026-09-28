@@ -24,15 +24,17 @@ from gsl.notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl.notification.utils import (
-    _get_uploaded_document_pdf,
     generate_pdf_for_generated_document,
     get_modele_perimetres,
-    merge_documents_into_pdf,
     merge_generated_documents_into_pdf,
     replace_mentions_in_html,
 )
 from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
+from gsl.projet.utils.utils import (
+    _get_uploaded_document_pdf,
+    merge_documents_into_pdf,
+)
 from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 
 
@@ -259,7 +261,7 @@ class TestMergeDocumentsIntoPdf:
         arrete_signe.file.name = "test_arrete_signe.pdf"
         return arrete_signe
 
-    @patch("gsl.notification.utils.get_s3_object")
+    @patch("gsl.projet.utils.utils.get_s3_object")
     def test_merge_single_uploaded_pdf_document(
         self, mock_get_s3, mock_annexe, sample_pdf_bytes
     ):
@@ -281,7 +283,7 @@ class TestMergeDocumentsIntoPdf:
         assert len(pdf.pages) == 1
         mock_get_s3.assert_called_once_with("test_annexe.pdf")
 
-    @patch("gsl.notification.utils.get_s3_object")
+    @patch("gsl.projet.utils.utils.get_s3_object")
     def test_uploaded_document_img2pdf_conversion(
         self,
         mock_get_s3,
@@ -302,7 +304,7 @@ class TestMergeDocumentsIntoPdf:
         pdf = Pdf.open(bytes)
         assert len(pdf.pages) == 1
 
-    @patch("gsl.notification.utils.get_s3_object")
+    @patch("gsl.projet.utils.utils.get_s3_object")
     def test_merge_multiple_uploaded_documents(
         self,
         mock_get_s3,
@@ -344,7 +346,7 @@ class TestMergeDocumentsIntoPdf:
         pdf = Pdf.open(io.BytesIO(result.read()))
         assert len(pdf.pages) == 0
 
-    @patch("gsl.notification.utils.get_s3_object")
+    @patch("gsl.projet.utils.utils.get_s3_object")
     def test_result_is_seeked_to_beginning(
         self, mock_get_s3, mock_arrete_signe, sample_pdf_bytes
     ):
@@ -362,7 +364,7 @@ class TestMergeDocumentsIntoPdf:
         assert len(content) > 0
         assert content[:4] == b"%PDF"  # PDF magic number
 
-    @patch("gsl.notification.utils.get_s3_object")
+    @patch("gsl.projet.utils.utils.get_s3_object")
     def test_uploaded_document_fetching_called_correctly(
         self, mock_get_s3, mock_annexe, sample_pdf_bytes
     ):
@@ -378,7 +380,7 @@ class TestMergeDocumentsIntoPdf:
         # Verify S3 was called with correct file name
         mock_get_s3.assert_called_once_with("test_annexe.pdf")
 
-    @patch("gsl.notification.utils.get_s3_object")
+    @patch("gsl.projet.utils.utils.get_s3_object")
     def test_merge_custom_filename(self, mock_get_s3, mock_annexe, sample_pdf_bytes):
         """Test that a custom filename is used when provided."""
         mock_get_s3.return_value = {

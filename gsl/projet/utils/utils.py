@@ -1,4 +1,12 @@
+import io
 from decimal import Decimal, InvalidOperation
+
+import img2pdf
+from django.core.files.uploadedfile import SimpleUploadedFile
+from pikepdf import Pdf
+
+from gsl.core.s3 import get_s3_object
+from gsl.notification.models import UploadedDocument
 
 
 def order_couples_tuple_by_first_value(
@@ -62,3 +70,45 @@ def get_comment_cards(projet):
             "form": ProjetCommentForm(initial={"comment_number": "3"}, instance=projet),
         },
     ]
+
+
+def merge_documents_into_pdf(
+    documents: list[UploadedDocument],
+    filename: str = "documents.pdf",
+) -> SimpleUploadedFile:
+    documents_file_bytes = [_get_uploaded_document_pdf(doc) for doc in documents]
+    return SimpleUploadedFile(
+        name=filename,
+        content=merge_pdf_bytes(documents_file_bytes),
+        content_type="application/pdf",
+    )
+
+
+def _get_uploaded_document_pdf(document: UploadedDocument) -> io.BytesIO:
+    s3_object = get_s3_object(document.file.name)
+    content = s3_object["Body"].read()
+
+    output = io.BytesIO()
+    output.write(
+        content
+        if s3_object["ContentType"] == "application/pdf"
+        else img2pdf.convert(
+            content,
+            layout_fun=img2pdf.get_layout_fun(
+                (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
+            ),  # A4
+        )
+    )
+    return output
+
+
+def merge_pdf_bytes(files: list[io.BytesIO]) -> bytes:
+    pdf = Pdf.new()
+
+    for file in files:
+        src = Pdf.open(file)
+        pdf.pages.extend(src.pages)
+
+    output = io.BytesIO()
+    pdf.save(output)
+    return output.getvalue()

@@ -42,6 +42,7 @@ from .constants import (
     POSSIBLE_DOTATIONS,
     ProjetStatus,
 )
+from .mixins import ProjetDNActionsMixin
 from .utils.utils import compute_taux, floatize
 
 if TYPE_CHECKING:
@@ -251,7 +252,7 @@ class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
         )
 
 
-class Projet(BaseModel):
+class Projet(ProjetDNActionsMixin, BaseModel):
     dossier_ds = models.OneToOneField(Dossier, on_delete=models.PROTECT)
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
