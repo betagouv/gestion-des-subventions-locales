@@ -91,7 +91,7 @@ def test_create_or_update_enveloppe_projet_from_projet(
     DsilEnveloppeFactory(perimetre=region_bfc, annee=CURRENT_YEAR)
 
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        dossier_ds__ds_state=Dossier.State.ACCEPTE,
         dossier_ds__annotations_assiette_detr=1_000,
         dossier_ds__annotations_assiette_dsil=1_000,
         dossier_ds__perimetre=arr_dijon,
@@ -115,7 +115,7 @@ def test_create_or_update_enveloppe_projet_from_projet(
 @pytest.mark.django_db
 def test_create_or_update_enveloppe_projet_from_en_instruction_projet_ignore_annotations():
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__annotations_dotation="DETR",
     )
     projet_dotation_dsil = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
@@ -145,7 +145,7 @@ def test_create_or_update_enveloppe_projet_from_projet_also_refuse_dsil_envelopp
     DsilEnveloppeFactory(perimetre=region_bfc, annee=CURRENT_YEAR)
     projet = ProjetFactory(
         dossier_ds__perimetre=arr_dijon,
-        dossier_ds__ds_state=Dossier.STATE_REFUSE,
+        dossier_ds__ds_state=Dossier.State.REFUSE,
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
     projet_dotation_detr = EnveloppeProjetFactory(
@@ -173,7 +173,7 @@ def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in
     """When _has_dotations_been_updated_on_dn returns True: projet has DETR, dossier has DSIL => one dotation-projet DSIL."""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
         dossier_ds__perimetre=arr_dijon,
     )
@@ -194,7 +194,7 @@ def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in
     """When _has_dotations_been_updated_on_dn returns True: projet has DSIL, dossier has DETR et DSIL => two dotation-projets DETR and DSIL."""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
         dossier_ds__perimetre=arr_dijon,
     )
@@ -215,7 +215,7 @@ def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in
     """When _has_dotations_been_updated_on_dn returns True: projet has DETR and DSIL, dossier has DSIL => one dotation-projet DSIL."""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
         dossier_ds__perimetre=arr_dijon,
     )
@@ -365,11 +365,11 @@ def test_create_simulation_projets_from_enveloppe_projet_with_a_dsil_and_departe
 @pytest.mark.parametrize(
     "dossier_state",
     (
-        Dossier.STATE_ACCEPTE,
-        Dossier.STATE_EN_CONSTRUCTION,
-        Dossier.STATE_EN_INSTRUCTION,
-        Dossier.STATE_REFUSE,
-        Dossier.STATE_SANS_SUITE,
+        Dossier.State.ACCEPTE,
+        Dossier.State.EN_CONSTRUCTION,
+        Dossier.State.EN_INSTRUCTION,
+        Dossier.State.REFUSE,
+        Dossier.State.SANS_SUITE,
     ),
 )
 @pytest.mark.django_db
@@ -378,7 +378,7 @@ def test_get_detr_avis_commission(dotation, dossier_state):
         ds_state=dossier_state,
     )
     avis_commissioin_detr = dps._get_detr_avis_commission(dotation, dossier)
-    if dotation == DOTATION_DETR and dossier_state == Dossier.STATE_ACCEPTE:
+    if dotation == DOTATION_DETR and dossier_state == Dossier.State.ACCEPTE:
         assert avis_commissioin_detr is True
     else:
         assert avis_commissioin_detr is None
@@ -391,7 +391,7 @@ def test_get_detr_avis_commission(dotation, dossier_state):
 def test_has_dotations_been_updated_on_dn_returns_false_when_updated_in_app():
     """Returns False when dotations have been updated in Turgot (we don't sync from DN)."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
         dotations_updated_in_app=True,
     )
@@ -406,7 +406,7 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_updated_in_app():
 def test_has_dotations_been_updated_on_dn_returns_false_when_not_en_construction():
     """Returns False when dossier is not in EN_CONSTRUCTION state."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -420,7 +420,7 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_not_en_construction
 def test_has_dotations_been_updated_on_dn_returns_true_when_projet_has_dotation_not_in_dossier():
     """Returns True when projet has a dotation not in demande_dispositif_sollicite."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -432,7 +432,7 @@ def test_has_dotations_been_updated_on_dn_returns_true_when_projet_has_dotation_
 def test_has_dotations_been_updated_on_dn_returns_true_when_dossier_has_dotation_not_in_projet():
     """Returns True when dossier has a dotation not in projet (e.g. user added DSIL on DN)."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -444,7 +444,7 @@ def test_has_dotations_been_updated_on_dn_returns_true_when_dossier_has_dotation
 def test_has_dotations_been_updated_on_dn_returns_false_when_dotations_match():
     """Returns False when projet and dossier have the same dotations."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -458,7 +458,7 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_dotations_match():
 def test_has_dotations_been_updated_on_dn_returns_false_when_both_have_detr_and_dsil():
     """Returns False when both projet and dossier have DETR and DSIL."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -476,7 +476,7 @@ def test_has_dotations_been_updated_on_dn_returns_false_when_both_have_detr_and_
 def test_remove_or_add_dotations_removes_dotation_not_in_dossier():
     """Removes enveloppe_projet when projet has dotation not in demande_dispositif_sollicite."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
     detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -493,7 +493,7 @@ def test_remove_or_add_dotations_removes_dotation_not_in_dossier():
 def test_remove_or_add_dotations_adds_dotation_from_dossier():
     """Adds enveloppe_projet when dossier has dotation not in projet."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -508,7 +508,7 @@ def test_remove_or_add_dotations_adds_dotation_from_dossier():
 def test_remove_or_add_dotations_removes_and_adds_when_differing():
     """Removes and adds dotations when projet and dossier have different dotations."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
     detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -524,7 +524,7 @@ def test_remove_or_add_dotations_removes_and_adds_when_differing():
 def test_remove_or_add_dotations_does_nothing_when_matching():
     """Does nothing when projet and dossier have the same dotations."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
     detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -539,7 +539,7 @@ def test_remove_or_add_dotations_does_nothing_when_matching():
 def test_remove_or_add_dotations_creates_enveloppe_projet_with_assiette_from_dossier():
     """New enveloppe_projet gets assiette from dossier annotations when available."""
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=20_000,
@@ -558,7 +558,7 @@ def test_remove_or_add_dotations_creates_enveloppe_projet_with_assiette_from_dos
 @pytest.mark.django_db
 def test_remove_or_add_dotations_creates_removed_action_when_dotation_deleted():
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -579,7 +579,7 @@ def test_remove_or_add_dotations_creates_removed_action_when_dotation_deleted():
 @pytest.mark.django_db
 def test_remove_or_add_dotations_creates_added_action_when_dotation_created():
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -599,7 +599,7 @@ def test_remove_or_add_dotations_creates_added_action_when_dotation_created():
 @pytest.mark.django_db
 def test_remove_or_add_dotations_does_not_create_action_when_no_change():
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
     EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
@@ -946,7 +946,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_combines_all_filters
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "dossier_state",
-    [Dossier.STATE_ACCEPTE, Dossier.STATE_SANS_SUITE, Dossier.STATE_REFUSE],
+    [Dossier.State.ACCEPTE, Dossier.State.SANS_SUITE, Dossier.State.REFUSE],
 )
 def test_get_all_concerned_simulations_for_enveloppe_projet_excludes_future_years_for_terminal_state_with_treatment_date(
     perimetres, dossier_state
@@ -1000,7 +1000,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_does_not_exclude_whe
         dotation=DOTATION_DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
-        projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        projet__dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=None,
     )
 
@@ -1047,7 +1047,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_does_not_exclude_whe
         dotation=DOTATION_DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
-        projet__dossier_ds__ds_state=Dossier.STATE_EN_INSTRUCTION,
+        projet__dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             treatment_year, 6, 15, tzinfo=UTC
         ),
@@ -1096,7 +1096,7 @@ def test_get_all_concerned_simulations_for_enveloppe_projet_excludes_correctly_w
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         projet__dossier_ds__perimetre=arr_dijon,
-        projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        projet__dossier_ds__ds_state=Dossier.State.ACCEPTE,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             treatment_year, 6, 15, tzinfo=UTC
         ),
@@ -1404,7 +1404,7 @@ def test_accept_enveloppe_projet_conserve_enveloppe_existante(perimetres):
         dotation=DOTATION_DETR,
         status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
-        projet__dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+        projet__dossier_ds__ds_state=Dossier.State.ACCEPTE,
         projet__dossier_ds__ds_date_traitement=datetime.datetime(
             2026, 3, 1, tzinfo=UTC
         ),

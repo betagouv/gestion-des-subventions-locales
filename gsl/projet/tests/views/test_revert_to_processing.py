@@ -123,7 +123,7 @@ def test_post_clears_notified_at(client, collegue):
         perimetre=collegue.perimetre,
         porteur_de_projet_arrondissement=None,
         porteur_de_projet_departement=collegue.perimetre.departement,
-        ds_state=Dossier.STATE_ACCEPTE,
+        ds_state=Dossier.State.ACCEPTE,
     )
     DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
     projet = ProjetFactory(dossier_ds=dossier, notified_at=timezone.now())

@@ -59,7 +59,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
     Désormais, on ignore l'annotation dotation lorsque le dossier n'est pas accepté. Donc ici, la dotation DSIL ne sera pas instanciée pour ce projet.
     """
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        ds_state=Dossier.State.EN_CONSTRUCTION,
         annotations_dotation=DOTATION_DSIL,
         demande_montant=400,
         finance_cout_total=4_000,
@@ -89,7 +89,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     perimetre_arrondissement,
 ):
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_CONSTRUCTION,
+        ds_state=Dossier.State.EN_CONSTRUCTION,
         demande_dispositif_sollicite="['DETR']",
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
@@ -147,7 +147,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     ne modifie pas le statut du projet ni des enveloppe_projets, simulation_projets et programmation_projets associés.
     """
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        ds_state=Dossier.State.EN_INSTRUCTION,
         annotations_dotation=DOTATION_DETR,
         annotations_montant_accorde_detr=400,
         demande_montant=400,
@@ -200,7 +200,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     ne modifie pas le statut du projet ni des enveloppe_projets, simulation_projets et programmation_projets associés.
     """
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_EN_INSTRUCTION,
+        ds_state=Dossier.State.EN_INSTRUCTION,
         annotations_dotation=DOTATION_DETR,
         demande_montant=400,
         finance_cout_total=4_000,
@@ -255,7 +255,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     On teste le fait qu'un dossier DN accepté avec un enveloppe_projet refusé bascule le projet et tout le reste en accepté
     """
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_ACCEPTE,
+        ds_state=Dossier.State.ACCEPTE,
         perimetre=perimetre_arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, tzinfo=UTC),
         annotations_dotation=DOTATION_DETR,
@@ -303,7 +303,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     perimetre_arrondissement, detr_enveloppe
 ):
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_REFUSE,
+        ds_state=Dossier.State.REFUSE,
         annotations_dotation=DOTATION_DETR,
         perimetre=detr_enveloppe.perimetre,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
@@ -353,7 +353,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     detr_enveloppe,
 ):
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_SANS_SUITE,
+        ds_state=Dossier.State.SANS_SUITE,
         annotations_dotation=DOTATION_DETR,
         perimetre=detr_enveloppe.perimetre,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
@@ -403,7 +403,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
     detr_enveloppe,
 ):
     dossier = DossierFactory(
-        ds_state=Dossier.STATE_ACCEPTE,
+        ds_state=Dossier.State.ACCEPTE,
         annotations_dotation=DOTATION_DETR,
         annotations_assiette_detr=60_000,
         annotations_montant_accorde_detr=6_000,

@@ -391,7 +391,7 @@ COLUMN_COMPLETED_DOSSIER = Column(
     key="completed_dossier",
     label="Dossier complet",
     getter=lambda ctx: (
-        ctx["projet"].dossier_ds.ds_state != Dossier.STATE_EN_CONSTRUCTION
+        ctx["projet"].dossier_ds.ds_state != Dossier.State.EN_CONSTRUCTION
     ),
     template_name="gsl_core/table_cells/_yes_no_cell.html",
     displayed_by_default=False,

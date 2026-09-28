@@ -83,7 +83,7 @@ class DossierFactory(factory.django.DjangoModelFactory):
     ds_demarche = factory.SubFactory(DemarcheFactory)
     ds_id = factory.Sequence(lambda n: f"dossier-{n}")
     ds_number = factory.Faker("random_int", min=1000000, max=9999999)
-    ds_state = Dossier.STATE_EN_INSTRUCTION
+    ds_state = Dossier.State.EN_INSTRUCTION
     ds_demandeur = factory.SubFactory(PersonneMoraleFactory)
     porteur_de_projet_arrondissement = factory.SubFactory(ArrondissementFactory)
     ds_date_depot = factory.Faker(

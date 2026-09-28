@@ -234,7 +234,7 @@ class BaseSimulationProjetResource(ModelResource):
 
     def dehydrate_completed_dossier(self, simu_projet: SimulationProjet):
         dossier_ds = simu_projet.projet.dossier_ds
-        if dossier_ds.ds_state != Dossier.STATE_EN_CONSTRUCTION:
+        if dossier_ds.ds_state != Dossier.State.EN_CONSTRUCTION:
             return "Oui"
         return "Non"
 

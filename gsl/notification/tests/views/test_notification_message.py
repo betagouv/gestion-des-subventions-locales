@@ -254,7 +254,7 @@ class TestForm:
             perimetre=perimetre,
             porteur_de_projet_arrondissement=None,
             porteur_de_projet_departement=perimetre.departement,
-            ds_state=Dossier.STATE_EN_CONSTRUCTION,
+            ds_state=Dossier.State.EN_CONSTRUCTION,
         )
         full_raw_data = _full_ds_dossier_data()
         assert full_raw_data["state"] == "en_construction"

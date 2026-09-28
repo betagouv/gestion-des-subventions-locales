@@ -1,8 +1,8 @@
 from django.db import models
 
 from gsl.core.models import ImportState
-from gsl.projet.constants import DS_STATE_VALUES
 from gsl.projet.utils.utils import compute_taux
+from gsl_demarches_simplifiees.models import Dossier
 
 
 class Subvention(models.Model):
@@ -70,7 +70,7 @@ class Subvention(models.Model):
         verbose_name="Montant demandé",
     )
     status = models.CharField(
-        max_length=30, blank=True, choices=DS_STATE_VALUES, verbose_name="Statut"
+        max_length=30, blank=True, choices=Dossier.State, verbose_name="Statut"
     )
     # Identifiant DS du dossier (Fonds Vert uniquement), conservé à titre
     # informatif pour retrouver le dossier d'origine.

@@ -38,7 +38,7 @@ class SubmittedProjetFactory(ProjetFactory):
     dossier_ds = factory.SubFactory(
         DossierFactory,
         ds_state=factory.fuzzy.FuzzyChoice(
-            (Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION)
+            (Dossier.State.EN_CONSTRUCTION, Dossier.State.EN_INSTRUCTION)
         ),
     )
 
@@ -47,7 +47,7 @@ class ProcessedProjetFactory(ProjetFactory):
     dossier_ds = factory.SubFactory(
         DossierFactory,
         ds_state=factory.fuzzy.FuzzyChoice(
-            (Dossier.STATE_ACCEPTE, Dossier.STATE_REFUSE, Dossier.STATE_SANS_SUITE)
+            (Dossier.State.ACCEPTE, Dossier.State.REFUSE, Dossier.State.SANS_SUITE)
         ),
     )
 

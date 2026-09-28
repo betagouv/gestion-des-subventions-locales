@@ -53,7 +53,7 @@ def test_create_projet_from_dossier():
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "ds_state",
-    [Dossier.STATE_ACCEPTE, Dossier.STATE_REFUSE, Dossier.STATE_SANS_SUITE],
+    [Dossier.State.ACCEPTE, Dossier.State.REFUSE, Dossier.State.SANS_SUITE],
 )
 def test_create_or_update_sets_notified_at_when_dossier_is_treated(ds_state):
     ds_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
@@ -71,7 +71,7 @@ def test_create_or_update_sets_notified_at_when_dossier_is_treated(ds_state):
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "ds_state",
-    [Dossier.STATE_EN_CONSTRUCTION, Dossier.STATE_EN_INSTRUCTION],
+    [Dossier.State.EN_CONSTRUCTION, Dossier.State.EN_INSTRUCTION],
 )
 def test_create_or_update_does_not_set_notified_at_when_dossier_is_not_treated(
     ds_state,
@@ -94,7 +94,7 @@ def test_create_or_update_resets_notified_at_when_dossier_is_not_treated():
     resync — only a treated DS state sets it."""
     already_notified_at = datetime(2024, 1, 1, tzinfo=UTC)
     dossier = DossierFactory(
-        projet_adresse=AdresseFactory(), ds_state=Dossier.STATE_EN_INSTRUCTION
+        projet_adresse=AdresseFactory(), ds_state=Dossier.State.EN_INSTRUCTION
     )
     projet = ProjetFactory(dossier_ds=dossier, notified_at=already_notified_at)
 
@@ -110,7 +110,7 @@ def test_create_or_update_overwrites_notified_at_with_new_ds_date_traitement_whe
     new_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
     dossier = DossierFactory(
         projet_adresse=AdresseFactory(),
-        ds_state=Dossier.STATE_ACCEPTE,
+        ds_state=Dossier.State.ACCEPTE,
         ds_date_traitement=new_date_traitement,
     )
     projet = ProjetFactory(dossier_ds=dossier, notified_at=old_notified_at)

@@ -11,13 +11,10 @@ from gsl.core.tests.factories import (
     DepartementFactory,
     PerimetreDepartementalFactory,
 )
-from gsl.projet.constants import (
-    DS_STATE_ACCEPTE,
-    DS_STATE_EN_INSTRUCTION,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import DetrProjetFactory, ProjetFactory
 from gsl.stats.models import Subvention
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import (
     DossierFactory,
     PersonneMoraleFactory,
@@ -122,7 +119,7 @@ class TestCollectiviteDetailView:
             dispositif="FONDS VERT",
             programme=380,
             intitule="Isolation mairie",
-            status=DS_STATE_EN_INSTRUCTION,
+            status=Dossier.State.EN_INSTRUCTION,
             montant_demande=200,
             cout_total=400,
             dossier_number=42,
@@ -153,7 +150,7 @@ class TestCollectiviteDetailView:
             dispositif="FONDS VERT",
             programme=380,
             intitule="Isolation mairie",
-            status=DS_STATE_ACCEPTE,
+            status=Dossier.State.ACCEPTE,
             montant_demande=200,
             montant_attribue=200,
             cout_total=400,

@@ -134,15 +134,15 @@ class ProjetQuerySet(models.QuerySet):
         return self.filter(
             Q(
                 dossier_ds__ds_state__in=[
-                    Dossier.STATE_EN_CONSTRUCTION,
-                    Dossier.STATE_EN_INSTRUCTION,
+                    Dossier.State.EN_CONSTRUCTION,
+                    Dossier.State.EN_INSTRUCTION,
                 ]
             )
             | Q(
                 dossier_ds__ds_state__in=[
-                    Dossier.STATE_ACCEPTE,
-                    Dossier.STATE_SANS_SUITE,
-                    Dossier.STATE_REFUSE,
+                    Dossier.State.ACCEPTE,
+                    Dossier.State.SANS_SUITE,
+                    Dossier.State.REFUSE,
                 ],
                 dossier_ds__ds_date_traitement__gte=datetime(
                     year, 1, 1, 0, 0, tzinfo=tz.utc
@@ -202,7 +202,7 @@ class ProjetQuerySet(models.QuerySet):
     def with_missing_annotations(self):
         """Projets dont le dossier DS est accepté mais a des annotations DETR/DSIL incomplètes."""
         return self.filter(
-            dossier_ds__ds_state=Dossier.STATE_ACCEPTE,
+            dossier_ds__ds_state=Dossier.State.ACCEPTE,
         ).filter(
             Q(dossier_ds__annotations_dotation="")
             | Q(dossier_ds__annotations_dotation="[]")

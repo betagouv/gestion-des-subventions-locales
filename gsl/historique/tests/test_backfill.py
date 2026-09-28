@@ -20,7 +20,7 @@ MODULE = "gsl.historique.management.commands.backfill_projet_action_source_id"
 
 def _projet_with_traitements(perimetre, *, date_traitement, traitements=None):
     projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.STATE_SANS_SUITE,
+        dossier_ds__ds_state=Dossier.State.SANS_SUITE,
         dossier_ds__ds_date_traitement=date_traitement,
         dossier_ds__perimetre=perimetre,
     )

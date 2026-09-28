@@ -179,14 +179,14 @@ def test_for_normal_user_with_perimetre(departement, projets):
 @pytest.mark.parametrize(
     "state, ds_date_traitement",
     (
-        (Dossier.STATE_EN_CONSTRUCTION, datetime(1999, 1, 1, tzinfo=tz.utc)),
-        (Dossier.STATE_EN_INSTRUCTION, datetime(2000, 1, 1, tzinfo=tz.utc)),
-        (Dossier.STATE_ACCEPTE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
+        (Dossier.State.EN_CONSTRUCTION, datetime(1999, 1, 1, tzinfo=tz.utc)),
+        (Dossier.State.EN_INSTRUCTION, datetime(2000, 1, 1, tzinfo=tz.utc)),
+        (Dossier.State.ACCEPTE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
         (
-            Dossier.STATE_SANS_SUITE,
+            Dossier.State.SANS_SUITE,
             datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc),
         ),
-        (Dossier.STATE_REFUSE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
+        (Dossier.State.REFUSE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
     ),
 )
 def test_for_current_year_with_projet_to_display(state, ds_date_traitement):
@@ -208,15 +208,15 @@ def test_for_current_year_with_projet_to_display(state, ds_date_traitement):
     "state, ds_date_traitement",
     (
         (
-            Dossier.STATE_ACCEPTE,
+            Dossier.State.ACCEPTE,
             datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
         ),
         (
-            Dossier.STATE_SANS_SUITE,
+            Dossier.State.SANS_SUITE,
             datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
         ),
         (
-            Dossier.STATE_REFUSE,
+            Dossier.State.REFUSE,
             datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
         ),
     ),
@@ -353,19 +353,19 @@ def test_with_missing_annotations():
     """Projets with accepted dossier but incomplete DETR/DSIL annotations."""
     # Should NOT be included (non-accepted state)
     ProjetFactory(
-        dossier_ds=DossierFactory(ds_state=Dossier.STATE_EN_INSTRUCTION),
+        dossier_ds=DossierFactory(ds_state=Dossier.State.EN_INSTRUCTION),
     )
     # Should be included (accepted, no annotations_dotation)
     with_missing = ProjetFactory(
         dossier_ds=DossierFactory(
-            ds_state=Dossier.STATE_ACCEPTE,
+            ds_state=Dossier.State.ACCEPTE,
             annotations_dotation="",
         ),
     )
     # Should be included (accepted, DETR but missing assiette)
     with_missing_detr = ProjetFactory(
         dossier_ds=DossierFactory(
-            ds_state=Dossier.STATE_ACCEPTE,
+            ds_state=Dossier.State.ACCEPTE,
             annotations_dotation="DETR",
             annotations_assiette_detr=None,
             annotations_montant_accorde_detr=50,
@@ -374,7 +374,7 @@ def test_with_missing_annotations():
     # Should NOT be included (accepted, DETR complete)
     ProjetFactory(
         dossier_ds=DossierFactory(
-            ds_state=Dossier.STATE_ACCEPTE,
+            ds_state=Dossier.State.ACCEPTE,
             annotations_dotation="DETR",
             annotations_assiette_detr=100,
             annotations_montant_accorde_detr=50,
