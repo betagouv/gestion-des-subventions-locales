@@ -117,9 +117,8 @@ class DotationDocumentFields:
     def build(self) -> dict:
         widget_fields = {}
 
-        try:
-            perimetres = get_modele_perimetres(self.dotation, self.form.user.perimetre)
-        except ValueError:  # if user regional and DETR => no field in widget !
+        perimetres = get_modele_perimetres(self.dotation, self.form.user.perimetre)
+        if not perimetres:  # if user regional and DETR => no field in widget !
             return {}
 
         for modele_class in self.modeles:

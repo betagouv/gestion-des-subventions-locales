@@ -386,11 +386,8 @@ class DeleteModeleView(DeleteView):
 
         q = Q()
         for dotation in DOTATIONS:
-            try:
-                perimetres = get_modele_perimetres(dotation, user.perimetre)
-                q |= Q(dotation=dotation, perimetre__in=perimetres)
-            except ValueError:
-                pass
+            perimetres = get_modele_perimetres(dotation, user.perimetre)
+            q |= Q(dotation=dotation, perimetre__in=perimetres)
         return _class.objects.filter(q)
 
     def get_success_url(self):

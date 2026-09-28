@@ -7,7 +7,7 @@ from django.db import connection
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 
-from gsl.core.tests.factories import CollegueFactory
+from gsl.core.tests.factories import CollegueFactory, PerimetreRegionalFactory
 from gsl.notification.forms.bulk_generation import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     GenerateDocumentsCreateForm,
@@ -356,6 +356,25 @@ def test_generate_accepted_dotations_documents_form_only_lists_accepted_dotation
     form = GenerateDotationsDocumentsForm(projet=projet, user=user)
 
     assert list(form.dotation_fields.keys()) == [DOTATION_DETR]
+
+
+@pytest.mark.django_db
+def test_generate_accepted_dotations_documents_form_has_no_detr_field_for_regional_user():
+    user = CollegueFactory(perimetre=PerimetreRegionalFactory())
+    projet = ProjetFactory()
+    _make_accepted_enveloppe_projet(DOTATION_DETR, projet=projet)
+    _make_accepted_enveloppe_projet(DOTATION_DSIL, projet=projet)
+
+    data = {
+        f"skip_arrete_{DOTATION_DSIL}": "on",
+        f"skip_lettre_{DOTATION_DSIL}": "on",
+    }
+    form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
+
+    assert form.dotation_fields[DOTATION_DETR]["fields"] == {}
+    assert set(form.dotation_fields[DOTATION_DSIL]["fields"]) == {ARRETE, LETTRE}
+    assert f"modele_arrete_{DOTATION_DETR}" not in form.fields
+    assert form.is_valid(), form.errors
 
 
 @pytest.mark.django_db

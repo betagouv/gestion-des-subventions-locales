@@ -188,11 +188,7 @@ def test_get_modele_perimetres():
         departement_1,
     ]
     assert get_modele_perimetres("DETR", departement_1) == [departement_1]
-    with pytest.raises(ValueError) as exc_info:
-        assert get_modele_perimetres("DETR", region) == [region]
-    assert str(exc_info.value) == (
-        "Les modèles de la dotation DETR ne sont pas accessibles pour les utilisateurs dont le périmètre n'est pas de type arrondissement ou départemental."
-    )
+    assert get_modele_perimetres("DETR", region) == []
 
     assert get_modele_perimetres("DSIL", arrondissement_12) == [
         arrondissement_12,
