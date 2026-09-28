@@ -246,7 +246,13 @@ class ProjetQuerySet(models.QuerySet):
         )
 
     def accepted(self):
-        return self.annotate_status().filter(_status=ProjetStatus.ACCEPTED)
+        return self.with_at_least_one_accepted_dotation().exclude(
+            Exists(
+                EnveloppeProjet.objects.filter(
+                    projet=OuterRef("pk"), status=ProjetStatus.PROCESSING
+                )
+            )
+        )
 
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):

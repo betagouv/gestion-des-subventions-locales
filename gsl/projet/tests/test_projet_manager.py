@@ -3,6 +3,7 @@ from datetime import timezone as tz
 
 import pytest
 from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from gsl.core.models import Departement, Perimetre
 from gsl.core.tests.factories import (
@@ -391,6 +392,33 @@ def test_with_missing_annotations():
     assert with_missing_detr.pk in ids
 
 
+# Annotate status =====================================================================
+
+
+def test_annotate_status_query_count():
+    for status in (
+        ProjetStatus.PROCESSING,
+        ProjetStatus.ACCEPTED,
+        ProjetStatus.REFUSED,
+    ):
+        projet = ProjetFactory()
+        _create_enveloppe_projet(projet, DOTATION_DETR, status)
+
+    with CaptureQueriesContext(connection) as ctx:
+        statuses = {projet.status for projet in Projet.objects.annotate_status()}
+
+    assert statuses == {
+        ProjetStatus.PROCESSING,
+        ProjetStatus.ACCEPTED,
+        ProjetStatus.REFUSED,
+    }
+    # 1 query for the projets + 1 prefetch of enveloppeprojet_set (ProjetManager);
+    # projet.status reads the annotation, without any extra query
+    assert len(ctx.captured_queries) == 2
+    # 1 EXISTS per status: processing, accepted, dismissed, refused
+    assert ctx.captured_queries[0]["sql"].upper().count("EXISTS") == 4
+
+
 # Filter has_document_ready ============================================================
 
 ACCEPTED_WITH_DOC = "accepted_with_doc"
@@ -529,6 +557,22 @@ def test_accepted_excludes_double_dotation_projet_refused_and_dismissed():
     _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.DISMISSED)
 
     assert projet not in Projet.objects.accepted()
+
+
+def test_accepted_query_count():
+    for _ in range(3):
+        projet = ProjetFactory()
+        _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+        _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.REFUSED)
+
+    with CaptureQueriesContext(connection) as ctx:
+        projets = list(Projet.objects.accepted())
+
+    assert len(projets) == 3
+    # 1 query for the projets + 1 prefetch of enveloppeprojet_set (ProjetManager)
+    assert len(ctx.captured_queries) == 2
+    # 1 EXISTS for an accepted dotation + 1 NOT EXISTS for a processing one
+    assert ctx.captured_queries[0]["sql"].upper().count("EXISTS") == 2
 
 
 def _create_enveloppe_projet(projet, dotation, status):
