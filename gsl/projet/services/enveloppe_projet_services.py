@@ -1,6 +1,6 @@
 import logging
 from datetime import date
-from typing import Any, Literal
+from decimal import Decimal
 
 from django.db import transaction
 
@@ -93,22 +93,22 @@ class EnveloppeProjetService:
     def _initialize_enveloppe_projets_from_projet_accepted(
         cls, projet: Projet
     ) -> list[EnveloppeProjet]:
-        dotations = cls._get_dotations_from_field(
-            projet,
-            "annotations_dotation",
-            log_message_if_missing="No dotations found in annotations_dotation for accepted dossier during initialisation",
-        )
-
+        dotations = projet.dossier_ds.dotations_annotees
         if not dotations:
-            dotations = cls._get_dotations_from_field(
-                projet, "demande_dispositif_sollicite"
+            cls._log_missing_annotations_dotation(
+                projet,
+                "No dotations found in annotations_dotation for accepted dossier during initialisation",
             )
+            dotations = projet.dossier_ds.dotations_demande
 
         enveloppe_projets = []
         for dotation in dotations:
             enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
             enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
-            montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
+            montant = projet.dossier_ds.annotations_for(dotation).montant
+            if montant is None:
+                cls._log_missing_montant(projet.dossier_ds, dotation)
+                montant = Decimal(0)
             enveloppe_projet.accept_without_ds_update(
                 montant=montant, enveloppe=enveloppe
             )
@@ -120,9 +120,7 @@ class EnveloppeProjetService:
     def _initialize_enveloppe_projets_from_projet_refused(
         cls, projet: Projet
     ) -> list[EnveloppeProjet]:
-        dotations = cls._get_dotations_from_field(
-            projet, "demande_dispositif_sollicite"
-        )
+        dotations = projet.dossier_ds.dotations_demande
         enveloppe_projets = []
         for dotation in dotations:
             enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
@@ -138,9 +136,7 @@ class EnveloppeProjetService:
     def _initialize_enveloppe_projets_from_projet_sans_suite(
         cls, projet: Projet
     ) -> list[EnveloppeProjet]:
-        dotations = cls._get_dotations_from_field(
-            projet, "demande_dispositif_sollicite"
-        )
+        dotations = projet.dossier_ds.dotations_demande
         enveloppe_projets = []
         for dotation in dotations:
             enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
@@ -156,9 +152,7 @@ class EnveloppeProjetService:
     def _initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
         cls, projet: Projet
     ) -> list[EnveloppeProjet]:
-        dotations = cls._get_dotations_from_field(
-            projet, "demande_dispositif_sollicite"
-        )
+        dotations = projet.dossier_ds.dotations_demande
         enveloppe_projets = []
         for dotation in dotations:
             enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
@@ -172,7 +166,7 @@ class EnveloppeProjetService:
         detr_avis_commission = cls._get_detr_avis_commission(
             dotation, projet.dossier_ds
         )
-        assiette = cls._get_assiette_from_annotations(projet.dossier_ds, dotation)
+        assiette = projet.dossier_ds.annotations_for(dotation).assiette
         kwargs = {
             "projet": projet,
             "dotation": dotation,
@@ -216,13 +210,12 @@ class EnveloppeProjetService:
     def _update_enveloppe_projets_from_projet_accepted(
         cls, projet: Projet
     ) -> list[EnveloppeProjet]:
-        dotations_to_accept = cls._get_dotations_from_field(
-            projet,
-            "annotations_dotation",
-            log_message_if_missing="No dotations found in annotations_dotation for accepted dossier during update",
-        )
-
+        dotations_to_accept = projet.dossier_ds.dotations_annotees
         if not dotations_to_accept:
+            cls._log_missing_annotations_dotation(
+                projet,
+                "No dotations found in annotations_dotation for accepted dossier during update",
+            )
             return projet.enveloppeprojet_set.all()
 
         existing_dotations = set(projet.dotations)
@@ -265,7 +258,7 @@ class EnveloppeProjetService:
             dotation=dotation,
         )
 
-        assiette = cls._get_assiette_from_annotations(projet.dossier_ds, dotation)
+        assiette = projet.dossier_ds.annotations_for(dotation).assiette
         if assiette is not None:  # we only update if we have an info
             enveloppe_projet.assiette = assiette
 
@@ -279,7 +272,10 @@ class EnveloppeProjetService:
             enveloppe = enveloppe_projet.enveloppe
         else:
             enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
-        montant = cls._get_montant_from_dossier(projet.dossier_ds, dotation)
+        montant = projet.dossier_ds.annotations_for(dotation).montant
+        if montant is None:
+            cls._log_missing_montant(projet.dossier_ds, dotation)
+            montant = Decimal(0)
         enveloppe_projet.accept_without_ds_update(montant=montant, enveloppe=enveloppe)
         enveloppe_projet.save()
 
@@ -375,12 +371,9 @@ class EnveloppeProjetService:
         ):
             # Assiette is already updated (cf cls._update_assiette_from_dossier(projet) called in cls._update_enveloppe_projets_from_projet)
             # regardless of the projet/dossier statuses
-
-            if enveloppe_projet.dotation == DOTATION_DETR:
-                new_montant = projet.dossier_ds.annotations_montant_accorde_detr
-            else:
-                new_montant = projet.dossier_ds.annotations_montant_accorde_dsil
-
+            new_montant = projet.dossier_ds.annotations_for(
+                enveloppe_projet.dotation
+            ).montant
             if (
                 new_montant is not None
                 and enveloppe_projet.is_programmee
@@ -463,9 +456,9 @@ class EnveloppeProjetService:
     @classmethod
     def _update_assiette_from_dossier(cls, projet: Projet):
         for enveloppe_projet in projet.enveloppeprojet_set.all():
-            assiette = cls._get_assiette_from_annotations(
-                projet.dossier_ds, enveloppe_projet.dotation
-            )
+            assiette = projet.dossier_ds.annotations_for(
+                enveloppe_projet.dotation
+            ).assiette
             if assiette is None:
                 continue
 
@@ -483,73 +476,26 @@ class EnveloppeProjetService:
             enveloppe_projet.save()
 
     @classmethod
-    def _get_assiette_from_annotations(
-        cls,
-        dossier: Dossier,
-        dotation: POSSIBLE_DOTATIONS,
-    ) -> float | None:
-        if dotation == DOTATION_DETR:
-            return dossier.annotations_assiette_detr
-
-        return dossier.annotations_assiette_dsil
-
-    @classmethod
-    def _get_montant_from_dossier(cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS):
-        if dotation == DOTATION_DETR:
-            montant = dossier.annotations_montant_accorde_detr
-        elif dotation == DOTATION_DSIL:
-            montant = dossier.annotations_montant_accorde_dsil
-        if montant is None:
-            logger.warning(
-                "Montant is missing in dossier annotations",
-                extra={
-                    "dossier_ds_number": dossier.ds_number,
-                    "dotation": dotation,
-                },
-            )
-            return 0
-        return montant
+    def _log_missing_montant(cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS):
+        logger.warning(
+            "Montant is missing in dossier annotations",
+            extra={
+                "dossier_ds_number": dossier.ds_number,
+                "dotation": dotation,
+            },
+        )
 
     @classmethod
-    def _get_dotations_from_field(
-        cls,
-        projet: Projet,
-        field: Literal[
-            "annotations_dotation", "demande_dispositif_sollicite"
-        ] = "annotations_dotation",
-        log_message_if_missing: str = "No dotation",
-    ) -> list[Any]:
-        dotations_value = getattr(projet.dossier_ds, field)
-        dotations: list[Any] = []
-
-        if not dotations_value or dotations_value == "[]":
-            logger.warning(
-                log_message_if_missing,
-                extra={
-                    "dossier_ds_number": projet.dossier_ds.ds_number,
-                    "projet": projet.pk,
-                    "value": dotations_value,
-                    "field": field,
-                },
-            )
-            return dotations
-
-        if DOTATION_DETR in dotations_value:
-            dotations.append(DOTATION_DETR)
-        if DOTATION_DSIL in dotations_value:
-            dotations.append(DOTATION_DSIL)
-
-        if not dotations:
-            logger.warning(
-                "Dotation unknown",
-                extra={
-                    "dossier_ds_number": projet.dossier_ds.ds_number,
-                    "projet": projet.pk,
-                    "value": dotations_value,
-                    "field": field,
-                },
-            )
-        return dotations
+    def _log_missing_annotations_dotation(cls, projet: Projet, message: str):
+        logger.warning(
+            message,
+            extra={
+                "dossier_ds_number": projet.dossier_ds.ds_number,
+                "projet": projet.pk,
+                "value": projet.dossier_ds.annotations_dotation,
+                "field": "annotations_dotation",
+            },
+        )
 
     @classmethod
     def _is_programmation_date_after_passage_en_instruction(

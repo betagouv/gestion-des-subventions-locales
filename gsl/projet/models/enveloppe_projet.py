@@ -19,7 +19,6 @@ from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import (
     DOTATION_CHOICES,
-    DOTATION_DETR,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NOTIFICATION_STATUS_NOTIFIED,
@@ -269,10 +268,7 @@ class EnveloppeProjet(BaseModel):
     def save(self, *args, **kwargs):
         if self._state.adding and self.assiette is None:
             dossier = self.dossier_ds
-            if self.dotation == DOTATION_DETR:
-                annotation_assiette = dossier.annotations_assiette_detr
-            else:
-                annotation_assiette = dossier.annotations_assiette_dsil
+            annotation_assiette = dossier.annotations_for(self.dotation).assiette
             self.assiette = (
                 annotation_assiette
                 if annotation_assiette is not None

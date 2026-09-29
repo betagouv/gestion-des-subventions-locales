@@ -1,7 +1,12 @@
 import pytest
 
 from gsl.core.tests.factories import CollegueFactory
-from gsl_demarches_simplifiees.models import Dossier, DossierData
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl_demarches_simplifiees.models import (
+    AnnotationsDotation,
+    Dossier,
+    DossierData,
+)
 from gsl_demarches_simplifiees.tests.factories import (
     DossierDataFactory,
     DossierFactory,
@@ -233,3 +238,62 @@ def test_is_treated(ds_state, expected):
     dossier = DossierFactory(ds_state=ds_state)
 
     assert dossier.is_treated is expected
+
+
+@pytest.mark.parametrize(
+    "field, attribute",
+    (
+        ("annotations_dotation", "dotations_annotees"),
+        ("demande_dispositif_sollicite", "dotations_demande"),
+    ),
+)
+@pytest.mark.parametrize(
+    "value, expected_dotations",
+    [
+        ("", []),
+        ("[]", []),
+        ("DETR", [DOTATION_DETR]),
+        ("DSIL", [DOTATION_DSIL]),
+        ("[DETR, DSIL]", [DOTATION_DETR, DOTATION_DSIL]),
+        ("DETR et DSIL", [DOTATION_DETR, DOTATION_DSIL]),
+        ("['DETR', 'DSIL', 'DETR et DSIL']", [DOTATION_DETR, DOTATION_DSIL]),
+    ],
+)
+def test_dotations_are_parsed_from_their_field(
+    field, attribute, value, expected_dotations
+):
+    dossier = DossierFactory.build(**{field: value})
+
+    assert getattr(dossier, attribute) == expected_dotations
+
+
+def test_unknown_dotation_is_logged(caplog):
+    dossier = DossierFactory.build(demande_dispositif_sollicite="FNADT")
+
+    assert dossier.dotations_demande == []
+    assert caplog.records[0].message == "Champ demande_dispositif_sollicite invalide."
+
+
+@pytest.mark.parametrize(
+    "dotation, expected",
+    (
+        (DOTATION_DETR, AnnotationsDotation(assiette=1_000, montant=100)),
+        (DOTATION_DSIL, AnnotationsDotation(assiette=2_000, montant=200)),
+    ),
+)
+def test_annotations_for(dotation, expected):
+    dossier = DossierFactory.build(
+        annotations_assiette_detr=1_000,
+        annotations_montant_accorde_detr=100,
+        annotations_assiette_dsil=2_000,
+        annotations_montant_accorde_dsil=200,
+    )
+
+    assert dossier.annotations_for(dotation) == expected
+
+
+def test_annotations_for_unknown_dotation():
+    dossier = DossierFactory.build()
+
+    with pytest.raises(ValueError, match="Dotation inconnue : FNADT"):
+        dossier.annotations_for("FNADT")
