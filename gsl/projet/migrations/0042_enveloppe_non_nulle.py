@@ -84,6 +84,13 @@ def backfill_enveloppe(apps, schema_editor):
         EnveloppeProjet.objects.filter(id__in=ids).update(enveloppe=enveloppe)
 
 
+def clear_montant_on_negative_decisions(apps, schema_editor):
+    EnveloppeProjet = apps.get_model("gsl_projet", "EnveloppeProjet")
+    EnveloppeProjet.objects.filter(status__in=("refused", "dismissed")).update(
+        montant=None
+    )
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("gsl_programmation", "0030_rename_deleguee_by_enveloppe_parent"),
@@ -109,6 +116,9 @@ class Migration(migrations.Migration):
                 verbose_name="Enveloppe",
             ),
         ),
+        migrations.RunPython(
+            clear_montant_on_negative_decisions, migrations.RunPython.noop
+        ),
         migrations.AddConstraint(
             model_name="enveloppeprojet",
             constraint=models.CheckConstraint(
@@ -119,14 +129,19 @@ class Migration(migrations.Migration):
                         ("status", "processing"),
                     ),
                     models.Q(
-                        models.Q(("status", "processing"), _negated=True),
                         ("date_programmation__isnull", False),
                         ("montant__isnull", False),
+                        ("status", "accepted"),
+                    ),
+                    models.Q(
+                        ("date_programmation__isnull", False),
+                        ("montant__isnull", True),
+                        ("status__in", ("refused", "dismissed")),
                     ),
                     _connector="OR",
                 ),
-                name="montant_et_date_ssi_dotation_traitee",
-                violation_error_message="Une dotation en traitement ne peut porter ni montant ni date de programmation, et une dotation traitée doit porter les deux.",
+                name="montant_et_date_selon_statut",
+                violation_error_message="Une dotation en traitement ne porte ni montant ni date de programmation, une dotation acceptée porte les deux, et une dotation refusée ou classée sans suite porte une date de programmation mais pas de montant.",
             ),
         ),
         migrations.AddConstraint(

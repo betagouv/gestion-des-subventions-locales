@@ -247,7 +247,6 @@ def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_i
     projet.enveloppeprojet_set.filter(dotation=DOTATION_DSIL).update(
         status=dotation_status,
         enveloppe=dsil_enveloppe,
-        montant=0,
         date_programmation=timezone.now(),
     )
 

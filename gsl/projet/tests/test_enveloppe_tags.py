@@ -180,7 +180,6 @@ class TestDelegatedEnveloppe:
             enveloppe=self.detr_enveloppe,
             projet__dossier_ds__perimetre=perimetre_arr_2,
             status=ProjetStatus.REFUSED,
-            montant=0,
             projet__dossier_ds__demande_montant=400_000,
             dotation=DOTATION_DETR,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
@@ -247,7 +246,6 @@ class TestDelegatedEnveloppeWithTreeLevels:
             dotation=DOTATION_DSIL,
             projet__dossier_ds__perimetre=arrondissement,
             status=ProjetStatus.REFUSED,
-            montant=0,
             projet__dossier_ds__demande_montant=400_000,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
@@ -308,7 +306,6 @@ class TestExcludeInactiveProjets:
             dotation=DOTATION_DETR,
             status=ProjetStatus.REFUSED,
             enveloppe=self.enveloppe,
-            montant=0,
             projet__dossier_ds__perimetre=perimetre,
             projet__dossier_ds__demande_montant=self.DEMANDE_MONTANT,
             projet__dossier_ds__ds_date_depot=depot,

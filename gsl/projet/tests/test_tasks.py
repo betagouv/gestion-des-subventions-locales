@@ -344,8 +344,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
-    assert enveloppe_projet.montant == 0
-    assert enveloppe_projet.taux_retenu == 0
+    assert enveloppe_projet.montant is None
+    assert enveloppe_projet.taux_retenu is None
 
 
 @pytest.mark.django_db
@@ -394,8 +394,8 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
 
-    assert enveloppe_projet.montant == 0
-    assert enveloppe_projet.taux_retenu == 0
+    assert enveloppe_projet.montant is None
+    assert enveloppe_projet.taux_retenu is None
 
 
 @pytest.mark.django_db

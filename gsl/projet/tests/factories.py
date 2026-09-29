@@ -64,10 +64,8 @@ def _default_enveloppe(obj):
 
 
 def _default_montant(obj):
-    if obj.status == ProjetStatus.PROCESSING:
-        return None
     if obj.status != ProjetStatus.ACCEPTED:
-        return Decimal(0)
+        return None
     ceiling = obj.assiette or obj.projet.dossier_ds.finance_cout_total
     return Decimal(randint(0, int(ceiling))) if ceiling else Decimal(randint(1, 99_999))
 
@@ -85,8 +83,7 @@ class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
 
     enveloppe = factory.LazyAttribute(_default_enveloppe)
 
-    # These two travel together: a treated dotation carries both, a dotation
-    # still being processed carries neither.
+    # A CheckConstraint ties both to the status, so overriding one alone fails.
     montant = factory.LazyAttribute(_default_montant)
     date_programmation = factory.LazyAttribute(
         lambda o: None if o.status == ProjetStatus.PROCESSING else timezone.now()

@@ -26,6 +26,10 @@ class ProjetStatus(models.TextChoices):
     def FINAL(cls):
         return (cls.ACCEPTED, cls.REFUSED, cls.DISMISSED)
 
+    @classproperty
+    def NEGATIVE(cls):
+        return (cls.REFUSED, cls.DISMISSED)
+
 
 NOTIFICATION_STATUS_TO_GENERATE = "to_generate"
 NOTIFICATION_STATUS_TO_SIGN = "to_sign"

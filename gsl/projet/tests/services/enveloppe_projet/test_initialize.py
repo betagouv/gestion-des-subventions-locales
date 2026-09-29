@@ -176,16 +176,16 @@ def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
     detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == ProjetStatus.REFUSED
     assert detr_dp.assiette == 10_000
-    assert detr_dp.montant_retenu == 0
-    assert detr_dp.taux_retenu == 0
+    assert detr_dp.montant_retenu is None
+    assert detr_dp.taux_retenu is None
     assert detr_dp.detr_avis_commission is None
     assert detr_dp.is_programmee
 
     dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == ProjetStatus.REFUSED
     assert dsil_dp.assiette is None
-    assert dsil_dp.montant_retenu == 0
-    assert dsil_dp.taux_retenu == 0
+    assert dsil_dp.montant_retenu is None
+    assert dsil_dp.taux_retenu is None
     assert dsil_dp.detr_avis_commission is None
     assert dsil_dp.is_programmee
 
@@ -215,14 +215,14 @@ def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
     detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
     assert detr_dp.status == ProjetStatus.DISMISSED
     assert detr_dp.assiette == 10_000
-    assert detr_dp.montant_retenu == 0
-    assert detr_dp.taux_retenu == 0
+    assert detr_dp.montant_retenu is None
+    assert detr_dp.taux_retenu is None
 
     dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
     assert dsil_dp.status == ProjetStatus.DISMISSED
     assert dsil_dp.assiette is None
-    assert dsil_dp.montant_retenu == 0
-    assert dsil_dp.taux_retenu == 0
+    assert dsil_dp.montant_retenu is None
+    assert dsil_dp.taux_retenu is None
 
 
 @pytest.mark.django_db

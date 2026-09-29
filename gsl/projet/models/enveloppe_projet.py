@@ -166,12 +166,21 @@ class EnveloppeProjet(BaseModel):
                     montant__isnull=True,
                     date_programmation__isnull=True,
                 )
-                | ~Q(status=ProjetStatus.PROCESSING)
-                & Q(montant__isnull=False, date_programmation__isnull=False),
-                name="montant_et_date_ssi_dotation_traitee",
-                violation_error_message="Une dotation en traitement ne peut porter ni "
-                "montant ni date de programmation, et une dotation traitée doit porter "
-                "les deux.",
+                | Q(
+                    status=ProjetStatus.ACCEPTED,
+                    montant__isnull=False,
+                    date_programmation__isnull=False,
+                )
+                | Q(
+                    status__in=ProjetStatus.NEGATIVE,
+                    montant__isnull=True,
+                    date_programmation__isnull=False,
+                ),
+                name="montant_et_date_selon_statut",
+                violation_error_message="Une dotation en traitement ne porte ni montant "
+                "ni date de programmation, une dotation acceptée porte les deux, et une "
+                "dotation refusée ou classée sans suite porte une date de programmation "
+                "mais pas de montant.",
             ),
         )
 
@@ -210,11 +219,17 @@ class EnveloppeProjet(BaseModel):
         errors = {}
         self._validate_montant(errors)
         self._validate_enveloppe(errors)
-        self._validate_montant_nul_si_refusee(errors)
         if errors:
             raise ValidationError(errors)
 
     def _validate_montant(self, errors):
+        if self.status in ProjetStatus.NEGATIVE:
+            if self.montant is not None:
+                errors["montant"] = [
+                    "Un projet refusé ou classé sans suite ne doit pas porter de montant."
+                ]
+            return
+
         if not self.montant:
             return
 
@@ -247,10 +262,6 @@ class EnveloppeProjet(BaseModel):
             errors["enveloppe"] = [
                 "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
             ]
-
-    def _validate_montant_nul_si_refusee(self, errors):
-        if self.status == ProjetStatus.REFUSED and self.montant != 0:
-            errors["montant"] = ["Un projet refusé doit avoir un montant nul."]
 
     def _validate_detr_avis_commission(self, errors):
         if self.detr_avis_commission is None:
@@ -486,7 +497,7 @@ class EnveloppeProjet(BaseModel):
         )
 
         self.enveloppe = enveloppe.delegation_root
-        self.montant = 0
+        self.montant = None
         if self.date_programmation is None:
             self.date_programmation = timezone.now()
 
@@ -517,7 +528,7 @@ class EnveloppeProjet(BaseModel):
         )
 
         self.enveloppe = enveloppe.delegation_root
-        self.montant = 0
+        self.montant = None
         if self.date_programmation is None:
             self.date_programmation = timezone.now()
 
