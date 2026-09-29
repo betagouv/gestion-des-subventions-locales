@@ -35,7 +35,8 @@ def _add_enveloppe_projets_to_simulation(simulation: Simulation):
     selected_projets = selected_projets.for_current_year()
     selected_enveloppe_projet = (
         EnveloppeProjet.objects.active()
-        .filter(projet__in=selected_projets, dotation=simulation_dotation)
+        .filter(projet__in=selected_projets)
+        .for_dotation(simulation_dotation)
         .exclude(enveloppe__annee__lt=simulation.enveloppe.annee)
         .select_related(
             "projet",

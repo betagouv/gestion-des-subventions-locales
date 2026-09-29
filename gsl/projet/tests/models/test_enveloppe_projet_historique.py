@@ -53,7 +53,6 @@ def test_deux_courants_sur_la_meme_enveloppe_sont_refuses(projet):
     with pytest.raises(IntegrityError), transaction.atomic():
         EnveloppeProjet.objects.create(
             projet=projet,
-            dotation=DOTATION_DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=courant.enveloppe,
         )
@@ -62,7 +61,6 @@ def test_deux_courants_sur_la_meme_enveloppe_sont_refuses(projet):
 def test_un_non_courant_ne_bloque_pas_un_nouveau_courant(projet, non_courant):
     nouveau = EnveloppeProjet.objects.create(
         projet=projet,
-        dotation=DOTATION_DETR,
         status=ProjetStatus.PROCESSING,
         enveloppe=non_courant.enveloppe,
     )

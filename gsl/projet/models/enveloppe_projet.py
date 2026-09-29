@@ -18,7 +18,6 @@ from gsl.historique.models import ProjetAction
 from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import (
-    DOTATION_CHOICES,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NOTIFICATION_STATUS_NOTIFIED,
@@ -36,6 +35,9 @@ if TYPE_CHECKING:
 
 
 class EnveloppeProjetQuerySet(models.QuerySet):
+    def for_dotation(self, dotation: POSSIBLE_DOTATIONS):
+        return self.filter(enveloppe__dotation=dotation)
+
     def programmees(self):
         return self.filter(status__in=ProjetStatus.FINAL)
 
@@ -102,7 +104,8 @@ class EnveloppeProjetQuerySet(models.QuerySet):
 
 
 class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySet)):
-    pass
+    def get_queryset(self):
+        return super().get_queryset().select_related("enveloppe")
 
 
 class EnveloppeProjetCourantManager(EnveloppeProjetManager):
@@ -112,7 +115,6 @@ class EnveloppeProjetCourantManager(EnveloppeProjetManager):
 
 class EnveloppeProjet(BaseModel):
     projet = models.ForeignKey("gsl_projet.Projet", on_delete=models.CASCADE)
-    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     # TODO pr_dotation put back protected=True, once every status transition is handled ?
     status = FSMField(
         "Statut",
@@ -213,8 +215,6 @@ class EnveloppeProjet(BaseModel):
 
     def clean(self):
         super().clean()
-        if self.enveloppe_id is None:
-            return
 
         errors = {}
         self._validate_montant(errors)
@@ -258,11 +258,6 @@ class EnveloppeProjet(BaseModel):
                 "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
             ]
 
-        if self.enveloppe.dotation != self.dotation:
-            errors["enveloppe"] = [
-                "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
-            ]
-
     def _validate_detr_avis_commission(self, errors):
         if self.detr_avis_commission is None:
             return
@@ -290,6 +285,10 @@ class EnveloppeProjet(BaseModel):
                 else dossier.finance_cout_total
             )
         super().save(*args, **kwargs)
+
+    @property
+    def dotation(self) -> POSSIBLE_DOTATIONS:
+        return self.enveloppe.dotation
 
     @property
     def dossier_ds(self):

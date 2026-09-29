@@ -68,9 +68,9 @@ class SelectModeleView(FormView):
         self.enveloppe_projet = get_object_or_404(
             EnveloppeProjet.objects.programmees()
             .active()
-            .visible_to_user(request.user),
+            .visible_to_user(request.user)
+            .for_dotation(kwargs["dotation"]),
             projet_id=kwargs["projet_id"],
-            dotation=kwargs["dotation"],
         )
 
     def get_form_kwargs(self):
@@ -135,9 +135,9 @@ class ChangeDocumentView(UpdateView):
         self.enveloppe_projet = get_object_or_404(
             EnveloppeProjet.objects.programmees()
             .active()
-            .visible_to_user(self.request.user),
+            .visible_to_user(self.request.user)
+            .for_dotation(self.kwargs["dotation"]),
             projet_id=self.kwargs["projet_id"],
-            dotation=self.kwargs["dotation"],
         )
         if not hasattr(self.enveloppe_projet, self.document_type):
             raise Http404(user_message="Il n'y a pas de document à modifier.")

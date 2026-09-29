@@ -236,8 +236,8 @@ class TestDossierReporteSansPieceForm:
 
         from gsl.projet.models import EnveloppeProjet
 
-        dp = EnveloppeProjet.objects.get(
-            projet__dossier_ds=dossier, dotation=DOTATION_DETR
+        dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(
+            projet__dossier_ds=dossier
         )
         assert dp.assiette == Decimal("100000.00")
 

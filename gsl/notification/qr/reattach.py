@@ -229,9 +229,8 @@ def _match_document(
     declared, pages, enveloppe_projets
 ) -> DocumentMatched | MatchFailed:
     try:
-        enveloppe_projet = enveloppe_projets.get(
+        enveloppe_projet = enveloppe_projets.for_dotation(declared.dotation).get(
             projet__dossier_ds__ds_number=declared.ds_number,
-            dotation=declared.dotation,
         )
     except EnveloppeProjet.DoesNotExist:
         return MatchFailed(

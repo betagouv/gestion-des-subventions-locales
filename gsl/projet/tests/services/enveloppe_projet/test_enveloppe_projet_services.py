@@ -129,10 +129,10 @@ def test_create_or_update_enveloppe_projet_from_en_instruction_projet_ignore_ann
     projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet_id=projet.id)
     assert projet_enveloppe_projets.count() == 1
 
-    dsil_enveloppe_projets = projet_enveloppe_projets.filter(dotation=DOTATION_DSIL)
+    dsil_enveloppe_projets = projet_enveloppe_projets.for_dotation(DOTATION_DSIL)
     assert dsil_enveloppe_projets.count() == 1
 
-    detr_enveloppe_projet = projet_enveloppe_projets.filter(dotation=DOTATION_DETR)
+    detr_enveloppe_projet = projet_enveloppe_projets.for_dotation(DOTATION_DETR)
     assert detr_enveloppe_projet.count() == 0
 
 
@@ -548,7 +548,7 @@ def test_remove_or_add_dotations_creates_enveloppe_projet_with_assiette_from_dos
 
     dps._remove_or_add_dotations_from_dossier_ds(projet)
 
-    dsil_dp = projet.enveloppeprojet_set.get(dotation=DOTATION_DSIL)
+    dsil_dp = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
     assert dsil_dp.assiette == 20_000
 
 

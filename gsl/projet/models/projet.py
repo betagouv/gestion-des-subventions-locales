@@ -141,7 +141,7 @@ class ProjetQuerySet(models.QuerySet):
     def included_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
         projet_qs_with_the_correct_dotation = projet_qs.filter(
-            enveloppeprojet__dotation=enveloppe.dotation
+            enveloppeprojet__enveloppe__dotation=enveloppe.dotation
         )
         projet_qs_submitted_before_the_end_of_the_year = (
             projet_qs_with_the_correct_dotation.filter(
@@ -359,7 +359,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
-            self.enveloppeprojet_set.filter(dotation=DOTATION_DETR).exists()
+            self.enveloppeprojet_set.for_dotation(DOTATION_DETR).exists()
             and self.dossier_ds.demande_montant is not None
             and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
         )

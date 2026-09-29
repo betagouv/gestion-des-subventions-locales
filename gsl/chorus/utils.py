@@ -16,9 +16,9 @@ def resume_dotation(projet, dotation):
         return None
     montant_accorde = (
         EnveloppeProjet.objects.programmees()
+        .for_dotation(dotation)
         .filter(
             projet=projet,
-            dotation=dotation,
             status=ProjetStatus.ACCEPTED,
         )
         .values_list("montant", flat=True)

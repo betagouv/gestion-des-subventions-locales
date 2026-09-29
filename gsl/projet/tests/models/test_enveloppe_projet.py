@@ -1092,20 +1092,6 @@ def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
     )
 
 
-def test_clean_rejects_an_enveloppe_of_another_dotation():
-    enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
-        status=ProjetStatus.ACCEPTED,
-        enveloppe=DsilEnveloppeFactory(),
-    )
-    with pytest.raises(ValidationError) as exc_info:
-        enveloppe_projet.clean()
-    assert (
-        "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
-        in exc_info.value.message_dict["enveloppe"][0]
-    )
-
-
 def test_to_notify():
     accepted_not_notified = EnveloppeProjetFactory(
         status=ProjetStatus.ACCEPTED, projet__notified_at=None

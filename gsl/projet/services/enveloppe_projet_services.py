@@ -159,7 +159,6 @@ class EnveloppeProjetService:
     ) -> EnveloppeProjet:
         return EnveloppeProjet.objects.create(
             projet=projet,
-            dotation=dotation,
             detr_avis_commission=cls._get_detr_avis_commission(
                 dotation, projet.dossier_ds
             ),
@@ -224,7 +223,8 @@ class EnveloppeProjetService:
 
         for dotation in dotations_to_remove:
             deleted_count, _ = (
-                EnveloppeProjet.objects.filter(projet=projet, dotation=dotation)
+                EnveloppeProjet.objects.for_dotation(dotation)
+                .filter(projet=projet)
                 .exclude(status__in=[ProjetStatus.REFUSED, ProjetStatus.DISMISSED])
                 .delete()
             )
@@ -243,11 +243,14 @@ class EnveloppeProjetService:
     def _accept_enveloppe_projet(
         cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
     ) -> EnveloppeProjet:
-        enveloppe_projet, _ = EnveloppeProjet.objects.get_or_create(
-            projet=projet,
-            dotation=dotation,
-            defaults={"enveloppe": projet.root_enveloppe(dotation)},
-        )
+        try:
+            enveloppe_projet = EnveloppeProjet.objects.for_dotation(dotation).get(
+                projet=projet
+            )
+        except EnveloppeProjet.DoesNotExist:
+            enveloppe_projet = EnveloppeProjet.objects.create(
+                projet=projet, enveloppe=projet.root_enveloppe(dotation)
+            )
 
         assiette = projet.dossier_ds.annotations_for(dotation).assiette
         if assiette is not None:  # we only update if we have an info
@@ -537,7 +540,9 @@ class EnveloppeProjetService:
                 source=ProjetAction.SOURCE_DN,
                 dotation=dotation,
             )
-        projet.enveloppeprojet_set.filter(dotation__in=dotation_to_delete).delete()
+        projet.enveloppeprojet_set.filter(
+            enveloppe__dotation__in=dotation_to_delete
+        ).delete()
 
         # Refresh projet to get the latest dotations
         projet.refresh_from_db()

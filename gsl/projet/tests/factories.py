@@ -73,10 +73,12 @@ def _default_montant(obj):
 class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = EnveloppeProjet
-        django_get_or_create = ("projet", "dotation")
+        django_get_or_create = ("projet", "enveloppe")
+
+    class Params:
+        dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
 
     projet = factory.SubFactory(ProjetFactory)
-    dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
     status = factory.fuzzy.FuzzyChoice(ProjetStatus.values)
     detr_avis_commission = factory.Faker("boolean")
     assiette = None
@@ -91,11 +93,13 @@ class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
 
 
 class DetrProjetFactory(EnveloppeProjetFactory):
-    dotation = DOTATION_DETR
+    class Params:
+        dotation = DOTATION_DETR
 
 
 class DsilProjetFactory(EnveloppeProjetFactory):
-    dotation = DOTATION_DSIL
+    class Params:
+        dotation = DOTATION_DSIL
 
 
 class ProjetNoteFactory(factory.django.DjangoModelFactory):

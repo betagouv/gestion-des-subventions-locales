@@ -33,7 +33,7 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
         self.user = user
         self.treated_enveloppe_projets = list(
             projet.enveloppeprojet_set.filter(status__in=ProjetStatus.FINAL).order_by(
-                "dotation"
+                "enveloppe__dotation"
             )
         )
 

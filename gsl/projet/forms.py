@@ -95,7 +95,6 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         for dotation in new_dotations:
             enveloppe_projet = EnveloppeProjet.objects.create(
                 projet=projet,
-                dotation=dotation,
                 status=ProjetStatus.PROCESSING,
                 enveloppe=projet.root_enveloppe(dotation),
             )
@@ -112,7 +111,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             )
 
         enveloppe_projet_to_remove = EnveloppeProjet.objects.filter(
-            projet=projet, dotation__in=dotation_to_remove
+            projet=projet, enveloppe__dotation__in=dotation_to_remove
         )
 
         if enveloppe_projet_to_remove.filter(status=ProjetStatus.ACCEPTED).exists():
@@ -120,8 +119,8 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 EnveloppeProjet.objects.filter(
                     projet=projet, status=ProjetStatus.ACCEPTED
                 )
-                .exclude(dotation__in=dotation_to_remove)
-                .values_list("dotation", flat=True)
+                .exclude(enveloppe__dotation__in=dotation_to_remove)
+                .values_list("enveloppe__dotation", flat=True)
             )
 
             ds_service = DsService()
