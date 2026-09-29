@@ -52,7 +52,6 @@ def enveloppe(departement):
     return DetrEnveloppeFactory(
         dotation=DOTATION_DETR,
         perimetre=departement,
-        annee=2024,
         montant=Decimal("1000000.00"),
     )
 

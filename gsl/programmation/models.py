@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
+from django.utils import timezone
 
 from gsl.core.models import BaseModel, Perimetre
 from gsl.projet.constants import (
@@ -43,7 +44,7 @@ class EnveloppeQueryset(models.QuerySet):
         return new_obj
 
     def for_current_year(self):
-        return self.filter(annee=self.values("annee").order_by("-annee")[:1])
+        return self.filter(annee=timezone.now().year)
 
 
 class EnveloppeManager(models.Manager.from_queryset(EnveloppeQueryset)):

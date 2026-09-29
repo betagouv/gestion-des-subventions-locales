@@ -42,7 +42,7 @@ class TestProgrammationProjetListView:
     def test_list_view_with_authenticated_user(self, user_with_perimetre):
         """Un utilisateur authentifié peut accéder à la liste"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
-        DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre, annee=2024)
+        DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre)
         url = reverse("gsl_programmation:programmation-projet-list")
         response = client.get(url)
         assert response.status_code == 302
@@ -57,7 +57,7 @@ class TestProgrammationProjetListViewWithDotation:
     def dsil_enveloppe_projet(self, user_with_perimetre):
         dsil_enveloppe = DsilEnveloppeFactory(
             perimetre=user_with_perimetre.perimetre.parent,
-            annee=2024,  # DSIL programmation can only be on Region
+            # DSIL programmation can only be on Region
         )
         return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
@@ -68,9 +68,7 @@ class TestProgrammationProjetListViewWithDotation:
 
     @pytest.fixture
     def detr_enveloppe_projet(self, user_with_perimetre):
-        detr_enveloppe = DetrEnveloppeFactory(
-            perimetre=user_with_perimetre.perimetre, annee=2024
-        )
+        detr_enveloppe = DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre)
         return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DETR,
@@ -157,9 +155,7 @@ class TestProgrammationProjetListViewExcludesInactiveDossiers:
     def test_list_view_excludes_projets_with_inactive_dossier(
         self, user_with_perimetre
     ):
-        detr_enveloppe = DetrEnveloppeFactory(
-            perimetre=user_with_perimetre.perimetre, annee=2024
-        )
+        detr_enveloppe = DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre)
         active_enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             dotation=DOTATION_DETR,
