@@ -10,7 +10,6 @@ from gsl.simulation.models import Simulation, SimulationProjet
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
-    DOTATION_DETR,
     POSSIBLE_DOTATIONS,
     ProjetStatus,
 )
@@ -101,8 +100,10 @@ class EnveloppeProjetService:
 
         enveloppe_projets = []
         for dotation in dotations:
-            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+            enveloppe = projet.root_enveloppe(
+                dotation, projet.dossier_ds.annee_de_traitement
+            )
+            enveloppe_projet = EnveloppeProjet.objects.create_for(projet, enveloppe)
             montant = projet.dossier_ds.annotations_for(dotation).montant
             if montant is None:
                 cls._log_missing_montant(projet.dossier_ds, dotation)
@@ -121,8 +122,10 @@ class EnveloppeProjetService:
         dotations = projet.dossier_ds.dotations_demande
         enveloppe_projets = []
         for dotation in dotations:
-            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+            enveloppe = projet.root_enveloppe(
+                dotation, projet.dossier_ds.annee_de_traitement
+            )
+            enveloppe_projet = EnveloppeProjet.objects.create_for(projet, enveloppe)
             enveloppe_projet.refuse(enveloppe=enveloppe)
             enveloppe_projet.save()
             enveloppe_projets.append(enveloppe_projet)
@@ -135,8 +138,10 @@ class EnveloppeProjetService:
         dotations = projet.dossier_ds.dotations_demande
         enveloppe_projets = []
         for dotation in dotations:
-            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
-            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+            enveloppe = projet.root_enveloppe(
+                dotation, projet.dossier_ds.annee_de_traitement
+            )
+            enveloppe_projet = EnveloppeProjet.objects.create_for(projet, enveloppe)
             enveloppe_projet.dismiss(enveloppe=enveloppe)
             enveloppe_projet.save()
             enveloppe_projets.append(enveloppe_projet)
@@ -149,21 +154,12 @@ class EnveloppeProjetService:
         dotations = projet.dossier_ds.dotations_demande
         enveloppe_projets = []
         for dotation in dotations:
-            enveloppe_projet = cls._create_enveloppe_projet(projet, dotation)
+            enveloppe_projet = EnveloppeProjet.objects.create_for(
+                projet,
+                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
+            )
             enveloppe_projets.append(enveloppe_projet)
         return enveloppe_projets
-
-    @classmethod
-    def _create_enveloppe_projet(
-        cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
-    ) -> EnveloppeProjet:
-        return EnveloppeProjet.objects.create(
-            projet=projet,
-            detr_avis_commission=cls._get_detr_avis_commission(
-                dotation, projet.dossier_ds
-            ),
-            enveloppe=projet.root_enveloppe(dotation),
-        )
 
     ## -------------------------- Update Enveloppe Projets --------------------------
 
@@ -248,24 +244,25 @@ class EnveloppeProjetService:
                 projet=projet
             )
         except EnveloppeProjet.DoesNotExist:
-            enveloppe_projet = EnveloppeProjet.objects.create(
-                projet=projet, enveloppe=projet.root_enveloppe(dotation)
+            enveloppe_projet = EnveloppeProjet.objects.create_for(
+                projet,
+                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_traitement),
             )
 
         assiette = projet.dossier_ds.annotations_for(dotation).assiette
         if assiette is not None:  # we only update if we have an info
             enveloppe_projet.assiette = assiette
 
-        detr_avis_commission = cls._get_detr_avis_commission(
-            dotation, projet.dossier_ds
-        )
+        detr_avis_commission = projet.dossier_ds.detr_avis_commission_for(dotation)
         if detr_avis_commission is not None:  # we only update if we have an info
             enveloppe_projet.detr_avis_commission = detr_avis_commission
 
         if enveloppe_projet.is_programmee:  # We keep previous enveloppe to avoid squashing manuel rectification (ex: enveloppe 2025)
             enveloppe = enveloppe_projet.enveloppe
         else:
-            enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+            enveloppe = projet.root_enveloppe(
+                dotation, projet.dossier_ds.annee_de_traitement
+            )
         montant = projet.dossier_ds.annotations_for(dotation).montant
         if montant is None:
             cls._log_missing_montant(projet.dossier_ds, dotation)
@@ -282,8 +279,8 @@ class EnveloppeProjetService:
         enveloppe_projets = []
         for enveloppe_projet in projet.enveloppeprojet_set.all():
             if enveloppe_projet.status != ProjetStatus.REFUSED:
-                enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
-                    enveloppe_projet
+                enveloppe = projet.root_enveloppe(
+                    enveloppe_projet.dotation, projet.dossier_ds.annee_de_traitement
                 )
                 enveloppe_projet.refuse(enveloppe=enveloppe)
                 enveloppe_projet.save()
@@ -300,8 +297,8 @@ class EnveloppeProjetService:
                 ProjetStatus.DISMISSED,
                 ProjetStatus.REFUSED,
             ]:
-                enveloppe = cls._get_root_enveloppe_from_enveloppe_projet(
-                    enveloppe_projet
+                enveloppe = projet.root_enveloppe(
+                    enveloppe_projet.dotation, projet.dossier_ds.annee_de_traitement
                 )
                 enveloppe_projet.dismiss(enveloppe=enveloppe)
                 enveloppe_projet.save()
@@ -378,25 +375,6 @@ class EnveloppeProjetService:
                     enveloppe=enveloppe_projet.enveloppe,
                 )
                 enveloppe_projet.save()
-
-    @classmethod
-    def _get_detr_avis_commission(cls, dotation: str, ds_dossier: Dossier):
-        if dotation == DOTATION_DETR and ds_dossier.ds_state == Dossier.State.ACCEPTE:
-            return True
-
-        return None
-
-    @classmethod
-    def _get_root_enveloppe_from_enveloppe_projet(
-        cls, enveloppe_projet: EnveloppeProjet
-    ):
-        """A treatment coming from DN carries no campagne, so its year is the one
-        of its treatment date, whatever the deposit date says."""
-        return Enveloppe.objects.root_for(
-            enveloppe_projet.dotation,
-            enveloppe_projet.projet.perimetre,
-            enveloppe_projet.dossier_ds.ds_date_traitement.year,
-        )
 
     @classmethod
     def _update_assiette_from_dossier(cls, projet: Projet):
@@ -551,7 +529,10 @@ class EnveloppeProjetService:
             projet.dotations
         )
         for dotation in dotations_to_add:
-            cls._create_enveloppe_projet(projet, dotation)
+            EnveloppeProjet.objects.create_for(
+                projet,
+                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
+            )
             ProjetAction.objects.create(
                 projet=projet,
                 action_type=ProjetAction.TYPE_DOTATION_ADDED,

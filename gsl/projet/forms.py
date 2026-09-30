@@ -93,10 +93,9 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         dotations_updated_in_app = new_dotations or dotation_to_remove
 
         for dotation in new_dotations:
-            enveloppe_projet = EnveloppeProjet.objects.create(
-                projet=projet,
-                status=ProjetStatus.PROCESSING,
-                enveloppe=projet.root_enveloppe(dotation),
+            enveloppe_projet = EnveloppeProjet.objects.create_for(
+                projet,
+                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
             )
             EnveloppeProjetService.create_simulation_projets_from_enveloppe_projet(
                 enveloppe_projet

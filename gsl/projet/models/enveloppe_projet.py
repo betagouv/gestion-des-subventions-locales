@@ -107,6 +107,18 @@ class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySe
     def get_queryset(self):
         return super().get_queryset().select_related("enveloppe")
 
+    def create_for(
+        self, projet: "Projet", enveloppe: "Enveloppe", **kwargs
+    ) -> "EnveloppeProjet":
+        return self.create(
+            projet=projet,
+            enveloppe=enveloppe,
+            detr_avis_commission=projet.dossier_ds.detr_avis_commission_for(
+                enveloppe.dotation
+            ),
+            **kwargs,
+        )
+
 
 class EnveloppeProjetCourantManager(EnveloppeProjetManager):
     def get_queryset(self):
