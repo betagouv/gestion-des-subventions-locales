@@ -6,7 +6,7 @@ from django import forms
 
 from gsl.core.tests.factories import CollegueWithDSProfileFactory
 from gsl.historique.models import ProjetAction
-from gsl.simulation.models import SimulationProjet
+from gsl.simulation.models import SimulationProjet, SimulationProjetManager
 from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
@@ -18,7 +18,6 @@ from ...constants import (
 )
 from ...forms import ProjetBudgetVertForm, ProjetForm
 from ...models import EnveloppeProjet
-from ...services.enveloppe_projet_services import EnveloppeProjetService
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 
@@ -184,7 +183,7 @@ def test_update_dotation_with_more_than_2_values(projet_0, user, caplog):
 
 
 @pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
-@patch.object(EnveloppeProjetService, "create_simulation_projets_from_enveloppe_projet")
+@patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
 @pytest.mark.django_db
 def test_update_dotation_from_one_dotation_to_another(
     mock_create_simulation_projets, dotation, projet_0, user
@@ -211,7 +210,7 @@ def test_update_dotation_from_one_dotation_to_another(
 
 
 @pytest.mark.parametrize("original_dotation", [DOTATION_DETR, DOTATION_DSIL])
-@patch.object(EnveloppeProjetService, "create_simulation_projets_from_enveloppe_projet")
+@patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
 @pytest.mark.django_db
 def test_update_dotation_from_one_to_two(
     mock_create_simulation_projets, original_dotation, projet_0, user
@@ -382,7 +381,7 @@ def test_update_dotation_removes_accepted_dotation_with_processing_dotation(
 
 
 @pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
-@patch.object(EnveloppeProjetService, "create_simulation_projets_from_enveloppe_projet")
+@patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
 @pytest.mark.django_db
 def test_update_dotation_sets_dotations_has_been_updated_when_adding_dotation(
     mock_create_simulation_projets, dotation, projet_0, user
@@ -439,7 +438,7 @@ def test_update_dotation_does_not_set_dotations_has_been_updated_when_unchanged(
 
 
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
-@patch.object(EnveloppeProjetService, "create_simulation_projets_from_enveloppe_projet")
+@patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
 @pytest.mark.django_db
 def test_projet_form_save_sets_dotations_has_been_updated_when_dotations_change(
     mock_create_simulation_projets,

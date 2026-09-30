@@ -1,12 +1,10 @@
 import logging
-from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
 
 from gsl.historique.models import ProjetAction
-from gsl.programmation.models import Enveloppe
-from gsl.simulation.models import Simulation, SimulationProjet
+from gsl.simulation.models import SimulationProjet
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
@@ -33,32 +31,9 @@ class EnveloppeProjetService:
             # check for updates
             enveloppe_projets = cls._update_enveloppe_projets_from_projet(projet)
 
-        cls._add_enveloppe_projets_to_all_concerned_simulations(enveloppe_projets)
-        cls._remove_enveloppe_projets_from_unconcerned_simulations(enveloppe_projets)
+        for enveloppe_projet in enveloppe_projets:
+            SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
         return enveloppe_projets
-
-    @classmethod
-    def create_simulation_projets_from_enveloppe_projet(
-        cls,
-        enveloppe_projet: EnveloppeProjet,
-    ):
-        from gsl.simulation.services.simulation_projet_service import (
-            SimulationProjetService,
-        )
-
-        projet_perimetre = enveloppe_projet.projet.perimetre
-        perimetres_containing_this_projet_perimetre = list(projet_perimetre.ancestors())
-        perimetres_containing_this_projet_perimetre.append(projet_perimetre)
-        enveloppes = Enveloppe.objects.filter(
-            dotation=enveloppe_projet.dotation,
-            perimetre__in=perimetres_containing_this_projet_perimetre,
-            annee__gte=date.today().year,
-        )
-        simulations = Simulation.objects.filter(enveloppe__in=enveloppes)
-        for simulation in simulations:
-            SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
-                enveloppe_projet, simulation
-            )
 
     # private
 
@@ -429,63 +404,6 @@ class EnveloppeProjetService:
             and enveloppe_projet.date_programmation
             > enveloppe_projet.projet.dossier_ds.ds_date_passage_en_instruction
         )
-
-    @classmethod
-    def _add_enveloppe_projets_to_all_concerned_simulations(
-        cls, enveloppe_projets: list[EnveloppeProjet]
-    ):
-        from gsl.simulation.services.simulation_projet_service import (
-            SimulationProjetService,
-        )
-
-        for enveloppe_projet in enveloppe_projets:
-            simulations = cls._get_all_concerned_simulations_for_enveloppe_projet(
-                enveloppe_projet
-            ).exclude(simulationprojet__enveloppe_projet=enveloppe_projet)
-            for simulation in simulations:
-                SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
-                    enveloppe_projet, simulation
-                )
-
-    @classmethod
-    def _get_all_concerned_simulations_for_enveloppe_projet(
-        cls, enveloppe_projet: EnveloppeProjet
-    ):
-        qs = Simulation.objects.containing_perimetre(
-            enveloppe_projet.projet.perimetre
-        ).filter(
-            enveloppe__dotation=enveloppe_projet.dotation,
-            enveloppe__annee__gte=date.today().year,
-        )
-
-        if (
-            enveloppe_projet.dossier_ds.ds_state
-            in [Dossier.State.ACCEPTE, Dossier.State.SANS_SUITE, Dossier.State.REFUSE]
-            and enveloppe_projet.dossier_ds.ds_date_traitement is not None
-        ):
-            qs = qs.exclude(
-                enveloppe__annee__gte=enveloppe_projet.projet.dossier_ds.ds_date_traitement.year
-                + 1,
-            )
-
-        if enveloppe_projet.is_programmee:
-            qs = qs.exclude(enveloppe__annee__gt=enveloppe_projet.enveloppe.annee)
-
-        return qs
-
-    @classmethod
-    def _remove_enveloppe_projets_from_unconcerned_simulations(
-        cls, enveloppe_projets: list[EnveloppeProjet]
-    ):
-        for enveloppe_projet in enveloppe_projets:
-            concerned_simulations = (
-                cls._get_all_concerned_simulations_for_enveloppe_projet(
-                    enveloppe_projet
-                )
-            )
-            SimulationProjet.objects.filter(enveloppe_projet=enveloppe_projet).exclude(
-                simulation__in=concerned_simulations
-            ).delete()
 
     @classmethod
     def _should_dotations_be_updated_from_dn_construction_dossier(

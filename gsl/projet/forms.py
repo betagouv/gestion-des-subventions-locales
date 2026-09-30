@@ -8,6 +8,7 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
+from gsl.simulation.models import SimulationProjet
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
 
@@ -70,8 +71,6 @@ class ProjetForm(ModelForm, DsfrBaseForm):
     def update_dotation(
         self, projet: Projet, dotations: list[POSSIBLE_DOTATIONS], user: Collegue
     ):
-        from .services.enveloppe_projet_services import EnveloppeProjetService
-
         if len(dotations) == 0:
             logger.warning(
                 "Projet must have at least one dotation", extra={"projet": projet.pk}
@@ -97,9 +96,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
                 projet,
                 projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
             )
-            EnveloppeProjetService.create_simulation_projets_from_enveloppe_projet(
-                enveloppe_projet
-            )
+            SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
             ProjetAction.objects.create(
                 projet=projet,
                 action_type=ProjetAction.TYPE_DOTATION_ADDED,

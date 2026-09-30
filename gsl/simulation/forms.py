@@ -23,7 +23,6 @@ from .models import (
     Simulation,
     SimulationProjet,
 )
-from .services.simulation_projet_service import SimulationProjetService
 
 logger = getLogger(__name__)
 
@@ -45,9 +44,7 @@ def _add_enveloppe_projets_to_simulation(simulation: Simulation):
     )
 
     for enveloppe_projet in selected_enveloppe_projet:
-        SimulationProjetService.create_or_update_simulation_projet_from_enveloppe_projet(
-            enveloppe_projet, simulation
-        )
+        SimulationProjet.objects.create_or_update_for(enveloppe_projet, simulation)
 
 
 class SimulationForm(DsfrBaseForm, ModelForm):
