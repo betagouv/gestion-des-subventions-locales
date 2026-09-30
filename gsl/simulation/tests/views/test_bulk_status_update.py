@@ -208,9 +208,9 @@ def test_bulk_status_update_to_accepted_returns_confirmation_modal(
     assert response.headers.get("HX-Refresh") != "true"
     assert b"bulk-status-confirm-modal" in response.content
     assert b"Lancer le traitement" in response.content
-    from ...models import BulkStatusJob
+    from gsl.core.models import BulkActionsJob
 
-    assert BulkStatusJob.objects.count() == 0
+    assert BulkActionsJob.objects.count() == 0
     for sp in (sp1, sp2):
         sp.refresh_from_db()
         assert sp.status == SimulationProjet.STATUS_PROCESSING

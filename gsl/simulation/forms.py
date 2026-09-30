@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
-from gsl.core.models import Collegue
+from gsl.core.models import BulkActionsJob, Collegue
 from gsl.core.templatetags.gsl_filters import euro
 from gsl.historique.models import ProjetAction
 from gsl.programmation.models import Enveloppe
@@ -18,7 +18,11 @@ from gsl.projet.models import (
 )
 from gsl.projet.utils.utils import compute_taux
 
-from .models import BulkStatusJob, Simulation, SimulationProjet
+from .models import (
+    BULK_STATUS_ACTION,
+    Simulation,
+    SimulationProjet,
+)
 from .services.simulation_projet_service import SimulationProjetService
 
 logger = getLogger(__name__)
@@ -433,12 +437,13 @@ class SimulationColumnsVisibilityForm(forms.ModelForm):
         }
 
 
-class BulkStatusJobForm(ModelForm):
+class BulkStatusJobForm(forms.Form):
+    simulation = forms.ModelChoiceField(queryset=Simulation.objects.none())
+    target_status = forms.ChoiceField(
+        label="Statut cible",
+        choices=SimulationProjet.STATUS_CHOICES,
+    )
     simulation_projet_ids = forms.CharField()
-
-    class Meta:
-        model = BulkStatusJob
-        fields = ("simulation", "target_status", "simulation_projet_ids")
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
@@ -473,10 +478,9 @@ class BulkStatusJobForm(ModelForm):
                 )
         if (
             simulation
-            and BulkStatusJob.objects.filter(
-                simulation=simulation,
-                status__in=(BulkStatusJob.STATUS_PENDING, BulkStatusJob.STATUS_RUNNING),
-            ).exists()
+            and BulkActionsJob.objects.unfinished()
+            .filter(action=BULK_STATUS_ACTION, lock_key=self._lock_key(simulation))
+            .exists()
         ):
             raise ValidationError(
                 "Un traitement est déjà en cours sur cette simulation.",
@@ -484,9 +488,18 @@ class BulkStatusJobForm(ModelForm):
             )
         return cleaned
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.created_by = self.user
-        if commit:
-            instance.save()
-        return instance
+    def save(self) -> BulkActionsJob:
+        simulation = self.cleaned_data["simulation"]
+        return BulkActionsJob.objects.create(
+            action=BULK_STATUS_ACTION,
+            created_by=self.user,
+            object_ids=self.cleaned_data["simulation_projet_ids"],
+            params={
+                "simulation_id": simulation.pk,
+                "target_status": self.cleaned_data["target_status"],
+            },
+            lock_key=self._lock_key(simulation),
+        )
+
+    def _lock_key(self, simulation) -> str:
+        return f"simulation:{simulation.pk}"

@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from gsl.core.models import BulkActionsJob
 from gsl.core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
@@ -10,9 +11,9 @@ from gsl.core.tests.factories import (
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl_demarches_simplifiees.exceptions import DsServiceException
 
-from ..models import BulkStatusJob, SimulationProjet
+from ..models import SimulationProjet
 from ..tasks import run_bulk_status_job
-from .factories import SimulationFactory, make_detr_simu_projet
+from .factories import BulkStatusJobFactory, SimulationFactory, make_detr_simu_projet
 
 pytestmark = pytest.mark.django_db
 
@@ -41,7 +42,7 @@ def _make_simu_projet(perimetre, simulation, **kwargs):
 
 def _make_job(simulation, collegue, simulation_projets, target_status):
     ids = [sp.pk for sp in simulation_projets]
-    return BulkStatusJob.objects.create(
+    return BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=target_status,
@@ -61,9 +62,9 @@ def test_run_bulk_status_job_to_provisional_accepted_updates_all_rows(
     run_bulk_status_job(str(job.pk))
 
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
+    assert job.status == BulkActionsJob.Status.DONE
     assert job.processed == 2
-    assert job.errors == []
+    assert job.report == []
     for sp in (sp1, sp2):
         sp.refresh_from_db()
         assert sp.status == SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
@@ -84,8 +85,8 @@ def test_run_bulk_status_job_to_accepted_fires_ds_mutation_per_row(
     sp.refresh_from_db()
     assert sp.status == SimulationProjet.STATUS_ACCEPTED
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
-    assert job.errors == []
+    assert job.status == BulkActionsJob.Status.DONE
+    assert job.report == []
 
 
 def test_run_bulk_status_job_continues_when_one_row_fails_ds(
@@ -117,11 +118,11 @@ def test_run_bulk_status_job_continues_when_one_row_fails_ds(
         run_bulk_status_job(str(job.pk))
 
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
+    assert job.status == BulkActionsJob.Status.DONE
     assert job.processed == 3
-    assert len(job.errors) == 1
-    error = job.errors[0]
-    assert error["simulation_projet_id"] == sp_fails.pk
+    assert len(job.report) == 1
+    error = job.report[0]
+    assert error["object_id"] == sp_fails.pk
     assert "Échec DN simulé" in error["message"]
 
     sp_ok_1.refresh_from_db()
@@ -147,8 +148,8 @@ def test_run_bulk_status_job_records_validation_error_for_missing_assiette(
     ds_mock.assert_not_called()
     job.refresh_from_db()
     assert job.processed == 1
-    assert len(job.errors) == 1
-    assert "assiette" in job.errors[0]["message"].lower()
+    assert len(job.report) == 1
+    assert "assiette" in job.report[0]["message"].lower()
     sp.refresh_from_db()
     assert sp.status == SimulationProjet.STATUS_PROCESSING
 
@@ -186,9 +187,9 @@ def test_run_bulk_status_job_lets_unexpected_exception_propagate(
     job.refresh_from_db()
     # The outer finally marks the job DONE with the crash sentinel so the UI
     # stops polling; the exception still propagates so Celery/Sentry see it.
-    assert job.status == BulkStatusJob.STATUS_DONE
-    assert len(job.errors) == 1
-    assert "interrompu" in job.errors[0]["message"].lower()
+    assert job.status == BulkActionsJob.Status.DONE
+    assert len(job.report) == 1
+    assert "interrompu" in job.report[0]["message"].lower()
 
     sp1.refresh_from_db()
     sp2.refresh_from_db()
@@ -242,15 +243,15 @@ def test_run_bulk_status_job_preserves_recorded_errors_when_crashing(
         run_bulk_status_job(str(job.pk))
 
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
+    assert job.status == BulkActionsJob.Status.DONE
     # Both sp2's DN failure (recorded during the loop) and the sp3 crash sentinel
     # should be persisted — the pre-fix behaviour lost sp2's error entirely.
-    assert len(job.errors) == 2
-    recorded = job.errors[0]
-    sentinel = job.errors[1]
-    assert recorded["simulation_projet_id"] == sp2.pk
+    assert len(job.report) == 2
+    recorded = job.report[0]
+    sentinel = job.report[1]
+    assert recorded["object_id"] == sp2.pk
     assert "Échec DN simulé" in recorded["message"]
-    assert sentinel["simulation_projet_id"] is None
+    assert sentinel["object_id"] is None
     assert "interrompu" in sentinel["message"].lower()
 
 
@@ -285,11 +286,11 @@ def test_run_bulk_status_job_records_transition_not_allowed_per_row(
         run_bulk_status_job(str(job.pk))
 
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
+    assert job.status == BulkActionsJob.Status.DONE
     assert job.processed == 2
-    assert len(job.errors) == 1
-    assert job.errors[0]["simulation_projet_id"] == sp_fails.pk
-    assert "le changement de statut n'est plus possible" in job.errors[0]["message"]
+    assert len(job.report) == 1
+    assert job.report[0]["object_id"] == sp_fails.pk
+    assert "le changement de statut n'est plus possible" in job.report[0]["message"]
 
 
 def test_run_bulk_status_job_records_validation_error_per_row(
@@ -323,11 +324,11 @@ def test_run_bulk_status_job_records_validation_error_per_row(
         run_bulk_status_job(str(job.pk))
 
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
+    assert job.status == BulkActionsJob.Status.DONE
     assert job.processed == 2
-    assert len(job.errors) == 1
-    assert job.errors[0]["simulation_projet_id"] == sp_fails.pk
-    assert "Dotation incohérente" in job.errors[0]["message"]
+    assert len(job.report) == 1
+    assert job.report[0]["object_id"] == sp_fails.pk
+    assert "Dotation incohérente" in job.report[0]["message"]
 
 
 def test_run_bulk_status_job_marks_done_when_loop_setup_fails(
@@ -346,9 +347,9 @@ def test_run_bulk_status_job_marks_done_when_loop_setup_fails(
             run_bulk_status_job(str(job.pk))
 
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
-    assert len(job.errors) == 1
-    assert "interrompu" in job.errors[0]["message"].lower()
+    assert job.status == BulkActionsJob.Status.DONE
+    assert len(job.report) == 1
+    assert "interrompu" in job.report[0]["message"].lower()
 
 
 def test_run_bulk_status_job_records_error_for_notified_projects(
@@ -366,7 +367,7 @@ def test_run_bulk_status_job_records_error_for_notified_projects(
     sp.refresh_from_db()
     assert sp.status == SimulationProjet.STATUS_PROCESSING
     job.refresh_from_db()
-    assert job.status == BulkStatusJob.STATUS_DONE
+    assert job.status == BulkActionsJob.Status.DONE
     assert job.processed == 1
-    assert len(job.errors) == 1
-    assert "notifié" in job.errors[0]["message"]
+    assert len(job.report) == 1
+    assert "notifié" in job.report[0]["message"]

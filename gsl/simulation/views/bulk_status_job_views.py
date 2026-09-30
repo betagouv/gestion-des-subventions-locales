@@ -2,7 +2,7 @@ from django.db import IntegrityError
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.generic.detail import DetailView
-from django.views.generic.edit import CreateView
+from django.views.generic.edit import FormView
 from django_htmx.http import trigger_client_event
 
 from gsl.core.decorators import htmx_only
@@ -12,10 +12,15 @@ from gsl.core.matomo_constants import (
     MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
     MATOMO_CATEGORY_SIMULATION,
 )
+from gsl.core.models import BulkActionsJob
 from gsl.projet.constants import DOTATIONS
 
 from ..forms import BulkStatusJobForm
-from ..models import BulkStatusJob, Simulation, SimulationProjet
+from ..models import (
+    BULK_STATUS_ACTION,
+    Simulation,
+    SimulationProjet,
+)
 from ..table_columns import SIMULATION_TABLE_COLUMNS
 from ..tasks import run_bulk_status_job
 
@@ -23,15 +28,14 @@ BULK_STATUS_MODAL_ID = "bulk-status-confirm-modal"
 
 
 @method_decorator(htmx_only, name="dispatch")
-class BulkStatusJobStartView(CreateView):
+class BulkStatusJobStartView(FormView):
     """
-    Creates a BulkStatusJob for the selected SimulationProjets and enqueues the
+    Creates a BulkActionsJob for the selected SimulationProjets and enqueues the
     Celery task. Responds with the progress partial, swapped into the
     confirmation modal's body (innerHTML). Subsequent updates come from
     `BulkStatusJobProgressView` polling.
     """
 
-    model = BulkStatusJob
     form_class = BulkStatusJobForm
     http_method_names = ["post"]
 
@@ -85,7 +89,7 @@ class BulkStatusJobStartView(CreateView):
             self.request,
             MATOMO_CATEGORY_SIMULATION,
             MATOMO_ACTION_CHANGEMENT_STATUT_BULK,
-            f"{job.target_status}:{job.total}",
+            f"{job.params['target_status']}:{job.total}",
         )
 
         response = render(
@@ -97,7 +101,7 @@ class BulkStatusJobStartView(CreateView):
                 "simulation_projets_to_refresh": [],
             },
         )
-        if not job.is_running:
+        if not job.is_unfinished:
             response = trigger_client_event(response, "bulk-status-updated")
         return response
 
@@ -110,14 +114,20 @@ class BulkStatusJobProgressView(DetailView):
     the polling trigger until the job is done.
     """
 
-    model = BulkStatusJob
+    model = BulkActionsJob
     template_name = "htmx/_bulk_status_progress_partial.html"
     context_object_name = "job"
 
     def get_queryset(self):
-        return BulkStatusJob.objects.filter(
+        visible_simulation_ids = list(
+            Simulation.objects.visible_for_user(self.request.user).values_list(
+                "pk", flat=True
+            )
+        )
+        return BulkActionsJob.objects.filter(
+            action=BULK_STATUS_ACTION,
             created_by=self.request.user,
-            simulation__in=Simulation.objects.visible_for_user(self.request.user),
+            params__simulation_id__in=visible_simulation_ids,
         )
 
     def get_context_data(self, **kwargs):
@@ -128,8 +138,7 @@ class BulkStatusJobProgressView(DetailView):
         context["selectable_ids_list"] = [
             sp.id
             for sp in simulation_projets_to_refresh
-            if sp.status in BulkStatusJob.ALLOWED_TARGET_STATUSES
-            and not sp.enveloppe_projet.projet.has_been_notified
+            if not sp.enveloppe_projet.projet.has_been_notified
         ]
         context["columns"] = SIMULATION_TABLE_COLUMNS
         context["dotations"] = DOTATIONS
@@ -137,17 +146,17 @@ class BulkStatusJobProgressView(DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         response = super().render_to_response(context, **response_kwargs)
-        if not self.object.is_running:
+        if not self.object.is_unfinished:
             response = trigger_client_event(response, "bulk-status-updated")
         return response
 
     def _get_simulation_projets_to_refresh(self):
-        if self.object.status != BulkStatusJob.STATUS_DONE:
+        if self.object.status != BulkActionsJob.Status.DONE:
             return []
         return list(
             SimulationProjet.objects.active()
             .filter(
-                id__in=self.object.simulation_projet_ids,
+                id__in=self.object.object_ids,
             )
             .select_related(
                 "simulation",

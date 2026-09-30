@@ -4,6 +4,7 @@ from django.test import Client, RequestFactory
 from ..models import (
     Adresse,
     Arrondissement,
+    BulkActionsJob,
     Collegue,
     Commune,
     Departement,
@@ -103,6 +104,14 @@ class CollegueWithDSProfileFactory(CollegueFactory):
     ds_profile = factory.SubFactory(
         "gsl_demarches_simplifiees.tests.factories.ProfileFactory"
     )
+
+
+class BulkActionsJobFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = BulkActionsJob
+
+    action = "test_action"
+    created_by = factory.SubFactory(CollegueFactory)
 
 
 class RequestFactory(RequestFactory):

@@ -1,14 +1,15 @@
 from random import randint
 from typing import cast
 
-from factory import LazyAttribute, Sequence, SubFactory
+from factory import LazyAttribute, SelfAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
+from gsl.core.tests.factories import BulkActionsJobFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import DOTATION_DETR, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
-from ..models import Simulation, SimulationProjet
+from ..models import BULK_STATUS_ACTION, Simulation, SimulationProjet
 
 
 class SimulationFactory(DjangoModelFactory):
@@ -40,6 +41,22 @@ class SimulationProjetFactory(DjangoModelFactory):
         )
     )
     status = SimulationProjet.STATUS_PROCESSING
+
+
+class BulkStatusJobFactory(BulkActionsJobFactory):
+    """BulkActionsJob of a bulk SimulationProjet status change."""
+
+    class Params:
+        simulation = SubFactory(SimulationFactory)
+        target_status = SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
+        simulation_projet_ids = []
+
+    action = BULK_STATUS_ACTION
+    object_ids = SelfAttribute("simulation_projet_ids")
+    params = LazyAttribute(
+        lambda o: {"simulation_id": o.simulation.pk, "target_status": o.target_status}
+    )
+    lock_key = LazyAttribute(lambda o: f"simulation:{o.simulation.pk}")
 
 
 def make_detr_simu_projet(

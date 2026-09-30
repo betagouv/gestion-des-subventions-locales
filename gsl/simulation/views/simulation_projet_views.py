@@ -51,7 +51,6 @@ from ..forms import (
     TauxSingleFieldForm,
 )
 from ..models import (
-    BulkStatusJob,
     SimulationProjet,
     SimulationProjetQuerySet,
 )
@@ -112,7 +111,6 @@ class SimulationTableCellEditMixin(UpdateView):
             SimulationProjet.objects.active()
             .filter(
                 simulation=self.object.simulation,
-                status__in=BulkStatusJob.ALLOWED_TARGET_STATUSES,
                 enveloppe_projet__projet__notified_at__isnull=True,
             )
             .values_list("id", flat=True)
@@ -470,7 +468,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         target_status = kwargs["status"]
-        if target_status not in BulkStatusJob.ALLOWED_TARGET_STATUSES:
+        if target_status not in dict(SimulationProjet.STATUS_CHOICES):
             raise Http404(user_message="Statut de simulation invalide")
 
         raw_ids = request.POST.get("simulation_projet_ids", "")

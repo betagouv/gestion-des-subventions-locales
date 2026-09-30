@@ -1,8 +1,6 @@
-import uuid
-
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Count, Q, QuerySet, Sum
+from django.db.models import Count, QuerySet, Sum
 from django.forms import ValidationError
 from django_extensions.db.fields import AutoSlugField
 
@@ -269,72 +267,5 @@ class SimulationProjet(BaseModel):
             )
 
 
-_ALLOWED_TARGET_STATUSES = (
-    SimulationProjet.STATUS_ACCEPTED,
-    SimulationProjet.STATUS_REFUSED,
-    SimulationProjet.STATUS_DISMISSED,
-    *SimulationProjet.SIMULATION_PENDING_STATUSES,
-)
-
-
-class BulkStatusJob(BaseModel):
-    """
-    Tracks an async bulk SimulationProjet status change that involves slow
-    Démarches Numériques mutations. The row is the single source of truth for
-    progress: the Celery task updates `processed`/`errors` after each row, and
-    the browser polls a view that reads this model.
-    """
-
-    STATUS_PENDING = "pending"
-    STATUS_RUNNING = "running"
-    STATUS_DONE = "done"
-    STATUS_CHOICES = (
-        (STATUS_PENDING, "En attente"),
-        (STATUS_RUNNING, "En cours"),
-        (STATUS_DONE, "Terminé"),
-    )
-
-    ALLOWED_TARGET_STATUSES = _ALLOWED_TARGET_STATUSES
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE)
-    created_by = models.ForeignKey(Collegue, on_delete=models.PROTECT)
-    target_status = models.CharField(
-        max_length=32,
-        choices=[
-            (key, label)
-            for key, label in SimulationProjet.STATUS_CHOICES
-            if key in _ALLOWED_TARGET_STATUSES
-        ],
-        verbose_name="Statut cible",
-    )
-    simulation_projet_ids = models.JSONField(default=list)
-    status = models.CharField(
-        max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING
-    )
-    processed = models.PositiveIntegerField(default=0)
-    errors = models.JSONField(default=list)
-
-    class Meta:
-        verbose_name = "Changement de statut en masse"
-        verbose_name_plural = "Changements de statut en masse"
-        ordering = ("-created_at",)
-        constraints = (
-            models.UniqueConstraint(
-                fields=("simulation",),
-                condition=Q(status__in=("pending", "running")),
-                name="uq_bulkstatusjob_active_per_simulation",
-            ),
-        )
-
-    @property
-    def total(self) -> int:
-        return len(self.simulation_projet_ids)
-
-    @property
-    def is_running(self) -> bool:
-        return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
-
-    @property
-    def succeeded_count(self) -> int:
-        return self.processed - len(self.errors)
+# BulkActionsJob.action of a bulk SimulationProjet status change
+BULK_STATUS_ACTION = "simulation_status"
