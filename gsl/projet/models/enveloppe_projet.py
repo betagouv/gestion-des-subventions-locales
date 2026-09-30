@@ -1,3 +1,4 @@
+import logging
 from functools import cached_property
 from typing import TYPE_CHECKING, List, Optional
 
@@ -18,6 +19,7 @@ from gsl.historique.models import ProjetAction
 from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import (
+    DOTATION_DETR,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NOTIFICATION_STATUS_NOTIFIED,
@@ -28,6 +30,8 @@ from ..constants import (
     ProjetStatus,
 )
 from ..utils.utils import compute_taux, floatize
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from gsl.programmation.models import Enveloppe
@@ -69,7 +73,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
 
     def can_generate_refus_documents(self):
         return self.programmees().filter(
-            status__in=(ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
+            status__in=ProjetStatus.NEGATIVE,
             projet__notified_at__isnull=True,
         )
 
@@ -93,7 +97,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
                 When(
-                    status__in=[ProjetStatus.DISMISSED, ProjetStatus.REFUSED],
+                    status__in=ProjetStatus.NEGATIVE,
                     lettrerefus__isnull=False,
                     then=Value(NOTIFICATION_STATUS_TO_SIGN),
                 ),
@@ -309,6 +313,13 @@ class EnveloppeProjet(BaseModel):
     @property
     def is_programmee(self) -> bool:
         return self.status in ProjetStatus.FINAL
+
+    @property
+    def is_programmee_after_passage_en_instruction(self) -> bool:
+        return (
+            self.is_programmee
+            and self.date_programmation > self.dossier_ds.ds_date_passage_en_instruction
+        )
 
     @property
     def other_dotations(self) -> List["EnveloppeProjet"]:
@@ -621,6 +632,71 @@ class EnveloppeProjet(BaseModel):
             user=user,
             dotations_to_be_checked=self.other_accepted_dotations,
         )
+
+    ## -------------------------- Following DN --------------------------
+
+    @property
+    def programmation_root_enveloppe(self) -> "Enveloppe":
+        """A treatment coming from DN carries no campagne, so a dotation programmed
+        from it lands on the year of its treatment date, not of its deposit."""
+        return self.projet.root_enveloppe(
+            self.dotation, self.dossier_ds.annee_de_traitement
+        )
+
+    def accept_from_dn(self) -> None:
+        if self.dotation == DOTATION_DETR:
+            self.detr_avis_commission = True
+
+        # We keep the previous enveloppe to avoid squashing a manual rectification.
+        enveloppe = (
+            self.enveloppe if self.is_programmee else self.programmation_root_enveloppe
+        )
+        self.accept_without_ds_update(
+            montant=self._montant_from_dn(), enveloppe=enveloppe
+        )
+        self.save()
+
+    def _montant_from_dn(self):
+        montant = self.dossier_ds.annotations_for(self.dotation).montant
+        if montant is None:
+            logger.warning(
+                "Montant is missing in dossier annotations",
+                extra={
+                    "dossier_ds_number": self.dossier_ds.ds_number,
+                    "dotation": self.dotation,
+                },
+            )
+            return 0
+        return montant
+
+    def close_from_dn(self, transition_method) -> None:
+        transition_method(self, enveloppe=self.programmation_root_enveloppe)
+        self.save()
+
+    def update_montant_from_dn(self) -> None:
+        montant = self.dossier_ds.annotations_for(self.dotation).montant
+        if montant is None or montant == self.montant:
+            return
+        self.accept_without_ds_update(montant=montant, enveloppe=self.enveloppe)
+        self.save()
+
+    def update_assiette_from_dn(self) -> None:
+        assiette = self.dossier_ds.annotations_for(self.dotation).assiette
+        if assiette is None:
+            return
+
+        if self.assiette != assiette:
+            ProjetAction.objects.create(
+                projet=self.projet,
+                action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
+                actor=None,
+                source=ProjetAction.SOURCE_DN,
+                dotation=self.dotation,
+                euro_field_value=assiette,
+            )
+
+        self.assiette = assiette
+        self.save()
 
 
 # Imported last: projet.py imports this module at load time.

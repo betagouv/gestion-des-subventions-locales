@@ -1,5 +1,4 @@
 import logging
-from decimal import Decimal
 
 from django.db import transaction
 
@@ -18,172 +17,27 @@ logger = logging.getLogger(__name__)
 
 class EnveloppeProjetService:
     @classmethod
-    def create_or_update_enveloppe_projet_from_projet(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        # check for initialisation
-        if projet.enveloppeprojet_set.count() == 0:
-            enveloppe_projets = cls._initialize_enveloppe_projets_from_projet(projet)
-
-        else:
-            if cls._should_dotations_be_updated_from_dn_construction_dossier(projet):
-                cls._remove_or_add_dotations_from_dossier_ds(projet)
-            # check for updates
-            enveloppe_projets = cls._update_enveloppe_projets_from_projet(projet)
-
-        for enveloppe_projet in enveloppe_projets:
-            SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
-        return enveloppe_projets
-
-    # private
-
-    ## -------------------------- Initialize Enveloppe Projets --------------------------
-
-    @classmethod
     @transaction.atomic
-    def _initialize_enveloppe_projets_from_projet(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        dossier_status = projet.dossier_ds.ds_state
-        if dossier_status == Dossier.State.ACCEPTE:
-            return cls._initialize_enveloppe_projets_from_projet_accepted(projet)
-        elif dossier_status == Dossier.State.REFUSE:
-            return cls._initialize_enveloppe_projets_from_projet_refused(projet)
-        elif dossier_status == Dossier.State.SANS_SUITE:
-            return cls._initialize_enveloppe_projets_from_projet_sans_suite(projet)
-        elif dossier_status in [
-            Dossier.State.EN_CONSTRUCTION,
-            Dossier.State.EN_INSTRUCTION,
-        ]:
-            return cls._initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
-                projet
-            )
+    def create_or_update_enveloppe_projet_from_projet(cls, projet: Projet) -> None:
+        existing = {ep.dotation: ep for ep in projet.enveloppeprojet_set.all()}
+        is_initialisation = not existing
+        dotations = cls._expected_dotations(projet, set(existing))
 
-        raise ValueError(f"Invalid dossier status: {dossier_status}")
+        for dotation in existing.keys() - dotations:
+            # An accepted dossier only annotates its accepted dotations: keep the others' refusal.
+            if (
+                projet.dossier_ds.ds_state == Dossier.State.ACCEPTE
+                and existing[dotation].status in ProjetStatus.NEGATIVE
+            ):
+                continue
+            cls._remove_dotation(existing.pop(dotation))
 
-    @classmethod
-    def _initialize_enveloppe_projets_from_projet_accepted(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        dotations = projet.dossier_ds.dotations_annotees
-        if not dotations:
-            cls._log_missing_annotations_dotation(
-                projet,
-                "No dotations found in annotations_dotation for accepted dossier during initialisation",
-            )
-            dotations = projet.dossier_ds.dotations_demande
-
-        enveloppe_projets = []
-        for dotation in dotations:
-            enveloppe = projet.root_enveloppe(
-                dotation, projet.dossier_ds.annee_de_traitement
-            )
-            enveloppe_projet = EnveloppeProjet.objects.create_for(projet, enveloppe)
-            montant = projet.dossier_ds.annotations_for(dotation).montant
-            if montant is None:
-                cls._log_missing_montant(projet.dossier_ds, dotation)
-                montant = Decimal(0)
-            enveloppe_projet.accept_without_ds_update(
-                montant=montant, enveloppe=enveloppe
-            )
-            enveloppe_projet.save()
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    @classmethod
-    def _initialize_enveloppe_projets_from_projet_refused(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        dotations = projet.dossier_ds.dotations_demande
-        enveloppe_projets = []
-        for dotation in dotations:
-            enveloppe = projet.root_enveloppe(
-                dotation, projet.dossier_ds.annee_de_traitement
-            )
-            enveloppe_projet = EnveloppeProjet.objects.create_for(projet, enveloppe)
-            enveloppe_projet.refuse(enveloppe=enveloppe)
-            enveloppe_projet.save()
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    @classmethod
-    def _initialize_enveloppe_projets_from_projet_sans_suite(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        dotations = projet.dossier_ds.dotations_demande
-        enveloppe_projets = []
-        for dotation in dotations:
-            enveloppe = projet.root_enveloppe(
-                dotation, projet.dossier_ds.annee_de_traitement
-            )
-            enveloppe_projet = EnveloppeProjet.objects.create_for(projet, enveloppe)
-            enveloppe_projet.dismiss(enveloppe=enveloppe)
-            enveloppe_projet.save()
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    @classmethod
-    def _initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        dotations = projet.dossier_ds.dotations_demande
-        enveloppe_projets = []
-        for dotation in dotations:
-            enveloppe_projet = EnveloppeProjet.objects.create_for(
+        for dotation in sorted(dotations - existing.keys()):
+            existing[dotation] = EnveloppeProjet.objects.create_for(
                 projet,
                 projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
             )
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    ## -------------------------- Update Enveloppe Projets --------------------------
-
-    @classmethod
-    @transaction.atomic
-    def _update_enveloppe_projets_from_projet(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        cls._update_assiette_from_dossier(projet)
-
-        dossier_status = projet.dossier_ds.ds_state
-        if dossier_status == Dossier.State.ACCEPTE:
-            return cls._update_enveloppe_projets_from_projet_accepted(projet)
-        elif dossier_status == Dossier.State.REFUSE:
-            return cls._update_enveloppe_projets_from_projet_refused(projet)
-        elif dossier_status == Dossier.State.SANS_SUITE:
-            return cls._update_enveloppe_projets_from_projet_sans_suite(projet)
-        elif dossier_status in [
-            Dossier.State.EN_CONSTRUCTION,
-            Dossier.State.EN_INSTRUCTION,
-        ]:
-            cls._update_accepted_enveloppe_projets_montant_from_dn(projet)
-            is_dossier_back_to_instruction = cls._is_dossier_back_to_instruction(projet)
-            if is_dossier_back_to_instruction:
-                return cls._update_enveloppe_projets_from_projet_back_to_instruction(
-                    projet
-                )
-        else:
-            raise ValueError(f"Invalid dossier status: {dossier_status}")
-        return projet.enveloppeprojet_set.all()
-
-    @classmethod
-    def _update_enveloppe_projets_from_projet_accepted(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        dotations_to_accept = projet.dossier_ds.dotations_annotees
-        if not dotations_to_accept:
-            cls._log_missing_annotations_dotation(
-                projet,
-                "No dotations found in annotations_dotation for accepted dossier during update",
-            )
-            return projet.enveloppeprojet_set.all()
-
-        existing_dotations = set(projet.dotations)
-        dotations_to_remove = existing_dotations - set(dotations_to_accept)
-
-        for dotation in dotations_to_accept:
-            cls._accept_enveloppe_projet(projet, dotation)
-            if dotation not in existing_dotations:
+            if not is_initialisation:
                 ProjetAction.objects.create(
                     projet=projet,
                     action_type=ProjetAction.TYPE_DOTATION_ADDED,
@@ -192,281 +46,165 @@ class EnveloppeProjetService:
                     dotation=dotation,
                 )
 
-        for dotation in dotations_to_remove:
-            deleted_count, _ = (
-                EnveloppeProjet.objects.for_dotation(dotation)
-                .filter(projet=projet)
-                .exclude(status__in=[ProjetStatus.REFUSED, ProjetStatus.DISMISSED])
-                .delete()
+        enveloppe_projets = list(existing.values())
+        for enveloppe_projet in enveloppe_projets:
+            enveloppe_projet.update_assiette_from_dn()
+        cls._apply_dossier_state(
+            projet, enveloppe_projets, dotations, is_initialisation
+        )
+
+        for enveloppe_projet in enveloppe_projets:
+            SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
+
+    # private
+
+    ## -------------------------- Dotations --------------------------
+
+    @classmethod
+    def _expected_dotations(
+        cls, projet: Projet, existing: set[POSSIBLE_DOTATIONS]
+    ) -> set[POSSIBLE_DOTATIONS]:
+        dossier = projet.dossier_ds
+        if dossier.ds_state == Dossier.State.ACCEPTE:
+            if dossier.dotations_annotees:
+                return set(dossier.dotations_annotees)
+            logger.warning(
+                "No dotations found in annotations_dotation for accepted dossier",
+                extra={
+                    "dossier_ds_number": dossier.ds_number,
+                    "projet": projet.pk,
+                    "value": dossier.annotations_dotation,
+                    "field": "annotations_dotation",
+                },
             )
-            if deleted_count:
-                ProjetAction.objects.create(
-                    projet=projet,
-                    action_type=ProjetAction.TYPE_DOTATION_REMOVED,
-                    actor=None,
-                    source=ProjetAction.SOURCE_DN,
-                    dotation=dotation,
-                )
+            return existing or set(dossier.dotations_demande)
 
-        return projet.enveloppeprojet_set.all()
-
-    @classmethod
-    def _accept_enveloppe_projet(
-        cls, projet: Projet, dotation: POSSIBLE_DOTATIONS
-    ) -> EnveloppeProjet:
-        try:
-            enveloppe_projet = EnveloppeProjet.objects.for_dotation(dotation).get(
-                projet=projet
-            )
-        except EnveloppeProjet.DoesNotExist:
-            enveloppe_projet = EnveloppeProjet.objects.create_for(
-                projet,
-                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_traitement),
-            )
-
-        assiette = projet.dossier_ds.annotations_for(dotation).assiette
-        if assiette is not None:  # we only update if we have an info
-            enveloppe_projet.assiette = assiette
-
-        detr_avis_commission = projet.dossier_ds.detr_avis_commission_for(dotation)
-        if detr_avis_commission is not None:  # we only update if we have an info
-            enveloppe_projet.detr_avis_commission = detr_avis_commission
-
-        if enveloppe_projet.is_programmee:  # We keep previous enveloppe to avoid squashing manuel rectification (ex: enveloppe 2025)
-            enveloppe = enveloppe_projet.enveloppe
-        else:
-            enveloppe = projet.root_enveloppe(
-                dotation, projet.dossier_ds.annee_de_traitement
-            )
-        montant = projet.dossier_ds.annotations_for(dotation).montant
-        if montant is None:
-            cls._log_missing_montant(projet.dossier_ds, dotation)
-            montant = Decimal(0)
-        enveloppe_projet.accept_without_ds_update(montant=montant, enveloppe=enveloppe)
-        enveloppe_projet.save()
-
-        return enveloppe_projet
-
-    @classmethod
-    def _update_enveloppe_projets_from_projet_refused(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        enveloppe_projets = []
-        for enveloppe_projet in projet.enveloppeprojet_set.all():
-            if enveloppe_projet.status != ProjetStatus.REFUSED:
-                enveloppe = projet.root_enveloppe(
-                    enveloppe_projet.dotation, projet.dossier_ds.annee_de_traitement
-                )
-                enveloppe_projet.refuse(enveloppe=enveloppe)
-                enveloppe_projet.save()
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    @classmethod
-    def _update_enveloppe_projets_from_projet_sans_suite(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        enveloppe_projets = []
-        for enveloppe_projet in projet.enveloppeprojet_set.all():
-            if enveloppe_projet.status not in [
-                ProjetStatus.DISMISSED,
-                ProjetStatus.REFUSED,
-            ]:
-                enveloppe = projet.root_enveloppe(
-                    enveloppe_projet.dotation, projet.dossier_ds.annee_de_traitement
-                )
-                enveloppe_projet.dismiss(enveloppe=enveloppe)
-                enveloppe_projet.save()
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    @classmethod
-    def _update_enveloppe_projets_from_projet_back_to_instruction(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        projet_dps = projet.enveloppeprojet_set
-
-        if projet_dps.filter(status=ProjetStatus.ACCEPTED).count() == 1:
-            if (
-                projet_dps.filter(
-                    status__in=[ProjetStatus.DISMISSED, ProjetStatus.REFUSED]
-                ).count()
-                == 1
-            ):
-                return cls._update_enveloppe_projets_with_one_accepted_and_one_dismissed_or_refused(
-                    projet
-                )
-
-        enveloppe_projets = []
-        for enveloppe_projet in projet_dps.all():
-            if cls._is_programmation_date_after_passage_en_instruction(
-                enveloppe_projet
-            ):
-                enveloppe_projets.append(enveloppe_projet)
-                continue
-
-            if enveloppe_projet.status != ProjetStatus.PROCESSING:
-                enveloppe_projet.set_back_status_to_processing_without_ds()
-                enveloppe_projet.save()
-
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    @classmethod
-    def _update_enveloppe_projets_with_one_accepted_and_one_dismissed_or_refused(
-        cls, projet: Projet
-    ) -> list[EnveloppeProjet]:
-        enveloppe_projets = []
-        for enveloppe_projet in projet.enveloppeprojet_set.all():
-            if enveloppe_projet.status == ProjetStatus.ACCEPTED:
-                if cls._is_programmation_date_after_passage_en_instruction(
-                    enveloppe_projet
-                ):
-                    continue
-                enveloppe_projet.set_back_status_to_processing_without_ds()
-                enveloppe_projet.save()
-            enveloppe_projets.append(enveloppe_projet)
-        return enveloppe_projets
-
-    ## -------------------------- Utils --------------------------
-
-    @classmethod
-    def _update_accepted_enveloppe_projets_montant_from_dn(cls, projet: Projet) -> None:
-        for enveloppe_projet in projet.enveloppeprojet_set.filter(
-            status=ProjetStatus.ACCEPTED
+        if not existing or (
+            dossier.ds_state == Dossier.State.EN_CONSTRUCTION
+            and not projet.dotations_updated_in_app
         ):
-            # Assiette is already updated (cf cls._update_assiette_from_dossier(projet) called in cls._update_enveloppe_projets_from_projet)
-            # regardless of the projet/dossier statuses
-            new_montant = projet.dossier_ds.annotations_for(
-                enveloppe_projet.dotation
-            ).montant
-            if (
-                new_montant is not None
-                and enveloppe_projet.is_programmee
-                and new_montant != enveloppe_projet.montant
-            ):
-                enveloppe_projet.accept_without_ds_update(
-                    montant=new_montant,
-                    enveloppe=enveloppe_projet.enveloppe,
-                )
-                enveloppe_projet.save()
+            return set(dossier.dotations_demande)
+        return existing
 
     @classmethod
-    def _update_assiette_from_dossier(cls, projet: Projet):
-        for enveloppe_projet in projet.enveloppeprojet_set.all():
-            assiette = projet.dossier_ds.annotations_for(
-                enveloppe_projet.dotation
-            ).assiette
-            if assiette is None:
+    def _remove_dotation(cls, enveloppe_projet: EnveloppeProjet) -> None:
+        ProjetAction.objects.create(
+            projet=enveloppe_projet.projet,
+            action_type=ProjetAction.TYPE_DOTATION_REMOVED,
+            actor=None,
+            source=ProjetAction.SOURCE_DN,
+            dotation=enveloppe_projet.dotation,
+        )
+        enveloppe_projet.delete()
+
+    ## -------------------------- Status --------------------------
+
+    @classmethod
+    def _apply_dossier_state(
+        cls,
+        projet: Projet,
+        enveloppe_projets: list[EnveloppeProjet],
+        dotations: set[POSSIBLE_DOTATIONS],
+        is_initialisation: bool,  # TODO investigate if we still need this exception.
+    ) -> None:
+        dossier = projet.dossier_ds
+        if dossier.ds_state == Dossier.State.ACCEPTE:
+            cls._apply_accepted_dossier(
+                dossier, enveloppe_projets, dotations, is_initialisation
+            )
+
+        elif dossier.ds_state == Dossier.State.REFUSE:
+            cls._apply_refused_dossier(enveloppe_projets)
+
+        elif dossier.ds_state == Dossier.State.SANS_SUITE:
+            cls._apply_sans_suite_dossier(enveloppe_projets)
+
+        elif dossier.ds_state in [
+            Dossier.State.EN_CONSTRUCTION,
+            Dossier.State.EN_INSTRUCTION,
+        ]:
+            cls._apply_undecided_dossier(dossier, enveloppe_projets)
+
+        else:
+            raise ValueError(f"Invalid dossier status: {dossier.ds_state}")
+
+    @classmethod
+    def _apply_accepted_dossier(
+        cls,
+        dossier: Dossier,
+        enveloppe_projets: list[EnveloppeProjet],
+        dotations: set[POSSIBLE_DOTATIONS],
+        is_initialisation: bool,
+    ) -> None:
+        # An accepted dossier with no annotated dotation says nothing new about the
+        # ones already known, so only the initial import falls back on the demande.
+        if not (dossier.dotations_annotees or is_initialisation):
+            return
+        for enveloppe_projet in enveloppe_projets:
+            if enveloppe_projet.dotation in dotations:
+                enveloppe_projet.accept_from_dn()
+
+    @classmethod
+    def _apply_refused_dossier(cls, enveloppe_projets: list[EnveloppeProjet]) -> None:
+        cls._close_enveloppe_projets(
+            enveloppe_projets,
+            EnveloppeProjet.refuse,
+            unchanged_statuses=[ProjetStatus.REFUSED],
+        )
+
+    @classmethod
+    def _apply_sans_suite_dossier(
+        cls, enveloppe_projets: list[EnveloppeProjet]
+    ) -> None:
+        # A dotation already refused stays refused: a sans suite on the dossier does
+        # not soften an individual refusal.
+        cls._close_enveloppe_projets(
+            enveloppe_projets,
+            EnveloppeProjet.dismiss,
+            unchanged_statuses=ProjetStatus.NEGATIVE,
+        )
+
+    @classmethod
+    def _apply_undecided_dossier(
+        cls, dossier: Dossier, enveloppe_projets: list[EnveloppeProjet]
+    ) -> None:
+        for enveloppe_projet in enveloppe_projets:
+            if enveloppe_projet.status == ProjetStatus.ACCEPTED:
+                enveloppe_projet.update_montant_from_dn()
+        if dossier.is_retour_en_instruction:
+            cls._reopen_after_passage_en_instruction(enveloppe_projets)
+
+    @classmethod
+    def _close_enveloppe_projets(
+        cls,
+        enveloppe_projets: list[EnveloppeProjet],
+        transition,
+        unchanged_statuses: list[str],
+    ) -> None:
+        for enveloppe_projet in enveloppe_projets:
+            if enveloppe_projet.status in unchanged_statuses:
                 continue
+            enveloppe_projet.close_from_dn(transition)
 
-            if enveloppe_projet.assiette != assiette:
-                ProjetAction.objects.create(
-                    projet=projet,
-                    action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
-                    actor=None,
-                    source=ProjetAction.SOURCE_DN,
-                    dotation=enveloppe_projet.dotation,
-                    euro_field_value=assiette,
-                )
+    @classmethod
+    def _reopen_after_passage_en_instruction(
+        cls, enveloppe_projets: list[EnveloppeProjet]
+    ) -> None:
+        statuses = [enveloppe_projet.status for enveloppe_projet in enveloppe_projets]
+        one_accepted_and_one_refused_or_dismissed = (
+            statuses.count(ProjetStatus.ACCEPTED) == 1
+            and sum(status in ProjetStatus.NEGATIVE for status in statuses) == 1
+        )
+        reopened_statuses = (
+            [ProjetStatus.ACCEPTED]
+            if one_accepted_and_one_refused_or_dismissed
+            else ProjetStatus.FINAL
+        )
 
-            enveloppe_projet.assiette = assiette
+        for enveloppe_projet in enveloppe_projets:
+            if enveloppe_projet.status not in reopened_statuses:
+                continue
+            if enveloppe_projet.is_programmee_after_passage_en_instruction:
+                continue
+            enveloppe_projet.set_back_status_to_processing_without_ds()
             enveloppe_projet.save()
-
-    @classmethod
-    def _log_missing_montant(cls, dossier: Dossier, dotation: POSSIBLE_DOTATIONS):
-        logger.warning(
-            "Montant is missing in dossier annotations",
-            extra={
-                "dossier_ds_number": dossier.ds_number,
-                "dotation": dotation,
-            },
-        )
-
-    @classmethod
-    def _log_missing_annotations_dotation(cls, projet: Projet, message: str):
-        logger.warning(
-            message,
-            extra={
-                "dossier_ds_number": projet.dossier_ds.ds_number,
-                "projet": projet.pk,
-                "value": projet.dossier_ds.annotations_dotation,
-                "field": "annotations_dotation",
-            },
-        )
-
-    @classmethod
-    def _is_programmation_date_after_passage_en_instruction(
-        cls, enveloppe_projet: EnveloppeProjet
-    ):
-        return (
-            enveloppe_projet.is_programmee
-            and enveloppe_projet.date_programmation
-            > enveloppe_projet.projet.dossier_ds.ds_date_passage_en_instruction
-        )
-
-    @classmethod
-    def _should_dotations_be_updated_from_dn_construction_dossier(
-        cls, projet: Projet
-    ) -> bool:
-        if projet.dotations_updated_in_app:
-            # Once dotations have been updated in Turgot, we don't update dotations from DN
-            return False
-
-        if projet.dossier_ds.ds_state != Dossier.State.EN_CONSTRUCTION:
-            # Dotations can only be updated for in construction dossiers
-            return False
-
-        # get the elements that are in one set but not in the other
-        symetrical_difference = set(projet.dotations) ^ set(
-            projet.dossier_ds.dotations_demande
-        )
-        return bool(symetrical_difference)
-
-    @classmethod
-    def _remove_or_add_dotations_from_dossier_ds(cls, projet: Projet):
-        dotation_to_delete = set(projet.dotations) - set(
-            projet.dossier_ds.dotations_demande
-        )
-        for dotation in dotation_to_delete:
-            ProjetAction.objects.create(
-                projet=projet,
-                action_type=ProjetAction.TYPE_DOTATION_REMOVED,
-                actor=None,
-                source=ProjetAction.SOURCE_DN,
-                dotation=dotation,
-            )
-        projet.enveloppeprojet_set.filter(
-            enveloppe__dotation__in=dotation_to_delete
-        ).delete()
-
-        # Refresh projet to get the latest dotations
-        projet.refresh_from_db()
-
-        dotations_to_add = set(projet.dossier_ds.dotations_demande) - set(
-            projet.dotations
-        )
-        for dotation in dotations_to_add:
-            EnveloppeProjet.objects.create_for(
-                projet,
-                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
-            )
-            ProjetAction.objects.create(
-                projet=projet,
-                action_type=ProjetAction.TYPE_DOTATION_ADDED,
-                actor=None,
-                source=ProjetAction.SOURCE_DN,
-                dotation=dotation,
-            )
-
-        # Idem here
-        projet.refresh_from_db()
-
-    @classmethod
-    def _is_dossier_back_to_instruction(cls, projet: Projet) -> bool:
-        date_traitement = projet.dossier_ds.ds_date_traitement
-        date_passage_en_instruction = projet.dossier_ds.ds_date_passage_en_instruction
-        if date_traitement is None or date_passage_en_instruction is None:
-            return False
-
-        return date_traitement < date_passage_en_instruction

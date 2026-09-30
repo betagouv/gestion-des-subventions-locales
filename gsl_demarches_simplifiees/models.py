@@ -953,6 +953,15 @@ class Dossier(BaseModel):
         return self.ds_date_depot.year
 
     @property
+    def is_retour_en_instruction(self) -> bool:
+        if (
+            self.ds_date_traitement is None
+            or self.ds_date_passage_en_instruction is None
+        ):
+            return False
+        return self.ds_date_traitement < self.ds_date_passage_en_instruction
+
+    @property
     def annee_de_traitement(self) -> int:
         """A treatment coming from DN carries no campagne, so it lands on the year
         of its treatment date, whatever the deposit date says."""

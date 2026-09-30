@@ -1095,7 +1095,7 @@ def test_no_simulation_projet_is_created_without_simulation(
         ),
     ],
 )
-def test_accepted_dotation_is_reopened_only_when_dossier_is_back_to_instruction(
+def test_accepted_dotation_is_reopened_only_when_dossier_is_retour_en_instruction(
     date_traitement, date_passage_en_instruction, expected_back_to_instruction
 ):
     enveloppe_projet = EnveloppeProjetFactory(

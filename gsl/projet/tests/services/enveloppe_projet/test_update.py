@@ -371,7 +371,7 @@ def test_update_accepted_with_empty_annotations_dotation_keeps_enveloppe_projets
     record = caplog.records[0]
     assert (
         record.message
-        == "No dotations found in annotations_dotation for accepted dossier during update"
+        == "No dotations found in annotations_dotation for accepted dossier"
     )
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number

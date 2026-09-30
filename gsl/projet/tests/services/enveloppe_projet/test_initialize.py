@@ -130,7 +130,7 @@ def test_initialize_accepted_projet_with_empty_annotations_dotation_falls_back_t
     record = caplog.records[0]
     assert (
         record.message
-        == "No dotations found in annotations_dotation for accepted dossier during initialisation"
+        == "No dotations found in annotations_dotation for accepted dossier"
     )
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
