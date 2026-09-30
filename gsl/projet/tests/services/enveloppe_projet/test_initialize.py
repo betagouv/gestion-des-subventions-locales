@@ -22,12 +22,12 @@ from ....constants import (
     ProjetStatus,
 )
 from ....models import EnveloppeProjet
-from ....services.enveloppe_projet_services import (
-    EnveloppeProjetService as dps,
-)
+from ....services.enveloppe_projet_services import EnveloppeProjetService
 from ...factories import (
     ProjetFactory,
 )
+
+synchroniser = EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet
 
 
 @pytest.fixture
@@ -53,10 +53,9 @@ def perimetres():
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_enveloppe_projets_from_projet_accepted_with_annotations_dotation(
+def test_initialize_accepted_projet_with_annotations_dotation(
     perimetres,
 ):
-    """Test _initialize_enveloppe_projets_from_projet_accepted when annotations_dotation is set"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -72,9 +71,8 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_annotations_dota
         dossier_ds__perimetre=arr_dijon,
     )
 
-    enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_accepted(projet)
+    synchroniser(projet)
 
-    assert len(enveloppe_projets) == 2
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
@@ -94,17 +92,15 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_annotations_dota
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_enveloppe_projets_from_projet_accepted_with_empty_annotations_dotation_falls_back_to_demande_dispositif_sollicite(
+def test_initialize_accepted_projet_with_empty_annotations_dotation_falls_back_to_demande_dispositif_sollicite(
     perimetres, caplog
 ):
-    """Test _initialize_enveloppe_projets_from_projet_accepted when annotations_dotation is empty, falls back to demande_dispositif_sollicite"""
-
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
 
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.State.ACCEPTE,
-        dossier_ds__annotations_dotation="",  # Empty
+        dossier_ds__annotations_dotation="",
         dossier_ds__demande_dispositif_sollicite="DETR",
         dossier_ds__annotations_assiette_detr=None,
         dossier_ds__annotations_montant_accorde_detr=None,
@@ -115,13 +111,11 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_empty_annotation
     # --
 
     with caplog.at_level(logging.WARNING):
-        enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_accepted(
-            projet
-        )
+        synchroniser(projet)
 
     # --
 
-    assert len(enveloppe_projets) == 1
+    assert EnveloppeProjet.objects.filter(projet=projet).count() == 1
     detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.ACCEPTED
     assert detr_dp.assiette is None, "Assiette should be None if assiette is missing"
@@ -153,8 +147,7 @@ def test_initialize_enveloppe_projets_from_projet_accepted_with_empty_annotation
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
-    """Test _initialize_enveloppe_projets_from_projet_refused"""
+def test_initialize_refused_projet(perimetres):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -168,9 +161,8 @@ def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
         dossier_ds__perimetre=arr_dijon,
     )
 
-    enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_refused(projet)
+    synchroniser(projet)
 
-    assert len(enveloppe_projets) == 2
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
@@ -192,8 +184,7 @@ def test_initialize_enveloppe_projets_from_projet_refused(perimetres):
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
-    """Test _initialize_enveloppe_projets_from_projet_sans_suite"""
+def test_initialize_sans_suite_projet(perimetres):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -207,9 +198,8 @@ def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
         dossier_ds__perimetre=arr_dijon,
     )
 
-    enveloppe_projets = dps._initialize_enveloppe_projets_from_projet_sans_suite(projet)
+    synchroniser(projet)
 
-    assert len(enveloppe_projets) == 2
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
@@ -226,8 +216,7 @@ def test_initialize_enveloppe_projets_from_projet_sans_suite(perimetres):
 
 
 @pytest.mark.django_db
-def test_initialize_enveloppe_projets_from_projet_en_construction_or_instruction():
-    """Test _initialize_enveloppe_projets_from_projet_en_construction_or_instruction"""
+def test_initialize_en_construction_projet():
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="DETR et DSIL",
@@ -235,13 +224,8 @@ def test_initialize_enveloppe_projets_from_projet_en_construction_or_instruction
         dossier_ds__annotations_assiette_dsil=20_000,
     )
 
-    enveloppe_projets = (
-        dps._initialize_enveloppe_projets_from_projet_en_construction_or_instruction(
-            projet
-        )
-    )
+    synchroniser(projet)
 
-    assert len(enveloppe_projets) == 2
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
     detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
