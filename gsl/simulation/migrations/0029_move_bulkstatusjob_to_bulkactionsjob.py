@@ -21,7 +21,7 @@ def move_bulk_status_jobs(apps, schema_editor):
             },
             status=job.status,
             processed=job.processed,
-            errors=[
+            report=[
                 {
                     "object_id": error.get("simulation_projet_id"),
                     "label": error.get("label"),
