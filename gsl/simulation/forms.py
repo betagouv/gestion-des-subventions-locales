@@ -478,13 +478,9 @@ class BulkStatusJobForm(forms.Form):
                 )
         if (
             simulation
-            and BulkActionsJob.objects.filter(
-                lock_key=self._lock_key(simulation),
-                status__in=(
-                    BulkActionsJob.STATUS_PENDING,
-                    BulkActionsJob.STATUS_RUNNING,
-                ),
-            ).exists()
+            and BulkActionsJob.objects.unfinished()
+            .filter(action=BULK_STATUS_ACTION, lock_key=self._lock_key(simulation))
+            .exists()
         ):
             raise ValidationError(
                 "Un traitement est déjà en cours sur cette simulation.",

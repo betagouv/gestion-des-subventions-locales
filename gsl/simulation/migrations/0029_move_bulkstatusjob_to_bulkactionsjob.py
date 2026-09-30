@@ -44,7 +44,7 @@ def remove_moved_bulk_status_jobs(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("gsl_core", "0021_bulkactionsjob_lock_key"),
+        ("gsl_core", "0021_rename_errors_bulkactionsjob_report_and_more"),
         (
             "gsl_simulation",
             "0028_rename_dotation_projet_simulationprojet_enveloppe_projet",

@@ -153,7 +153,7 @@ def test_start_view_refuses_duplicate_job_for_same_simulation(
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp.id],
-        status=BulkActionsJob.STATUS_RUNNING,
+        status=BulkActionsJob.Status.RUNNING,
     )
 
     with mock.patch(
@@ -189,7 +189,7 @@ def test_db_constraint_rejects_two_active_jobs_for_same_simulation(
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[],
-        status=BulkActionsJob.STATUS_RUNNING,
+        status=BulkActionsJob.Status.RUNNING,
     )
     with pytest.raises(IntegrityError):
         BulkStatusJobFactory(
@@ -197,7 +197,7 @@ def test_db_constraint_rejects_two_active_jobs_for_same_simulation(
             created_by=collegue,
             target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
             simulation_projet_ids=[],
-            status=BulkActionsJob.STATUS_PENDING,
+            status=BulkActionsJob.Status.PENDING,
         )
 
 
@@ -242,7 +242,7 @@ def test_start_view_allows_new_job_once_previous_is_done(
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp.id],
-        status=BulkActionsJob.STATUS_DONE,
+        status=BulkActionsJob.Status.DONE,
         processed=1,
     )
 
@@ -272,7 +272,7 @@ def test_progress_view_returns_running_fragment_with_counts(
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[10, 20, 30, 40, 50],
-        status=BulkActionsJob.STATUS_RUNNING,
+        status=BulkActionsJob.Status.RUNNING,
         processed=2,
     )
     response = client_with_user_logged.get(
@@ -293,9 +293,9 @@ def test_progress_view_returns_done_fragment_with_errors(
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[10, 20, 30],
-        status=BulkActionsJob.STATUS_DONE,
+        status=BulkActionsJob.Status.DONE,
         processed=3,
-        errors=[
+        report=[
             {
                 "object_id": 123,
                 "label": "Projet test",
@@ -342,7 +342,7 @@ def test_progress_view_running_does_not_render_row_oob(
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp.id],
-        status=BulkActionsJob.STATUS_RUNNING,
+        status=BulkActionsJob.Status.RUNNING,
         processed=0,
     )
 
@@ -367,7 +367,7 @@ def test_progress_view_done_renders_row_oob_for_each_projet(
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         simulation_projet_ids=[sp1.id, sp2.id],
-        status=BulkActionsJob.STATUS_DONE,
+        status=BulkActionsJob.Status.DONE,
         processed=2,
     )
 

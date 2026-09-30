@@ -412,6 +412,13 @@ class Collegue(AbstractUser):
         return self.username
 
 
+class BulkActionsJobQuerySet(models.QuerySet):
+    def unfinished(self):
+        return self.filter(
+            status__in=(BulkActionsJob.Status.PENDING, BulkActionsJob.Status.RUNNING)
+        )
+
+
 class BulkActionsJob(BaseModel):
     """
     Tracks an async bulk action run item by item by a Celery task. Generic: the
@@ -420,14 +427,10 @@ class BulkActionsJob(BaseModel):
     browser polls a view that reads it.
     """
 
-    STATUS_PENDING = "pending"
-    STATUS_RUNNING = "running"
-    STATUS_DONE = "done"
-    STATUS_CHOICES = (
-        (STATUS_PENDING, "En attente"),
-        (STATUS_RUNNING, "En cours"),
-        (STATUS_DONE, "Terminé"),
-    )
+    class Status(models.TextChoices):
+        PENDING = "pending", "En attente"
+        RUNNING = "running", "En cours"
+        DONE = "done", "Terminé"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Set by the creator, e.g. "bulk_notification"
@@ -436,13 +439,15 @@ class BulkActionsJob(BaseModel):
     object_ids = models.JSONField(default=list)
     params = models.JSONField(default=dict)
     status = models.CharField(
-        max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING
+        max_length=16, choices=Status.choices, default=Status.PENDING
     )
     processed = models.PositiveIntegerField(default=0)
     # [{"object_id": ..., "label": str, "message": str}, ...]
-    errors = models.JSONField(default=list)
-    # Optional: at most one active job per lock_key (e.g. "simulation:<id>")
+    report = models.JSONField(default=list)
+    # Optional: at most one active job per (action, lock_key), e.g. "simulation:<id>"
     lock_key = models.CharField(max_length=128, blank=True, default="")
+
+    objects = BulkActionsJobQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Action en masse"
@@ -450,10 +455,10 @@ class BulkActionsJob(BaseModel):
         ordering = ("-created_at",)
         constraints = (
             UniqueConstraint(
-                fields=("lock_key",),
+                fields=("action", "lock_key"),
                 condition=models.Q(status__in=("pending", "running"))
                 & ~models.Q(lock_key=""),
-                name="uq_bulkactionsjob_active_per_lock_key",
+                name="uq_bulkactionsjob_active_per_action_and_lock_key",
             ),
         )
 
@@ -462,29 +467,32 @@ class BulkActionsJob(BaseModel):
         return len(self.object_ids)
 
     @property
-    def is_running(self) -> bool:
-        return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
+    def is_unfinished(self) -> bool:
+        return self.status in (self.Status.PENDING, self.Status.RUNNING)
 
     @property
     def succeeded_count(self) -> int:
-        return self.processed - len(self.errors)
+        return self.processed - len(self.report)
 
+    # F() makes the increment atomic in DB: a stale instance of the same job
+    # would otherwise overwrite `processed` and lose increments. The refresh is
+    # then needed to replace the F() expression with the actual value.
     def record_success(self) -> None:
-        type(self).objects.filter(pk=self.pk).update(
+        BulkActionsJob.objects.filter(pk=self.pk).update(
             processed=F("processed") + 1, updated_at=timezone.now()
         )
         self.refresh_from_db(fields=["processed", "updated_at"])
 
     def record_error(self, object_id, label: str, message: str) -> None:
-        self.errors.append({"object_id": object_id, "label": label, "message": message})
-        type(self).objects.filter(pk=self.pk).update(
-            processed=F("processed") + 1, errors=self.errors, updated_at=timezone.now()
+        self.report.append({"object_id": object_id, "label": label, "message": message})
+        BulkActionsJob.objects.filter(pk=self.pk).update(
+            processed=F("processed") + 1, report=self.report, updated_at=timezone.now()
         )
-        self.refresh_from_db(fields=["processed", "errors", "updated_at"])
+        self.refresh_from_db(fields=["processed", "report", "updated_at"])
 
     def errors_summary(self) -> dict[str, list[str]]:
         """Error labels grouped by message, in order of first occurrence."""
         summary: dict[str, list[str]] = {}
-        for error in self.errors:
+        for error in self.report:
             summary.setdefault(error["message"], []).append(error["label"])
         return summary

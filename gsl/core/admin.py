@@ -803,7 +803,7 @@ class BulkActionsJobAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
         "processed",
-        "errors",
+        "report",
         "total_display",
         "error_count",
     )
@@ -818,7 +818,7 @@ class BulkActionsJobAdmin(admin.ModelAdmin):
         "processed",
         "total_display",
         "error_count",
-        "errors",
+        "report",
         "created_at",
         "updated_at",
     )
@@ -835,7 +835,7 @@ class BulkActionsJobAdmin(admin.ModelAdmin):
     total_display.short_description = "Total"
 
     def error_count(self, obj):
-        return len(obj.errors or [])
+        return len(obj.report or [])
 
     error_count.short_description = "Nb d’erreurs"
 

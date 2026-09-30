@@ -20,7 +20,7 @@ def run_bulk_status_job(job_id: str) -> None:
         pk=job_id, action=BULK_STATUS_ACTION
     )
     try:
-        job.status = BulkActionsJob.STATUS_RUNNING
+        job.status = BulkActionsJob.Status.RUNNING
         job.save(update_fields=["status", "updated_at"])
 
         simulation_projets = (
@@ -45,7 +45,7 @@ def run_bulk_status_job(job_id: str) -> None:
             else:
                 job.record_success()
 
-        job.status = BulkActionsJob.STATUS_DONE
+        job.status = BulkActionsJob.Status.DONE
         job.save(update_fields=["status", "updated_at"])
     finally:
         # Last-resort safety net: if an unexpected exception propagated out of
@@ -54,17 +54,17 @@ def run_bulk_status_job(job_id: str) -> None:
         # Sentry see the traceback. Per-row expected failures are caught
         # narrowly in _process_one and recorded as row-level errors instead.
         current = (
-            BulkActionsJob.objects.filter(pk=job.pk).only("status", "errors").first()
+            BulkActionsJob.objects.filter(pk=job.pk).only("status", "report").first()
         )
-        if current is not None and current.status != BulkActionsJob.STATUS_DONE:
+        if current is not None and current.status != BulkActionsJob.Status.DONE:
             crash_error = {
                 "object_id": None,
                 "label": "Traitement",
                 "message": "Erreur inattendue : le traitement a été interrompu.",
             }
-            current.errors = [*current.errors, crash_error]
-            current.status = BulkActionsJob.STATUS_DONE
-            current.save(update_fields=["status", "errors", "updated_at"])
+            current.report = [*current.report, crash_error]
+            current.status = BulkActionsJob.Status.DONE
+            current.save(update_fields=["status", "report", "updated_at"])
 
 
 def _process_one(

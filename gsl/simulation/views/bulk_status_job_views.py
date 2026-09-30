@@ -101,7 +101,7 @@ class BulkStatusJobStartView(FormView):
                 "simulation_projets_to_refresh": [],
             },
         )
-        if not job.is_running:
+        if not job.is_unfinished:
             response = trigger_client_event(response, "bulk-status-updated")
         return response
 
@@ -146,12 +146,12 @@ class BulkStatusJobProgressView(DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         response = super().render_to_response(context, **response_kwargs)
-        if not self.object.is_running:
+        if not self.object.is_unfinished:
             response = trigger_client_event(response, "bulk-status-updated")
         return response
 
     def _get_simulation_projets_to_refresh(self):
-        if self.object.status != BulkActionsJob.STATUS_DONE:
+        if self.object.status != BulkActionsJob.Status.DONE:
             return []
         return list(
             SimulationProjet.objects.active()
