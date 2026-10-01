@@ -84,6 +84,13 @@ def backfill_enveloppe(apps, schema_editor):
         EnveloppeProjet.objects.filter(id__in=ids).update(enveloppe=enveloppe)
 
 
+def flush_deferred_checks(apps, schema_editor):
+    """The backfill leaves deferred FK checks pending, which blocks the ALTER TABLE
+    rebuilding that same FK."""
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+
 def clear_montant_on_negative_decisions(apps, schema_editor):
     EnveloppeProjet = apps.get_model("gsl_projet", "EnveloppeProjet")
     EnveloppeProjet.objects.filter(status__in=("refused", "dismissed")).update(
@@ -107,6 +114,7 @@ class Migration(migrations.Migration):
             name="un_seul_enveloppe_projet_courant_par_dotation",
         ),
         migrations.RunPython(backfill_enveloppe, migrations.RunPython.noop),
+        migrations.RunPython(flush_deferred_checks, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="enveloppeprojet",
             name="enveloppe",
