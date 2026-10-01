@@ -173,7 +173,7 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
     @cached_property
     def enveloppe_projet(self) -> EnveloppeProjet:
         _, dotation = self.cleaned_data["document"].split("-")
-        return EnveloppeProjet.objects.get(projet=self.projet, dotation=dotation)
+        return EnveloppeProjet.objects.for_dotation(dotation).get(projet=self.projet)
 
     @cached_property
     def document_class(self):
@@ -200,7 +200,7 @@ def uploadable_document_choices(projet) -> list[tuple[str, str]]:
     choices = []
     enveloppe_projets = projet.enveloppeprojet_set.filter(
         status__in=ProjetStatus.FINAL
-    ).order_by("dotation")
+    ).order_by("enveloppe__dotation")
     for enveloppe_projet in enveloppe_projets:
         dotation = enveloppe_projet.dotation
         for model in UPLOADED_DOCUMENTS.values():

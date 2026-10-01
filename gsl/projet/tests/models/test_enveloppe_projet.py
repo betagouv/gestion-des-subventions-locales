@@ -32,7 +32,6 @@ from gsl_demarches_simplifiees.models import Dossier
 from ...constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
-    DOTATIONS,
     ProjetStatus,
 )
 from ...models import (
@@ -74,12 +73,43 @@ def test_compute_montant_from_taux():
     assert enveloppe_projet.compute_montant_from_taux(25) == 0
 
 
-@pytest.mark.parametrize(("dotation"), DOTATIONS)
-def test_enveloppe_projet_unicity(dotation):
-    projet = ProjetFactory()
-    EnveloppeProjet(projet=projet, dotation=dotation).save()
+@pytest.mark.parametrize(
+    ("status", "montant", "with_date"),
+    (
+        (ProjetStatus.PROCESSING, None, False),
+        (ProjetStatus.ACCEPTED, Decimal(100), True),
+        (ProjetStatus.REFUSED, None, True),
+        (ProjetStatus.DISMISSED, None, True),
+    ),
+)
+def test_montant_and_date_allowed_by_status(status, montant, with_date):
+    EnveloppeProjetFactory(
+        status=status,
+        montant=montant,
+        date_programmation=timezone.now() if with_date else None,
+    )
+
+
+@pytest.mark.parametrize(
+    ("status", "montant", "with_date"),
+    (
+        (ProjetStatus.PROCESSING, Decimal(100), False),
+        (ProjetStatus.PROCESSING, None, True),
+        (ProjetStatus.ACCEPTED, None, True),
+        (ProjetStatus.ACCEPTED, Decimal(100), False),
+        (ProjetStatus.REFUSED, Decimal(100), True),
+        (ProjetStatus.REFUSED, None, False),
+        (ProjetStatus.DISMISSED, Decimal(100), True),
+        (ProjetStatus.DISMISSED, None, False),
+    ),
+)
+def test_montant_and_date_refused_by_status(status, montant, with_date):
     with pytest.raises(IntegrityError):
-        EnveloppeProjet(projet=projet, dotation=dotation).save()
+        EnveloppeProjetFactory(
+            status=status,
+            montant=montant,
+            date_programmation=timezone.now() if with_date else None,
+        )
 
 
 def test_dsil_enveloppe_projet_must_have_a_detr_avis_commission_null():
@@ -119,8 +149,8 @@ def test_montant_retenu_when_not_programmed():
 
 
 def test_montant_retenu_when_refused():
-    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.REFUSED, montant=0)
-    assert enveloppe_projet.montant_retenu == 0
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.REFUSED)
+    assert enveloppe_projet.montant_retenu is None
 
 
 def test_taux_retenu_when_accepted():
@@ -139,9 +169,9 @@ def test_taux_retenu_when_not_programmed():
 
 def test_taux_retenu_when_refused():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=ProjetStatus.REFUSED, montant=0, assiette=1_000
+        status=ProjetStatus.REFUSED, assiette=1_000
     )
-    assert enveloppe_projet.taux_retenu == 0
+    assert enveloppe_projet.taux_retenu is None
 
 
 @pytest.mark.parametrize(
@@ -320,7 +350,6 @@ def test_accept_enveloppe_projet_replaces_a_previous_programmation():
         status=ProjetStatus.REFUSED,
         dotation=DOTATION_DETR,
         enveloppe=enveloppe,
-        montant=0,
     )
 
     # --
@@ -446,8 +475,8 @@ def test_refusing_a_enveloppe_projet_programmes_it():
     assert enveloppe_projet.status == ProjetStatus.REFUSED
 
     assert enveloppe_projet.enveloppe == enveloppe
-    assert enveloppe_projet.montant == 0
-    assert enveloppe_projet.taux_retenu == 0
+    assert enveloppe_projet.montant is None
+    assert enveloppe_projet.taux_retenu is None
 
 
 def test_refusing_a_projet_updates_all_simulation_projet():
@@ -1044,7 +1073,7 @@ def test_clean_rejects_a_refused_dotation_with_a_montant():
     with pytest.raises(ValidationError) as exc_info:
         enveloppe_projet.clean()
     assert (
-        "Un projet refusé doit avoir un montant nul."
+        "Un projet refusé ou classé sans suite ne doit pas porter de montant."
         in exc_info.value.message_dict["montant"][0]
     )
 
@@ -1059,20 +1088,6 @@ def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
         enveloppe_projet.clean()
     assert (
         "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
-        in exc_info.value.message_dict["enveloppe"][0]
-    )
-
-
-def test_clean_rejects_an_enveloppe_of_another_dotation():
-    enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
-        status=ProjetStatus.ACCEPTED,
-        enveloppe=DsilEnveloppeFactory(),
-    )
-    with pytest.raises(ValidationError) as exc_info:
-        enveloppe_projet.clean()
-    assert (
-        "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
         in exc_info.value.message_dict["enveloppe"][0]
     )
 

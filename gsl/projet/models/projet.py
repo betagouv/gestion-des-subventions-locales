@@ -20,6 +20,7 @@ from gsl.notification.models import (
     GENERATED_DOCUMENTS,
     UPLOADED_DOCUMENTS,
 )
+from gsl.programmation.models import Enveloppe
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
@@ -34,7 +35,6 @@ from .enveloppe_projet import EnveloppeProjet
 from .mixins import ProjetDNActionsMixin
 
 if TYPE_CHECKING:
-    from gsl.programmation.models import Enveloppe
     from gsl_demarches_simplifiees.models import Dossier
 
 
@@ -141,7 +141,7 @@ class ProjetQuerySet(models.QuerySet):
     def included_in_enveloppe(self, enveloppe: "Enveloppe"):
         projet_qs = self.for_perimetre(enveloppe.perimetre)
         projet_qs_with_the_correct_dotation = projet_qs.filter(
-            enveloppeprojet__dotation=enveloppe.dotation
+            enveloppeprojet__enveloppe__dotation=enveloppe.dotation
         )
         projet_qs_submitted_before_the_end_of_the_year = (
             projet_qs_with_the_correct_dotation.filter(
@@ -160,7 +160,7 @@ class ProjetQuerySet(models.QuerySet):
             dotations_count=Count("enveloppeprojet"),
             programmation_count=Count(
                 "enveloppeprojet",
-                filter=Q(enveloppeprojet__enveloppe__isnull=False),
+                filter=Q(enveloppeprojet__status__in=ProjetStatus.FINAL),
             ),
         ).filter(
             dotations_count__gt=0,
@@ -342,6 +342,11 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     def perimetre(self):
         return self.dossier_ds.perimetre
 
+    def root_enveloppe(self, dotation: str) -> Enveloppe:
+        return Enveloppe.objects.root_for(
+            dotation, self.perimetre, self.dossier_ds.annee_de_campagne
+        )
+
     @property
     def status(self):
         if hasattr(self, "_status"):
@@ -354,7 +359,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
-            self.enveloppeprojet_set.filter(dotation=DOTATION_DETR).exists()
+            self.enveloppeprojet_set.for_dotation(DOTATION_DETR).exists()
             and self.dossier_ds.demande_montant is not None
             and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
         )

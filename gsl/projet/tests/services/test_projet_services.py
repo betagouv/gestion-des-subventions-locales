@@ -159,7 +159,7 @@ def test_totals_cost_with_filtered_qs(
 def test_totals_amount_granted():
     EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, montant=10_000)
     EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, montant=20_000)
-    EnveloppeProjetFactory(status=ProjetStatus.REFUSED, montant=0)
+    EnveloppeProjetFactory(status=ProjetStatus.REFUSED)
     EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
 
     assert Projet.objects.all().totals()["total_amount_granted"] == 30_000

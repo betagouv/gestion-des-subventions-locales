@@ -195,12 +195,12 @@ class EnveloppeProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     )
     search_fields = (
         "projet__dossier_ds__ds_number",
-        "dotation",
+        "enveloppe__dotation",
         "projet__id",
     )
     list_filter = (
         "projet__dossier_ds__is_active",
-        "dotation",
+        "enveloppe__dotation",
         "status",
         "enveloppe__annee",
         "enveloppe__perimetre__region__name",

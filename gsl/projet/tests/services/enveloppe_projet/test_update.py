@@ -80,7 +80,7 @@ def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetr
     assert projet.enveloppeprojet_set.count() == 2
 
     # Simulate DN adding DSIL after initial import had only DETR
-    projet.enveloppeprojet_set.filter(dotation=DOTATION_DSIL).delete()
+    projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).delete()
     assert projet.enveloppeprojet_set.count() == 1
 
     dps._update_enveloppe_projets_from_projet_accepted(projet)
@@ -204,13 +204,13 @@ def test_update_enveloppe_projets_from_projet_accepted_creates_new_enveloppe_pro
     assert len(enveloppe_projets) == 2
     assert projet.enveloppeprojet_set.count() == 2
 
-    detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.ACCEPTED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu == 5_000
     assert detr_dp.taux_retenu == 50
 
-    dsil_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DSIL)
+    dsil_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DSIL).get(projet=projet)
     assert dsil_dp.status == ProjetStatus.ACCEPTED
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.montant_retenu == 15_000
@@ -244,10 +244,9 @@ def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_i
     dps._initialize_enveloppe_projets_from_projet(projet)
     assert projet.enveloppeprojet_set.count() == 2
 
-    projet.enveloppeprojet_set.filter(dotation=DOTATION_DSIL).update(
+    projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).update(
         status=dotation_status,
         enveloppe=dsil_enveloppe,
-        montant=0,
         date_programmation=timezone.now(),
     )
 
@@ -262,12 +261,16 @@ def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_i
     # Assert
     assert len(enveloppe_projets) == 2
     assert projet.enveloppeprojet_set.count() == 2
-    assert EnveloppeProjet.objects.filter(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
-    ).exists()
-    assert EnveloppeProjet.objects.filter(
-        projet=projet, dotation=DOTATION_DSIL, status=dotation_status
-    ).exists()
+    assert (
+        EnveloppeProjet.objects.for_dotation(DOTATION_DETR)
+        .filter(projet=projet, status=ProjetStatus.ACCEPTED)
+        .exists()
+    )
+    assert (
+        EnveloppeProjet.objects.for_dotation(DOTATION_DSIL)
+        .filter(projet=projet, status=dotation_status)
+        .exists()
+    )
 
 
 @pytest.mark.django_db
@@ -298,11 +301,11 @@ def test_update_enveloppe_projets_from_projet_accepted_removes_enveloppe_projets
     assert projet.enveloppeprojet_set.count() == 2
 
     if dotation_status == ProjetStatus.PROCESSING:
-        projet.enveloppeprojet_set.filter(dotation=DOTATION_DSIL).update(
+        projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).update(
             status=dotation_status
         )
     else:
-        projet.enveloppeprojet_set.filter(dotation=DOTATION_DSIL).update(
+        projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).update(
             status=dotation_status,
             enveloppe=dsil_enveloppe,
             montant=0,
@@ -320,12 +323,16 @@ def test_update_enveloppe_projets_from_projet_accepted_removes_enveloppe_projets
     # Assert
     assert len(enveloppe_projets) == 1
     assert projet.enveloppeprojet_set.count() == 1
-    assert EnveloppeProjet.objects.filter(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
-    ).exists()
-    assert not EnveloppeProjet.objects.filter(
-        projet=projet, dotation=DOTATION_DSIL
-    ).exists()
+    assert (
+        EnveloppeProjet.objects.for_dotation(DOTATION_DETR)
+        .filter(projet=projet, status=ProjetStatus.ACCEPTED)
+        .exists()
+    )
+    assert (
+        not EnveloppeProjet.objects.for_dotation(DOTATION_DSIL)
+        .filter(projet=projet)
+        .exists()
+    )
 
 
 @pytest.mark.django_db
@@ -361,7 +368,7 @@ def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_do
     # --
 
     assert len(enveloppe_projets) == 1
-    detr_dp = EnveloppeProjet.objects.get(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.PROCESSING
 
     assert len(caplog.records) == 1
@@ -498,6 +505,12 @@ def test_update_enveloppe_projets_from_projet_sans_suite_does_not_update_already
     assert dsil_dp.status == ProjetStatus.REFUSED
 
 
+def date_programmation_avant_instruction(status):
+    if status == ProjetStatus.PROCESSING:
+        return None
+    return timezone.datetime(2025, 1, 10, tzinfo=UTC)
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "status_1, status_2",
@@ -529,13 +542,13 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction(
         projet=projet,
         dotation=DOTATION_DETR,
         status=status_1,
-        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
+        date_programmation=date_programmation_avant_instruction(status_1),
     )
     dsil_dp = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DSIL,
         status=status_2,
-        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
+        date_programmation=date_programmation_avant_instruction(status_2),
     )
 
     enveloppe_projets = dps._update_enveloppe_projets_from_projet(projet)

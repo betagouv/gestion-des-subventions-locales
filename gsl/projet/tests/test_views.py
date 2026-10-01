@@ -242,8 +242,8 @@ def test_filter_by_dotation_detr_and_dsil(
 
     assert qs.count() == 3 + 2
     assert all(p.enveloppeprojet_set.count() == 1 for p in qs)
-    assert qs.filter(enveloppeprojet__dotation=DOTATION_DETR).count() == 3
-    assert qs.filter(enveloppeprojet__dotation=DOTATION_DSIL).count() == 2
+    assert qs.filter(enveloppeprojet__enveloppe__dotation=DOTATION_DETR).count() == 3
+    assert qs.filter(enveloppeprojet__enveloppe__dotation=DOTATION_DSIL).count() == 2
 
 
 def test_filter_by_dotation_only_detr_dsil(

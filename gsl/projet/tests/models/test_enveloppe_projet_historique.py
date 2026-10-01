@@ -17,12 +17,12 @@ def projet():
 
 @pytest.fixture
 def non_courant(projet):
-    enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+    return EnveloppeProjetFactory(
+        projet=projet,
+        dotation=DOTATION_DETR,
+        status=ProjetStatus.PROCESSING,
+        is_courant=False,
     )
-    EnveloppeProjet.objects.filter(pk=enveloppe_projet.pk).update(is_courant=False)
-    enveloppe_projet.refresh_from_db()
-    return enveloppe_projet
 
 
 def test_objects_exclut_les_non_courants(non_courant):
@@ -45,20 +45,24 @@ def test_acces_par_cle_etrangere_atteint_un_non_courant(non_courant):
     assert simulation_projet.enveloppe_projet == non_courant
 
 
-def test_deux_courants_de_meme_dotation_sont_refuses(projet):
-    EnveloppeProjetFactory(
+def test_deux_courants_sur_la_meme_enveloppe_sont_refuses(projet):
+    courant = EnveloppeProjetFactory(
         projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
     )
 
     with pytest.raises(IntegrityError), transaction.atomic():
         EnveloppeProjet.objects.create(
-            projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+            projet=projet,
+            status=ProjetStatus.PROCESSING,
+            enveloppe=courant.enveloppe,
         )
 
 
 def test_un_non_courant_ne_bloque_pas_un_nouveau_courant(projet, non_courant):
     nouveau = EnveloppeProjet.objects.create(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=non_courant.enveloppe,
     )
 
     assert list(projet.enveloppeprojet_set.all()) == [nouveau]

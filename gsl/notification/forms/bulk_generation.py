@@ -102,7 +102,7 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
             EnveloppeProjet.objects.programmees()
             .active()
             .visible_to_user(self.user)
-            .filter(dotation=self.dotation)
+            .for_dotation(self.dotation)
             .select_related("projet")
         )
 

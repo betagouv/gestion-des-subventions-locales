@@ -120,8 +120,12 @@ def filter_dotation(queryset, _name, values):
     query = Q()
 
     queryset = queryset.annotate(
-        detr_count=Count("enveloppeprojet", filter=Q(enveloppeprojet__dotation="DETR")),
-        dsil_count=Count("enveloppeprojet", filter=Q(enveloppeprojet__dotation="DSIL")),
+        detr_count=Count(
+            "enveloppeprojet", filter=Q(enveloppeprojet__enveloppe__dotation="DETR")
+        ),
+        dsil_count=Count(
+            "enveloppeprojet", filter=Q(enveloppeprojet__enveloppe__dotation="DSIL")
+        ),
     )
 
     if DOTATION_DETR in values:

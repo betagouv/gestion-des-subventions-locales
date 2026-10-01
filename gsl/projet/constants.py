@@ -13,6 +13,8 @@ DOTATION_CHOICES = ((DOTATION_DETR, DOTATION_DETR), (DOTATION_DSIL, DOTATION_DSI
 # TYPE
 POSSIBLE_DOTATIONS = Literal["DETR", "DSIL"]
 
+PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE = 10
+
 
 class ProjetStatus(models.TextChoices):
     ACCEPTED = "accepted", "✅ Accepté"
@@ -23,6 +25,10 @@ class ProjetStatus(models.TextChoices):
     @classproperty
     def FINAL(cls):
         return (cls.ACCEPTED, cls.REFUSED, cls.DISMISSED)
+
+    @classproperty
+    def NEGATIVE(cls):
+        return (cls.REFUSED, cls.DISMISSED)
 
 
 NOTIFICATION_STATUS_TO_GENERATE = "to_generate"

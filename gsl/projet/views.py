@@ -148,7 +148,9 @@ class ProjetSimulationsView(BaseProjetDetailView):
         dotation_filter = self.request.GET.get("dotation", "")
         filtered_qs = all_qs.order_by("-simulation__created_at")
         if dotation_filter in ("DETR", "DSIL"):
-            filtered_qs = filtered_qs.filter(enveloppe_projet__dotation=dotation_filter)
+            filtered_qs = filtered_qs.filter(
+                enveloppe_projet__enveloppe__dotation=dotation_filter
+            )
 
         simulation_projets_with_forms = []
         for sp in filtered_qs:

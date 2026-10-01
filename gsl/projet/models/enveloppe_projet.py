@@ -18,7 +18,6 @@ from gsl.historique.models import ProjetAction
 from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import (
-    DOTATION_CHOICES,
     DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NOTIFICATION_STATUS_NOTIFIED,
@@ -36,8 +35,11 @@ if TYPE_CHECKING:
 
 
 class EnveloppeProjetQuerySet(models.QuerySet):
+    def for_dotation(self, dotation: POSSIBLE_DOTATIONS):
+        return self.filter(enveloppe__dotation=dotation)
+
     def programmees(self):
-        return self.filter(enveloppe__isnull=False)
+        return self.filter(status__in=ProjetStatus.FINAL)
 
     def without_signed_document(self):
         return self.programmees().filter(
@@ -74,7 +76,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def annotate_notification_status(self):
         return self.annotate(
             _notification_status=Case(
-                When(enveloppe__isnull=True, then=Value(None)),
+                When(status=ProjetStatus.PROCESSING, then=Value(None)),
                 When(
                     projet__notified_at__isnull=False,
                     then=Value(NOTIFICATION_STATUS_NOTIFIED),
@@ -102,7 +104,8 @@ class EnveloppeProjetQuerySet(models.QuerySet):
 
 
 class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySet)):
-    pass
+    def get_queryset(self):
+        return super().get_queryset().select_related("enveloppe")
 
 
 class EnveloppeProjetCourantManager(EnveloppeProjetManager):
@@ -112,7 +115,6 @@ class EnveloppeProjetCourantManager(EnveloppeProjetManager):
 
 class EnveloppeProjet(BaseModel):
     projet = models.ForeignKey("gsl_projet.Projet", on_delete=models.CASCADE)
-    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
     # TODO pr_dotation put back protected=True, once every status transition is handled ?
     status = FSMField(
         "Statut",
@@ -136,8 +138,6 @@ class EnveloppeProjet(BaseModel):
         "gsl_programmation.Enveloppe",
         verbose_name="Enveloppe",
         on_delete=models.PROTECT,
-        blank=True,
-        null=True,
     )
     montant = models.DecimalField(
         "Montant", max_digits=14, decimal_places=2, blank=True, null=True
@@ -156,18 +156,33 @@ class EnveloppeProjet(BaseModel):
         verbose_name_plural = "Enveloppes projet"
         constraints = (
             models.UniqueConstraint(
-                fields=("projet", "dotation"),
+                fields=("projet", "enveloppe"),
                 condition=Q(is_courant=True),
-                name="un_seul_enveloppe_projet_courant_par_dotation",
+                name="un_seul_enveloppe_projet_courant_par_enveloppe",
                 violation_error_message="Ce projet a déjà un enveloppe projet courant "
-                "pour cette dotation.",
+                "sur cette enveloppe.",
             ),
             models.CheckConstraint(
-                condition=Q(status=ProjetStatus.PROCESSING, enveloppe__isnull=True)
-                | ~Q(status=ProjetStatus.PROCESSING) & Q(enveloppe__isnull=False),
-                name="enveloppe_ssi_dotation_traitee",
-                violation_error_message="Une dotation en traitement ne peut pas porter "
-                "d'enveloppe, et une dotation traitée doit en porter une.",
+                condition=Q(
+                    status=ProjetStatus.PROCESSING,
+                    montant__isnull=True,
+                    date_programmation__isnull=True,
+                )
+                | Q(
+                    status=ProjetStatus.ACCEPTED,
+                    montant__isnull=False,
+                    date_programmation__isnull=False,
+                )
+                | Q(
+                    status__in=ProjetStatus.NEGATIVE,
+                    montant__isnull=True,
+                    date_programmation__isnull=False,
+                ),
+                name="montant_et_date_selon_statut",
+                violation_error_message="Une dotation en traitement ne porte ni montant "
+                "ni date de programmation, une dotation acceptée porte les deux, et une "
+                "dotation refusée ou classée sans suite porte une date de programmation "
+                "mais pas de montant.",
             ),
         )
 
@@ -200,17 +215,21 @@ class EnveloppeProjet(BaseModel):
 
     def clean(self):
         super().clean()
-        if self.enveloppe_id is None:
-            return
 
         errors = {}
         self._validate_montant(errors)
         self._validate_enveloppe(errors)
-        self._validate_montant_nul_si_refusee(errors)
         if errors:
             raise ValidationError(errors)
 
     def _validate_montant(self, errors):
+        if self.status in ProjetStatus.NEGATIVE:
+            if self.montant is not None:
+                errors["montant"] = [
+                    "Un projet refusé ou classé sans suite ne doit pas porter de montant."
+                ]
+            return
+
         if not self.montant:
             return
 
@@ -238,15 +257,6 @@ class EnveloppeProjet(BaseModel):
             errors["enveloppe"] = [
                 "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
             ]
-
-        if self.enveloppe.dotation != self.dotation:
-            errors["enveloppe"] = [
-                "La dotation de l'enveloppe ne correspond pas à celle du projet pour cette dotation."
-            ]
-
-    def _validate_montant_nul_si_refusee(self, errors):
-        if self.status == ProjetStatus.REFUSED and self.montant != 0:
-            errors["montant"] = ["Un projet refusé doit avoir un montant nul."]
 
     def _validate_detr_avis_commission(self, errors):
         if self.detr_avis_commission is None:
@@ -277,12 +287,16 @@ class EnveloppeProjet(BaseModel):
         super().save(*args, **kwargs)
 
     @property
+    def dotation(self) -> POSSIBLE_DOTATIONS:
+        return self.enveloppe.dotation
+
+    @property
     def dossier_ds(self):
         return self.projet.dossier_ds
 
     @property
     def is_programmee(self) -> bool:
-        return self.enveloppe_id is not None
+        return self.status in ProjetStatus.FINAL
 
     @property
     def other_dotations(self) -> List["EnveloppeProjet"]:
@@ -360,7 +374,7 @@ class EnveloppeProjet(BaseModel):
 
     @property
     def is_treated(self) -> bool:
-        return self.status in ProjetStatus.FINAL
+        return self.is_programmee
 
     @property
     def lettre(self):
@@ -482,7 +496,7 @@ class EnveloppeProjet(BaseModel):
         )
 
         self.enveloppe = enveloppe.delegation_root
-        self.montant = 0
+        self.montant = None
         if self.date_programmation is None:
             self.date_programmation = timezone.now()
 
@@ -513,7 +527,7 @@ class EnveloppeProjet(BaseModel):
         )
 
         self.enveloppe = enveloppe.delegation_root
-        self.montant = 0
+        self.montant = None
         if self.date_programmation is None:
             self.date_programmation = timezone.now()
 
@@ -559,7 +573,6 @@ class EnveloppeProjet(BaseModel):
             status=SimulationProjet.STATUS_PROCESSING,
         )
 
-        self.enveloppe = None
         self.montant = None
         self.date_programmation = None
         self.projet.notified_at = None
