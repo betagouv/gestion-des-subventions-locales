@@ -271,9 +271,12 @@ class DossierConverter:
             manager.add(obj)
 
     def _extract_date_from_value(self, ds_field_data: dict) -> datetime.date | None:
-        value = ds_field_data["date"]
+        # DN omits the "date" key when the champ is empty
+        value = ds_field_data.get("date")
+        if not value:
+            return None
         try:
-            return datetime.date(*(int(s) for s in ds_field_data["date"].split("-")))
+            return datetime.date(*(int(s) for s in value.split("-")))
         except ValueError:
             extra = {
                 "value": value,
