@@ -315,13 +315,6 @@ class EnveloppeProjet(BaseModel):
         return self.status in ProjetStatus.FINAL
 
     @property
-    def is_programmee_after_passage_en_instruction(self) -> bool:
-        return (
-            self.is_programmee
-            and self.date_programmation > self.dossier_ds.ds_date_passage_en_instruction
-        )
-
-    @property
     def other_dotations(self) -> List["EnveloppeProjet"]:
         return list(d for d in self.projet.enveloppeprojet_set.all() if d.pk != self.pk)
 

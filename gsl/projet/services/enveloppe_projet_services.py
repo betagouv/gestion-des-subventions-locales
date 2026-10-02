@@ -23,7 +23,8 @@ class EnveloppeProjetService:
         is_initialisation = not existing
         dotations = cls._expected_dotations(projet, set(existing))
 
-        for dotation in existing.keys() - dotations:
+        to_delete = existing.keys() - dotations
+        for dotation in to_delete:
             # An accepted dossier only annotates its accepted dotations: keep the others' refusal.
             if (
                 projet.dossier_ds.ds_state == Dossier.State.ACCEPTE
@@ -32,7 +33,8 @@ class EnveloppeProjetService:
                 continue
             cls._remove_dotation(existing.pop(dotation))
 
-        for dotation in sorted(dotations - existing.keys()):
+        to_create = sorted(dotations - existing.keys())
+        for dotation in to_create:
             existing[dotation] = EnveloppeProjet.objects.create_for(
                 projet,
                 projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
@@ -201,10 +203,12 @@ class EnveloppeProjetService:
             else ProjetStatus.FINAL
         )
 
-        for enveloppe_projet in enveloppe_projets:
-            if enveloppe_projet.status not in reopened_statuses:
+        for ep in enveloppe_projets:
+            if ep.status not in reopened_statuses:
                 continue
-            if enveloppe_projet.is_programmee_after_passage_en_instruction:
+            # Programmed in Turgot after DN reopened the instruction: so Turgot status
+            # wins, nothing to undo.
+            if ep.date_programmation > ep.dossier_ds.ds_date_passage_en_instruction:
                 continue
-            enveloppe_projet.set_back_status_to_processing_without_ds()
-            enveloppe_projet.save()
+            ep.set_back_status_to_processing_without_ds()
+            ep.save()
