@@ -786,6 +786,13 @@ class Dossier(BaseModel):
     def dotations_annotees(self) -> list[POSSIBLE_DOTATIONS]:
         return self._parse_dotations("annotations_dotation")
 
+    def detr_avis_commission_for(self, dotation: POSSIBLE_DOTATIONS) -> bool | None:
+        """None means the dossier says nothing yet, which leaves the field free for
+        an agent to fill."""
+        if dotation == DOTATION_DETR and self.ds_state == self.State.ACCEPTE:
+            return True
+        return None
+
     def _parse_dotations(self, field: str) -> list[POSSIBLE_DOTATIONS]:
         value = getattr(self, field)
         if not value or value == "[]":
@@ -944,6 +951,21 @@ class Dossier(BaseModel):
         if self.ds_date_depot.month >= PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE:
             return self.ds_date_depot.year + 1
         return self.ds_date_depot.year
+
+    @property
+    def is_retour_en_instruction(self) -> bool:
+        if (
+            self.ds_date_traitement is None
+            or self.ds_date_passage_en_instruction is None
+        ):
+            return False
+        return self.ds_date_traitement < self.ds_date_passage_en_instruction
+
+    @property
+    def annee_de_traitement(self) -> int:
+        """A treatment coming from DN carries no campagne, so it lands on the year
+        of its treatment date, whatever the deposit date says."""
+        return self.ds_date_traitement.year
 
     def update_data(self, dossier_data: dict) -> None:
         """Fusionne dans `self.data.raw_data` les seuls champs présents dans

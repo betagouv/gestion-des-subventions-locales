@@ -24,13 +24,13 @@ from ....constants import (
     ProjetStatus,
 )
 from ....models import EnveloppeProjet
-from ....services.enveloppe_projet_services import (
-    EnveloppeProjetService as dps,
-)
+from ....services.enveloppe_projet_services import EnveloppeProjetService
 from ...factories import (
     EnveloppeProjetFactory,
     ProjetFactory,
 )
+
+synchroniser = EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def perimetres():
     ]
 
 
-# -- _update_enveloppe_projets_from_projet_accepted — ProjetAction dotation --
+# -- accepted dossier — ProjetAction dotation --
 
 
 @pytest.mark.django_db
@@ -76,14 +76,14 @@ def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetr
         perimetre=arr_dijon,
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    dps._initialize_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
     assert projet.enveloppeprojet_set.count() == 2
 
     # Simulate DN adding DSIL after initial import had only DETR
     projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).delete()
     assert projet.enveloppeprojet_set.count() == 1
 
-    dps._update_enveloppe_projets_from_projet_accepted(projet)
+    synchroniser(projet)
 
     actions = ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_DOTATION_ADDED
@@ -120,7 +120,7 @@ def test_update_accepted_creates_dotation_removed_action_when_dotation_dropped(
         projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
     )
 
-    dps._update_enveloppe_projets_from_projet_accepted(projet)
+    synchroniser(projet)
 
     actions = ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_DOTATION_REMOVED
@@ -155,7 +155,7 @@ def test_update_accepted_does_not_create_removed_action_for_already_refused_dota
         projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.REFUSED
     )
 
-    dps._update_enveloppe_projets_from_projet_accepted(projet)
+    synchroniser(projet)
 
     assert (
         ProjetAction.objects.filter(
@@ -167,10 +167,9 @@ def test_update_accepted_does_not_create_removed_action_for_already_refused_dota
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_enveloppe_projets_from_projet_accepted_creates_new_enveloppe_projets(
+def test_update_accepted_creates_new_enveloppe_projets(
     perimetres,
 ):
-    """Test _update_enveloppe_projets_from_projet_accepted creates new enveloppe projets"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -187,10 +186,11 @@ def test_update_enveloppe_projets_from_projet_accepted_creates_new_enveloppe_pro
         dossier_ds=dossier,
     )
 
-    dps._initialize_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
     assert projet.enveloppeprojet_set.count() == 1
 
     # Projet has been accepted on DN for DETR and DSIL
+    dossier.ds_state = Dossier.State.ACCEPTE
     dossier.annotations_dotation = "DETR et DSIL"
     dossier.annotations_assiette_detr = 10_000
     dossier.annotations_montant_accorde_detr = 5_000
@@ -199,9 +199,8 @@ def test_update_enveloppe_projets_from_projet_accepted_creates_new_enveloppe_pro
     dossier.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
     dossier.save()
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet_accepted(projet)
+    synchroniser(projet)
 
-    assert len(enveloppe_projets) == 2
     assert projet.enveloppeprojet_set.count() == 2
 
     detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
@@ -223,11 +222,10 @@ def test_update_enveloppe_projets_from_projet_accepted_creates_new_enveloppe_pro
     "dotation_status",
     (ProjetStatus.REFUSED, ProjetStatus.DISMISSED),
 )
-def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_if_refused_or_dismissed(
+def test_update_accepted_keeps_enveloppe_projets_not_annotated_if_refused_or_dismissed(
     perimetres,
     dotation_status,
 ):
-    """Test _update_enveloppe_projets_from_projet_accepted keeps enveloppe projets not in annotations_dotation if refused or dismissed"""
     # Arrange
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
@@ -241,7 +239,7 @@ def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_i
     )
     projet = ProjetFactory(dossier_ds=dossier)
 
-    dps._initialize_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
     assert projet.enveloppeprojet_set.count() == 2
 
     projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).update(
@@ -251,15 +249,15 @@ def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_i
     )
 
     # Act
+    projet.dossier_ds.ds_state = Dossier.State.ACCEPTE
     projet.dossier_ds.annotations_dotation = "DETR"
     projet.dossier_ds.annotations_assiette_detr = 10_000
     projet.dossier_ds.annotations_montant_accorde_detr = 5_000
     projet.dossier_ds.save()
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet_accepted(projet)
+    synchroniser(projet)
 
     # Assert
-    assert len(enveloppe_projets) == 2
     assert projet.enveloppeprojet_set.count() == 2
     assert (
         EnveloppeProjet.objects.for_dotation(DOTATION_DETR)
@@ -279,11 +277,10 @@ def test_update_enveloppe_projets_from_projet_accepted_keeps_enveloppe_projets_i
     "dotation_status",
     (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING),
 )
-def test_update_enveloppe_projets_from_projet_accepted_removes_enveloppe_projets_if_accepted_or_processing(
+def test_update_accepted_removes_enveloppe_projets_not_annotated_if_accepted_or_processing(
     perimetres,
     dotation_status,
 ):
-    """Test _update_enveloppe_projets_from_projet_accepted removes enveloppe projets if accepted or processing"""
     # Arrange
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
@@ -297,7 +294,7 @@ def test_update_enveloppe_projets_from_projet_accepted_removes_enveloppe_projets
     )
     projet = ProjetFactory(dossier_ds=dossier)
 
-    dps._initialize_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
     assert projet.enveloppeprojet_set.count() == 2
 
     if dotation_status == ProjetStatus.PROCESSING:
@@ -313,15 +310,15 @@ def test_update_enveloppe_projets_from_projet_accepted_removes_enveloppe_projets
         )
 
     # Act
+    projet.dossier_ds.ds_state = Dossier.State.ACCEPTE
     projet.dossier_ds.annotations_dotation = "DETR"
     projet.dossier_ds.annotations_assiette_detr = 10_000
     projet.dossier_ds.annotations_montant_accorde_detr = 5_000
     projet.dossier_ds.save()
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet_accepted(projet)
+    synchroniser(projet)
 
     # Assert
-    assert len(enveloppe_projets) == 1
     assert projet.enveloppeprojet_set.count() == 1
     assert (
         EnveloppeProjet.objects.for_dotation(DOTATION_DETR)
@@ -337,11 +334,10 @@ def test_update_enveloppe_projets_from_projet_accepted_removes_enveloppe_projets
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_dotation_falls_back(
+def test_update_accepted_with_empty_annotations_dotation_keeps_enveloppe_projets_unchanged(
     perimetres,
     caplog,
 ):
-    """Test _update_enveloppe_projets_from_projet_accepted falls back to demande_dispositif_sollicite when annotations_dotation is empty"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
 
@@ -352,7 +348,7 @@ def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_do
         dossier_ds__perimetre=arr_dijon,
     )
 
-    dps._initialize_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
     assert projet.enveloppeprojet_set.count() == 1
 
     projet.dossier_ds.ds_state = Dossier.State.ACCEPTE
@@ -363,11 +359,11 @@ def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_do
     # --
 
     with caplog.at_level(logging.WARNING):
-        enveloppe_projets = dps._update_enveloppe_projets_from_projet_accepted(projet)
+        synchroniser(projet)
 
     # --
 
-    assert len(enveloppe_projets) == 1
+    assert projet.enveloppeprojet_set.count() == 1
     detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.PROCESSING
 
@@ -375,7 +371,7 @@ def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_do
     record = caplog.records[0]
     assert (
         record.message
-        == "No dotations found in annotations_dotation for accepted dossier during update"
+        == "No dotations found in annotations_dotation for accepted dossier"
     )
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
@@ -384,8 +380,7 @@ def test_update_enveloppe_projets_from_projet_accepted_with_empty_annotations_do
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_enveloppe_projets_from_projet_refused(perimetres):
-    """Test _update_enveloppe_projets_from_projet_refused"""
+def test_update_refused(perimetres):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -404,9 +399,7 @@ def test_update_enveloppe_projets_from_projet_refused(perimetres):
         projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet_refused(projet)
-
-    assert len(enveloppe_projets) == 2
+    synchroniser(projet)
 
     detr_dp.refresh_from_db()
     assert detr_dp.status == ProjetStatus.REFUSED
@@ -417,10 +410,9 @@ def test_update_enveloppe_projets_from_projet_refused(perimetres):
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_enveloppe_projets_from_projet_refused_does_not_update_already_refused(
+def test_update_refused_does_not_update_already_refused(
     perimetres,
 ):
-    """Test _update_enveloppe_projets_from_projet_refused does not update already refused enveloppe projets"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     projet = ProjetFactory(
@@ -434,17 +426,16 @@ def test_update_enveloppe_projets_from_projet_refused_does_not_update_already_re
         projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.REFUSED
     )
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet_refused(projet)
+    synchroniser(projet)
 
-    assert len(enveloppe_projets) == 1
+    assert projet.enveloppeprojet_set.count() == 1
     detr_dp.refresh_from_db()
     assert detr_dp.status == ProjetStatus.REFUSED
 
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_enveloppe_projets_from_projet_sans_suite(perimetres):
-    """Test _update_enveloppe_projets_from_projet_sans_suite"""
+def test_update_sans_suite(perimetres):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
@@ -463,9 +454,7 @@ def test_update_enveloppe_projets_from_projet_sans_suite(perimetres):
         projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
     )
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet_sans_suite(projet)
-
-    assert len(enveloppe_projets) == 2
+    synchroniser(projet)
 
     detr_dp.refresh_from_db()
     assert detr_dp.status == ProjetStatus.DISMISSED
@@ -476,10 +465,9 @@ def test_update_enveloppe_projets_from_projet_sans_suite(perimetres):
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_enveloppe_projets_from_projet_sans_suite_does_not_update_already_dismissed_or_refused(
+def test_update_sans_suite_does_not_update_already_dismissed_or_refused(
     perimetres,
 ):
-    """Test _update_enveloppe_projets_from_projet_sans_suite does not update already dismissed or refused enveloppe projets"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     projet = ProjetFactory(
@@ -496,9 +484,9 @@ def test_update_enveloppe_projets_from_projet_sans_suite_does_not_update_already
         projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.REFUSED
     )
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
 
-    assert len(enveloppe_projets) == 2
+    assert projet.enveloppeprojet_set.count() == 2
     detr_dp.refresh_from_db()
     assert detr_dp.status == ProjetStatus.DISMISSED
     dsil_dp.refresh_from_db()
@@ -524,10 +512,7 @@ def date_programmation_avant_instruction(status):
     ),
 )
 @freeze_time("2025-05-06")
-def test_update_enveloppe_projets_from_projet_back_to_instruction(
-    perimetres, status_1, status_2
-):
-    """Test _update_enveloppe_projets_from_projet_back_to_instruction"""
+def test_update_back_to_instruction(perimetres, status_1, status_2):
     projet = ProjetFactory(
         dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 10, tzinfo=UTC),
@@ -551,9 +536,7 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction(
         date_programmation=date_programmation_avant_instruction(status_2),
     )
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet(projet)
-
-    assert len(enveloppe_projets) == 2
+    synchroniser(projet)
 
     detr_dp.refresh_from_db()
     assert detr_dp.status == ProjetStatus.PROCESSING
@@ -566,11 +549,10 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction(
     "refused_or_dismissed", (ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
 )
 @pytest.mark.django_db
-def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accepted_and_one_dismissed(
+def test_update_back_to_instruction_with_one_accepted_and_one_dismissed(
     perimetres,
     refused_or_dismissed,
 ):
-    """Test _update_enveloppe_projets_from_projet_back_to_instruction with one accepted and one dismissed"""
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     projet = ProjetFactory(
@@ -597,11 +579,7 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accep
         date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet_back_to_instruction(
-        projet
-    )
-
-    assert len(enveloppe_projets) == 2
+    synchroniser(projet)
 
     detr_dp.refresh_from_db()
     assert detr_dp.status == ProjetStatus.PROCESSING
@@ -624,7 +602,7 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accep
     ),
 )
 @pytest.mark.django_db
-def test_update_enveloppe_projets_from_projet_back_to_instruction_with_a_programmation_after_date_of_passage_en_instruction(
+def test_update_back_to_instruction_with_a_programmation_after_date_of_passage_en_instruction(
     perimetres,
     first_status,
     second_status,
@@ -640,7 +618,6 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_a_program
         dossier_ds__perimetre=arr_dijon,
     )
 
-    # Create two accepted enveloppe projets
     detr_dp = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
@@ -656,11 +633,10 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_a_program
 
     # --
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
 
     # --
 
-    assert len(enveloppe_projets) == 2
     detr_dp.refresh_from_db()
     assert detr_dp.status == first_status, (
         "The enveloppe projet with status %s should remain %s because it was programmed after the date of passage en instruction"
@@ -680,11 +656,10 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_a_program
     (ProjetStatus.DISMISSED, ProjetStatus.REFUSED),
 )
 @pytest.mark.django_db
-def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accepted_and_programmation_after_date_of_passage_en_instruction_and_one_dismissed_or_refused(
+def test_update_back_to_instruction_with_one_accepted_and_programmation_after_date_of_passage_en_instruction_and_one_dismissed_or_refused(
     perimetres,
     second_status,
 ):
-    """Test _update_enveloppe_projets_from_projet_back_to_instruction with two accepted enveloppe projets and one programmed after date of passage en instruction"""
     arr_dijon, *_ = perimetres
 
     projet = ProjetFactory(
@@ -696,14 +671,13 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accep
         dossier_ds__perimetre=arr_dijon,
     )
 
-    # Create two accepted enveloppe projets
     detr_dp = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DETR,
         status=ProjetStatus.ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 25, tzinfo=UTC),
     )
-    EnveloppeProjetFactory(
+    dsil_dp = EnveloppeProjetFactory(
         projet=projet,
         dotation=DOTATION_DSIL,
         status=second_status,
@@ -712,29 +686,30 @@ def test_update_enveloppe_projets_from_projet_back_to_instruction_with_one_accep
 
     # --
 
-    enveloppe_projets = dps._update_enveloppe_projets_from_projet(projet)
+    synchroniser(projet)
 
     # --
 
-    assert len(enveloppe_projets) == 1
     detr_dp.refresh_from_db()
     assert detr_dp.status == ProjetStatus.ACCEPTED, (
         "The accepted enveloppe projet should remain accepted because it was programmed after the date of passage en instruction"
     )
+    dsil_dp.refresh_from_db()
+    assert dsil_dp.status == second_status
 
 
-# _update_assiette_from_dossier
+# -- assiette history --
 
 
 @pytest.mark.django_db
-def test_update_assiette_from_dossier_creates_action_when_assiette_changes():
+def test_update_assiette_creates_action_when_assiette_changes():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=20_000,
     )
 
-    dps._update_assiette_from_dossier(enveloppe_projet.projet)
+    synchroniser(enveloppe_projet.projet)
 
     actions = ProjetAction.objects.filter(
         projet=enveloppe_projet.projet,
@@ -749,14 +724,14 @@ def test_update_assiette_from_dossier_creates_action_when_assiette_changes():
 
 
 @pytest.mark.django_db
-def test_update_assiette_from_dossier_does_not_create_action_when_assiette_unchanged():
+def test_update_assiette_does_not_create_action_when_assiette_unchanged():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=10_000,
     )
 
-    dps._update_assiette_from_dossier(enveloppe_projet.projet)
+    synchroniser(enveloppe_projet.projet)
 
     assert (
         ProjetAction.objects.filter(
@@ -768,14 +743,14 @@ def test_update_assiette_from_dossier_does_not_create_action_when_assiette_uncha
 
 
 @pytest.mark.django_db
-def test_update_assiette_from_dossier_creates_action_when_assiette_changed():
+def test_update_assiette_creates_action_when_assiette_changed():
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
         assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=15_000,
     )
 
-    dps._update_assiette_from_dossier(enveloppe_projet.projet)
+    synchroniser(enveloppe_projet.projet)
 
     actions = ProjetAction.objects.filter(
         projet=enveloppe_projet.projet,

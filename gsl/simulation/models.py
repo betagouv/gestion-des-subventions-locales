@@ -1,3 +1,7 @@
+import logging
+from datetime import date
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Count, QuerySet, Sum
@@ -7,8 +11,11 @@ from django_extensions.db.fields import AutoSlugField
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.programmation.models import Enveloppe
 from gsl.programmation.services.enveloppe_service import EnveloppeService
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.utils import compute_taux
+
+logger = logging.getLogger(__name__)
 
 
 def validate_columns_visibility(value):
@@ -29,6 +36,19 @@ class SimulationQuerySet(models.QuerySet):
         ancestors_qs = perimetre.ancestors()
         perimetres_to_filter = list(ancestors_qs) + [perimetre]
         return self.filter(enveloppe__perimetre__in=perimetres_to_filter)
+
+    def for_enveloppe_projet(self, enveloppe_projet: EnveloppeProjet):
+        dossier = enveloppe_projet.dossier_ds
+        qs = self.containing_perimetre(enveloppe_projet.projet.perimetre).filter(
+            enveloppe__dotation=enveloppe_projet.dotation,
+            enveloppe__annee__gte=date.today().year,
+        )
+        # TODO Investigate why we need those two checks
+        if dossier.is_treated and dossier.ds_date_traitement is not None:
+            qs = qs.filter(enveloppe__annee__lte=dossier.annee_de_traitement)
+        if enveloppe_projet.is_programmee:
+            qs = qs.filter(enveloppe__annee__lte=enveloppe_projet.enveloppe.annee)
+        return qs
 
     def visible_for_user(self, user: Collegue):
         return self.filter(
@@ -156,7 +176,80 @@ class SimulationProjetQuerySet(models.QuerySet):
 
 
 class SimulationProjetManager(models.Manager.from_queryset(SimulationProjetQuerySet)):
-    pass
+    def reset_for_enveloppe_projet(self, enveloppe_projet: EnveloppeProjet) -> None:
+        concerned = Simulation.objects.for_enveloppe_projet(enveloppe_projet)
+        self.filter(enveloppe_projet=enveloppe_projet).exclude(
+            simulation__in=concerned
+        ).delete()
+        for simulation in concerned.exclude(
+            simulationprojet__enveloppe_projet=enveloppe_projet
+        ):
+            self.create_or_update_for(enveloppe_projet, simulation)
+
+    def create_or_update_for(
+        self, enveloppe_projet: EnveloppeProjet, simulation: Simulation
+    ) -> "SimulationProjet":
+        status = self.status_for(enveloppe_projet)
+        simulation_projet, _ = self.update_or_create(
+            enveloppe_projet=enveloppe_projet,
+            simulation=simulation,
+            defaults={
+                "montant": self.initial_montant_for(enveloppe_projet, status),
+                "status": status,
+            },
+        )
+        return simulation_projet
+
+    def status_for(self, enveloppe_projet: EnveloppeProjet) -> str:
+        return self.model.STATUS_FROM_PROJET_STATUS.get(enveloppe_projet.status)
+
+    def initial_montant_for(
+        self, enveloppe_projet: EnveloppeProjet, status: str
+    ) -> Decimal:
+        if status in (self.model.STATUS_DISMISSED, self.model.STATUS_REFUSED):
+            return Decimal(0)
+
+        if enveloppe_projet.montant is not None:
+            return enveloppe_projet.montant
+
+        dossier = enveloppe_projet.projet.dossier_ds
+
+        if enveloppe_projet.dotation == DOTATION_DETR:
+            dossier_montant_annotations = dossier.annotations_montant_accorde_detr
+        elif enveloppe_projet.dotation == DOTATION_DSIL:
+            dossier_montant_annotations = dossier.annotations_montant_accorde_dsil
+
+        if dossier_montant_annotations:
+            return self._capped_by_assiette_or_cout_total(
+                dossier_montant_annotations,
+                enveloppe_projet,
+                "le montant accordé issu des annotations",
+            )
+
+        if dossier.demande_montant:
+            return self._capped_by_assiette_or_cout_total(
+                dossier.demande_montant,
+                enveloppe_projet,
+                "le montant demandé",
+            )
+
+        return Decimal(0)
+
+    def _capped_by_assiette_or_cout_total(
+        self, value: Decimal, enveloppe_projet: EnveloppeProjet, value_label: str
+    ) -> Decimal:
+        if enveloppe_projet.assiette_or_cout_total is None:
+            logger.warning(
+                f"Le projet de dotation {enveloppe_projet.dotation} (id: {enveloppe_projet.pk}) n'a ni assiette ni coût total."
+            )
+            return value
+
+        if value and value > enveloppe_projet.assiette_or_cout_total:
+            logger.warning(
+                f"Le projet de dotation {enveloppe_projet.dotation} (id: {enveloppe_projet.pk}) a une assiette plus petite que {value_label}."
+            )
+
+        return min(value, enveloppe_projet.assiette_or_cout_total)
 
 
 class SimulationProjet(BaseModel):
@@ -181,6 +274,13 @@ class SimulationProjet(BaseModel):
         STATUS_PROVISIONALLY_ACCEPTED,
         STATUS_PROVISIONALLY_REFUSED,
     )
+
+    STATUS_FROM_PROJET_STATUS = {
+        ProjetStatus.ACCEPTED: STATUS_ACCEPTED,
+        ProjetStatus.DISMISSED: STATUS_DISMISSED,
+        ProjetStatus.REFUSED: STATUS_REFUSED,
+        ProjetStatus.PROCESSING: STATUS_PROCESSING,
+    }
 
     enveloppe_projet = models.ForeignKey(
         EnveloppeProjet, on_delete=models.CASCADE, null=True

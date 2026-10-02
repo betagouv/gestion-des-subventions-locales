@@ -13,20 +13,17 @@ from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from gsl_demarches_simplifiees.models import Dossier
 
 from ....constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
     ProjetStatus,
 )
-from ....services.enveloppe_projet_services import (
-    EnveloppeProjetService as dps,
-)
-from ...factories import (
-    EnveloppeProjetFactory,
-    ProjetFactory,
-)
+from ....services.enveloppe_projet_services import EnveloppeProjetService
+from ...factories import EnveloppeProjetFactory
+
+synchroniser = EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet
 
 
 @pytest.fixture
@@ -50,39 +47,43 @@ def perimetres():
     ]
 
 
-# -- _get_root_enveloppe_from_enveloppe_projet --
+# -- root enveloppe of a dotation treated in DN --
 
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_get_root_enveloppe_from_enveloppe_projet_with_a_detr_and_arrondissement_projet(
+def test_refused_dotation_goes_to_the_root_enveloppe_with_a_detr_and_arrondissement_projet(
     perimetres,
 ):
     arr_dijon, dep_21, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DETR,
-        status=ProjetStatus.ACCEPTED,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.State.REFUSE,
     )
     dep_detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     _arr_detr_enveloppe = DetrEnveloppeFactory(
         perimetre=arr_dijon, annee=2025, parent=dep_detr_enveloppe
     )
 
-    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
-    assert enveloppe == dep_detr_enveloppe
+    synchroniser(enveloppe_projet.projet)
+
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe == dep_detr_enveloppe
 
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_get_root_enveloppe_from_enveloppe_projet_with_a_dsil_and_region_projet(
+def test_refused_dotation_goes_to_the_root_enveloppe_with_a_dsil_and_region_projet(
     perimetres,
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=ProjetStatus.ACCEPTED,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.State.REFUSE,
     )
     region_dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     dep_dsil_enveloppe_delegated = DsilEnveloppeFactory(
@@ -92,55 +93,60 @@ def test_get_root_enveloppe_from_enveloppe_projet_with_a_dsil_and_region_projet(
         perimetre=arr_dijon, annee=2025, parent=dep_dsil_enveloppe_delegated
     )
 
-    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+    synchroniser(enveloppe_projet.projet)
 
-    assert enveloppe == region_dsil_enveloppe
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe == region_dsil_enveloppe
 
 
 @pytest.mark.django_db
 @freeze_time("2026-05-06")
-def test_get_root_enveloppe_from_enveloppe_projet_creates_the_missing_enveloppe(
+def test_refused_dotation_creates_the_missing_root_enveloppe(
     perimetres,
 ):
     arr_dijon, _, region_bfc, *_ = perimetres
     enveloppe_2025 = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=ProjetStatus.ACCEPTED,
+        status=ProjetStatus.PROCESSING,
         enveloppe=enveloppe_2025,
         projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.State.REFUSE,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             2026, 1, 15, tzinfo=UTC
         ),
     )
 
-    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+    synchroniser(enveloppe_projet.projet)
 
-    assert enveloppe.annee == 2026
-    assert enveloppe.perimetre == region_bfc
-    assert enveloppe.montant == enveloppe_2025.montant
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe.annee == 2026
+    assert enveloppe_projet.enveloppe.perimetre == region_bfc
+    assert enveloppe_projet.enveloppe.montant == enveloppe_2025.montant
 
 
 @pytest.mark.django_db
 @freeze_time("2026-05-06")
-def test_get_root_enveloppe_from_enveloppe_projet_creates_it_without_montant_if_no_enveloppe_exists(
+def test_refused_dotation_creates_the_missing_root_enveloppe_without_montant(
     perimetres,
 ):
     arr_dijon, _, region_bfc, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=ProjetStatus.ACCEPTED,
+        status=ProjetStatus.PROCESSING,
         enveloppe=DsilEnveloppeFactory(perimetre=region_bfc, annee=2020),
         projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.State.REFUSE,
         projet__dossier_ds__ds_date_traitement=timezone.datetime(
             2026, 1, 15, tzinfo=UTC
         ),
     )
 
-    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+    synchroniser(enveloppe_projet.projet)
 
-    assert enveloppe.annee == 2026
-    assert enveloppe.montant == 0
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe.annee == 2026
+    assert enveloppe_projet.enveloppe.montant == 0
 
 
 @pytest.mark.django_db
@@ -153,7 +159,7 @@ def test_get_root_enveloppe_from_enveloppe_projet_creates_it_without_montant_if_
         (timezone.datetime(2026, 11, 1, tzinfo=UTC), 2026),
     ],
 )
-def test_get_root_enveloppe_from_enveloppe_projet_follows_the_treatment_year(
+def test_refused_dotation_root_enveloppe_follows_the_treatment_year(
     perimetres, date_traitement, expected_annee
 ):
     arr_dijon, _, region_bfc, *_ = perimetres
@@ -163,80 +169,13 @@ def test_get_root_enveloppe_from_enveloppe_projet_follows_the_treatment_year(
 
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=DOTATION_DSIL,
-        status=ProjetStatus.ACCEPTED,
+        status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.State.REFUSE,
         projet__dossier_ds__ds_date_traitement=date_traitement,
     )
 
-    enveloppe = dps._get_root_enveloppe_from_enveloppe_projet(enveloppe_projet)
+    synchroniser(enveloppe_projet.projet)
 
-    assert enveloppe.annee == expected_annee
-
-
-# -- _is_programmation_date_after_passage_en_instruction --
-
-
-@pytest.mark.django_db
-def test_is_programmation_date_after_passage_en_instruction_without_programmation():
-    """Test _is_programmation_date_after_passage_en_instruction returns False when the dotation isn't programmed"""
-    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
-
-    result = dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
-
-    assert result is False
-
-
-@pytest.mark.django_db
-def test_is_programmation_date_after_passage_en_instruction_when_before_passage_en_instruction():
-    """Test _is_programmation_date_after_passage_en_instruction returns False when date_programmation is before ds_date_passage_en_instruction"""
-    dossier = DossierFactory(
-        ds_date_passage_en_instruction=timezone.datetime(2025, 1, 15, tzinfo=UTC)
-    )
-    projet = ProjetFactory(dossier_ds=dossier)
-    enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet,
-        status=ProjetStatus.ACCEPTED,
-        date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
-    )
-
-    result = dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
-
-    assert result is False
-    assert enveloppe_projet.date_programmation < dossier.ds_date_passage_en_instruction
-
-
-@pytest.mark.django_db
-def test_is_programmation_date_after_passage_en_instruction_when_after_passage_en_instruction():
-    """Test _is_programmation_date_after_passage_en_instruction returns True when date_programmation is after ds_date_passage_en_instruction"""
-    dossier = DossierFactory(
-        ds_date_passage_en_instruction=timezone.datetime(
-            2025, 1, 15, 10, 0, 0, tzinfo=UTC
-        )
-    )
-    projet = ProjetFactory(dossier_ds=dossier)
-    enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet,
-        status=ProjetStatus.ACCEPTED,
-        date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
-    )
-
-    result = dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
-
-    assert result is True
-    assert enveloppe_projet.date_programmation > dossier.ds_date_passage_en_instruction
-
-
-@pytest.mark.django_db
-def test_is_programmation_date_after_passage_en_instruction_with_none_date():
-    """Test _is_programmation_date_after_passage_en_instruction raises TypeError when ds_date_passage_en_instruction is None"""
-    dossier = DossierFactory(ds_date_passage_en_instruction=None)
-    projet = ProjetFactory(dossier_ds=dossier)
-    enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet,
-        status=ProjetStatus.ACCEPTED,
-        date_programmation=timezone.datetime(2025, 1, 20, tzinfo=UTC),
-    )
-
-    # When ds_date_passage_en_instruction is None, the comparison raises TypeError
-    with pytest.raises(TypeError, match="not supported between instances of"):
-        dps._is_programmation_date_after_passage_en_instruction(enveloppe_projet)
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe.annee == expected_annee

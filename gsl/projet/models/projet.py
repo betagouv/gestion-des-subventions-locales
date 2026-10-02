@@ -342,10 +342,8 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     def perimetre(self):
         return self.dossier_ds.perimetre
 
-    def root_enveloppe(self, dotation: str) -> Enveloppe:
-        return Enveloppe.objects.root_for(
-            dotation, self.perimetre, self.dossier_ds.annee_de_campagne
-        )
+    def root_enveloppe(self, dotation: str, annee: int) -> Enveloppe:
+        return Enveloppe.objects.root_for(dotation, self.perimetre, annee)
 
     @property
     def status(self):
