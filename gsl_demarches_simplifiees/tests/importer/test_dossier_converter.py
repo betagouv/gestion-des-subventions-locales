@@ -659,18 +659,18 @@ def test_convert_all_fields_logs_warning_and_continues_on_unexpected_error(
     """Quand un champ provoque une exception inattendue lors de la conversion,
     convert_all_fields logue un warning et continue avec les autres champs.
 
-    Ici on simule le cas réel d'un DateChamp dont la clé 'date' est absente
-    (KeyError), ce qui était le comportement fautif sur date_debut.
+    Ici on simule un DecimalNumberChamp dont la clé 'decimalNumber' est absente
+    (KeyError).
     """
     ds_dossier_data = {
         "champs": [
             {
-                "id": "FIELD_DATE_BROKEN",
-                "champDescriptorId": "FIELD_DATE_BROKEN",
-                "__typename": "DateChamp",
-                "label": "Date de début",
+                "id": "FIELD_COUT_BROKEN",
+                "champDescriptorId": "FIELD_COUT_BROKEN",
+                "__typename": "DecimalNumberChamp",
+                "label": "Coût total",
                 "stringValue": "",
-                # Clé "date" intentionnellement absente → KeyError
+                # Clé "decimalNumber" intentionnellement absente → KeyError
             },
             {
                 "id": "FIELD_INTITULE",
@@ -685,10 +685,10 @@ def test_convert_all_fields_logs_warning_and_continues_on_unexpected_error(
     }
     FieldMapping.objects.create(
         demarche=dossier.ds_demarche,
-        ds_field_id="FIELD_DATE_BROKEN",
-        ds_field_label="Date de début",
-        ds_field_type="DateChamp",
-        django_field="date_debut",
+        ds_field_id="FIELD_COUT_BROKEN",
+        ds_field_label="Coût total",
+        ds_field_type="DecimalNumberChamp",
+        django_field="finance_cout_total",
     )
     FieldMapping.objects.create(
         demarche=dossier.ds_demarche,
@@ -709,11 +709,45 @@ def test_convert_all_fields_logs_warning_and_continues_on_unexpected_error(
         if r.levelno == logging.ERROR and r.message == "Error while converting field."
     ]
     assert len(error_records) == 1
-    assert error_records[0].field_label == "Date de début"
-    assert "'date'" in error_records[0].error  # KeyError: 'date'
+    assert error_records[0].field_label == "Coût total"
+    assert "'decimalNumber'" in error_records[0].error  # KeyError: 'decimalNumber'
 
     # L'autre champ doit quand même avoir été importé
     assert dossier.projet_intitule == "Mon projet malgré l'erreur"
+
+
+@pytest.mark.parametrize("date_data", ({}, {"date": None}, {"date": ""}))
+def test_convert_empty_date_champ_sets_none_without_error(dossier, caplog, date_data):
+    dossier.date_debut = datetime.date(2025, 1, 15)
+    ds_dossier_data = {
+        "champs": [
+            {
+                "id": "FIELD_DATE_EMPTY",
+                "champDescriptorId": "FIELD_DATE_EMPTY",
+                "__typename": "DateChamp",
+                "label": "Date de début",
+                "stringValue": "",
+                **date_data,
+            },
+        ],
+        "annotations": [],
+        "demarche": {"revision": {"id": "rev-1"}},
+    }
+    FieldMapping.objects.create(
+        demarche=dossier.ds_demarche,
+        ds_field_id="FIELD_DATE_EMPTY",
+        ds_field_label="Date de début",
+        ds_field_type="DateChamp",
+        django_field="date_debut",
+    )
+
+    converter = DossierConverter(ds_dossier_data, dossier)
+
+    with caplog.at_level(logging.WARNING):
+        converter.convert_all_fields()
+
+    assert dossier.date_debut is None
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
 
 
 # --- inject_into_field : clear M2M avant re-add ---
