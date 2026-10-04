@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -27,7 +28,9 @@ class TestSimulationDeleteView:
 
         # Assert: redirected to list and simulation removed
         assert response.status_code == 200
-        assert response.request["PATH_INFO"] == reverse("simulation:simulation-list")
+        assert response.request["PATH_INFO"] == reverse(
+            "simulation:simulation-list", kwargs={"campagne": default_campagne()}
+        )
         assert not Simulation.objects.filter(id=simulation.id).exists()
 
     def test_delete_simulation_returns_404_when_not_visible(self):

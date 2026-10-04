@@ -31,6 +31,7 @@ from django_htmx.http import HttpResponseClientRedirect
 
 from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
+from gsl.core.campagne import get_campagne
 from gsl.core.decorators import htmx_only
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import (
@@ -393,8 +394,7 @@ class ProjetNoteDeleteView(DeleteView):
             f'La note "{self.object.title}" a bien été supprimée.',
         )
         return reverse(
-            "projet:get-projet-notes",
-            kwargs={"projet_id": self.object.projet.pk},
+            "projet:get-projet-notes", kwargs={"projet_id": self.object.projet.pk}
         )
 
 
@@ -439,7 +439,9 @@ class ProjetListViewFilters(ProjetFilters):
             )
 
         visible_projets = (
-            Projet.objects.active().for_user(self.request.user).for_current_year()
+            Projet.objects.active()
+            .for_user(self.request.user)
+            .for_campagne(get_campagne())
         )
 
         self.filters["categorie_detr"].queryset = (
@@ -501,10 +503,14 @@ class ProjetListViewFilters(ProjetFilters):
 
     @property
     def qs(self):
-        qs = super().qs
+        campagne = get_campagne()
+        # Which dotations the aggregates cover, `for_campagne` deciding only which
+        # projets are listed.
+        in_campagne = Q(enveloppeprojet__enveloppe__annee=campagne)
+        qs = super().qs.for_campagne(campagne)
         qs = qs.annotate(
-            montant_retenu_total=Sum("enveloppeprojet__montant"),
-            assiette_max=Max("enveloppeprojet__assiette"),
+            montant_retenu_total=Sum("enveloppeprojet__montant", filter=in_campagne),
+            assiette_max=Max("enveloppeprojet__assiette", filter=in_campagne),
             taux_max=Max(
                 Case(
                     When(
@@ -516,11 +522,11 @@ class ProjetListViewFilters(ProjetFilters):
                     ),
                     default=None,
                     output_field=DecimalField(),
-                )
+                ),
+                filter=in_campagne,
             ),
         )
         qs = qs.for_user(self.request.user)
-        qs = qs.for_current_year()
         qs = qs.select_related(
             "address",
             "address__commune",
@@ -553,7 +559,9 @@ class ProjetListView(FilterSkiplinksMixin, FilterView, ListView):
 
     def get(self, request, *args, **kwargs):
         if "reset_filters" in request.GET:
-            if request.path == reverse("gsl_projet:list"):
+            if request.path == reverse(
+                "gsl_projet:list", kwargs={"campagne": kwargs["campagne"]}
+            ):
                 return redirect(request.path)
             else:
                 return redirect("/")
@@ -566,9 +574,9 @@ class ProjetListView(FilterSkiplinksMixin, FilterView, ListView):
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets"
         context["aggregates"] = qs_global.totals()
-        context["enveloppes"] = (
-            self.request.user.perimetre.enveloppe_set.for_current_year().all()
-        )
+        context["enveloppes"] = self.request.user.perimetre.enveloppe_set.for_campagne(
+            get_campagne()
+        ).all()
         context["enveloppes_with_children"] = True
         context["columns"] = PROJET_TABLE_COLUMNS
         context["current_order"] = self.request.GET.get("order", "")

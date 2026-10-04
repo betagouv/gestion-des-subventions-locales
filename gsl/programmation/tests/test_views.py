@@ -2,6 +2,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -35,7 +36,10 @@ def user_with_perimetre():
 class TestProgrammationProjetListView:
     def test_list_view_requires_login(self):
         """La vue liste nécessite une authentification"""
-        url = reverse("gsl_programmation:programmation-projet-list")
+        url = reverse(
+            "gsl_programmation:programmation-projet-list",
+            kwargs={"campagne": default_campagne()},
+        )
         response = Client().get(url)
         assert response.status_code == 302  # Redirection vers login
 
@@ -43,12 +47,15 @@ class TestProgrammationProjetListView:
         """Un utilisateur authentifié peut accéder à la liste"""
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre)
-        url = reverse("gsl_programmation:programmation-projet-list")
+        url = reverse(
+            "gsl_programmation:programmation-projet-list",
+            kwargs={"campagne": default_campagne()},
+        )
         response = client.get(url)
         assert response.status_code == 302
         assert response.url == reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
 
 
@@ -83,7 +90,7 @@ class TestProgrammationProjetListViewWithDotation:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
         response = client.get(url)
         assert response.status_code == 200
@@ -98,7 +105,7 @@ class TestProgrammationProjetListViewWithDotation:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DSIL"},
+            kwargs={"dotation": "DSIL", "campagne": default_campagne()},
         )
         response = client.get(url)
         assert response.status_code == 200
@@ -113,7 +120,7 @@ class TestProgrammationProjetListViewWithDotation:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
         response = client.get(url)
         content = response.content.decode()
@@ -141,13 +148,13 @@ class TestProgrammationProjetListViewWithDotation:
         client = ClientWithLoggedUserFactory(user=user_with_regional_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
         response = client.get(url)
         assert response.status_code == 302
         assert response.url == reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DSIL"},
+            kwargs={"dotation": "DSIL", "campagne": default_campagne()},
         )
 
 
@@ -173,7 +180,7 @@ class TestProgrammationProjetListViewExcludesInactiveDossiers:
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
         response = client.get(url)
 

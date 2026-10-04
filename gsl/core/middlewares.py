@@ -6,7 +6,31 @@ from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 
+from gsl.core.campagne import activate, active_campagne, default_campagne
+
 security_logger = logging.getLogger("gsl.security")
+
+
+class CampagneMiddleware:
+    """
+    Activate the campagne the agent is working on, and remember it, so that a page
+    carrying no campagne still links back into the one being worked on.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        with active_campagne():
+            return self.get_response(request)
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        campagne = view_kwargs.get("campagne")
+        if campagne:
+            request.session["campagne"] = campagne
+        else:
+            campagne = request.session.get("campagne") or default_campagne()
+        activate(campagne)
 
 
 class MatomoHtmxMiddleware:

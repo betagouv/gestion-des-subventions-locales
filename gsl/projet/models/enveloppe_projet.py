@@ -42,6 +42,9 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def for_dotation(self, dotation: POSSIBLE_DOTATIONS):
         return self.filter(enveloppe__dotation=dotation)
 
+    def for_campagne(self, annee: int):
+        return self.filter(enveloppe__annee=annee)
+
     def programmees(self):
         return self.filter(status__in=ProjetStatus.FINAL)
 

@@ -2,14 +2,12 @@ from django.contrib.auth.decorators import login_not_required
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from gsl.core.campagne import get_campagne
+
 
 @login_not_required
 def index_view(request):
-    return redirect(
-        reverse(
-            "projet:list",
-        )
-    )
+    return redirect(reverse("projet:list", kwargs={"campagne": get_campagne()}))
 
 
 @login_not_required

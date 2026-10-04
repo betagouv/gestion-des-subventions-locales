@@ -6,6 +6,7 @@ import pytest
 from bs4 import BeautifulSoup
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -57,7 +58,9 @@ def _tag_with(soup, text):
 
 def test_no_filter_hides_extra_panel_and_renders_no_tags(client, perimetre):
     ProjetFactory(dossier_ds__perimetre=perimetre)
-    response = client.get(reverse("projet:list"))
+    response = client.get(
+        reverse("projet:list", kwargs={"campagne": default_campagne()})
+    )
     assert response.status_code == 200
     soup = _soup(response)
 
@@ -77,7 +80,7 @@ def test_no_filter_hides_extra_panel_and_renders_no_tags(client, perimetre):
 def test_active_filters_render_dismissible_tags(client, perimetre):
     ProjetFactory(dossier_ds__perimetre=perimetre)
     response = client.get(
-        reverse("projet:list"),
+        reverse("projet:list", kwargs={"campagne": default_campagne()}),
         data={
             "search": "foo",
             "montant_demande_min": "1000",
@@ -118,7 +121,8 @@ def test_territoire_tag_shows_entity_name_not_verbose_str(client, perimetre):
     departement name), not the verbose `Perimetre.__str__` form."""
     ProjetFactory(dossier_ds__perimetre=perimetre)
     response = client.get(
-        reverse("projet:list"), data={"territoire": str(perimetre.id)}
+        reverse("projet:list", kwargs={"campagne": default_campagne()}),
+        data={"territoire": str(perimetre.id)},
     )
     assert response.status_code == 200
     soup = _soup(response)
@@ -136,7 +140,10 @@ def test_active_extra_filter_stays_collapsed_but_shows_tag(client, perimetre):
     """An active extra filter is surfaced as a tag, but the panel stays closed."""
     NaturePorteurProjetFactory(label="EPCI", type=NaturePorteurProjet.EPCI)
     ProjetFactory(dossier_ds__perimetre=perimetre)
-    response = client.get(reverse("projet:list"), data={"porteur": "epci"})
+    response = client.get(
+        reverse("projet:list", kwargs={"campagne": default_campagne()}),
+        data={"porteur": "epci"},
+    )
     assert response.status_code == 200
     soup = _soup(response)
 
@@ -160,7 +167,7 @@ def test_programmation_list_renders_fixed_fields_and_tags(client, perimetre):
     )
     url = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": "DETR"},
+        kwargs={"dotation": "DETR", "campagne": default_campagne()},
     )
     response = client.get(url, data={"search": "bar"})
     assert response.status_code == 200

@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -45,7 +46,9 @@ class TestSimulationRenameView:
         user = CollegueFactory(perimetre=enveloppe.perimetre)
         client = ClientWithLoggedUserFactory(user)
 
-        list_url = reverse("simulation:simulation-list")
+        list_url = reverse(
+            "simulation:simulation-list", kwargs={"campagne": default_campagne()}
+        )
         url = reverse("simulation:simulation-rename", args=[simulation.id])
         response = client.post(
             f"{url}?next={list_url}", {"title": "Nouveau titre"}, follow=True

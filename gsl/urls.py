@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
+from gsl.core.campagne import DefaultCampagneRedirectView
 from gsl.core.fragments import fragment_urlpatterns
 
 admin.site.site_header = "Back-office Turgot - " + settings.ENV
@@ -38,6 +39,21 @@ urlpatterns = [
     path(
         "programmation/",
         include(("gsl.programmation.urls", "gsl_programmation"), "programmation"),
+    ),
+    # Bookmarks taken before the lists carried a campagne.
+    path(
+        "projets/liste",
+        DefaultCampagneRedirectView.as_view(pattern_name="projet:list"),
+    ),
+    path(
+        "simulation/liste/",
+        DefaultCampagneRedirectView.as_view(pattern_name="simulation:simulation-list"),
+    ),
+    path(
+        "programmation/liste/<str:dotation>/",
+        DefaultCampagneRedirectView.as_view(
+            pattern_name="programmation:programmation-projet-list-dotation"
+        ),
     ),
     path(
         "notification/",

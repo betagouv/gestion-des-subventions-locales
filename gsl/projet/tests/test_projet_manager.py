@@ -178,63 +178,53 @@ def test_for_normal_user_with_perimetre(departement, projets):
 # Filter included_in_enveloppe =========================================================
 
 
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "state, ds_date_traitement",
-    (
-        (Dossier.State.EN_CONSTRUCTION, datetime(1999, 1, 1, tzinfo=tz.utc)),
-        (Dossier.State.EN_INSTRUCTION, datetime(2000, 1, 1, tzinfo=tz.utc)),
-        (Dossier.State.ACCEPTE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
-        (
-            Dossier.State.SANS_SUITE,
-            datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc),
-        ),
-        (Dossier.State.REFUSE, datetime(date.today().year, 1, 1, 0, 0, tzinfo=tz.utc)),
-    ),
-)
-def test_for_current_year_with_projet_to_display(state, ds_date_traitement):
-    ProjetFactory(
-        dossier_ds=DossierFactory(
-            ds_state=state,
-            ds_date_traitement=ds_date_traitement,
-        ),
+def test_for_campagne_returns_a_projet_of_that_campagne():
+    perimetre = PerimetreDepartementalFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(annee=2025, perimetre=perimetre),
     )
 
-    qs = Projet.objects.all()
-    qs = qs.for_current_year()
-
-    assert qs.count() == 1
+    assert list(Projet.objects.for_campagne(2025)) == [projet]
 
 
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "state, ds_date_traitement",
-    (
-        (
-            Dossier.State.ACCEPTE,
-            datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
-        ),
-        (
-            Dossier.State.SANS_SUITE,
-            datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
-        ),
-        (
-            Dossier.State.REFUSE,
-            datetime(date.today().year - 1, 12, 31, 23, 59, tzinfo=tz.utc),
-        ),
-    ),
-)
-def test_for_current_year_with_projet_to_archive(state, ds_date_traitement):
-    ProjetFactory(
-        dossier_ds=DossierFactory(
-            ds_state=state,
-            ds_date_traitement=ds_date_traitement,
-        ),
+def test_for_campagne_ignores_a_projet_of_another_campagne():
+    perimetre = PerimetreDepartementalFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(annee=2026, perimetre=perimetre),
     )
 
-    qs = Projet.objects.for_current_year()
+    assert Projet.objects.for_campagne(2025).count() == 0
 
-    assert qs.count() == 0
+
+def test_for_campagne_ignores_an_historised_enveloppe_projet():
+    perimetre = PerimetreDepartementalFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(annee=2025, perimetre=perimetre),
+        is_courant=False,
+    )
+
+    assert Projet.objects.for_campagne(2025).count() == 0
+
+
+def test_for_campagne_returns_a_double_dotation_projet_once():
+    perimetre = PerimetreDepartementalFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(annee=2025, perimetre=perimetre),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DsilEnveloppeFactory(annee=2025, perimetre=perimetre),
+    )
+
+    assert list(Projet.objects.for_campagne(2025)) == [projet]
 
 
 def for_year_with_projet_to_display(state, ds_date_traitement):

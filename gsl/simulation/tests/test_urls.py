@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -29,7 +30,7 @@ def client_with_user_logged():
 
 @pytest.mark.django_db
 def test_simulation_list_url(client_with_user_logged):
-    url = reverse("simulation:simulation-list")
+    url = reverse("simulation:simulation-list", kwargs={"campagne": default_campagne()})
     response = client_with_user_logged.get(url, follow=True)
     assert response.status_code == 200
 

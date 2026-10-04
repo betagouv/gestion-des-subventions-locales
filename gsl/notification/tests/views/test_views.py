@@ -8,6 +8,7 @@ from django.utils.text import slugify
 from freezegun import freeze_time
 from pikepdf import Pdf
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -138,7 +139,7 @@ def test_get_documents_without_back_param_uses_projet_list(
     url = reverse("notification:documents", kwargs={"projet_id": projet.id})
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
-    expected_back = reverse("projet:list")
+    expected_back = reverse("projet:list", kwargs={"campagne": default_campagne()})
     assert response.context["go_back_link"] == expected_back
 
 
@@ -162,7 +163,7 @@ def test_get_documents_with_external_back_url_falls_back_to_projet_list(
         url, {"back": "https://evil.com/"}
     )
     assert response.status_code == 200
-    expected_back = reverse("projet:list")
+    expected_back = reverse("projet:list", kwargs={"campagne": default_campagne()})
     assert response.context["go_back_link"] == expected_back
 
 
