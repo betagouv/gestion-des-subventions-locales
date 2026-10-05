@@ -4,21 +4,8 @@ import pytest
 
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import CollegueFactory
-from gsl.projet.constants import (
-    DS_TRAITEMENT_EVENT_ACCEPTE,
-    DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT,
-    DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
-    DS_TRAITEMENT_EVENT_DEPOSE,
-    DS_TRAITEMENT_EVENT_DEPOSE_CORRECTION_INSTRUCTEUR,
-    DS_TRAITEMENT_EVENT_DEPOSE_CORRECTION_USAGER,
-    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
-    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT,
-    DS_TRAITEMENT_EVENT_REFUSE,
-    DS_TRAITEMENT_EVENT_REFUSE_AUTOMATIQUEMENT,
-    DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION,
-    DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
-)
 from gsl.projet.tests.factories import ProjetFactory
+from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 
 from ..models import ProjetAction
@@ -28,6 +15,8 @@ from ..utils import (
 )
 
 pytestmark = pytest.mark.django_db
+
+TraitementEvent = Dossier.TraitementEvent
 
 
 def _dossier_with_traitements(*, traitements):
@@ -54,28 +43,28 @@ def _traitement(
 @pytest.mark.parametrize(
     "event, action_type",
     [
-        (DS_TRAITEMENT_EVENT_DEPOSE, ProjetAction.TYPE_DEPOT_DOSSIER),
+        (TraitementEvent.DEPOSE, ProjetAction.TYPE_DEPOT_DOSSIER),
         (
-            DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
+            TraitementEvent.PASSE_EN_INSTRUCTION,
             ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
         ),
         (
-            DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT,
+            TraitementEvent.PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT,
             ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
         ),
         (
-            DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
+            TraitementEvent.REPASSE_EN_INSTRUCTION,
             ProjetAction.TYPE_RETOUR_EN_INSTRUCTION,
         ),
         (
-            DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION,
+            TraitementEvent.REPASSE_EN_CONSTRUCTION,
             ProjetAction.TYPE_RETOUR_EN_CONSTRUCTION,
         ),
-        (DS_TRAITEMENT_EVENT_ACCEPTE, ProjetAction.TYPE_NOTIFIED),
-        (DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT, ProjetAction.TYPE_NOTIFIED),
-        (DS_TRAITEMENT_EVENT_REFUSE, ProjetAction.TYPE_NOTIFIED),
-        (DS_TRAITEMENT_EVENT_REFUSE_AUTOMATIQUEMENT, ProjetAction.TYPE_NOTIFIED),
-        (DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE, ProjetAction.TYPE_NOTIFIED),
+        (TraitementEvent.ACCEPTE, ProjetAction.TYPE_NOTIFIED),
+        (TraitementEvent.ACCEPTE_AUTOMATIQUEMENT, ProjetAction.TYPE_NOTIFIED),
+        (TraitementEvent.REFUSE, ProjetAction.TYPE_NOTIFIED),
+        (TraitementEvent.REFUSE_AUTOMATIQUEMENT, ProjetAction.TYPE_NOTIFIED),
+        (TraitementEvent.CLASSE_SANS_SUITE, ProjetAction.TYPE_NOTIFIED),
     ],
 )
 def test_creates_the_matching_action_type_for_each_known_event(event, action_type):
@@ -94,8 +83,8 @@ def test_creates_the_matching_action_type_for_each_known_event(event, action_typ
 @pytest.mark.parametrize(
     "event",
     [
-        DS_TRAITEMENT_EVENT_DEPOSE_CORRECTION_USAGER,
-        DS_TRAITEMENT_EVENT_DEPOSE_CORRECTION_INSTRUCTEUR,
+        TraitementEvent.DEPOSE_CORRECTION_USAGER,
+        TraitementEvent.DEPOSE_CORRECTION_INSTRUCTEUR,
         "some_unknown_event",
     ],
 )
@@ -129,15 +118,15 @@ def test_creates_one_action_per_traitement_in_order():
     projet = _dossier_with_traitements(
         traitements=[
             _traitement(
-                "traitement-1", DS_TRAITEMENT_EVENT_DEPOSE, "2025-01-01T00:00:00+00:00"
+                "traitement-1", TraitementEvent.DEPOSE, "2025-01-01T00:00:00+00:00"
             ),
             _traitement(
                 "traitement-2",
-                DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
+                TraitementEvent.PASSE_EN_INSTRUCTION,
                 "2025-01-02T00:00:00+00:00",
             ),
             _traitement(
-                "traitement-3", DS_TRAITEMENT_EVENT_ACCEPTE, "2025-01-03T00:00:00+00:00"
+                "traitement-3", TraitementEvent.ACCEPTE, "2025-01-03T00:00:00+00:00"
             ),
         ]
     )
@@ -153,7 +142,7 @@ def test_creates_one_action_per_traitement_in_order():
 
 def test_is_idempotent_when_rerun_on_the_same_traitements():
     projet = _dossier_with_traitements(
-        traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_DEPOSE)]
+        traitements=[_traitement("traitement-1", TraitementEvent.DEPOSE)]
     )
 
     first_created_count = create_projet_actions_from_dossier_traitements(projet)
@@ -166,15 +155,15 @@ def test_is_idempotent_when_rerun_on_the_same_traitements():
 
 def test_only_creates_actions_for_new_traitements_on_resync():
     projet = _dossier_with_traitements(
-        traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_DEPOSE)]
+        traitements=[_traitement("traitement-1", TraitementEvent.DEPOSE)]
     )
     create_projet_actions_from_dossier_traitements(projet)
 
     # Le dossier a avancé depuis : un nouveau traitement DN est apparu.
     projet.dossier_ds.ds_data.raw_data = {
         "traitements": [
-            _traitement("traitement-1", DS_TRAITEMENT_EVENT_DEPOSE),
-            _traitement("traitement-2", DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION),
+            _traitement("traitement-1", TraitementEvent.DEPOSE),
+            _traitement("traitement-2", TraitementEvent.PASSE_EN_INSTRUCTION),
         ]
     }
     projet.dossier_ds.ds_data.save()
@@ -212,7 +201,7 @@ def test_sets_actor_from_traitement_email_agent_traitant():
         traitements=[
             _traitement(
                 "traitement-1",
-                DS_TRAITEMENT_EVENT_ACCEPTE,
+                TraitementEvent.ACCEPTE,
                 email_agent_traitant="Instructeur@Example.Net",
             )
         ]
@@ -231,7 +220,7 @@ def test_reuses_existing_collegue_matching_the_traitement_email():
         traitements=[
             _traitement(
                 "traitement-1",
-                DS_TRAITEMENT_EVENT_ACCEPTE,
+                TraitementEvent.ACCEPTE,
                 email_agent_traitant="instructeur@example.net",
             )
         ]
@@ -245,7 +234,7 @@ def test_reuses_existing_collegue_matching_the_traitement_email():
 
 def test_leaves_actor_null_when_traitement_has_no_email_agent_traitant():
     projet = _dossier_with_traitements(
-        traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_ACCEPTE)]
+        traitements=[_traitement("traitement-1", TraitementEvent.ACCEPTE)]
     )
 
     create_projet_actions_from_dossier_traitements(projet)
@@ -259,7 +248,7 @@ def test_sets_details_from_traitement_motivation():
         traitements=[
             _traitement(
                 "traitement-1",
-                DS_TRAITEMENT_EVENT_REFUSE,
+                TraitementEvent.REFUSE,
                 motivation="Dossier incomplet",
             )
         ]
@@ -273,7 +262,7 @@ def test_sets_details_from_traitement_motivation():
 
 def test_leaves_details_blank_when_traitement_has_no_motivation():
     projet = _dossier_with_traitements(
-        traitements=[_traitement("traitement-1", DS_TRAITEMENT_EVENT_ACCEPTE)]
+        traitements=[_traitement("traitement-1", TraitementEvent.ACCEPTE)]
     )
 
     create_projet_actions_from_dossier_traitements(projet)

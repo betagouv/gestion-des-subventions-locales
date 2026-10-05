@@ -1,6 +1,7 @@
 from datetime import datetime
+from enum import Enum
 from logging import getLogger
-from typing import List, Literal
+from typing import List
 
 from django.core.exceptions import FieldDoesNotExist
 from django.core.files.uploadedfile import UploadedFile
@@ -9,15 +10,7 @@ from django.utils import timezone
 
 from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
-    DOTATION_DSIL,
-    DS_TRAITEMENT_EVENT_ACCEPTE,
-    DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
-    DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
-    DS_TRAITEMENT_EVENT_REFUSE,
-    DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
-    POSSIBLE_DOTATIONS,
-)
+from gsl.projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.exceptions import (
     DsServiceException,
@@ -31,35 +24,28 @@ from gsl_demarches_simplifiees.utils import most_recent_traitement
 logger = getLogger(__name__)
 
 
+class Mutation(Enum):
+    ACCEPT = ("dossierAccepter", Dossier.TraitementEvent.ACCEPTE)
+    DISMISS = ("dossierClasserSansSuite", Dossier.TraitementEvent.CLASSE_SANS_SUITE)
+    REFUSE = ("dossierRefuser", Dossier.TraitementEvent.REFUSE)
+    PASSAGE_EN_INSTRUCTION = (
+        "dossierPasserEnInstruction",
+        Dossier.TraitementEvent.PASSE_EN_INSTRUCTION,
+    )
+    RETOUR_EN_INSTRUCTION = (
+        "dossierRepasserEnInstruction",
+        Dossier.TraitementEvent.REPASSE_EN_INSTRUCTION,
+    )
+    ANNOTATIONS = ("dossierModifierAnnotations", None)
+
+    def __init__(self, field_name: str, event_name: str | None):
+        # Enum unpacks each member's tuple into these arguments.
+        # Eg. Mutation.ACCEPT.field_name == "dossierAccepter"
+        self.field_name = field_name
+        self.event_name = event_name
+
+
 class DsService:
-    MUTATION_KEYS = {
-        "accept": "dossierAccepter",
-        "dismiss": "dossierClasserSansSuite",
-        "refuser": "dossierRefuser",
-        "annotations": "dossierModifierAnnotations",
-        "passer_en_instruction": "dossierPasserEnInstruction",
-        "repasser_en_instruction": "dossierRepasserEnInstruction",
-    }
-
-    MUTATION_TYPES = Literal[
-        "accept",
-        "dismiss",
-        "refuser",
-        "annotations",
-        "passer_en_instruction",
-        "repasser_en_instruction",
-    ]
-
-    # Événement DN (`traitements[].event`) attendu pour le traitement créé
-    # par chaque mutation, utilisé pour fiabiliser `most_recent_traitement`.
-    MUTATION_EXPECTED_EVENTS = {
-        "accept": DS_TRAITEMENT_EVENT_ACCEPTE,
-        "dismiss": DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
-        "refuser": DS_TRAITEMENT_EVENT_REFUSE,
-        "passer_en_instruction": DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION,
-        "repasser_en_instruction": DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION,
-    }
-
     def __init__(self):
         self.mutator = DsMutator()
 
@@ -70,7 +56,7 @@ class DsService:
             refresh_dossier_from_saved_data,
         )
 
-        mutation = "passer_en_instruction"
+        mutation = Mutation.PASSAGE_EN_INSTRUCTION
 
         results = self.mutator.dossier_passer_en_instruction(dossier.ds_id, user.ds_id)
         self._check_results(results, dossier, user, mutation)
@@ -92,7 +78,7 @@ class DsService:
             refresh_dossier_from_saved_data,
         )
 
-        mutation = "repasser_en_instruction"
+        mutation = Mutation.RETOUR_EN_INSTRUCTION
 
         results = self.mutator.dossier_repasser_en_instruction(
             dossier.ds_id, user.ds_id
@@ -122,7 +108,7 @@ class DsService:
             refresh_dossier_from_saved_data,
         )
 
-        mutation = "accept"
+        mutation = Mutation.ACCEPT
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_accepter(
             dossier.ds_id, instructeur_id, motivation=motivation, document=document
@@ -153,7 +139,7 @@ class DsService:
             refresh_dossier_from_saved_data,
         )
 
-        mutation = "dismiss"
+        mutation = Mutation.DISMISS
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_classer_sans_suite(
             dossier.ds_id, instructeur_id, motivation, document=document
@@ -185,7 +171,7 @@ class DsService:
             refresh_dossier_from_saved_data,
         )
 
-        mutation = "refuser"
+        mutation = Mutation.REFUSE
         instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_refuser(
             dossier, instructeur_id, motivation=motivation, document=document
@@ -210,7 +196,7 @@ class DsService:
         self,
         dossier: Dossier,
         user: Collegue,
-        mutation_type: MUTATION_TYPES,
+        mutation: Mutation,
         action_type: str,
         dossier_data: dict,
         document: UploadedFile | None = None,
@@ -227,9 +213,7 @@ class DsService:
             dossier.save()
 
         traitements = dossier_data.get("traitements") or []
-        traitement = most_recent_traitement(
-            traitements, self.MUTATION_EXPECTED_EVENTS[mutation_type]
-        )
+        traitement = most_recent_traitement(traitements, mutation.event_name)
         traitement_id = traitement["id"] if traitement else None
 
         try:
@@ -257,11 +241,10 @@ class DsService:
             action.document.save(document.name, document, save=False)
         action.save()
 
-    def _get_dossier_data(self, results: dict, mutation_type: MUTATION_TYPES) -> dict:
+    def _get_dossier_data(self, results: dict, mutation: Mutation) -> dict:
         """Extrait le sous-objet `dossier` de la réponse d'une mutation DN
         (cf `ds_mutations.gql`), ou `{}` s'il est absent."""
-        mutation_key = self.MUTATION_KEYS[mutation_type]
-        return results.get("data", {}).get(mutation_key, {}).get("dossier") or {}
+        return results.get("data", {}).get(mutation.field_name, {}).get("dossier") or {}
 
     # Annotations
 
@@ -324,7 +307,9 @@ class DsService:
         results = self.mutator.dossier_modifier_annotations(
             dossier.ds_id, user.ds_id, annotations
         )
-        self._check_results(results, dossier, user, "annotations", value=annotations)
+        self._check_results(
+            results, dossier, user, Mutation.ANNOTATIONS, value=annotations
+        )
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 
@@ -351,7 +336,9 @@ class DsService:
         results = self.mutator.dossier_modifier_annotations(
             dossier.ds_id, user.ds_id, ds_annotations
         )
-        self._check_results(results, dossier, user, "annotations", value=ds_annotations)
+        self._check_results(
+            results, dossier, user, Mutation.ANNOTATIONS, value=ds_annotations
+        )
         self._update_updated_at_from_multiple_annotations(dossier, results)
         return results
 
@@ -418,11 +405,11 @@ class DsService:
         results: dict,
         dossier: Dossier,
         user: Collegue,
-        mutation_type: MUTATION_TYPES,
+        mutation: Mutation,
         field: str | None = None,
         value: float | bool | str | None = None,
     ) -> None:
-        mutation_key = self.MUTATION_KEYS[mutation_type]
+        mutation_key = mutation.field_name
         data = results.get("data", None)
 
         if data is None or mutation_key in data and data.get(mutation_key) is None:
