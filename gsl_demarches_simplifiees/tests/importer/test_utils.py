@@ -169,6 +169,27 @@ def test_get_arrondissement_from_value_disambiguates_by_departement():
     assert result == arr_52
 
 
+@pytest.mark.django_db
+def test_get_arrondissement_from_value_handle_69_exception():
+    region = RegionFactory()
+    dep_69 = DepartementFactory(region=region, insee_code="69", name="Rhône")
+    arr_69_lyon = ArrondissementFactory(
+        departement=dep_69, insee_code="691", name="Lyon"
+    )
+    ArrondissementFactory(
+        departement=dep_69, insee_code="692", name="Villefranche-sur-Saône"
+    )
+    result = get_arrondissement_from_value(
+        "69 - Rhône - arrondissement de Lyon - Métropole de Lyon"
+    )
+    assert result == arr_69_lyon
+
+    result = get_arrondissement_from_value(
+        "69 - Rhône - arrondissement de Lyon - Rhône-Sud"
+    )
+    assert result == arr_69_lyon
+
+
 def test_get_arrondissement_from_value_raises_when_no_pattern():
     with pytest.raises(ValueError, match="Arrondissement not found in field value"):
         get_arrondissement_from_value("Some value without arrondissement pattern")
