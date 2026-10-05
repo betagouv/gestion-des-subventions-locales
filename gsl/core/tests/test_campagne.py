@@ -1,6 +1,7 @@
 import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
+from django.urls import reverse
 
 from gsl.core.campagne import (
     _active,
@@ -9,7 +10,10 @@ from gsl.core.campagne import (
     get_campagne,
 )
 from gsl.core.middlewares import CampagneMiddleware
-from gsl.core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
+from gsl.core.tests.factories import (
+    ClientWithLoggedUserFactory,
+    CollegueFactory,
+)
 
 # -- active campagne --
 
@@ -92,6 +96,11 @@ def test_the_campagne_does_not_outlive_the_request():
 # -- campagne-less bookmarks --
 
 
+@pytest.fixture
+def client():
+    return ClientWithLoggedUserFactory(CollegueFactory())
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "path, target",
@@ -101,11 +110,70 @@ def test_the_campagne_does_not_outlive_the_request():
         ("/programmation/liste/DETR/", "/programmation/liste/DETR/{campagne}/"),
     ),
 )
-def test_a_campagne_less_bookmark_redirects_to_the_active_campagne(path, target):
-    client = ClientWithLoggedUserFactory(CollegueFactory())
-
+def test_a_campagne_less_bookmark_redirects_to_the_active_campagne(
+    client, path, target
+):
     response = client.get(f"{path}?status=accepted")
 
     expected = target.format(campagne=default_campagne())
     assert response.status_code == 302
     assert response["Location"] == f"{expected}?status=accepted"
+
+
+# -- changer-campagne --
+
+
+def changer_campagne_url(campagne, next_url=None):
+    url = reverse("changer-campagne", kwargs={"campagne": campagne})
+    return f"{url}?next={next_url}" if next_url else url
+
+
+@pytest.mark.django_db
+def test_change_campagne_keeps_the_page_with_the_new_campagne(client):
+    next_url = reverse(
+        "programmation:programmation-projet-list-dotation",
+        kwargs={"dotation": "DETR", "campagne": 2026},
+    )
+    response = client.get(changer_campagne_url(2027, f"{next_url}?status=valid"))
+    assert response.status_code == 302
+    assert response.url == reverse(
+        "programmation:programmation-projet-list-dotation",
+        kwargs={"dotation": "DETR", "campagne": 2027},
+    )
+
+
+@pytest.mark.django_db
+def test_change_campagne_on_a_page_without_campagne_stays_on_it(client):
+    response = client.get(changer_campagne_url(2027, "/notification/"))
+    assert response.status_code == 302
+    assert response.url == "/notification/"
+    assert client.session["campagne"] == 2027
+
+
+@pytest.mark.django_db
+def test_change_campagne_is_remembered_in_session(client):
+    client.get(changer_campagne_url(2027, "/"))
+    response = client.get("/projets/liste")
+    assert response.url == reverse("projet:list", kwargs={"campagne": 2027})
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("next_url", [None, "https://evil.com/projets/liste/2026"])
+def test_change_campagne_without_safe_next_goes_to_projet_list(client, next_url):
+    response = client.get(changer_campagne_url(2027, next_url))
+    assert response.url == reverse("projet:list", kwargs={"campagne": 2027})
+
+
+@pytest.mark.django_db
+def test_change_campagne_refuses_unknown_campagne(client):
+    response = client.get(changer_campagne_url(1999, "/"))
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_main_menu_displays_campagne_selector(client):
+    url = reverse("projet:list", kwargs={"campagne": 2027})
+    response = client.get(url)
+    content = response.content.decode()
+    assert "Campagne 2027" in content
+    assert changer_campagne_url(2026) in content

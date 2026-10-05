@@ -3,8 +3,14 @@ from django.urls import path
 from django.views.generic import TemplateView
 
 from . import views
+from .campagne import ChangeCampagneView
 
 urlpatterns = [
+    path(
+        "campagne/<int:campagne>/",
+        ChangeCampagneView.as_view(),
+        name="changer-campagne",
+    ),
     path("otp/setup/", views.OTPSetupView.as_view(), name="otp-setup"),
     path("otp/verify/", views.OTPVerifyView.as_view(), name="otp-verify"),
     path(
