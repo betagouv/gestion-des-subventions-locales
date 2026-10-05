@@ -62,10 +62,11 @@ def get_arrondissement_from_value(value: str) -> Arrondissement | None:
     Extract arrondissement name and department code from a field value following the pattern:
     "67 - Bas-Rhin - arrondissement de Haguenau-Wissembourg" => "Haguenau-Wissembourg"
     "10 - Aube - arrondissement de Bar-sur-Aube" => "Bar-sur-Aube"
+    "69 - Rhône - arrondissement de Lyon - Métropole de Lyon" => "Lyon"
     Then return the Arrondissement object with the given name and department.
     """
     match = re.match(
-        r"^\s*(\d{1,3}[AB]?)\s*-\s*.+arrondissement\s*de\s*(.+)$",
+        r"^\s*(\d{1,3}[AB]?)\s*-\s*.+arrondissement\s*de\s*(.+?)(?:\s+-\s+.*)?$",
         value,
         re.IGNORECASE,
     )
