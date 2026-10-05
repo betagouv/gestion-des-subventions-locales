@@ -85,21 +85,12 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     ]
     search_fields = ("dossier_ds__ds_number", "dossier_ds__projet_intitule")
     readonly_fields = ("created_at", "updated_at", "perimetre", "reporte")
-    list_select_related = (
-        "dossier_ds",
-        "dossier_ds__ds_data",
-        "dossier_ds__ds_demarche",
-        "dossier_ds__perimetre",
-        "dossier_ds__perimetre__departement",
-    )
 
     def get_queryset(self, request):
+        # `list_select_related` is ignored by the changelist because the default
+        # manager already calls `select_related`, so we apply it here.
         qs = super().get_queryset(request)
-        qs = qs.defer(
-            "dossier_ds__ds_data__raw_data",
-            "dossier_ds__ds_demarche__raw_ds_data",
-        )
-        return qs.prefetch_related("enveloppeprojet_set")
+        return qs.select_related("dossier_ds__perimetre__departement")
 
     @admin.action(description="Rafraîchir depuis le dossier DN")
     def refresh_from_dossier(self, request, queryset):
@@ -216,12 +207,17 @@ class EnveloppeProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "dossier_link",
         "projet_link",
     )
-    list_select_related = ("projet", "projet__dossier_ds")
 
     def get_queryset(self, request):
+        # `list_select_related` is ignored by the changelist because the default
+        # manager already calls `select_related`, so we apply it here.
         qs = super().get_queryset(request)
-        qs = qs.annotate(simulation_count=Count("simulationprojet"))
-        return qs.prefetch_related("simulationprojet_set")
+        return qs.select_related(
+            "projet__dossier_ds",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+            "enveloppe__perimetre__arrondissement",
+        ).annotate(simulation_count=Count("simulationprojet"))
 
     @admin.action(description="Associer ce projet à l'enveloppe 2025")
     @transaction.atomic

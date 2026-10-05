@@ -29,7 +29,7 @@ class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "updated_at",
     )
     readonly_fields = ("dossier_link",)
-    list_select_related = ("enveloppe_projet__projet__dossier_ds",)
+    list_select_related = ("enveloppe_projet__projet__dossier_ds", "created_by")
 
     def dossier_link(self, obj):
         dossier = obj.enveloppe_projet.projet.dossier_ds
@@ -83,7 +83,7 @@ class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "is_infected",
     )
     actions = [relaunch_antivirus_scan]
-    list_select_related = ("enveloppe_projet__projet__dossier_ds",)
+    list_select_related = ("enveloppe_projet__projet__dossier_ds", "created_by")
 
     def dossier_link(self, obj):
         dossier = obj.enveloppe_projet.projet.dossier_ds
