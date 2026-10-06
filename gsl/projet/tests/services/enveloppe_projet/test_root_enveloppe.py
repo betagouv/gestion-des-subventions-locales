@@ -9,11 +9,13 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.programmation.models import Enveloppe
 from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
 from gsl_demarches_simplifiees.models import Dossier
+from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ....constants import (
     DOTATION_DETR,
@@ -21,7 +23,7 @@ from ....constants import (
     ProjetStatus,
 )
 from ....services.enveloppe_projet_services import EnveloppeProjetService
-from ...factories import EnveloppeProjetFactory
+from ...factories import EnveloppeProjetFactory, ProjetFactory
 
 synchroniser = EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet
 
@@ -45,9 +47,6 @@ def perimetres():
         dep_92,
         region_idf,
     ]
-
-
-# -- root enveloppe of a dotation treated in DN --
 
 
 @pytest.mark.django_db
@@ -147,6 +146,55 @@ def test_refused_dotation_creates_the_missing_root_enveloppe_without_montant(
     enveloppe_projet.refresh_from_db()
     assert enveloppe_projet.enveloppe.annee == 2026
     assert enveloppe_projet.enveloppe.montant == 0
+
+
+@pytest.mark.django_db
+@freeze_time("2026-10-20")
+def test_accepted_dotation_leaves_the_campagne_of_its_depot_for_the_treatment_year(
+    perimetres,
+):
+    arr_dijon, dep_21, *_ = perimetres
+    enveloppe_2026 = DetrEnveloppeFactory(perimetre=dep_21, annee=2026)
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2027)
+    dossier = DossierFactory(
+        ds_state=Dossier.State.ACCEPTE,
+        annotations_dotation="DETR",
+        ds_date_depot=timezone.datetime(2026, 10, 15, tzinfo=UTC),
+        ds_date_traitement=timezone.datetime(2026, 10, 20, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    assert dossier.annee_de_campagne == 2027
+    enveloppe_ids = set(Enveloppe.objects.values_list("id", flat=True))
+
+    synchroniser(projet)
+
+    enveloppe_projet = projet.enveloppeprojet_set.get()
+    assert enveloppe_projet.enveloppe == enveloppe_2026
+    assert set(Enveloppe.objects.values_list("id", flat=True)) == enveloppe_ids
+
+
+@pytest.mark.django_db
+@freeze_time("2026-06-20")
+def test_accepted_dotation_keeps_the_campagne_of_its_depot_outside_the_autumn(
+    perimetres,
+):
+    arr_dijon, dep_21, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2026)
+    dossier = DossierFactory(
+        ds_state=Dossier.State.ACCEPTE,
+        annotations_dotation="DETR",
+        ds_date_depot=timezone.datetime(2026, 3, 15, tzinfo=UTC),
+        ds_date_traitement=timezone.datetime(2026, 6, 20, tzinfo=UTC),
+        perimetre=arr_dijon,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+    assert dossier.annee_de_campagne == 2026
+
+    synchroniser(projet)
+
+    enveloppe_projet = projet.enveloppeprojet_set.get()
+    assert enveloppe_projet.enveloppe.annee == 2026
 
 
 @pytest.mark.django_db
