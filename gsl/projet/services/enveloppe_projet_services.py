@@ -211,4 +211,3 @@ class EnveloppeProjetService:
             if ep.date_programmation > ep.dossier_ds.ds_date_passage_en_instruction:
                 continue
             ep.set_back_status_to_processing_without_ds()
-            ep.save()

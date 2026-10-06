@@ -278,7 +278,9 @@ class SimulationProjetStatusForm(DsfrBaseForm, forms.ModelForm):
             self.status in SimulationProjet.SIMULATION_PENDING_STATUSES
             and self.instance.status not in SimulationProjet.SIMULATION_PENDING_STATUSES
         ):
-            self.instance.enveloppe_projet.set_back_status_to_processing(user)
+            self.instance.enveloppe_projet = (
+                self.instance.enveloppe_projet.set_back_status_to_processing(user)
+            )
 
         self.instance.enveloppe_projet.save()
         self.instance.status = self.status

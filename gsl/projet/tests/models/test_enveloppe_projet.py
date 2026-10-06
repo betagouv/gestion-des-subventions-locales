@@ -735,6 +735,8 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
 
     assert nouveau.status == ProjetStatus.PROCESSING
     assert not nouveau.is_programmee
+    assert nouveau.is_courant
+    assert nouveau.projet.notified_at is None
 
     simulation_projets = SimulationProjet.objects.filter(enveloppe_projet=nouveau)
     assert simulation_projets.count() == 3
@@ -743,7 +745,6 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
         assert simulation_projet.montant == 10_000
         assert simulation_projet.taux == 20
         assert simulation_projet.enveloppe_projet == nouveau
-    assert nouveau.projet.notified_at is None
 
     # The former one is kept untouched as history
     assert not enveloppe_projet.is_courant
@@ -788,13 +789,14 @@ def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
 
     assert nouveau.status == ProjetStatus.PROCESSING
     assert not nouveau.is_programmee
+    assert nouveau.projet.notified_at is None
+    assert nouveau.is_courant
     simulation_projets = SimulationProjet.objects.filter(enveloppe_projet=nouveau)
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
-    assert nouveau.projet.notified_at is None
 
     # The former one is kept untouched as history
     assert not enveloppe_projet.is_courant
