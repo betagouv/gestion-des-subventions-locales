@@ -59,6 +59,23 @@ def test_get_instructeur_id(caplog):
 
 
 @pytest.mark.parametrize(
+    "method_name, kwargs",
+    (
+        ("passer_en_instruction", {}),
+        ("repasser_en_instruction", {}),
+        ("accept_in_ds", {"document": None}),
+        ("dismiss_in_ds", {"motivation": ""}),
+        ("refuser_in_ds", {"motivation": ""}),
+    ),
+)
+def test_every_mutation_refuses_a_user_without_ds_id(dossier, method_name, kwargs):
+    user = CollegueFactory()
+
+    with pytest.raises(InstructeurUnknown):
+        getattr(DsService(), method_name)(dossier, user, **kwargs)
+
+
+@pytest.mark.parametrize(
     "field, field_name",
     (
         ("annotations_is_qpv", "Projet situé en QPV"),

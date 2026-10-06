@@ -57,8 +57,11 @@ class DsService:
         )
 
         mutation = Mutation.PASSAGE_EN_INSTRUCTION
+        instructeur_id = self._get_instructeur_id(user)
 
-        results = self.mutator.dossier_passer_en_instruction(dossier.ds_id, user.ds_id)
+        results = self.mutator.dossier_passer_en_instruction(
+            dossier.ds_id, instructeur_id
+        )
         self._check_results(results, dossier, user, mutation)
 
         dossier_data = self._get_dossier_data(results, mutation)
@@ -79,9 +82,10 @@ class DsService:
         )
 
         mutation = Mutation.RETOUR_EN_INSTRUCTION
+        instructeur_id = self._get_instructeur_id(user)
 
         results = self.mutator.dossier_repasser_en_instruction(
-            dossier.ds_id, user.ds_id
+            dossier.ds_id, instructeur_id
         )
         self._check_results(results, dossier, user, mutation)
 
