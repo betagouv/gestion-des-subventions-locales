@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import resolve, reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ArrondissementFactory,
     ClientWithLoggedUserFactory,
@@ -172,7 +173,7 @@ def projets(simulation, perimetre_departemental):
 
 
 def test_simulation_list_view(req, view, simulations):
-    url = reverse("simulation:simulation-list")
+    url = reverse("simulation:simulation-list", kwargs={"campagne": default_campagne()})
     view.object_list = simulations
     view.request = req.get(url)
 

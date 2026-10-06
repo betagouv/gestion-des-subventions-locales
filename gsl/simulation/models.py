@@ -55,6 +55,9 @@ class SimulationQuerySet(models.QuerySet):
             enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(user)
         )
 
+    def for_campagne(self, annee: int):
+        return self.filter(enveloppe__annee=annee)
+
 
 class SimulationManager(models.Manager.from_queryset(SimulationQuerySet)):
     pass

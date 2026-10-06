@@ -9,6 +9,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreDepartementalFactory,
@@ -88,7 +89,7 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
         # Access DETR programming page
         url = reverse(
             "programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
         response = client_logged_in.get(url)
 
@@ -118,7 +119,7 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
 
         url = reverse(
             "programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
         response = client_logged_in.get(url)
 
@@ -145,7 +146,7 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
 
         url = reverse(
             "programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": "DETR"},
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
         )
         response = client_logged_in.get(url)
 

@@ -1,7 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
-from django.utils import timezone
 
 from gsl.core.models import BaseModel, Perimetre
 from gsl.projet.constants import (
@@ -43,8 +42,8 @@ class EnveloppeQueryset(models.QuerySet):
         new_obj.save(update_fields=["parent"])
         return new_obj
 
-    def for_current_year(self):
-        return self.filter(annee=timezone.now().year)
+    def for_campagne(self, annee: int):
+        return self.filter(annee=annee)
 
     def root_for(self, dotation: str, perimetre: Perimetre, annee: int) -> "Enveloppe":
         perimetre_racine = perimetre.for_dotation(dotation)

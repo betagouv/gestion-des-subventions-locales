@@ -3,7 +3,7 @@ from datetime import date
 from django.db.models import Prefetch
 from django.http import HttpResponse, QueryDict
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -13,6 +13,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
+from gsl.core.campagne import get_campagne
 from gsl.core.matomo import queue_matomo_event
 from gsl.core.matomo_constants import (
     MATOMO_ACTION_CREATION_SIMULATION,
@@ -55,12 +56,11 @@ class SimulationListView(ListView):
         return context
 
     def get_queryset(self):
-        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
-            self.request.user
+        qs = (
+            Simulation.objects.visible_for_user(self.request.user)
+            .for_campagne(get_campagne())
+            .order_by("-created_at")
         )
-        qs = Simulation.objects.filter(
-            enveloppe__in=visible_by_user_enveloppes
-        ).order_by("-created_at")
         qs = qs.select_related(
             "enveloppe",
             "enveloppe__perimetre",
@@ -215,7 +215,10 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
 
 @method_decorator(require_POST, name="dispatch")
 class SimulationDeleteView(DeleteView):
-    success_url = reverse_lazy("simulation:simulation-list")
+    def get_success_url(self):
+        return reverse(
+            "simulation:simulation-list", kwargs={"campagne": get_campagne()}
+        )
 
     def get_queryset(self):
         visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
@@ -260,7 +263,10 @@ class SimulationCreateView(CreateView):
     form_class = SimulationForm
     template_name = "gsl_simulation/simulation_form.html"
 
-    success_url = reverse_lazy("simulation:simulation-list")
+    def get_success_url(self):
+        return reverse(
+            "simulation:simulation-list", kwargs={"campagne": get_campagne()}
+        )
 
     def get_form_kwargs(self):
         return {"user": self.request.user, **super().get_form_kwargs()}

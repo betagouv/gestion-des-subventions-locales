@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -29,7 +30,7 @@ def client_with_user_logged():
 
 @pytest.mark.django_db
 def test_simulation_list_url(client_with_user_logged):
-    url = reverse("simulation:simulation-list")
+    url = reverse("simulation:simulation-list", kwargs={"campagne": default_campagne()})
     response = client_with_user_logged.get(url, follow=True)
     assert response.status_code == 200
 
@@ -43,6 +44,25 @@ def enveloppe_departemental():
 def client_with_same_departement_perimetre(enveloppe_departemental):
     collegue = CollegueFactory(perimetre=enveloppe_departemental.perimetre)
     return ClientWithLoggedUserFactory(collegue)
+
+
+@pytest.mark.django_db
+def test_simulation_list_only_shows_the_campagne_of_the_url(
+    client_with_same_departement_perimetre, enveloppe_departemental
+):
+    campagne = enveloppe_departemental.annee
+    simulation = SimulationFactory(enveloppe=enveloppe_departemental)
+    SimulationFactory(
+        enveloppe=DetrEnveloppeFactory(
+            annee=campagne - 1, perimetre=enveloppe_departemental.perimetre
+        )
+    )
+
+    url = reverse("simulation:simulation-list", kwargs={"campagne": campagne})
+    response = client_with_same_departement_perimetre.get(url)
+
+    assert response.status_code == 200
+    assert list(response.context["object_list"]) == [simulation]
 
 
 @pytest.mark.parametrize(

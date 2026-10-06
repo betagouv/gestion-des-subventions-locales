@@ -29,7 +29,7 @@ from .views.simulation_views import (
 
 urlpatterns = [
     path(
-        "liste/",
+        "liste/<int:campagne>/",
         simulation_views.SimulationListView.as_view(),
         name="simulation-list",
     ),

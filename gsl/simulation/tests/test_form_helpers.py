@@ -76,13 +76,21 @@ def detr_projets(
     departement_perimetre, arrondissement_perimetre
 ) -> list[EnveloppeProjetFactory]:
     detr_projets = []
-    for montant_demande, montant_accorde, assiette, state, date_traitement in (
+    for (
+        montant_demande,
+        montant_accorde,
+        assiette,
+        state,
+        date_traitement,
+        campagne,
+    ) in (
         (
             1_000,
             None,
             3_000,
             Dossier.State.EN_CONSTRUCTION,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             600,
@@ -90,6 +98,7 @@ def detr_projets(
             None,
             Dossier.State.EN_INSTRUCTION,
             datetime(CURRENT_YEAR - 2, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             2_000,
@@ -97,6 +106,7 @@ def detr_projets(
             3_000,
             Dossier.State.ACCEPTE,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR - 1,
         ),
         (
             2_000,
@@ -104,6 +114,7 @@ def detr_projets(
             4_000,
             Dossier.State.ACCEPTE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             1_500,
@@ -111,6 +122,7 @@ def detr_projets(
             None,
             Dossier.State.REFUSE,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR - 1,
         ),
         (
             1_500,
@@ -118,6 +130,7 @@ def detr_projets(
             None,
             Dossier.State.REFUSE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             6_500,
@@ -125,6 +138,7 @@ def detr_projets(
             None,
             Dossier.State.SANS_SUITE,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR - 1,
         ),
         (
             2_500,
@@ -132,6 +146,7 @@ def detr_projets(
             None,
             Dossier.State.SANS_SUITE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
     ):
         status = DOSSIER_DS_STATUS_TO_ENVELOPPE_PROJET_STATUS[state]
@@ -145,7 +160,13 @@ def detr_projets(
             ),
         )
         detr_projet = DetrProjetFactory(
-            projet=projet, status=status, assiette=assiette, montant=montant_accorde
+            projet=projet,
+            status=status,
+            assiette=assiette,
+            montant=montant_accorde,
+            enveloppe=DetrEnveloppeFactory(
+                annee=campagne, perimetre=arrondissement_perimetre
+            ).delegation_root,
         )
         detr_projets.append(detr_projet)
     return detr_projets
@@ -156,13 +177,21 @@ def dsil_projets(
     departement_perimetre, arrondissement_perimetre
 ) -> list[EnveloppeProjetFactory]:
     enveloppe_projets = []
-    for montant_demande, montant_accorde, assiette, state, date_traitement in (
+    for (
+        montant_demande,
+        montant_accorde,
+        assiette,
+        state,
+        date_traitement,
+        campagne,
+    ) in (
         (
             1_000,
             None,
             4_000,
             Dossier.State.EN_CONSTRUCTION,
             datetime(CURRENT_YEAR - 1, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             600,
@@ -170,6 +199,7 @@ def dsil_projets(
             None,
             Dossier.State.EN_INSTRUCTION,
             datetime(CURRENT_YEAR - 2, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             2_000,
@@ -177,6 +207,7 @@ def dsil_projets(
             4_000,
             Dossier.State.ACCEPTE,
             datetime(CURRENT_YEAR - 1, 12, 21, tzinfo=UTC),
+            CURRENT_YEAR - 1,
         ),
         (
             5_000,
@@ -184,6 +215,7 @@ def dsil_projets(
             10_000,
             Dossier.State.ACCEPTE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             3_500,
@@ -191,6 +223,7 @@ def dsil_projets(
             None,
             Dossier.State.REFUSE,
             datetime(CURRENT_YEAR - 1, 12, 31, tzinfo=UTC),
+            CURRENT_YEAR - 1,
         ),
         (
             1_500,
@@ -198,6 +231,7 @@ def dsil_projets(
             None,
             Dossier.State.REFUSE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
         (
             2_500,
@@ -205,6 +239,7 @@ def dsil_projets(
             None,
             Dossier.State.SANS_SUITE,
             datetime(CURRENT_YEAR - 1, 12, 13, tzinfo=UTC),
+            CURRENT_YEAR - 1,
         ),
         (
             2_500,
@@ -212,6 +247,7 @@ def dsil_projets(
             None,
             Dossier.State.SANS_SUITE,
             datetime(CURRENT_YEAR, 1, 1, tzinfo=UTC),
+            CURRENT_YEAR,
         ),
     ):
         status = DOSSIER_DS_STATUS_TO_ENVELOPPE_PROJET_STATUS[state]
@@ -225,7 +261,13 @@ def dsil_projets(
             ),
         )
         dsil_projet = DsilProjetFactory(
-            projet=projet, status=status, assiette=assiette, montant=montant_accorde
+            projet=projet,
+            status=status,
+            assiette=assiette,
+            montant=montant_accorde,
+            enveloppe=DsilEnveloppeFactory(
+                annee=campagne, perimetre=arrondissement_perimetre
+            ).delegation_root,
         )
         enveloppe_projets.append(dsil_projet)
     return enveloppe_projets

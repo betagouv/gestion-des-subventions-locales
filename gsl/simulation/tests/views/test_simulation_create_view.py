@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -34,7 +35,9 @@ class TestSimulationCreateView:
 
         # Assert: simulation created and redirected to list
         assert response.status_code == 200
-        assert response.request["PATH_INFO"] == reverse("simulation:simulation-list")
+        assert response.request["PATH_INFO"] == reverse(
+            "simulation:simulation-list", kwargs={"campagne": default_campagne()}
+        )
 
         simulation = Simulation.objects.get(title="My Test Simulation")
         assert simulation.created_by == user

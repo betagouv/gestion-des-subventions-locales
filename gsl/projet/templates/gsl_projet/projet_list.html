@@ -11,7 +11,7 @@
 
     <a href="{% url 'gsl_simulation:simulation-form' %}"
        class="fr-btn fr-mb-4w">Effectuer une simulation</a>
-    <a href="{% url 'gsl_simulation:simulation-list' %}"
+    <a href="{% url 'gsl_simulation:simulation-list' campagne=campagne %}"
        class="fr-btn fr-btn--secondary fr-mb-4w">Voir les simulations</a>
 
     {% include "includes/_enveloppe_summary.html" with show_caption=True %}

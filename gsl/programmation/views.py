@@ -3,13 +3,14 @@ from django.contrib.auth.views import RedirectURLMixin
 from django.db.models import ProtectedError
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
+from gsl.core.campagne import get_campagne
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
 from gsl.core.matomo_constants import (
@@ -80,6 +81,7 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
             return redirect(
                 "gsl_programmation:programmation-projet-list-dotation",
                 dotation=DOTATION_DETR,
+                campagne=kwargs["campagne"],
             )
         if self.dotation not in (DOTATION_DETR, DOTATION_DSIL):
             raise Http404(user_message="Dotation non reconnue.")
@@ -89,7 +91,9 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
             and self.perimetre.type == Perimetre.TYPE_REGION
         ):
             return redirect(
-                "gsl_programmation:programmation-projet-list-dotation", dotation="DSIL"
+                "gsl_programmation:programmation-projet-list-dotation",
+                dotation="DSIL",
+                campagne=kwargs["campagne"],
             )
 
         if "reset_filters" in request.GET:
@@ -142,7 +146,9 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
 class EnveloppeCreateView(RedirectURLMixin, CreateView):
     model = Enveloppe
     form_class = SubEnveloppeCreateForm
-    next_page = reverse_lazy("gsl_projet:list")
+
+    def get_default_redirect_url(self):
+        return reverse("gsl_projet:list", kwargs={"campagne": get_campagne()})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -163,7 +169,9 @@ class EnveloppeCreateView(RedirectURLMixin, CreateView):
 class EnveloppeUpdateView(UpdateView):
     model = Enveloppe
     form_class = SubEnveloppeUpdateForm
-    success_url = reverse_lazy("gsl_projet:list")
+
+    def get_success_url(self):
+        return reverse("gsl_projet:list", kwargs={"campagne": get_campagne()})
 
     def get_queryset(self):
         return (
@@ -182,7 +190,9 @@ class EnveloppeUpdateView(UpdateView):
 @method_decorator(require_POST, name="dispatch")
 class EnveloppeDeleteView(DeleteView):
     model = Enveloppe
-    success_url = reverse_lazy("gsl_projet:list")
+
+    def get_success_url(self):
+        return reverse("gsl_projet:list", kwargs={"campagne": get_campagne()})
 
     def get_queryset(self):
         return (
@@ -224,4 +234,4 @@ class EnveloppeDeleteView(DeleteView):
                 self.request,
                 f"Suppression impossible : {' et '.join(msgs)} {pluralize(objects_count, 'est,sont')} rattachée{pluralize(objects_count, 's')} à cette enveloppe.",
             )
-            return redirect(self.success_url)
+            return redirect(self.get_success_url())

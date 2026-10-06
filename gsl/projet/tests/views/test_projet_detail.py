@@ -5,6 +5,7 @@ import pytest
 from django.shortcuts import reverse
 from django.utils import timezone
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -242,7 +243,7 @@ def test_unified_projet_page_back_button_returns_to_programmation_when_back_para
     EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url, {"back": back})
@@ -266,7 +267,7 @@ def test_primary_nav_highlights_programmation_when_opened_from_programmation():
     EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url, {"back": back})
@@ -315,7 +316,7 @@ def test_notification_tab_highlights_programmation_when_opened_from_programmatio
     projet = _accepted_projet(perimetre)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
     )
     url = reverse("notification:documents", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url, {"back": back})

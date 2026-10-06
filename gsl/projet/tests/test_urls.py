@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 from pytest_django.asserts import assertTemplateUsed
 
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedStaffUserFactory,
     ClientWithLoggedUserFactory,
@@ -9,7 +10,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 
-from .factories import ProjetFactory
+from .factories import EnveloppeProjetFactory, ProjetFactory
 
 
 @pytest.fixture
@@ -30,26 +31,36 @@ def client_with_55_user_logged(perimetre_departement_55):
 
 @pytest.mark.django_db
 def test_list(client_with_55_user_logged):
-    url = reverse("projet:list")
+    url = reverse("projet:list", kwargs={"campagne": default_campagne()})
     response = client_with_55_user_logged.get(url, follow=True)
     assert response.status_code == 200
 
 
 @pytest.fixture
 def projets_from_55(perimetre_departement_55):
-    return ProjetFactory.create_batch(3, dossier_ds__perimetre=perimetre_departement_55)
+    projets = ProjetFactory.create_batch(
+        3, dossier_ds__perimetre=perimetre_departement_55
+    )
+    for projet in projets:
+        EnveloppeProjetFactory(projet=projet)
+    return projets
 
 
 @pytest.fixture
 def projets_from_88(perimetre_departement_88):
-    return ProjetFactory.create_batch(5, dossier_ds__perimetre=perimetre_departement_88)
+    projets = ProjetFactory.create_batch(
+        5, dossier_ds__perimetre=perimetre_departement_88
+    )
+    for projet in projets:
+        EnveloppeProjetFactory(projet=projet)
+    return projets
 
 
 @pytest.mark.django_db
 def test_list_with_only_visible_projets_for_user(
     client_with_55_user_logged, projets_from_55, projets_from_88
 ):
-    url = reverse("projet:list")
+    url = reverse("projet:list", kwargs={"campagne": default_campagne()})
     response = client_with_55_user_logged.get(url, follow=True)
     assert response.status_code == 200
     assert response.context["object_list"].count() == 3

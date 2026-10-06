@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from datetime import timezone as tz
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
@@ -115,8 +115,14 @@ class ProjetQuerySet(models.QuerySet):
         if perimetre.region:
             return self.filter(dossier_ds__perimetre__region=perimetre.region)
 
-    def for_current_year(self):
-        return self.not_processed_before_the_start_of_the_year(date.today().year)
+    def for_campagne(self, annee: int):
+        return self.filter(
+            Exists(
+                EnveloppeProjet.objects.filter(
+                    projet=OuterRef("pk"), enveloppe__annee=annee
+                )
+            )
+        )
 
     def not_processed_before_the_start_of_the_year(self, year: int):
         return self.filter(

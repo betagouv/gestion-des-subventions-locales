@@ -31,7 +31,7 @@ def _add_enveloppe_projets_to_simulation(simulation: Simulation):
     simulation_perimetre = simulation.enveloppe.perimetre
     simulation_dotation = simulation.enveloppe.dotation
     selected_projets = Projet.objects.active().for_perimetre(simulation_perimetre)
-    selected_projets = selected_projets.for_current_year()
+    selected_projets = selected_projets.for_campagne(simulation.enveloppe.annee)
     selected_enveloppe_projet = (
         EnveloppeProjet.objects.active()
         .filter(projet__in=selected_projets)

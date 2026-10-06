@@ -1,12 +1,14 @@
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from gsl.core.campagne import get_campagne
+
 
 def get_projet_go_back_context(request):
     back = request.GET.get("back", "")
     if back and url_has_allowed_host_and_scheme(back, allowed_hosts=request.get_host()):
         return {"go_back_link": back}
-    return {"go_back_link": reverse("projet:list")}
+    return {"go_back_link": reverse("projet:list", kwargs={"campagne": get_campagne()})}
 
 
 PROJET_MENU = {

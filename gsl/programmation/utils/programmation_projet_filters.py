@@ -6,6 +6,7 @@ from django_filters import (
     RangeFilter,
 )
 
+from gsl.core.campagne import get_campagne
 from gsl.core.models import Perimetre
 from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import (
@@ -201,7 +202,7 @@ class ProgrammationFilters(CommonFiltersFields):
                 "perimetre__arrondissement",
             )
             .filter(dotation=self.dotation)
-            .for_current_year()
+            .for_campagne(get_campagne())
         )
 
     @cached_property

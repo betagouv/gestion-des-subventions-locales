@@ -21,7 +21,7 @@
                             Retour à la liste des projets programmés
                         </a>
                     {% else %}
-                        <a href="{% url "projet:list" %}{% querystring %}"
+                        <a href="{% url "projet:list" campagne=campagne %}{% querystring %}"
                            class="fr-btn fr-btn--icon-left fr-icon-arrow-left-s-line fr-btn--tertiary">
                             Retour à la liste des projets
                         </a>

@@ -6,12 +6,12 @@ app_name = "gsl_programmation"
 
 urlpatterns = [
     path(
-        "liste/",
+        "liste/<int:campagne>/",
         ProgrammationListView.as_view(),
         name="programmation-projet-list",
     ),
     path(
-        "liste/<str:dotation>/",
+        "liste/<str:dotation>/<int:campagne>/",
         ProgrammationListView.as_view(),
         name="programmation-projet-list-dotation",
     ),

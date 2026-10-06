@@ -1,5 +1,11 @@
 from django.conf import settings
 
+from gsl.core.campagne import get_campagne
+
+
+def campagne(request):
+    return {"campagne": get_campagne()}
+
 
 def export_vars(request):
     data = {}

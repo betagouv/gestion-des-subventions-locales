@@ -7,6 +7,7 @@ from django.db.models import Count, F, Q
 from django.urls import reverse
 from django.utils import timezone
 
+from gsl.core.campagne import default_campagne
 from gsl.core.models import Collegue, Departement, Perimetre
 from gsl.core.tests.factories import (
     ArrondissementFactory,
@@ -37,6 +38,7 @@ from ..views import (
 from .factories import (
     DetrProjetFactory,
     DsilProjetFactory,
+    EnveloppeProjetFactory,
     ProjetFactory,
 )
 
@@ -689,6 +691,8 @@ def test_order_by_numero_dn(req, view, perimetre):
         dossier_ds__ds_number=9000,
         dossier_ds__perimetre=perimetre,
     )
+    EnveloppeProjetFactory(projet=projet_low)
+    EnveloppeProjetFactory(projet=projet_high)
 
     request = req.get("/", data={"order": "numero_dn"})
     view.request = request
@@ -877,11 +881,14 @@ def perimetre_brest(perimetre_29):
 
 @pytest.fixture
 def projets_29(perimetre_29, perimetre_quimper, perimetre_brest):
-    return [
+    projets = [
         ProjetFactory(dossier_ds__perimetre=perimetre_29),
         ProjetFactory(dossier_ds__perimetre=perimetre_quimper),
         ProjetFactory(dossier_ds__perimetre=perimetre_brest),
     ]
+    for projet in projets:
+        EnveloppeProjetFactory(projet=projet)
+    return projets
 
 
 def test_filter_territoire_with_a_departement_gives_all_departement_projets(
@@ -1023,10 +1030,16 @@ def test_projet_list_view_excludes_inactive_dossiers():
     perimetre = PerimetreDepartementalFactory()
     user = CollegueFactory(perimetre=perimetre)
     active_projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    ProjetFactory(dossier_ds__perimetre=perimetre, dossier_ds__is_active=False)
+    inactive_projet = ProjetFactory(
+        dossier_ds__perimetre=perimetre, dossier_ds__is_active=False
+    )
+    EnveloppeProjetFactory(projet=active_projet)
+    EnveloppeProjetFactory(projet=inactive_projet)
 
     client = ClientWithLoggedUserFactory(user)
-    response = client.get(reverse("projet:list"))
+    response = client.get(
+        reverse("projet:list", kwargs={"campagne": default_campagne()})
+    )
 
     assert response.status_code == 200
     object_list = response.context["object_list"]
@@ -1050,7 +1063,7 @@ def test_view_has_correct_territoire_choices():
 
     user = CollegueFactory(perimetre=perimetre_region_A)
     client = ClientWithLoggedUserFactory(user)
-    url = reverse("projet:list")
+    url = reverse("projet:list", kwargs={"campagne": default_campagne()})
 
     response = client.get(url)
     assert response.status_code == 200
