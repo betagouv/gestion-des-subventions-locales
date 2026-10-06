@@ -263,6 +263,31 @@ def test_revert_from_final_status_drops_the_programmation(
 @mock.patch(
     "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
 )
+def test_revert_from_final_status_moves_simulation_projet_to_a_new_enveloppe_projet(
+    mock_ds_update, user
+):
+    simulation_projet = SimulationProjetFactory(
+        status=SimulationProjet.STATUS_ACCEPTED,
+        enveloppe_projet__status=ProjetStatus.ACCEPTED,
+    )
+    ancien = simulation_projet.enveloppe_projet
+    form = SimulationProjetStatusForm(
+        instance=simulation_projet, status=SimulationProjet.STATUS_PROCESSING
+    )
+    form.save(user)
+
+    simulation_projet.refresh_from_db()
+    ancien.refresh_from_db()
+    assert simulation_projet.enveloppe_projet != ancien
+    assert simulation_projet.enveloppe_projet.is_courant
+    assert simulation_projet.enveloppe_projet.status == ProjetStatus.PROCESSING
+    assert not ancien.is_courant
+    assert ancien.status == ProjetStatus.ACCEPTED
+
+
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
 @pytest.mark.parametrize(
     "initial_status, new_status",
     (

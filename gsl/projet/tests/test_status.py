@@ -35,8 +35,7 @@ def test_update_projet_status_on_post_save():
     enveloppe_projet.save()
     assert projet.status == ProjetStatus.REFUSED
 
-    enveloppe_projet.set_back_status_to_processing_without_ds()
-    enveloppe_projet.save()
+    enveloppe_projet = enveloppe_projet.set_back_status_to_processing_without_ds()
     assert projet.status == ProjetStatus.PROCESSING
 
     enveloppe_projet.accept_without_ds_update(montant=1_000, enveloppe=enveloppe)
