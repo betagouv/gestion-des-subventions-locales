@@ -267,7 +267,6 @@ def test_check_results(
     assert record.dossier_ds_number == dossier.ds_number
     assert record.user_id == user.id
     assert record.mutation_key == mutation_data_name
-    assert record.field is None
     assert record.value == value
     assert record.error == [final_msg]
 

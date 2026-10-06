@@ -344,12 +344,6 @@ class DsService:
 
     # Private
 
-    def _update_updated_at(self, dossier: Dossier, results: dict):
-        updated_at = results.get("data", {}).get("updatedAt")
-        if updated_at:
-            dossier.ds_date_derniere_modification = updated_at
-            dossier.save()
-
     def _update_updated_at_from_multiple_annotations(
         self, dossier: Dossier, results: dict
     ):
@@ -406,7 +400,6 @@ class DsService:
         dossier: Dossier,
         user: Collegue,
         mutation: Mutation,
-        field: str | None = None,
         value: float | bool | str | None = None,
     ) -> None:
         mutation_key = mutation.field_name
@@ -427,7 +420,6 @@ class DsService:
                     "dossier_ds_number": dossier.ds_number,
                     "user_id": user.id,
                     "mutation_key": mutation_key,
-                    "field": field,
                     "value": value,
                     "error": messages,
                 },
@@ -458,7 +450,6 @@ class DsService:
                 "dossier_ds_number": dossier.ds_number,
                 "user_id": user.id,
                 "mutation_key": mutation_key,
-                "field": field,
                 "value": value,
                 "error": messages,
             },
