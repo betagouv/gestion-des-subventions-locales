@@ -57,8 +57,11 @@ class DsService:
         )
 
         mutation = Mutation.PASSAGE_EN_INSTRUCTION
+        instructeur_id = self._get_instructeur_id(user)
 
-        results = self.mutator.dossier_passer_en_instruction(dossier.ds_id, user.ds_id)
+        results = self.mutator.dossier_passer_en_instruction(
+            dossier.ds_id, instructeur_id
+        )
         self._check_results(results, dossier, user, mutation)
 
         dossier_data = self._get_dossier_data(results, mutation)
@@ -79,9 +82,10 @@ class DsService:
         )
 
         mutation = Mutation.RETOUR_EN_INSTRUCTION
+        instructeur_id = self._get_instructeur_id(user)
 
         results = self.mutator.dossier_repasser_en_instruction(
-            dossier.ds_id, user.ds_id
+            dossier.ds_id, instructeur_id
         )
         self._check_results(results, dossier, user, mutation)
 
@@ -344,12 +348,6 @@ class DsService:
 
     # Private
 
-    def _update_updated_at(self, dossier: Dossier, results: dict):
-        updated_at = results.get("data", {}).get("updatedAt")
-        if updated_at:
-            dossier.ds_date_derniere_modification = updated_at
-            dossier.save()
-
     def _update_updated_at_from_multiple_annotations(
         self, dossier: Dossier, results: dict
     ):
@@ -406,39 +404,19 @@ class DsService:
         dossier: Dossier,
         user: Collegue,
         mutation: Mutation,
-        field: str | None = None,
         value: float | bool | str | None = None,
     ) -> None:
         mutation_key = mutation.field_name
-        data = results.get("data", None)
+        data = results.get("data")
 
-        if data is None or mutation_key in data and data.get(mutation_key) is None:
-            if "errors" not in results.keys():
-                return
+        # DN reports a refusal either at the top level or inside the mutation payload.
+        if data is None or (mutation_key in data and data.get(mutation_key) is None):
+            errors = results.get("errors")
+        else:
+            mutation_data = data.get(mutation_key)
+            errors = mutation_data.get("errors") if mutation_data else None
 
-            errors = results["errors"]
-            messages = [error["message"] for error in errors]
-            message = self._transform_message(messages)
-
-            raise DsServiceException(
-                message,
-                log_message="Error in DN mutation",
-                extra={
-                    "dossier_ds_number": dossier.ds_number,
-                    "user_id": user.id,
-                    "mutation_key": mutation_key,
-                    "field": field,
-                    "value": value,
-                    "error": messages,
-                },
-            )
-
-        mutation_data = data.get(mutation_key)
-        if mutation_data is None or "errors" not in mutation_data:
-            return
-
-        errors = mutation_data["errors"]
-        if not bool(errors):
+        if not errors:
             return
 
         messages = [error["message"] for error in errors]
@@ -450,15 +428,13 @@ class DsService:
                 }
             )
 
-        message = self._transform_message(messages)
         raise DsServiceException(
-            message,
+            self._transform_message(messages),
             log_message="Error in DN mutation",
             extra={
                 "dossier_ds_number": dossier.ds_number,
                 "user_id": user.id,
                 "mutation_key": mutation_key,
-                "field": field,
                 "value": value,
                 "error": messages,
             },
