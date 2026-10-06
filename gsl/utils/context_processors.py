@@ -2,9 +2,11 @@ from django.conf import settings
 
 from gsl.core.campagne import CAMPAGNES, get_campagne
 
+SORTED_CAMPAGNES = sorted(CAMPAGNES, reverse=True)
+
 
 def campagne(request):
-    return {"campagne": get_campagne(), "campagnes": CAMPAGNES}
+    return {"campagne": get_campagne(), "campagnes": SORTED_CAMPAGNES}
 
 
 def export_vars(request):
