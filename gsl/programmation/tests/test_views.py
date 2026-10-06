@@ -6,6 +6,7 @@ from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
+    PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
@@ -156,6 +157,144 @@ class TestProgrammationProjetListViewWithDotation:
             "gsl_programmation:programmation-projet-list-dotation",
             kwargs={"dotation": "DSIL", "campagne": default_campagne()},
         )
+
+
+class TestProgrammationProjetListViewContent:
+    """
+    La liste de programmation affiche les EnveloppeProjet *traités* (acceptés,
+    refusés ou classés sans suite) de l'enveloppe de l'utilisateur :
+    - enveloppe racine : ceux programmés sur cette enveloppe ;
+    - enveloppe déléguée : ceux programmés sur l'enveloppe mère (même dotation),
+      restreints au périmètre de l'enveloppe déléguée.
+
+    N'y figurent jamais :
+    - les EnveloppeProjet encore en traitement, même lorsque le projet est en
+      double dotation et que l'autre dotation est traitée ;
+    - les EnveloppeProjet hors du périmètre de l'enveloppe de l'utilisateur.
+    """
+
+    @pytest.fixture
+    def perimetre_departement(self):
+        return PerimetreDepartementalFactory()
+
+    @pytest.fixture
+    def perimetre_arrondissement(self, perimetre_departement):
+        return PerimetreArrondissementFactory(
+            arrondissement__departement=perimetre_departement.departement
+        )
+
+    @pytest.fixture
+    def perimetre_autre_arrondissement(self, perimetre_departement):
+        return PerimetreArrondissementFactory(
+            arrondissement__departement=perimetre_departement.departement
+        )
+
+    @pytest.fixture
+    def enveloppe_racine(self, perimetre_departement):
+        return DetrEnveloppeFactory(perimetre=perimetre_departement)
+
+    @pytest.fixture
+    def enveloppe_deleguee(self, perimetre_arrondissement, enveloppe_racine):
+        enveloppe = DetrEnveloppeFactory(perimetre=perimetre_arrondissement)
+        assert enveloppe.parent == enveloppe_racine
+        return enveloppe
+
+    def _get_enveloppe_projets(self, perimetre):
+        client = ClientWithLoggedUserFactory(user=CollegueFactory(perimetre=perimetre))
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
+        )
+        response = client.get(url)
+        assert response.status_code == 200
+        return set(response.context["enveloppe_projets"])
+
+    # --- Enveloppe racine ---
+
+    @pytest.mark.parametrize("status", ProjetStatus.FINAL)
+    def test_enveloppe_racine_affiche_les_ep_traites(
+        self, status, perimetre_arrondissement, enveloppe_racine
+    ):
+        enveloppe_projet = EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=perimetre_arrondissement,
+            dotation=DOTATION_DETR,
+            status=status,
+            enveloppe=enveloppe_racine,
+        )
+
+        assert self._get_enveloppe_projets(enveloppe_racine.perimetre) == {
+            enveloppe_projet
+        }
+
+    def test_enveloppe_racine_n_affiche_pas_les_ep_en_traitement(
+        self, perimetre_arrondissement, enveloppe_racine
+    ):
+        EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=perimetre_arrondissement,
+            dotation=DOTATION_DETR,
+            status=ProjetStatus.PROCESSING,
+            enveloppe=enveloppe_racine,
+        )
+
+        assert self._get_enveloppe_projets(enveloppe_racine.perimetre) == set()
+
+    def test_enveloppe_racine_n_affiche_pas_l_ep_en_traitement_d_un_projet_double_dotation_dont_l_autre_dotation_est_traitee(
+        self, perimetre_arrondissement, enveloppe_racine
+    ):
+        detr_enveloppe_projet = EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=perimetre_arrondissement,
+            dotation=DOTATION_DETR,
+            status=ProjetStatus.PROCESSING,
+            enveloppe=enveloppe_racine,
+        )
+        EnveloppeProjetFactory(
+            projet=detr_enveloppe_projet.projet,
+            dotation=DOTATION_DSIL,
+            status=ProjetStatus.ACCEPTED,
+        )
+
+        assert self._get_enveloppe_projets(enveloppe_racine.perimetre) == set()
+
+    # --- Enveloppe déléguée ---
+
+    @pytest.mark.parametrize("status", ProjetStatus.FINAL)
+    def test_enveloppe_deleguee_affiche_les_ep_traites_de_l_enveloppe_mere_dans_son_perimetre(
+        self, status, perimetre_arrondissement, enveloppe_racine, enveloppe_deleguee
+    ):
+        enveloppe_projet = EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=perimetre_arrondissement,
+            dotation=DOTATION_DETR,
+            status=status,
+            enveloppe=enveloppe_racine,
+        )
+
+        assert self._get_enveloppe_projets(enveloppe_deleguee.perimetre) == {
+            enveloppe_projet
+        }
+
+    def test_enveloppe_deleguee_n_affiche_pas_les_ep_hors_de_son_perimetre(
+        self, perimetre_autre_arrondissement, enveloppe_racine, enveloppe_deleguee
+    ):
+        EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=perimetre_autre_arrondissement,
+            dotation=DOTATION_DETR,
+            status=ProjetStatus.ACCEPTED,
+            enveloppe=enveloppe_racine,
+        )
+
+        assert self._get_enveloppe_projets(enveloppe_deleguee.perimetre) == set()
+
+    def test_enveloppe_deleguee_n_affiche_pas_les_ep_en_traitement(
+        self, perimetre_arrondissement, enveloppe_racine, enveloppe_deleguee
+    ):
+        EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=perimetre_arrondissement,
+            dotation=DOTATION_DETR,
+            status=ProjetStatus.PROCESSING,
+            enveloppe=enveloppe_racine,
+        )
+
+        assert self._get_enveloppe_projets(enveloppe_deleguee.perimetre) == set()
 
 
 class TestProgrammationProjetListViewExcludesInactiveDossiers:

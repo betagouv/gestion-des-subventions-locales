@@ -217,6 +217,7 @@ class ProgrammationFilters(CommonFiltersFields):
         qs = (
             super()
             .qs.filter(enveloppe__in=self._enveloppe_qs)
+            .programmees()
             .for_perimetre(self.perimetre)
         )
         qs = qs.annotate(
