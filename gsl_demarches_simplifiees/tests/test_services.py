@@ -12,13 +12,7 @@ from django.utils import timezone
 
 from gsl.core.tests.factories import CollegueFactory
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    DS_TRAITEMENT_EVENT_ACCEPTE,
-    DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
-    DS_TRAITEMENT_EVENT_REFUSE,
-)
+from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
 from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_demarches_simplifiees.services import (
@@ -26,6 +20,7 @@ from gsl_demarches_simplifiees.services import (
     DsServiceException,
     FieldError,
     InstructeurUnknown,
+    Mutation,
     UserRightsError,
 )
 from gsl_demarches_simplifiees.tests.factories import (
@@ -111,13 +106,13 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
 
 
 @pytest.mark.parametrize(
-    "mutation_type",
-    ("dismiss", "annotations"),
+    "mutation",
+    (Mutation.DISMISS, Mutation.ANNOTATIONS),
 )
-def test_check_results_with_uncorrect_user_rights(dossier, user, mutation_type, caplog):
+def test_check_results_with_uncorrect_user_rights(dossier, user, mutation, caplog):
     caplog.set_level(logging.INFO)
     ds_service = DsService()
-    mutation_data_name = DsService.MUTATION_KEYS[mutation_type]
+    mutation_data_name = mutation.field_name
     response = {
         "data": {
             mutation_data_name: {
@@ -133,7 +128,7 @@ def test_check_results_with_uncorrect_user_rights(dossier, user, mutation_type, 
             response,
             dossier,
             user,
-            mutation_type,
+            mutation,
         )
 
     assert (
@@ -235,12 +230,12 @@ possible_responses = [
 ]
 
 
-@pytest.mark.parametrize("mutation_type", ("dismiss", "annotations"))
+@pytest.mark.parametrize("mutation", (Mutation.DISMISS, Mutation.ANNOTATIONS))
 @pytest.mark.parametrize("mocked_response, msg", possible_responses)
 def test_check_results(
     user,
     dossier,
-    mutation_type,
+    mutation,
     mocked_response,
     msg,
     caplog,
@@ -248,8 +243,8 @@ def test_check_results(
     caplog.set_level(logging.WARNING)
     ds_service = DsService()
 
-    value = True if mutation_type == "checkbox" else 1.5
-    mutation_data_name = DsService.MUTATION_KEYS[mutation_type]
+    value = 1.5
+    mutation_data_name = mutation.field_name
 
     # clone + replace __MUTATION_KEY__ dynamically
     response = copy.deepcopy(mocked_response)
@@ -261,7 +256,7 @@ def test_check_results(
             response,
             dossier,
             user,
-            mutation_type,
+            mutation,
             value=value,
         )
 
@@ -308,35 +303,20 @@ def test_dismiss_in_ds():
             dossier.ds_id, "instructeur_id", "motivation", document=None
         )
         mock_check_results.assert_called_once_with(
-            results, dossier, user, "dismiss", value="motivation"
+            results, dossier, user, Mutation.DISMISS, value="motivation"
         )
 
 
 @pytest.mark.parametrize(
-    "method_name, mutator_method, mutation_key, expected_event",
+    "method_name, mutator_method, mutation",
     [
-        (
-            "accept_in_ds",
-            "dossier_accepter",
-            "dossierAccepter",
-            DS_TRAITEMENT_EVENT_ACCEPTE,
-        ),
-        (
-            "dismiss_in_ds",
-            "dossier_classer_sans_suite",
-            "dossierClasserSansSuite",
-            DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
-        ),
-        (
-            "refuser_in_ds",
-            "dossier_refuser",
-            "dossierRefuser",
-            DS_TRAITEMENT_EVENT_REFUSE,
-        ),
+        ("accept_in_ds", "dossier_accepter", Mutation.ACCEPT),
+        ("dismiss_in_ds", "dossier_classer_sans_suite", Mutation.DISMISS),
+        ("refuser_in_ds", "dossier_refuser", Mutation.REFUSE),
     ],
 )
 def test_in_ds_updates_ds_date_traitement(
-    user, dossier, method_name, mutator_method, mutation_key, expected_event
+    user, dossier, method_name, mutator_method, mutation
 ):
     """accept_in_ds/dismiss_in_ds/refuser_in_ds should update
     dossier.ds_date_traitement from DN's own response (using the most recent
@@ -345,10 +325,11 @@ def test_in_ds_updates_ds_date_traitement(
     ds_service = DsService()
     expected_date_str = "2025-06-25T11:46:30+02:00"
     expected_date = datetime.fromisoformat(expected_date_str)
+    expected_event = mutation.event_name
 
     mock_results = {
         "data": {
-            mutation_key: {
+            mutation.field_name: {
                 "dossier": {
                     "dateTraitement": expected_date_str,
                     "traitements": [
@@ -502,30 +483,15 @@ def test_in_ds_merges_only_present_fields_into_dossier_data(
 
 
 @pytest.mark.parametrize(
-    "method_name, mutator_method, mutation_key, expected_event",
+    "method_name, mutator_method, mutation",
     [
-        (
-            "accept_in_ds",
-            "dossier_accepter",
-            "dossierAccepter",
-            DS_TRAITEMENT_EVENT_ACCEPTE,
-        ),
-        (
-            "dismiss_in_ds",
-            "dossier_classer_sans_suite",
-            "dossierClasserSansSuite",
-            DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE,
-        ),
-        (
-            "refuser_in_ds",
-            "dossier_refuser",
-            "dossierRefuser",
-            DS_TRAITEMENT_EVENT_REFUSE,
-        ),
+        ("accept_in_ds", "dossier_accepter", Mutation.ACCEPT),
+        ("dismiss_in_ds", "dossier_classer_sans_suite", Mutation.DISMISS),
+        ("refuser_in_ds", "dossier_refuser", Mutation.REFUSE),
     ],
 )
 def test_in_ds_creates_notified_projet_action_with_turgot_source(
-    user, dossier, method_name, mutator_method, mutation_key, expected_event
+    user, dossier, method_name, mutator_method, mutation
 ):
     """accept_in_ds/dismiss_in_ds/refuser_in_ds must create the ProjetAction
     (source Turgot) recording the notification: right action_type, actor,
@@ -536,14 +502,14 @@ def test_in_ds_creates_notified_projet_action_with_turgot_source(
 
     mock_results = {
         "data": {
-            mutation_key: {
+            mutation.field_name: {
                 "dossier": {
                     "dateTraitement": "2025-06-25T11:46:30+02:00",
                     "traitements": [
                         {
                             "id": "traitement-1",
                             "dateTraitement": "2025-06-25T11:46:30+02:00",
-                            "event": expected_event,
+                            "event": mutation.event_name,
                         }
                     ],
                 }
@@ -639,7 +605,7 @@ class TestCreateProjetActionForMutation:
         DsService()._create_projet_action_for_mutation(
             dossier,
             user,
-            "accept",
+            Mutation.ACCEPT,
             ProjetAction.TYPE_NOTIFIED,
             dossier_data,
             document=document,
@@ -660,7 +626,7 @@ class TestCreateProjetActionForMutation:
 
         before = timezone.now()
         DsService()._create_projet_action_for_mutation(
-            dossier, user, "accept", ProjetAction.TYPE_NOTIFIED, {}
+            dossier, user, Mutation.ACCEPT, ProjetAction.TYPE_NOTIFIED, {}
         )
         after = timezone.now()
 
@@ -673,42 +639,41 @@ class TestCreateProjetActionForMutation:
 
     def test_does_nothing_when_dossier_has_no_projet(self, user, dossier):
         DsService()._create_projet_action_for_mutation(
-            dossier, user, "accept", ProjetAction.TYPE_NOTIFIED, {}
+            dossier, user, Mutation.ACCEPT, ProjetAction.TYPE_NOTIFIED, {}
         )
 
         assert not ProjetAction.objects.exists()
 
 
 @pytest.mark.parametrize(
-    "method_name, mutator_method, mutation_key",
+    "method_name, mutator_method, mutation",
     [
         (
             "passer_en_instruction",
             "dossier_passer_en_instruction",
-            "dossierPasserEnInstruction",
+            Mutation.PASSAGE_EN_INSTRUCTION,
         ),
         (
             "repasser_en_instruction",
             "dossier_repasser_en_instruction",
-            "dossierRepasserEnInstruction",
+            Mutation.RETOUR_EN_INSTRUCTION,
         ),
     ],
 )
 def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
-    user, dossier, method_name, mutator_method, mutation_key
+    user, dossier, method_name, mutator_method, mutation
 ):
     projet = ProjetFactory(dossier_ds=dossier)
-    expected_event = DsService.MUTATION_EXPECTED_EVENTS[method_name]
     mock_results = {
         "data": {
-            mutation_key: {
+            mutation.field_name: {
                 "dossier": {
                     "dateDerniereModification": "x",
                     "traitements": [
                         {
                             "id": "traitement-1",
                             "dateTraitement": "2024-01-15T10:30:00+01:00",
-                            "event": expected_event,
+                            "event": mutation.event_name,
                         }
                     ],
                 }
@@ -747,31 +712,31 @@ def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
 
 
 @pytest.mark.parametrize(
-    "method_name, mutator_method, mutation_key",
+    "method_name, mutator_method, mutation",
     [
         (
             "passer_en_instruction",
             "dossier_passer_en_instruction",
-            "dossierPasserEnInstruction",
+            Mutation.PASSAGE_EN_INSTRUCTION,
         ),
         (
             "repasser_en_instruction",
             "dossier_repasser_en_instruction",
-            "dossierRepasserEnInstruction",
+            Mutation.RETOUR_EN_INSTRUCTION,
         ),
     ],
 )
 def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_data(
-    user, dossier, method_name, mutator_method, mutation_key
+    user, dossier, method_name, mutator_method, mutation
 ):
     DossierDataFactory(
         dossier=dossier, raw_data={"number": 123, "champs": [{"id": "champ-1"}]}
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    expected_event = DsService.MUTATION_EXPECTED_EVENTS[method_name]
+    expected_event = mutation.event_name
     mock_results = {
         "data": {
-            mutation_key: {
+            mutation.field_name: {
                 "dossier": {
                     "dateDerniereModification": "2024-01-15T10:30:00+01:00",
                     "state": "en_instruction",
@@ -881,7 +846,7 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
 
         # Verify _check_results was called
         mock_check_results.assert_called_once_with(
-            mock_results, dossier, user, "passer_en_instruction"
+            mock_results, dossier, user, Mutation.PASSAGE_EN_INSTRUCTION
         )
 
     # Verify dossier state was updated
@@ -977,7 +942,7 @@ def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):
         # Verify _check_results was called with annotations
         mock_check_results.assert_called_once()
         check_call_args = mock_check_results.call_args[0]
-        assert check_call_args[3] == "annotations"  # mutation_type
+        assert check_call_args[3] == Mutation.ANNOTATIONS
         assert mock_check_results.call_args[1] == {"value": annotations}
 
 
@@ -1386,7 +1351,7 @@ class TestUpdateAnnotations:
             )
             assert check_call_args[1] == dossier
             assert check_call_args[2] == user
-            assert check_call_args[3] == "annotations"
+            assert check_call_args[3] == Mutation.ANNOTATIONS
             assert mock_check_results.call_args[1] == {"value": annotations}
 
             # Verify _update_updated_at_from_multiple_annotations was called
@@ -1656,7 +1621,7 @@ class TestUpdateAnnotations:
             assert check_call_args[0][0] == mock_response
             assert check_call_args[0][1] == dossier
             assert check_call_args[0][2] == user
-            assert check_call_args[0][3] == "annotations"
+            assert check_call_args[0][3] == Mutation.ANNOTATIONS
 
             # Verify _update_updated_at_from_multiple_annotations was called
             mock_update_updated_at.assert_called_once_with(dossier, mock_response)

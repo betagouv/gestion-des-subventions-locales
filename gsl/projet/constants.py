@@ -52,22 +52,3 @@ ANNEXE = "annexe"
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
 
 ANNUAIRE_ENTREPRISE_URL = "https://annuaire-entreprises.data.gouv.fr/entreprise/"
-
-# DN
-
-# Valeurs de l'enum GraphQL `TraitementEvent` de Démarches Simplifiées
-# (https://www.demarches-simplifiees.fr/graphql/schema/enums/TraitementEvent),
-DS_TRAITEMENT_EVENT_DEPOSE = "depose"
-DS_TRAITEMENT_EVENT_DEPOSE_CORRECTION_USAGER = "depose_correction_usager"
-DS_TRAITEMENT_EVENT_DEPOSE_CORRECTION_INSTRUCTEUR = "depose_correction_instructeur"
-DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION = "passe_en_instruction"
-DS_TRAITEMENT_EVENT_PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT = (
-    "passe_en_instruction_automatiquement"
-)
-DS_TRAITEMENT_EVENT_REPASSE_EN_INSTRUCTION = "repasse_en_instruction"
-DS_TRAITEMENT_EVENT_REPASSE_EN_CONSTRUCTION = "repasse_en_construction"
-DS_TRAITEMENT_EVENT_ACCEPTE = "accepte"
-DS_TRAITEMENT_EVENT_ACCEPTE_AUTOMATIQUEMENT = "accepte_automatiquement"
-DS_TRAITEMENT_EVENT_REFUSE = "refuse"
-DS_TRAITEMENT_EVENT_REFUSE_AUTOMATIQUEMENT = "refuse_automatiquement"
-DS_TRAITEMENT_EVENT_CLASSE_SANS_SUITE = "classe_sans_suite"

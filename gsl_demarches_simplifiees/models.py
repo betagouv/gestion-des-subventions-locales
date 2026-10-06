@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import StrEnum, auto
 from logging import getLogger
 
 from django.db import models
@@ -277,6 +278,22 @@ class Dossier(BaseModel):
         @classproperty
         def PROGRAMME(cls):
             return (cls.ACCEPTE, cls.REFUSE, cls.SANS_SUITE)
+
+    class TraitementEvent(StrEnum):
+        """See https://www.demarches-simplifiees.fr/graphql/schema/enums/TraitementEvent"""
+
+        DEPOSE = auto()
+        DEPOSE_CORRECTION_USAGER = auto()
+        DEPOSE_CORRECTION_INSTRUCTEUR = auto()
+        PASSE_EN_INSTRUCTION = auto()
+        PASSE_EN_INSTRUCTION_AUTOMATIQUEMENT = auto()
+        REPASSE_EN_INSTRUCTION = auto()
+        REPASSE_EN_CONSTRUCTION = auto()
+        ACCEPTE = auto()
+        ACCEPTE_AUTOMATIQUEMENT = auto()
+        REFUSE = auto()
+        REFUSE_AUTOMATIQUEMENT = auto()
+        CLASSE_SANS_SUITE = auto()
 
     RAISON_DESACTIVATION_ARCHIVE = "archive"
     RAISON_DESACTIVATION_CORBEILLE = "corbeille"
