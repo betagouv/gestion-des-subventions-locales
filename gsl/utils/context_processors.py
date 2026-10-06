@@ -1,10 +1,10 @@
 from django.conf import settings
 
-from gsl.core.campagne import get_campagne
+from gsl.core.campagne import CAMPAGNES, get_campagne
 
 
 def campagne(request):
-    return {"campagne": get_campagne()}
+    return {"campagne": get_campagne(), "campagnes": CAMPAGNES}
 
 
 def export_vars(request):

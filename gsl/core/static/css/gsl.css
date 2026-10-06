@@ -64,6 +64,10 @@ html {
     max-width: 200px;
 }
 
+.gsl-nav__item--campagne {
+    border-top: 3px solid var(--border-active-blue-france);
+}
+
 /* Utils */
 
 .gsl-nowrap {
