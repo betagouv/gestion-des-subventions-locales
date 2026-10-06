@@ -122,31 +122,37 @@ def test_get_ds_field_id(dossier: Dossier, field, field_name, caplog):
     assert getattr(record, "dossier_ds_number") == dossier.ds_number
 
 
+USER_RIGHTS_ERRORS = [
+    {"message": "L’instructeur n’a pas les droits d’accès à ce dossier"}
+]
+
+
 @pytest.mark.parametrize(
     "mutation",
     (Mutation.DISMISS, Mutation.ANNOTATIONS),
 )
 def test_check_results_with_uncorrect_user_rights(dossier, user, mutation, caplog):
     caplog.set_level(logging.INFO)
-    ds_service = DsService()
-    mutation_data_name = mutation.field_name
-    response = {
-        "data": {
-            mutation_data_name: {
-                "errors": [
-                    {"message": "L’instructeur n’a pas les droits d’accès à ce dossier"}
-                ]
-            }
-        }
-    }
+    response = {"data": {mutation.field_name: {"errors": USER_RIGHTS_ERRORS}}}
 
     with pytest.raises(UserRightsError) as exc_info:
-        ds_service._check_results(
-            response,
-            dossier,
-            user,
-            mutation,
-        )
+        DsService()._check_results(response, dossier, user, mutation)
+
+    assert (
+        str(exc_info.value)
+        == "Vous n'avez pas les droits suffisants pour modifier ce dossier."
+    )
+    assert "Instructeur has no rights on the dossier" in caplog.text
+
+
+def test_check_results_with_uncorrect_user_rights_at_the_top_level(
+    dossier, user, caplog
+):
+    caplog.set_level(logging.INFO)
+    response = {"errors": USER_RIGHTS_ERRORS}
+
+    with pytest.raises(UserRightsError) as exc_info:
+        DsService()._check_results(response, dossier, user, Mutation.DISMISS)
 
     assert (
         str(exc_info.value)
@@ -223,15 +229,6 @@ possible_responses = [
     (
         {"errors": [{"message": "DossierModifierAnnotationsPayload not found"}]},
         "DossierModifierAnnotationsPayload not found",
-    ),
-    # instructeur inconnu
-    (
-        {
-            "errors": [
-                {"message": "L’instructeur n’a pas les droits d’accès à ce dossier"}
-            ]
-        },
-        "L’instructeur n’a pas les droits d’accès à ce dossier",
     ),
     # Si je me trompe, ex: j'ai mis annotation au lieu de annotations
     (
