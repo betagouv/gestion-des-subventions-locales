@@ -46,6 +46,25 @@ def client_with_same_departement_perimetre(enveloppe_departemental):
     return ClientWithLoggedUserFactory(collegue)
 
 
+@pytest.mark.django_db
+def test_simulation_list_only_shows_the_campagne_of_the_url(
+    client_with_same_departement_perimetre, enveloppe_departemental
+):
+    campagne = enveloppe_departemental.annee
+    simulation = SimulationFactory(enveloppe=enveloppe_departemental)
+    SimulationFactory(
+        enveloppe=DetrEnveloppeFactory(
+            annee=campagne - 1, perimetre=enveloppe_departemental.perimetre
+        )
+    )
+
+    url = reverse("simulation:simulation-list", kwargs={"campagne": campagne})
+    response = client_with_same_departement_perimetre.get(url)
+
+    assert response.status_code == 200
+    assert list(response.context["object_list"]) == [simulation]
+
+
 @pytest.mark.parametrize(
     "route",
     (

@@ -56,12 +56,11 @@ class SimulationListView(ListView):
         return context
 
     def get_queryset(self):
-        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
-            self.request.user
+        qs = (
+            Simulation.objects.visible_for_user(self.request.user)
+            .for_campagne(get_campagne())
+            .order_by("-created_at")
         )
-        qs = Simulation.objects.filter(
-            enveloppe__in=visible_by_user_enveloppes
-        ).order_by("-created_at")
         qs = qs.select_related(
             "enveloppe",
             "enveloppe__perimetre",
