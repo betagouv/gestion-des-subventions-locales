@@ -727,23 +727,34 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
     assert enveloppe_projet.projet.notified_at is not None
 
     # --
-    enveloppe_projet.set_back_status_to_processing_without_ds()
-    enveloppe_projet.save()
+    nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
     enveloppe_projet.refresh_from_db()
+    nouveau.refresh_from_db()
 
     # --
 
-    assert enveloppe_projet.status == ProjetStatus.PROCESSING
-    assert not enveloppe_projet.is_programmee
-    simulation_projets = SimulationProjet.objects.filter(
-        enveloppe_projet=enveloppe_projet
-    )
+    assert nouveau.status == ProjetStatus.PROCESSING
+    assert not nouveau.is_programmee
+    assert nouveau.is_courant
+    assert nouveau.projet.notified_at is None
+
+    simulation_projets = SimulationProjet.objects.filter(enveloppe_projet=nouveau)
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 10_000
         assert simulation_projet.taux == 20
-    assert enveloppe_projet.projet.notified_at is None
+        assert simulation_projet.enveloppe_projet == nouveau
+
+    # The former one is kept untouched as history
+    assert not enveloppe_projet.is_courant
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
+    assert enveloppe_projet.montant == 10_000
+    assert enveloppe_projet.date_programmation is not None
+    old_simulation_projets = SimulationProjet.objects.filter(
+        enveloppe_projet=enveloppe_projet
+    )
+    assert old_simulation_projets.count() == 0
 
 
 @pytest.mark.parametrize(
@@ -770,23 +781,77 @@ def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
 
     # --
 
-    enveloppe_projet.set_back_status_to_processing_without_ds()
-    enveloppe_projet.save()
+    nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
     enveloppe_projet.refresh_from_db()
+    nouveau.refresh_from_db()
 
     # --
 
-    assert enveloppe_projet.status == ProjetStatus.PROCESSING
-    assert not enveloppe_projet.is_programmee
-    simulation_projets = SimulationProjet.objects.filter(
-        enveloppe_projet=enveloppe_projet
-    )
+    assert nouveau.status == ProjetStatus.PROCESSING
+    assert not nouveau.is_programmee
+    assert nouveau.projet.notified_at is None
+    assert nouveau.is_courant
+    simulation_projets = SimulationProjet.objects.filter(enveloppe_projet=nouveau)
     assert simulation_projets.count() == 3
     for simulation_projet in simulation_projets:
         assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
         assert simulation_projet.montant == 0
         assert simulation_projet.taux == 0
-    assert enveloppe_projet.projet.notified_at is None
+
+    # The former one is kept untouched as history
+    assert not enveloppe_projet.is_courant
+    assert enveloppe_projet.status == projet_status
+    assert enveloppe_projet.date_programmation is not None
+    old_simulation_projets = SimulationProjet.objects.filter(
+        enveloppe_projet=enveloppe_projet
+    )
+    assert old_simulation_projets.count() == 0
+
+
+@pytest.mark.parametrize("status", ProjetStatus.FINAL)
+def test_set_back_status_to_processing_without_ds_creates_a_new_courant_enveloppe_projet(
+    status,
+):
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=status,
+        dotation=DOTATION_DETR,
+        assiette=50_000,
+        detr_avis_commission=True,
+        projet__dossier_ds__demande_montant=200_000,
+        projet__dossier_ds__finance_cout_total=100_000,
+    )
+    projet = enveloppe_projet.projet
+
+    nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
+
+    assert nouveau.pk != enveloppe_projet.pk
+    assert list(projet.enveloppeprojet_set.all()) == [nouveau]
+    assert EnveloppeProjet.all_objects.filter(projet=projet).count() == 2
+    assert projet.status == ProjetStatus.PROCESSING
+
+    nouveau.refresh_from_db()
+    assert nouveau.is_courant
+    assert nouveau.status == ProjetStatus.PROCESSING
+    assert nouveau.montant is None
+    assert nouveau.date_programmation is None
+    assert nouveau.enveloppe == enveloppe_projet.enveloppe
+    assert nouveau.assiette == 50_000
+    assert nouveau.detr_avis_commission is True
+
+
+def test_set_back_status_to_processing_without_ds_leaves_documents_on_the_former_one():
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
+    ArreteFactory(enveloppe_projet=enveloppe_projet)
+    LettreNotificationFactory(enveloppe_projet=enveloppe_projet)
+
+    nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
+
+    enveloppe_projet.refresh_from_db()
+    assert hasattr(enveloppe_projet, "arrete")
+    assert hasattr(enveloppe_projet, "lettrenotification")
+    nouveau.refresh_from_db()
+    assert not hasattr(nouveau, "arrete")
+    assert not hasattr(nouveau, "lettrenotification")
 
 
 @pytest.mark.parametrize(("status"), [ProjetStatus.PROCESSING])

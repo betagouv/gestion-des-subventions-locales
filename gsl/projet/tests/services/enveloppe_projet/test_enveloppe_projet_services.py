@@ -1109,13 +1109,13 @@ def test_accepted_dotation_is_reopened_only_when_dossier_is_retour_en_instructio
 
     synchroniser(enveloppe_projet.projet)
 
-    enveloppe_projet.refresh_from_db()
+    courant = enveloppe_projet.projet.enveloppeprojet_set.get()
     expected_status = (
         ProjetStatus.PROCESSING
         if expected_back_to_instruction
         else ProjetStatus.ACCEPTED
     )
-    assert enveloppe_projet.status == expected_status
+    assert courant.status == expected_status
 
 
 # -- montant of an accepted dotation --

@@ -12,7 +12,7 @@ from django.db.models import (
     When,
 )
 from django.utils import timezone
-from django_fsm import FSMField, transition
+from django_fsm import FSMField, TransitionNotAllowed, transition
 
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.historique.models import ProjetAction
@@ -580,20 +580,33 @@ class EnveloppeProjet(BaseModel):
             created_at = self.dossier_ds.ds_date_traitement
         return ProjetAction.SOURCE_DN, created_at
 
-    @transition(
-        field=status,
-        source=ProjetStatus.FINAL,
-        target=ProjetStatus.PROCESSING,
-    )
-    def set_back_status_to_processing_without_ds(self, actor=None):
+    @transaction.atomic
+    def set_back_status_to_processing_without_ds(self, actor=None) -> "EnveloppeProjet":
+        """
+        The treated EnveloppeProjet is kept untouched (with its documents) as
+        history, and replaced by a new courant one, in processing.
+        """
         from gsl.simulation.models import SimulationProjet
 
+        if self.status not in ProjetStatus.FINAL:
+            raise TransitionNotAllowed(
+                f"Can't set back to processing from state '{self.status}'"
+            )
+
+        self.is_courant = False
+        self.save(update_fields=["is_courant"])
+        nouveau = EnveloppeProjet.objects.create(
+            projet=self.projet,
+            enveloppe=self.enveloppe,
+            assiette=self.assiette,
+            detr_avis_commission=self.detr_avis_commission,
+        )
+
         SimulationProjet.objects.filter(enveloppe_projet=self).update(
+            enveloppe_projet=nouveau,
             status=SimulationProjet.STATUS_PROCESSING,
         )
 
-        self.montant = None
-        self.date_programmation = None
         self.projet.notified_at = None
         self.projet.save()
 
@@ -607,18 +620,14 @@ class EnveloppeProjet(BaseModel):
             dotation=self.dotation,
             status=ProjetStatus.PROCESSING,
         )
+        return nouveau
 
     @transaction.atomic
-    @transition(
-        field=status,
-        source=ProjetStatus.FINAL,
-        target=ProjetStatus.PROCESSING,
-    )
-    def set_back_status_to_processing(self, user: Collegue):
+    def set_back_status_to_processing(self, user: Collegue) -> "EnveloppeProjet":
         is_notified = self.projet.has_been_notified
         ds_service = DsService()
 
-        self.set_back_status_to_processing_without_ds(actor=user)
+        nouveau = self.set_back_status_to_processing_without_ds(actor=user)
 
         if is_notified:
             ds_service.repasser_en_instruction(self.projet.dossier_ds, user)
@@ -626,8 +635,9 @@ class EnveloppeProjet(BaseModel):
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=self.projet.dossier_ds,
             user=user,
-            dotations_to_be_checked=self.other_accepted_dotations,
+            dotations_to_be_checked=nouveau.other_accepted_dotations,
         )
+        return nouveau
 
     ## -------------------------- Following DN --------------------------
 

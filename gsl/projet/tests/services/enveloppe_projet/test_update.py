@@ -538,10 +538,10 @@ def test_update_back_to_instruction(perimetres, status_1, status_2):
 
     synchroniser(projet)
 
-    detr_dp.refresh_from_db()
+    detr_dp = courant(detr_dp)
     assert detr_dp.status == ProjetStatus.PROCESSING
 
-    dsil_dp.refresh_from_db()
+    dsil_dp = courant(dsil_dp)
     assert dsil_dp.status == ProjetStatus.PROCESSING
 
 
@@ -581,10 +581,10 @@ def test_update_back_to_instruction_with_one_accepted_and_one_dismissed(
 
     synchroniser(projet)
 
-    detr_dp.refresh_from_db()
+    detr_dp = courant(detr_dp)
     assert detr_dp.status == ProjetStatus.PROCESSING
 
-    dsil_dp.refresh_from_db()
+    dsil_dp = courant(dsil_dp)
     # The dismissed one should remain dismissed (not updated)
     assert dsil_dp.status == refused_or_dismissed
 
@@ -637,13 +637,13 @@ def test_update_back_to_instruction_with_a_programmation_after_date_of_passage_e
 
     # --
 
-    detr_dp.refresh_from_db()
+    detr_dp = courant(detr_dp)
     assert detr_dp.status == first_status, (
         "The enveloppe projet with status %s should remain %s because it was programmed after the date of passage en instruction"
         % (first_status, first_status)
     )
 
-    dsil_dp.refresh_from_db()
+    dsil_dp = courant(dsil_dp)
     assert dsil_dp.status == ProjetStatus.PROCESSING, (
         "The enveloppe projet with status %s should be set to processing because it was programmed before the date of passage en instruction"
         % second_status
@@ -758,3 +758,10 @@ def test_update_assiette_creates_action_when_assiette_changed():
     )
     assert actions.count() == 1
     assert actions.first().euro_field_value == 15_000
+
+
+def courant(enveloppe_projet: EnveloppeProjet) -> EnveloppeProjet:
+    """A reopened EnveloppeProjet is replaced by a new courant one."""
+    return EnveloppeProjet.objects.get(
+        projet=enveloppe_projet.projet, enveloppe__dotation=enveloppe_projet.dotation
+    )
