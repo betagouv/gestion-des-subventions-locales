@@ -52,144 +52,125 @@ class DsService:
     # Status
 
     def passer_en_instruction(self, dossier: Dossier, user: Collegue) -> None:
-        from gsl_demarches_simplifiees.importer.dossier import (
-            refresh_dossier_from_saved_data,
-        )
-
-        mutation = Mutation.PASSAGE_EN_INSTRUCTION
-        instructeur_id = self._get_instructeur_id(user)
-
         results = self.mutator.dossier_passer_en_instruction(
-            dossier.ds_id, instructeur_id
+            dossier.ds_id, self._get_instructeur_id(user)
         )
-        self._check_results(results, dossier, user, mutation)
-
-        dossier_data = self._get_dossier_data(results, mutation)
-        dossier.update_data(dossier_data)
-        self._create_projet_action_for_mutation(
+        self._sync_from_dn(
+            results,
             dossier,
             user,
-            mutation,
+            Mutation.PASSAGE_EN_INSTRUCTION,
             ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
-            dossier_data,
         )
-
-        refresh_dossier_from_saved_data(dossier)
 
     def repasser_en_instruction(self, dossier: Dossier, user: Collegue) -> None:
-        from gsl_demarches_simplifiees.importer.dossier import (
-            refresh_dossier_from_saved_data,
-        )
-
-        mutation = Mutation.RETOUR_EN_INSTRUCTION
-        instructeur_id = self._get_instructeur_id(user)
-
         results = self.mutator.dossier_repasser_en_instruction(
-            dossier.ds_id, instructeur_id
+            dossier.ds_id, self._get_instructeur_id(user)
         )
-        self._check_results(results, dossier, user, mutation)
-
-        dossier_data = self._get_dossier_data(results, mutation)
-        dossier.update_data(dossier_data)
-        self._create_projet_action_for_mutation(
+        self._sync_from_dn(
+            results,
             dossier,
             user,
-            mutation,
+            Mutation.RETOUR_EN_INSTRUCTION,
             ProjetAction.TYPE_RETOUR_EN_INSTRUCTION,
-            dossier_data,
         )
 
-        refresh_dossier_from_saved_data(dossier)
-
-    def accept_in_ds(
+    def accepter(
         self,
         dossier: Dossier,
         user: Collegue,
-        document: UploadedFile,
+        document: UploadedFile | None = None,
         motivation: str = "",
     ) -> None:
-        from gsl_demarches_simplifiees.importer.dossier import (
-            refresh_dossier_from_saved_data,
-        )
-
-        mutation = Mutation.ACCEPT
-        instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_accepter(
-            dossier.ds_id, instructeur_id, motivation=motivation, document=document
+            dossier.ds_id,
+            self._get_instructeur_id(user),
+            motivation=motivation,
+            document=document,
         )
-        self._check_results(results, dossier, user, mutation, value=motivation)
-
-        dossier_data = self._get_dossier_data(results, mutation)
-        dossier.update_data(dossier_data)
-        self._create_projet_action_for_mutation(
+        self._sync_from_dn(
+            results,
             dossier,
             user,
-            mutation,
+            Mutation.ACCEPT,
             ProjetAction.TYPE_NOTIFIED,
-            dossier_data,
             document=document,
             motivation=motivation,
         )
-        refresh_dossier_from_saved_data(dossier)
 
-    def dismiss_in_ds(
+    def classer_sans_suite(
         self,
         dossier: Dossier,
         user: Collegue,
         motivation: str,
         document: UploadedFile | None = None,
     ) -> None:
-        from gsl_demarches_simplifiees.importer.dossier import (
-            refresh_dossier_from_saved_data,
-        )
-
-        mutation = Mutation.DISMISS
-        instructeur_id = self._get_instructeur_id(user)
         results = self.mutator.dossier_classer_sans_suite(
-            dossier.ds_id, instructeur_id, motivation, document=document
+            dossier.ds_id,
+            self._get_instructeur_id(user),
+            motivation=motivation,
+            document=document,
         )
-        self._check_results(results, dossier, user, mutation, value=motivation)
-
-        dossier_data = self._get_dossier_data(results, mutation)
-        dossier.update_data(dossier_data)
-
-        self._create_projet_action_for_mutation(
+        self._sync_from_dn(
+            results,
             dossier,
             user,
-            mutation,
+            Mutation.DISMISS,
             ProjetAction.TYPE_NOTIFIED,
-            dossier_data,
             document=document,
             motivation=motivation,
         )
-        refresh_dossier_from_saved_data(dossier)
 
-    def refuser_in_ds(
+    def refuser(
         self,
         dossier: Dossier,
         user: Collegue,
         motivation: str,
         document: UploadedFile | None = None,
     ) -> None:
+        results = self.mutator.dossier_refuser(
+            dossier.ds_id,
+            self._get_instructeur_id(user),
+            motivation=motivation,
+            document=document,
+        )
+        self._sync_from_dn(
+            results,
+            dossier,
+            user,
+            Mutation.REFUSE,
+            ProjetAction.TYPE_NOTIFIED,
+            document=document,
+            motivation=motivation,
+        )
+
+    def _sync_from_dn(
+        self,
+        results: dict,
+        dossier: Dossier,
+        user: Collegue,
+        mutation: Mutation,
+        action_type: str,
+        document: UploadedFile | None = None,
+        motivation: str = "",
+    ) -> None:
+        # Imported here because the importer reaches gsl.projet.models, which reaches
+        # back to this module.
         from gsl_demarches_simplifiees.importer.dossier import (
             refresh_dossier_from_saved_data,
         )
 
-        mutation = Mutation.REFUSE
-        instructeur_id = self._get_instructeur_id(user)
-        results = self.mutator.dossier_refuser(
-            dossier.ds_id, instructeur_id, motivation=motivation, document=document
-        )
-        self._check_results(results, dossier, user, mutation, value=motivation)
+        self._check_results(results, dossier, user, mutation, value=motivation or None)
 
         dossier_data = self._get_dossier_data(results, mutation)
         dossier.update_data(dossier_data)
-
+        # Before the refresh, which creates the very same action from the DN traitement
+        # and would credit DN rather than the agent who triggered it.
         self._create_projet_action_for_mutation(
             dossier,
             user,
             mutation,
-            ProjetAction.TYPE_NOTIFIED,
+            action_type,
             dossier_data,
             document=document,
             motivation=motivation,

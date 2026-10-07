@@ -223,7 +223,7 @@ class TestDismissOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds"
+            "gsl_demarches_simplifiees.services.DsService.classer_sans_suite"
         ) as mock_ds_dismiss:
             form = SimulationProjetStatusForm(
                 instance=dsil_simulation_projet,
@@ -262,7 +262,7 @@ class TestDismissOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds"
+            "gsl_demarches_simplifiees.services.DsService.classer_sans_suite"
         ) as mock_ds_dismiss:
             form = SimulationProjetStatusForm(
                 instance=dsil_simulation_projet,

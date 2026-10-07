@@ -13,15 +13,15 @@ from ..factories import EnveloppeProjetFactory, ProjetFactory
 pytestmark = pytest.mark.django_db
 
 
-DS_NOTIFY_METHODS = ("accept_in_ds", "refuser_in_ds", "dismiss_in_ds")
+DS_NOTIFY_METHODS = ("accepter", "refuser", "classer_sans_suite")
 
 
 @pytest.mark.parametrize(
     ("status", "expected_method"),
     (
-        (ProjetStatus.ACCEPTED, "accept_in_ds"),
-        (ProjetStatus.REFUSED, "refuser_in_ds"),
-        (ProjetStatus.DISMISSED, "dismiss_in_ds"),
+        (ProjetStatus.ACCEPTED, "accepter"),
+        (ProjetStatus.REFUSED, "refuser"),
+        (ProjetStatus.DISMISSED, "classer_sans_suite"),
     ),
 )
 def test_notify_calls_the_ds_method_matching_projet_status(status, expected_method):
@@ -58,7 +58,7 @@ def test_notify_merges_imported_documents_into_one_pdf():
         projet.notify(CollegueFactory())
 
     assert merge_mock.call_args.args[0] == projet.imported_documents
-    assert mocks["accept_in_ds"].call_args.kwargs["document"] is merged_pdf
+    assert mocks["accepter"].call_args.kwargs["document"] is merged_pdf
 
 
 def test_notify_without_imported_documents_does_not_merge():

@@ -553,7 +553,7 @@ Single entry point for all three outcomes: the "3 - Notifier" step of the
 notification tab (`NotificationMessageForm`/`NotificationMessageFormView`,
 `gsl/notification/forms.py` / `gsl/notification/views/views.py`) branches on
 `projet.status` — `DsMutator().dossier_accepter(...)` for accepted,
-`DsService().refuser_in_ds`/`dismiss_in_ds` for refused/dismissed — and
+`DsService().refuser`/`classer_sans_suite` for refused/dismissed — and
 merges `projet.imported_documents` (which already spans `LettreEtArreteSignes`,
 `LettreRefusSignee`, and `Annexe` across every dotation) into the single PDF
 sent to DN.

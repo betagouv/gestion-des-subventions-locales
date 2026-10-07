@@ -63,9 +63,9 @@ def test_get_instructeur_id(caplog):
     (
         ("passer_en_instruction", {}),
         ("repasser_en_instruction", {}),
-        ("accept_in_ds", {"document": None}),
-        ("dismiss_in_ds", {"motivation": ""}),
-        ("refuser_in_ds", {"motivation": ""}),
+        ("accepter", {"document": None}),
+        ("classer_sans_suite", {"motivation": ""}),
+        ("refuser", {"motivation": ""}),
     ),
 )
 def test_every_mutation_refuses_a_user_without_ds_id(dossier, method_name, kwargs):
@@ -285,7 +285,7 @@ def test_check_results(
     assert record.error == [final_msg]
 
 
-def test_dismiss_in_ds():
+def test_classer_sans_suite():
     dossier = DossierFactory()
     user = CollegueFactory()
     ds_service = DsService()
@@ -309,11 +309,11 @@ def test_dismiss_in_ds():
         results = {"results": {"data": {}}}
         mock_dossier_classer_sans_suite.return_value = results
 
-        ds_service.dismiss_in_ds(dossier, user, motivation="motivation")
+        ds_service.classer_sans_suite(dossier, user, motivation="motivation")
 
         mock_get_instructeur_id.assert_called_once_with(user)
         mock_dossier_classer_sans_suite.assert_called_once_with(
-            dossier.ds_id, "instructeur_id", "motivation", document=None
+            dossier.ds_id, "instructeur_id", motivation="motivation", document=None
         )
         mock_check_results.assert_called_once_with(
             results, dossier, user, Mutation.DISMISS, value="motivation"
@@ -323,15 +323,15 @@ def test_dismiss_in_ds():
 @pytest.mark.parametrize(
     "method_name, mutator_method, mutation",
     [
-        ("accept_in_ds", "dossier_accepter", Mutation.ACCEPT),
-        ("dismiss_in_ds", "dossier_classer_sans_suite", Mutation.DISMISS),
-        ("refuser_in_ds", "dossier_refuser", Mutation.REFUSE),
+        ("accepter", "dossier_accepter", Mutation.ACCEPT),
+        ("classer_sans_suite", "dossier_classer_sans_suite", Mutation.DISMISS),
+        ("refuser", "dossier_refuser", Mutation.REFUSE),
     ],
 )
 def test_in_ds_updates_ds_date_traitement(
     user, dossier, method_name, mutator_method, mutation
 ):
-    """accept_in_ds/dismiss_in_ds/refuser_in_ds should update
+    """accepter/classer_sans_suite/refuser should update
     dossier.ds_date_traitement from DN's own response (using the most recent
     dateTraitement in `dossier.traitements` — not necessarily the list's
     last entry)."""
@@ -397,7 +397,7 @@ def test_in_ds_updates_ds_date_traitement(
         )
 
 
-def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, dossier):
+def test_accepter_keeps_ds_date_traitement_when_dn_response_has_none(user, dossier):
     """A response missing dateTraitement (unexpected shape) must not crash and must
     not erase a previously known date."""
     ds_service = DsService()
@@ -418,7 +418,7 @@ def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, d
         mock_get_instructeur_id.return_value = "instructeur_id"
         mock_dossier_accepter.return_value = {"data": {"dossierAccepter": {}}}
 
-        ds_service.accept_in_ds(dossier, user, document=None, motivation="motivation")
+        ds_service.accepter(dossier, user, document=None, motivation="motivation")
 
         dossier.refresh_from_db()
         assert dossier.ds_date_traitement == original_date
@@ -427,9 +427,9 @@ def test_accept_in_ds_keeps_ds_date_traitement_when_dn_response_has_none(user, d
 @pytest.mark.parametrize(
     "method_name, mutator_method, mutation_key",
     [
-        ("accept_in_ds", "dossier_accepter", "dossierAccepter"),
-        ("dismiss_in_ds", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
-        ("refuser_in_ds", "dossier_refuser", "dossierRefuser"),
+        ("accepter", "dossier_accepter", "dossierAccepter"),
+        ("classer_sans_suite", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
+        ("refuser", "dossier_refuser", "dossierRefuser"),
     ],
 )
 def test_in_ds_merges_only_present_fields_into_dossier_data(
@@ -498,15 +498,15 @@ def test_in_ds_merges_only_present_fields_into_dossier_data(
 @pytest.mark.parametrize(
     "method_name, mutator_method, mutation",
     [
-        ("accept_in_ds", "dossier_accepter", Mutation.ACCEPT),
-        ("dismiss_in_ds", "dossier_classer_sans_suite", Mutation.DISMISS),
-        ("refuser_in_ds", "dossier_refuser", Mutation.REFUSE),
+        ("accepter", "dossier_accepter", Mutation.ACCEPT),
+        ("classer_sans_suite", "dossier_classer_sans_suite", Mutation.DISMISS),
+        ("refuser", "dossier_refuser", Mutation.REFUSE),
     ],
 )
 def test_in_ds_creates_notified_projet_action_with_turgot_source(
     user, dossier, method_name, mutator_method, mutation
 ):
-    """accept_in_ds/dismiss_in_ds/refuser_in_ds must create the ProjetAction
+    """accepter/classer_sans_suite/refuser must create the ProjetAction
     (source Turgot) recording the notification: right action_type, actor,
     motivation, the Traitement DN's own date, its id as source_id, and the
     signed document attached."""
@@ -563,9 +563,9 @@ def test_in_ds_creates_notified_projet_action_with_turgot_source(
 @pytest.mark.parametrize(
     "method_name, mutator_method, mutation_key",
     [
-        ("accept_in_ds", "dossier_accepter", "dossierAccepter"),
-        ("dismiss_in_ds", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
-        ("refuser_in_ds", "dossier_refuser", "dossierRefuser"),
+        ("accepter", "dossier_accepter", "dossierAccepter"),
+        ("classer_sans_suite", "dossier_classer_sans_suite", "dossierClasserSansSuite"),
+        ("refuser", "dossier_refuser", "dossierRefuser"),
     ],
 )
 def test_in_ds_creates_dossier_data_when_missing(
@@ -859,7 +859,7 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
 
         # Verify _check_results was called
         mock_check_results.assert_called_once_with(
-            mock_results, dossier, user, Mutation.PASSAGE_EN_INSTRUCTION
+            mock_results, dossier, user, Mutation.PASSAGE_EN_INSTRUCTION, value=None
         )
 
     # Verify dossier state was updated

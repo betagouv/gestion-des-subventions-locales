@@ -327,7 +327,7 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.accept_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.accepter",
                 return_value=None,
             ),
             mock.patch(
@@ -366,19 +366,19 @@ class TestForm:
         form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
         assert form.is_valid()
 
-    def test_save_calls_refuser_in_ds_for_refused(self, perimetre, collegue):
+    def test_save_calls_refuser_for_refused(self, perimetre, collegue):
         projet = _refused_projet(perimetre, with_signed_document=True)
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite",
                 return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.accept_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.accepter",
                 return_value=None,
             ) as accepter,
             mock.patch(
@@ -395,19 +395,19 @@ class TestForm:
         dismiss.assert_not_called()
         accepter.assert_not_called()
 
-    def test_save_calls_dismiss_in_ds_for_dismissed(self, perimetre, collegue):
+    def test_save_calls_classer_sans_suite_for_dismissed(self, perimetre, collegue):
         projet = _dismissed_projet(perimetre, with_signed_document=True)
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite",
                 return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.accept_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.accepter",
                 return_value=None,
             ) as accepter,
             mock.patch(
@@ -430,7 +430,7 @@ class TestForm:
         projet = _refused_projet(perimetre, with_signed_document=False)
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
             mock.patch(
@@ -459,7 +459,7 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.refuser",
                 return_value=None,
             ),
             mock.patch(
@@ -514,11 +514,11 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite",
                 return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser_in_ds",
+                "gsl_demarches_simplifiees.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
         ):
@@ -533,7 +533,7 @@ class TestForm:
 class TestView:
     def test_post_send_notification_success(self, client_with_user_logged, perimetre):
         """Real end-to-end: only the DN network call is faked.
-        DsService.accept_in_ds and refresh_dossier_from_saved_data both run
+        DsService.accepter and refresh_dossier_from_saved_data both run
         for real — including ProjetService.create_or_update_from_ds_dossier,
         which is what actually sets notified_at once it sees the dossier's
         DS state as treated. notified_at itself is never mocked: this is

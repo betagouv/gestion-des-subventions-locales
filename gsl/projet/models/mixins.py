@@ -30,9 +30,9 @@ class ProjetDNActionsMixin:
             ds_service.passer_en_instruction(dossier=self.dossier_ds, user=user)
 
         notify_in_ds = {
-            ProjetStatus.ACCEPTED: ds_service.accept_in_ds,
-            ProjetStatus.REFUSED: ds_service.refuser_in_ds,
-            ProjetStatus.DISMISSED: ds_service.dismiss_in_ds,
+            ProjetStatus.ACCEPTED: ds_service.accepter,
+            ProjetStatus.REFUSED: ds_service.refuser,
+            ProjetStatus.DISMISSED: ds_service.classer_sans_suite,
         }[self.status]
         with transaction.atomic():
             notify_in_ds(

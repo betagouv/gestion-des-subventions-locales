@@ -49,7 +49,7 @@ def test_refuse_or_dismiss_does_not_touch_ds(
                 "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser"
             ) as mock_refuser,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.dismiss_in_ds"
+                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite"
             ) as mock_dismiss,
         ):
             form = SimulationProjetStatusForm(
