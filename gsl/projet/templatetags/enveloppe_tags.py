@@ -1,8 +1,8 @@
 from django import template
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 
 from ..constants import ProjetStatus
-from ..models import EnveloppeProjet, Projet
+from ..models import EnveloppeProjet
 
 register = template.Library()
 
@@ -11,15 +11,20 @@ register = template.Library()
 def enveloppe_summary_line(
     context, enveloppe, level=1, hide_actions=False, oob_swap=False
 ):
-    projets_included = Projet.objects.active().for_perimetre(enveloppe.perimetre)
-    eps_included = EnveloppeProjet.objects.active().filter(
-        projet__in=projets_included, enveloppe=enveloppe.delegation_root
+    accepted = Q(status=ProjetStatus.ACCEPTED)
+    summary = (
+        EnveloppeProjet.objects.active()
+        .for_perimetre(enveloppe.perimetre)
+        .filter(enveloppe=enveloppe.delegation_root)
+        .aggregate(
+            montant_asked=Sum("projet__dossier_ds__demande_montant"),
+            accepted_montant=Sum("montant", filter=accepted, default=0),
+            validated_projets_count=Count("pk", filter=accepted),
+            refused_projets_count=Count("pk", filter=Q(status=ProjetStatus.REFUSED)),
+            demandeurs_count=Count("projet__dossier_ds__ds_demandeur", distinct=True),
+            projets_count=Count("pk"),
+        )
     )
-
-    processed = eps_included.filter(status__in=ProjetStatus.FINAL)
-
-    accepted = eps_included.filter(status=ProjetStatus.ACCEPTED)
-    accepted_montant = accepted.aggregate(Sum("montant"))["montant__sum"] or 0
 
     return {
         "enveloppe": enveloppe,
@@ -27,15 +32,6 @@ def enveloppe_summary_line(
         "hide_actions": hide_actions,
         "oob_swap": oob_swap,
         "csrf_token": context.get("csrf_token"),
-        "montant_asked": eps_included.aggregate(
-            sum=Sum("projet__dossier_ds__demande_montant")
-        )["sum"],
-        "accepted_montant": accepted_montant,
-        "reste_a_attribuer": enveloppe.montant - accepted_montant,
-        "validated_projets_count": accepted.count(),
-        "refused_projets_count": processed.filter(status=ProjetStatus.REFUSED).count(),
-        "demandeurs_count": eps_included.aggregate(
-            count=Count("projet__dossier_ds__ds_demandeur", distinct=True)
-        )["count"],
-        "projets_count": eps_included.count(),
+        "reste_a_attribuer": enveloppe.montant - summary["accepted_montant"],
+        **summary,
     }

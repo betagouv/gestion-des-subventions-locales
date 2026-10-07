@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-from datetime import timezone as tz
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from django.db import models
@@ -123,43 +121,6 @@ class ProjetQuerySet(models.QuerySet):
                 )
             )
         )
-
-    def not_processed_before_the_start_of_the_year(self, year: int):
-        return self.filter(
-            Q(
-                dossier_ds__ds_state__in=[
-                    Dossier.State.EN_CONSTRUCTION,
-                    Dossier.State.EN_INSTRUCTION,
-                ]
-            )
-            | Q(
-                dossier_ds__ds_state__in=[
-                    Dossier.State.ACCEPTE,
-                    Dossier.State.SANS_SUITE,
-                    Dossier.State.REFUSE,
-                ],
-                dossier_ds__ds_date_traitement__gte=datetime(
-                    year, 1, 1, 0, 0, tzinfo=tz.utc
-                ),
-            )
-        )
-
-    def included_in_enveloppe(self, enveloppe: "Enveloppe"):
-        projet_qs = self.for_perimetre(enveloppe.perimetre)
-        projet_qs_with_the_correct_dotation = projet_qs.filter(
-            enveloppeprojet__enveloppe__dotation=enveloppe.dotation
-        )
-        projet_qs_submitted_before_the_end_of_the_year = (
-            projet_qs_with_the_correct_dotation.filter(
-                dossier_ds__ds_date_depot__lt=datetime(
-                    enveloppe.annee + 1, 1, 1, tzinfo=UTC
-                ),
-            )
-        )
-        projet_qs_not_processed_before_the_start_of_the_year = projet_qs_submitted_before_the_end_of_the_year.not_processed_before_the_start_of_the_year(
-            enveloppe.annee
-        )
-        return projet_qs_not_processed_before_the_start_of_the_year
 
     def to_notify(self):
         return self.annotate(
