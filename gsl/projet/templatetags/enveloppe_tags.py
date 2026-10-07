@@ -11,31 +11,31 @@ register = template.Library()
 def enveloppe_summary_line(
     context, enveloppe, level=1, hide_actions=False, oob_swap=False
 ):
-    included = Projet.objects.active().included_in_enveloppe(enveloppe)
-    if enveloppe.is_deleguee:
-        processed = EnveloppeProjet.objects.active().filter(
-            enveloppe=enveloppe.delegation_root, projet__in=included
-        )
-    else:
-        processed = EnveloppeProjet.objects.active().filter(enveloppe=enveloppe)
-    accepted = processed.filter(status=ProjetStatus.ACCEPTED)
+    projets_included = Projet.objects.active().for_perimetre(enveloppe.perimetre)
+    eps_included = EnveloppeProjet.objects.active().filter(
+        projet__in=projets_included, enveloppe=enveloppe.delegation_root
+    )
 
+    processed = eps_included.filter(status__in=ProjetStatus.FINAL)
+
+    accepted = eps_included.filter(status=ProjetStatus.ACCEPTED)
     accepted_montant = accepted.aggregate(Sum("montant"))["montant__sum"] or 0
+
     return {
         "enveloppe": enveloppe,
         "level": level,
         "hide_actions": hide_actions,
         "oob_swap": oob_swap,
         "csrf_token": context.get("csrf_token"),
-        "montant_asked": included.aggregate(Sum("dossier_ds__demande_montant"))[
-            "dossier_ds__demande_montant__sum"
-        ],
+        "montant_asked": eps_included.aggregate(
+            sum=Sum("projet__dossier_ds__demande_montant")
+        )["sum"],
         "accepted_montant": accepted_montant,
         "reste_a_attribuer": enveloppe.montant - accepted_montant,
         "validated_projets_count": accepted.count(),
         "refused_projets_count": processed.filter(status=ProjetStatus.REFUSED).count(),
-        "demandeurs_count": included.aggregate(
-            count=Count("dossier_ds__ds_demandeur", distinct=True)
+        "demandeurs_count": eps_included.aggregate(
+            count=Count("projet__dossier_ds__ds_demandeur", distinct=True)
         )["count"],
-        "projets_count": included.count(),
+        "projets_count": eps_included.count(),
     }
