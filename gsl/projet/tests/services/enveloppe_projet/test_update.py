@@ -15,6 +15,8 @@ from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
+from gsl.simulation.models import SimulationProjet
+from gsl.simulation.tests.factories import SimulationFactory
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
@@ -93,6 +95,10 @@ def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetr
     assert action.dotation == DOTATION_DSIL
     assert action.source == ProjetAction.SOURCE_DN
     assert action.actor is None
+
+    dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    assert dsil.status == ProjetStatus.ACCEPTED
+    assert dsil.montant == 10_000
 
 
 @pytest.mark.django_db
@@ -273,109 +279,197 @@ def test_update_accepted_keeps_enveloppe_projets_not_annotated_if_refused_or_dis
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-@pytest.mark.parametrize(
-    "dotation_status",
-    (ProjetStatus.ACCEPTED, ProjetStatus.PROCESSING),
-)
-def test_update_accepted_removes_enveloppe_projets_not_annotated_if_accepted_or_processing(
+def test_update_accepted_removes_enveloppe_projet_not_annotated_if_processing(
     perimetres,
-    dotation_status,
 ):
-    # Arrange
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
-    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
 
-    dossier = DossierFactory(
-        ds_state=Dossier.State.EN_INSTRUCTION,
-        demande_dispositif_sollicite="DETR et DSIL",
-        ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        perimetre=arr_dijon,
+    _accept_on_dn(
+        projet, annotations_dotation="DETR", annotations_montant_accorde_detr=5_000
     )
-    projet = ProjetFactory(dossier_ds=dossier)
-
-    synchroniser(projet)
-    assert projet.enveloppeprojet_set.count() == 2
-
-    if dotation_status == ProjetStatus.PROCESSING:
-        projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).update(
-            status=dotation_status
-        )
-    else:
-        projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).update(
-            status=dotation_status,
-            enveloppe=dsil_enveloppe,
-            montant=0,
-            date_programmation=timezone.now(),
-        )
-
-    # Act
-    projet.dossier_ds.ds_state = Dossier.State.ACCEPTE
-    projet.dossier_ds.annotations_dotation = "DETR"
-    projet.dossier_ds.annotations_assiette_detr = 10_000
-    projet.dossier_ds.annotations_montant_accorde_detr = 5_000
-    projet.dossier_ds.save()
-
     synchroniser(projet)
 
-    # Assert
-    assert projet.enveloppeprojet_set.count() == 1
-    assert (
-        EnveloppeProjet.objects.for_dotation(DOTATION_DETR)
-        .filter(projet=projet, status=ProjetStatus.ACCEPTED)
-        .exists()
-    )
-    assert (
-        not EnveloppeProjet.objects.for_dotation(DOTATION_DSIL)
-        .filter(projet=projet)
-        .exists()
-    )
+    detr = projet.enveloppeprojet_set.get()
+    assert detr.dotation == DOTATION_DETR
+    assert detr.status == ProjetStatus.ACCEPTED
+    assert not EnveloppeProjet.all_objects.for_dotation(DOTATION_DSIL).exists()
 
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_accepted_with_empty_annotations_dotation_keeps_enveloppe_projets_unchanged(
+def test_update_accepted_refuses_accepted_enveloppe_projet_not_annotated_and_keeps_it_as_history(
     perimetres,
-    caplog,
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    simulation = SimulationFactory(enveloppe=dsil_enveloppe)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
+    _accept_on_dn(
+        projet,
+        annotations_dotation="DETR et DSIL",
+        annotations_montant_accorde_detr=5_000,
+        annotations_montant_accorde_dsil=10_000,
+    )
+    synchroniser(projet)
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
 
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
-        dossier_ds__demande_dispositif_sollicite="DETR",
-        dossier_ds__ds_date_traitement=None,
-        dossier_ds__perimetre=arr_dijon,
+    _accept_on_dn(projet, annotations_dotation="DETR")
+    synchroniser(projet)
+
+    assert projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get().status == (
+        ProjetStatus.ACCEPTED
     )
 
+    ancienne_dsil.refresh_from_db()
+    assert ancienne_dsil.is_courant is False
+    assert ancienne_dsil.status == ProjetStatus.ACCEPTED
+    assert ancienne_dsil.montant == 10_000
+
+    nouvelle_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    assert nouvelle_dsil.pk != ancienne_dsil.pk
+    assert nouvelle_dsil.status == ProjetStatus.REFUSED
+
+    simulation_projet = SimulationProjet.objects.get(simulation=simulation)
+    assert simulation_projet.enveloppe_projet == nouvelle_dsil
+    assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
+
+    dsil_actions = ProjetAction.objects.filter(projet=projet, dotation=DOTATION_DSIL)
+    assert dsil_actions.filter(
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        status=ProjetStatus.REFUSED,
+        source=ProjetAction.SOURCE_DN,
+    ).exists()
+    assert not dsil_actions.filter(
+        action_type=ProjetAction.TYPE_DOTATION_REMOVED
+    ).exists()
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+def test_update_accepted_double_dotation_with_both_annotated_accepts_both(
+    perimetres,
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
+
+    _accept_on_dn(
+        projet,
+        annotations_dotation="DETR et DSIL",
+        annotations_montant_accorde_detr=5_000,
+        annotations_montant_accorde_dsil=None,
+    )
     synchroniser(projet)
-    assert projet.enveloppeprojet_set.count() == 1
 
-    projet.dossier_ds.ds_state = Dossier.State.ACCEPTE
-    projet.dossier_ds.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
-    projet.dossier_ds.annotations_dotation = ""
-    projet.dossier_ds.save()
+    detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    assert detr.status == ProjetStatus.ACCEPTED
+    assert detr.montant == 5_000
+    dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    assert dsil.status == ProjetStatus.ACCEPTED
+    assert dsil.montant == 0
 
-    # --
 
+# -- accepted dossier — single dotation --
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+@pytest.mark.parametrize(
+    "dotation, montant_field",
+    (
+        (DOTATION_DETR, "annotations_montant_accorde_detr"),
+        (DOTATION_DSIL, "annotations_montant_accorde_dsil"),
+    ),
+)
+@pytest.mark.parametrize(
+    "montant_annote, expected_montant",
+    ((5_000, 5_000), (None, 0)),
+)
+def test_update_accepted_single_dotation_accepts_annotated_dotation(
+    perimetres, dotation, montant_field, montant_annote, expected_montant
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande=dotation)
+
+    _accept_on_dn(
+        projet, annotations_dotation=dotation, **{montant_field: montant_annote}
+    )
+    synchroniser(projet)
+
+    enveloppe_projet = projet.enveloppeprojet_set.get()
+    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
+    assert enveloppe_projet.montant == expected_montant
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+@pytest.mark.parametrize(
+    "initial_status, expected_status, expected_montant",
+    (
+        (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED, 0),
+        (ProjetStatus.ACCEPTED, ProjetStatus.ACCEPTED, 4_000),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED, None),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED, None),
+    ),
+)
+def test_update_accepted_single_dotation_with_empty_annotations_dotation_accepts_it_if_processing(
+    perimetres, caplog, initial_status, expected_status, expected_montant
+):
+    arr_dijon, dep_21, *_ = perimetres
+    detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR")
+    _force_status(projet, DOTATION_DETR, initial_status, detr_enveloppe)
+
+    _accept_on_dn(projet, annotations_dotation="")
     with caplog.at_level(logging.WARNING):
         synchroniser(projet)
 
-    # --
+    detr = projet.enveloppeprojet_set.get()
+    assert detr.status == expected_status
+    assert detr.montant == expected_montant
+    _assert_empty_annotations_dotation_warning(caplog, projet)
 
-    assert projet.enveloppeprojet_set.count() == 1
-    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
-    assert detr_dp.status == ProjetStatus.PROCESSING
 
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert (
-        record.message
-        == "No dotations found in annotations_dotation for accepted dossier"
+# -- accepted dossier — double dotation with empty annotations_dotation --
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+@pytest.mark.parametrize(
+    "initial_dsil_status, expected_dsil_status",
+    (
+        (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED),
+    ),
+)
+def test_update_accepted_double_dotation_with_empty_annotations_dotation_accepts_the_processing_ones(
+    perimetres, caplog, initial_dsil_status, expected_dsil_status
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
+    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
+
+    _accept_on_dn(projet, annotations_dotation="")
+    with caplog.at_level(logging.WARNING):
+        synchroniser(projet)
+
+    assert projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get().status == (
+        ProjetStatus.ACCEPTED
     )
-    assert record.levelname == "WARNING"
-    assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
-    assert getattr(record, "projet", None) == projet.pk
+    assert projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get().status == (
+        expected_dsil_status
+    )
+    _assert_empty_annotations_dotation_warning(caplog, projet)
 
 
 @pytest.mark.django_db
@@ -765,3 +859,50 @@ def courant(enveloppe_projet: EnveloppeProjet) -> EnveloppeProjet:
     return EnveloppeProjet.objects.get(
         projet=enveloppe_projet.projet, enveloppe__dotation=enveloppe_projet.dotation
     )
+
+
+# -- helpers --
+
+
+def _synchronised_projet_en_instruction(perimetre, demande):
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite=demande,
+        dossier_ds__ds_date_traitement=None,
+        dossier_ds__perimetre=perimetre,
+    )
+    synchroniser(projet)
+    return projet
+
+
+def _accept_on_dn(projet, annotations_dotation, **annotations):
+    dossier = projet.dossier_ds
+    dossier.ds_state = Dossier.State.ACCEPTE
+    dossier.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
+    dossier.annotations_dotation = annotations_dotation
+    for field, value in annotations.items():
+        setattr(dossier, field, value)
+    dossier.save()
+
+
+def _force_status(projet, dotation, status, enveloppe):
+    if status == ProjetStatus.PROCESSING:
+        return
+    projet.enveloppeprojet_set.for_dotation(dotation).update(
+        status=status,
+        enveloppe=enveloppe,
+        montant=4_000 if status == ProjetStatus.ACCEPTED else None,
+        date_programmation=timezone.now(),
+    )
+
+
+def _assert_empty_annotations_dotation_warning(caplog, projet):
+    record = next(
+        record
+        for record in caplog.records
+        if record.message
+        == "No dotations found in annotations_dotation for accepted dossier"
+    )
+    assert record.levelname == "WARNING"
+    assert record.dossier_ds_number == projet.dossier_ds.ds_number
+    assert record.projet == projet.pk

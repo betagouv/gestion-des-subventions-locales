@@ -23,14 +23,18 @@ class EnveloppeProjetService:
         is_initialisation = not existing
         dotations = cls._expected_dotations(projet, set(existing))
 
-        to_delete = existing.keys() - dotations
-        for dotation in to_delete:
-            # An accepted dossier only annotates its accepted dotations: keep the others' refusal.
-            if (
-                projet.dossier_ds.ds_state == Dossier.State.ACCEPTE
-                and existing[dotation].status in ProjetStatus.NEGATIVE
-            ):
-                continue
+        not_expected = existing.keys() - dotations
+        for dotation in not_expected:
+            enveloppe_projet = existing[dotation]
+            if projet.dossier_ds.ds_state == Dossier.State.ACCEPTE:
+                # An accepted dossier only annotates its accepted dotations: keep the others' refusal.
+                if enveloppe_projet.status in ProjetStatus.NEGATIVE:
+                    continue
+                if enveloppe_projet.status == ProjetStatus.ACCEPTED:
+                    existing[dotation] = cls._refuse_no_longer_accepted(
+                        enveloppe_projet
+                    )
+                    continue
             cls._remove_dotation(existing.pop(dotation))
 
         to_create = sorted(dotations - existing.keys())
@@ -51,9 +55,7 @@ class EnveloppeProjetService:
         enveloppe_projets = list(existing.values())
         for enveloppe_projet in enveloppe_projets:
             enveloppe_projet.update_assiette_from_dn()
-        cls._apply_dossier_state(
-            projet, enveloppe_projets, dotations, is_initialisation
-        )
+        cls._apply_dossier_state(projet, enveloppe_projets, dotations)
 
         for enveloppe_projet in enveloppe_projets:
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
@@ -99,6 +101,16 @@ class EnveloppeProjetService:
         )
         enveloppe_projet.delete()
 
+    @classmethod
+    def _refuse_no_longer_accepted(
+        cls, enveloppe_projet: EnveloppeProjet
+    ) -> EnveloppeProjet:
+        """The accepted EnveloppeProjet is kept as history (is_courant=False) and
+        replaced by a new courant one, refused."""
+        nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
+        nouveau.close_from_dn(EnveloppeProjet.refuse)
+        return nouveau
+
     ## -------------------------- Status --------------------------
 
     @classmethod
@@ -107,13 +119,10 @@ class EnveloppeProjetService:
         projet: Projet,
         enveloppe_projets: list[EnveloppeProjet],
         dotations: set[POSSIBLE_DOTATIONS],
-        is_initialisation: bool,  # TODO investigate if we still need this exception.
     ) -> None:
         dossier = projet.dossier_ds
         if dossier.ds_state == Dossier.State.ACCEPTE:
-            cls._apply_accepted_dossier(
-                dossier, enveloppe_projets, dotations, is_initialisation
-            )
+            cls._apply_accepted_dossier(dossier, enveloppe_projets, dotations)
 
         elif dossier.ds_state == Dossier.State.REFUSE:
             cls._apply_refused_dossier(enveloppe_projets)
@@ -136,15 +145,18 @@ class EnveloppeProjetService:
         dossier: Dossier,
         enveloppe_projets: list[EnveloppeProjet],
         dotations: set[POSSIBLE_DOTATIONS],
-        is_initialisation: bool,
     ) -> None:
-        # An accepted dossier with no annotated dotation says nothing new about the
-        # ones already known, so only the initial import falls back on the demande.
-        if not (dossier.dotations_annotees or is_initialisation):
-            return
         for enveloppe_projet in enveloppe_projets:
-            if enveloppe_projet.dotation in dotations:
-                enveloppe_projet.accept_from_dn()
+            if enveloppe_projet.dotation not in dotations:
+                continue
+            # Without annotated dotations, DN says nothing about the ones already
+            # decided in Turgot: only the processing ones get accepted.
+            if (
+                not dossier.dotations_annotees
+                and enveloppe_projet.status != ProjetStatus.PROCESSING
+            ):
+                continue
+            enveloppe_projet.accept_from_dn()
 
     @classmethod
     def _apply_refused_dossier(cls, enveloppe_projets: list[EnveloppeProjet]) -> None:
