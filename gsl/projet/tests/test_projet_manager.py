@@ -1,5 +1,4 @@
-from datetime import UTC, date, datetime
-from datetime import timezone as tz
+from datetime import date
 
 import pytest
 from django.db import connection
@@ -22,9 +21,7 @@ from ..constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
 from ..models import Projet
 from .factories import (
     EnveloppeProjetFactory,
-    ProcessedProjetFactory,
     ProjetFactory,
-    SubmittedProjetFactory,
 )
 
 pytestmark = pytest.mark.django_db
@@ -175,7 +172,7 @@ def test_for_normal_user_with_perimetre(departement, projets):
     assert projets[1] in user_projects
 
 
-# Filter included_in_enveloppe =========================================================
+# Filter for_campagne =========================================================
 
 
 def test_for_campagne_returns_a_projet_of_that_campagne():
@@ -239,103 +236,6 @@ def for_year_with_projet_to_display(state, ds_date_traitement):
     qs = qs.for_year(date.today().year)
 
     assert qs.count() == 1
-
-
-# Filter for_enveloppe =================================================================
-
-# Type ---------------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "projet_dotation, enveloppe_dotation, count",
-    [
-        ("DSIL", "DSIL", 1),
-        ("DSIL", "DETR", 0),
-        ("DETR", "DSIL", 0),
-        ("DETR", "DETR", 1),
-    ],
-)
-def test_for_enveloppe_with_projet_type_and_enveloppe_dotation(
-    projet_dotation, enveloppe_dotation, count
-):
-    perimetre = PerimetreDepartementalFactory()
-    enveloppe_factory = (
-        DetrEnveloppeFactory if enveloppe_dotation == "DETR" else DsilEnveloppeFactory
-    )
-    enveloppe = enveloppe_factory(annee=2024, perimetre=perimetre)
-    projet = ProjetFactory(
-        dossier_ds__perimetre=perimetre,
-        dossier_ds__ds_date_depot=datetime(2024, 3, 1, tzinfo=UTC),
-        dossier_ds__ds_date_traitement=datetime(2024, 5, 1, tzinfo=UTC),
-    )
-    EnveloppeProjetFactory(projet=projet, dotation=projet_dotation)
-
-    qs = Projet.objects.included_in_enveloppe(enveloppe=enveloppe)
-
-    assert qs.count() == count
-
-
-# Date ---------------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "submitted_year, count",
-    [
-        (2023, 1),
-        (2024, 1),
-        (2025, 0),
-    ],
-)
-def test_for_year_2024_and_for_not_processed_states(submitted_year, count):
-    perimetre = PerimetreDepartementalFactory()
-    enveloppe = DetrEnveloppeFactory(annee=2024, perimetre=perimetre)
-    projet = SubmittedProjetFactory(
-        dossier_ds__demande_dispositif_sollicite=enveloppe.dotation,
-        dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
-        dossier_ds__ds_date_traitement=datetime(submitted_year + 1, 5, 1, tzinfo=UTC),
-        dossier_ds__perimetre=perimetre,
-    )
-    EnveloppeProjetFactory(projet=projet, dotation=enveloppe.dotation)
-    print(f"Test with {projet.dossier_ds.ds_state}")
-
-    qs = Projet.objects.included_in_enveloppe(enveloppe)
-
-    assert qs.count() == count
-
-
-# Filter included_in_enveloppe ========================================================
-
-# Date ---------------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "submitted_year, processed_year, count",
-    [
-        (2023, 2023, 0),
-        (2023, 2024, 1),
-        (2023, 2025, 1),
-        (2024, 2024, 1),
-        (2024, 2025, 1),
-        (2025, 2025, 0),
-    ],
-)
-def test_for_year_2024_and_for_processed_states(submitted_year, processed_year, count):
-    perimetre = PerimetreDepartementalFactory()
-    enveloppe = DsilEnveloppeFactory(annee=2024, perimetre=perimetre)
-    projet = ProcessedProjetFactory(
-        dossier_ds__ds_date_depot=datetime(submitted_year, 12, 31, tzinfo=tz.utc),
-        dossier_ds__ds_date_traitement=datetime(processed_year, 12, 31, tzinfo=tz.utc),
-        dossier_ds__perimetre=perimetre,
-    )
-    EnveloppeProjetFactory(projet=projet, dotation=enveloppe.dotation)
-    print(f"Test with {projet.dossier_ds.ds_state}")
-
-    qs = Projet.objects.included_in_enveloppe(enveloppe)
-
-    assert qs.count() == count
 
 
 # Filter with_missing_annotations ======================================================
