@@ -79,13 +79,58 @@ class GraphqlProxyViewTest(TestCase):
         response = self._post(self._get_demarche_payload())
         self.assertEqual(response.status_code, 401)
 
-    def test_unconfigured_token_returns_403(self):
+    @patch("dn.proxy.views.requests.post")
+    def test_token_without_groupe_sees_whole_demarche(self, mock_post):
         self.token.groupe_instructeur_ds_id = ""
         self.token.save()
-        response = self._post(self._get_demarche_payload())
-        self.assertEqual(response.status_code, 403)
-        body = json.loads(response.content)
-        self.assertEqual(body["errors"][0]["message"], "Token non configuré.")
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {
+                "demarche": {
+                    "number": self.demarche.ds_number,
+                    "dossiers": {
+                        "nodes": [
+                            {"number": 1, "groupeInstructeur": {"id": "GROUPE-1"}},
+                            {"number": 2, "groupeInstructeur": {"id": "GROUPE-2"}},
+                        ],
+                    },
+                }
+            }
+        }
+
+        response = self._post(
+            {
+                "query": "query getDemarche { demarche { dossiers { nodes { number } } } }",
+                "operationName": "getDemarche",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+
+        nodes = _parse_stream(response)["data"]["demarche"]["dossiers"]["nodes"]
+        self.assertEqual([n["number"] for n in nodes], [1, 2])
+
+    @patch("dn.proxy.views.requests.post")
+    def test_token_without_groupe_rejects_other_demarche(self, mock_post):
+        self.token.groupe_instructeur_ds_id = ""
+        self.token.save()
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {"dossier": {"number": 42, "demarche": {"number": 999}}}
+        }
+
+        response = self._post(
+            {
+                "query": "query getDossier { dossier { number } }",
+                "operationName": "getDossier",
+                "variables": {"dossierNumber": 42},
+            }
+        )
+
+        data = _parse_stream(response)
+        self.assertIsNone(data["data"])
+        self.assertIn("errors", data)
 
     def test_invalid_json(self):
         response = self.client.post(
@@ -807,16 +852,6 @@ class GraphqlProxyViewTest(TestCase):
         request_ids = self._request_ids(body["errors"])
         self.assertEqual(len(request_ids), 1)
         self.assertTrue(request_ids[0])
-
-    def test_request_id_in_unconfigured_token_403(self):
-        self.token.groupe_instructeur_ds_id = ""
-        self.token.save()
-        response = self._post(self._get_demarche_payload())
-        self.assertEqual(response.status_code, 403)
-        body = json.loads(response.content)
-        self.assertTrue(
-            body["errors"][0]["extensions"]["requestId"],
-        )
 
     def test_request_id_in_invalid_json_response(self):
         response = self.client.post(

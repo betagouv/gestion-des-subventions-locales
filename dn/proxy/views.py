@@ -304,9 +304,6 @@ def _resolve_token(request, request_id):
     except ProxyToken.DoesNotExist:
         return None, _error_response("Token invalide ou désactivé.", 401, request_id)
 
-    if not proxy_token.groupe_instructeur_ds_id:
-        return None, _error_response("Token non configuré.", 403, request_id)
-
     return proxy_token, None
 
 
@@ -463,9 +460,11 @@ def _stream_ds_response(
             yield json.dumps(payload).encode()
             return
 
-        filtered = filter_response(response_data, allowed_groupe_ds_id)
-        _log_request(outcome="ok", filtered=filtered)
-        yield json.dumps(filtered).encode()
+        payload = response_data
+        if allowed_groupe_ds_id:
+            payload = filter_response(response_data, allowed_groupe_ds_id)
+        _log_request(outcome="ok", filtered=payload)
+        yield json.dumps(payload).encode()
     finally:
         release_token_lock(lock, proxy_token.id)
 
