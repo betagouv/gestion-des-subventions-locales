@@ -14,6 +14,8 @@ from graphql.language.ast import (
     InlineFragmentNode,
 )
 
+from dn.proxy.exceptions import ProxyError
+
 ALLOWED_DEMARCHE_FIELDS = frozenset(
     {
         "number",
@@ -115,6 +117,7 @@ def _walk_for_demarche(selection_set, fragments, seen_fragments):
 
 
 def validate_demarche_selections(doc, operation):
-    """Return the offending field name, or None if every `Demarche` selection is allowed."""
     fragments = _fragments_by_name(doc)
-    return _walk_for_demarche(operation.selection_set, fragments, set())
+    offender = _walk_for_demarche(operation.selection_set, fragments, set())
+    if offender is not None:
+        raise ProxyError(f"Champ démarche non autorisé : `{offender}`.", 403)

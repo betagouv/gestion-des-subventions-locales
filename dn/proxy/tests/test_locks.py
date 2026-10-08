@@ -1,8 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 import redis
 from django.test import override_settings
 
+from dn.proxy.exceptions import ProxyError
 from dn.proxy.locks import acquire_token_lock, release_token_lock
 
 
@@ -23,14 +25,16 @@ def test_acquire_returns_lock_when_free(mock_from_url):
 
 
 @patch("dn.proxy.locks.redis.Redis.from_url")
-def test_acquire_returns_none_when_held(mock_from_url):
+def test_acquire_raises_429_when_held(mock_from_url):
     lock = MagicMock()
     lock.acquire.return_value = False
     client = MagicMock()
     client.lock.return_value = lock
     mock_from_url.return_value = client
 
-    assert acquire_token_lock(7) is None
+    with pytest.raises(ProxyError) as exc_info:
+        acquire_token_lock(7)
+    assert exc_info.value.status == 429
 
 
 @patch("dn.proxy.locks.redis.Redis.from_url")
