@@ -1,7 +1,7 @@
 from graphql import parse
 from graphql.language.ast import OperationDefinitionNode
 
-from gsl_ds_proxy.query_guard import validate_demarche_selections
+from dn.proxy.query_guard import validate_demarche_selections
 
 
 def _validate(query, operation_name=None):

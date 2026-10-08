@@ -11,10 +11,10 @@ from django.views.decorators.http import require_POST
 from graphql import GraphQLError, OperationType, parse
 from graphql.language.ast import FieldNode, OperationDefinitionNode
 
-from gsl_ds_proxy.filters import filter_response
-from gsl_ds_proxy.locks import acquire_token_lock, release_token_lock
-from gsl_ds_proxy.models import ProxyToken
-from gsl_ds_proxy.query_guard import validate_demarche_selections
+from dn.proxy.filters import filter_response
+from dn.proxy.locks import acquire_token_lock, release_token_lock
+from dn.proxy.models import ProxyToken
+from dn.proxy.query_guard import validate_demarche_selections
 
 logger = logging.getLogger(__name__)
 

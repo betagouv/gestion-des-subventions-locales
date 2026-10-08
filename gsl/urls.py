@@ -61,7 +61,7 @@ urlpatterns = [
     ),
     path(
         "ds-proxy/",
-        include(("gsl_ds_proxy.urls", "gsl_ds_proxy"), "ds-proxy"),
+        include(("dn.proxy.urls", "gsl_ds_proxy"), "ds-proxy"),
     ),
     path(
         "collectivites/",
