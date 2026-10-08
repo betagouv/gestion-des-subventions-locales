@@ -31,8 +31,8 @@ class EnveloppeProjetService:
                 if enveloppe_projet.status in ProjetStatus.NEGATIVE:
                     continue
                 if enveloppe_projet.status == ProjetStatus.ACCEPTED:
-                    existing[dotation] = cls._refuse_no_longer_accepted(
-                        enveloppe_projet
+                    existing[dotation] = cls._close_from_dn(
+                        enveloppe_projet, EnveloppeProjet.refuse
                     )
                     continue
             cls._remove_dotation(existing.pop(dotation))
@@ -55,7 +55,9 @@ class EnveloppeProjetService:
         enveloppe_projets = list(existing.values())
         for enveloppe_projet in enveloppe_projets:
             enveloppe_projet.update_assiette_from_dn()
-        cls._apply_dossier_state(projet, enveloppe_projets, dotations)
+        enveloppe_projets = cls._apply_dossier_state(
+            projet, enveloppe_projets, dotations
+        )
 
         for enveloppe_projet in enveloppe_projets:
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
@@ -101,16 +103,6 @@ class EnveloppeProjetService:
         )
         enveloppe_projet.delete()
 
-    @classmethod
-    def _refuse_no_longer_accepted(
-        cls, enveloppe_projet: EnveloppeProjet
-    ) -> EnveloppeProjet:
-        """The accepted EnveloppeProjet is kept as history (is_courant=False) and
-        replaced by a new courant one, refused."""
-        nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
-        nouveau.close_from_dn(EnveloppeProjet.refuse)
-        return nouveau
-
     ## -------------------------- Status --------------------------
 
     @classmethod
@@ -119,25 +111,26 @@ class EnveloppeProjetService:
         projet: Projet,
         enveloppe_projets: list[EnveloppeProjet],
         dotations: set[POSSIBLE_DOTATIONS],
-    ) -> None:
+    ) -> list[EnveloppeProjet]:
+        """Returns the courant EnveloppeProjets, as a treated one changing status is
+        replaced by a new one."""
         dossier = projet.dossier_ds
         if dossier.ds_state == Dossier.State.ACCEPTE:
-            cls._apply_accepted_dossier(dossier, enveloppe_projets, dotations)
+            return cls._apply_accepted_dossier(dossier, enveloppe_projets, dotations)
 
-        elif dossier.ds_state == Dossier.State.REFUSE:
-            cls._apply_refused_dossier(enveloppe_projets)
+        if dossier.ds_state == Dossier.State.REFUSE:
+            return cls._apply_refused_dossier(enveloppe_projets)
 
-        elif dossier.ds_state == Dossier.State.SANS_SUITE:
-            cls._apply_sans_suite_dossier(enveloppe_projets)
+        if dossier.ds_state == Dossier.State.SANS_SUITE:
+            return cls._apply_sans_suite_dossier(enveloppe_projets)
 
-        elif dossier.ds_state in [
+        if dossier.ds_state in [
             Dossier.State.EN_CONSTRUCTION,
             Dossier.State.EN_INSTRUCTION,
         ]:
-            cls._apply_undecided_dossier(dossier, enveloppe_projets)
+            return cls._apply_undecided_dossier(dossier, enveloppe_projets)
 
-        else:
-            raise ValueError(f"Invalid dossier status: {dossier.ds_state}")
+        raise ValueError(f"Invalid dossier status: {dossier.ds_state}")
 
     @classmethod
     def _apply_accepted_dossier(
@@ -145,22 +138,24 @@ class EnveloppeProjetService:
         dossier: Dossier,
         enveloppe_projets: list[EnveloppeProjet],
         dotations: set[POSSIBLE_DOTATIONS],
-    ) -> None:
+    ) -> list[EnveloppeProjet]:
+        courants = []
         for enveloppe_projet in enveloppe_projets:
-            if enveloppe_projet.dotation not in dotations:
-                continue
             # Without annotated dotations, DN says nothing about the ones already
             # decided in Turgot: only the processing ones get accepted.
-            if (
-                not dossier.dotations_annotees
-                and enveloppe_projet.status != ProjetStatus.PROCESSING
+            if enveloppe_projet.dotation in dotations and (
+                dossier.dotations_annotees
+                or enveloppe_projet.status == ProjetStatus.PROCESSING
             ):
-                continue
-            enveloppe_projet.accept_from_dn()
+                enveloppe_projet = cls._accept_from_dn(enveloppe_projet)
+            courants.append(enveloppe_projet)
+        return courants
 
     @classmethod
-    def _apply_refused_dossier(cls, enveloppe_projets: list[EnveloppeProjet]) -> None:
-        cls._close_enveloppe_projets(
+    def _apply_refused_dossier(
+        cls, enveloppe_projets: list[EnveloppeProjet]
+    ) -> list[EnveloppeProjet]:
+        return cls._close_enveloppe_projets(
             enveloppe_projets,
             EnveloppeProjet.refuse,
             unchanged_statuses=[ProjetStatus.REFUSED],
@@ -169,10 +164,10 @@ class EnveloppeProjetService:
     @classmethod
     def _apply_sans_suite_dossier(
         cls, enveloppe_projets: list[EnveloppeProjet]
-    ) -> None:
+    ) -> list[EnveloppeProjet]:
         # A dotation already refused stays refused: a sans suite on the dossier does
         # not soften an individual refusal.
-        cls._close_enveloppe_projets(
+        return cls._close_enveloppe_projets(
             enveloppe_projets,
             EnveloppeProjet.dismiss,
             unchanged_statuses=ProjetStatus.NEGATIVE,
@@ -181,12 +176,13 @@ class EnveloppeProjetService:
     @classmethod
     def _apply_undecided_dossier(
         cls, dossier: Dossier, enveloppe_projets: list[EnveloppeProjet]
-    ) -> None:
+    ) -> list[EnveloppeProjet]:
         for enveloppe_projet in enveloppe_projets:
             if enveloppe_projet.status == ProjetStatus.ACCEPTED:
                 enveloppe_projet.update_montant_from_dn()
         if dossier.is_retour_en_instruction:
-            cls._reopen_after_passage_en_instruction(enveloppe_projets)
+            return cls._reopen_after_passage_en_instruction(enveloppe_projets)
+        return enveloppe_projets
 
     @classmethod
     def _close_enveloppe_projets(
@@ -194,16 +190,18 @@ class EnveloppeProjetService:
         enveloppe_projets: list[EnveloppeProjet],
         transition,
         unchanged_statuses: list[str],
-    ) -> None:
-        for enveloppe_projet in enveloppe_projets:
-            if enveloppe_projet.status in unchanged_statuses:
-                continue
-            enveloppe_projet.close_from_dn(transition)
+    ) -> list[EnveloppeProjet]:
+        return [
+            enveloppe_projet
+            if enveloppe_projet.status in unchanged_statuses
+            else cls._close_from_dn(enveloppe_projet, transition)
+            for enveloppe_projet in enveloppe_projets
+        ]
 
     @classmethod
     def _reopen_after_passage_en_instruction(
         cls, enveloppe_projets: list[EnveloppeProjet]
-    ) -> None:
+    ) -> list[EnveloppeProjet]:
         statuses = [enveloppe_projet.status for enveloppe_projet in enveloppe_projets]
         one_accepted_and_one_refused_or_dismissed = (
             statuses.count(ProjetStatus.ACCEPTED) == 1
@@ -215,11 +213,44 @@ class EnveloppeProjetService:
             else ProjetStatus.FINAL
         )
 
+        courants = []
         for ep in enveloppe_projets:
-            if ep.status not in reopened_statuses:
-                continue
             # Programmed in Turgot after DN reopened the instruction: so Turgot status
             # wins, nothing to undo.
-            if ep.date_programmation > ep.dossier_ds.ds_date_passage_en_instruction:
-                continue
-            ep.set_back_status_to_processing_without_ds()
+            if (
+                ep.status in reopened_statuses
+                and ep.date_programmation
+                <= ep.dossier_ds.ds_date_passage_en_instruction
+            ):
+                ep = ep.set_back_status_to_processing_without_ds()
+            courants.append(ep)
+        return courants
+
+    ## -------------------------- Transitions --------------------------
+
+    @classmethod
+    def _accept_from_dn(cls, enveloppe_projet: EnveloppeProjet) -> EnveloppeProjet:
+        # An already accepted dotation is only updated (montant, enveloppe).
+        if enveloppe_projet.status != ProjetStatus.ACCEPTED:
+            enveloppe_projet = cls._reopened_if_treated(enveloppe_projet)
+        enveloppe_projet.accept_from_dn()
+        return enveloppe_projet
+
+    @classmethod
+    def _close_from_dn(
+        cls, enveloppe_projet: EnveloppeProjet, transition
+    ) -> EnveloppeProjet:
+        enveloppe_projet = cls._reopened_if_treated(enveloppe_projet)
+        enveloppe_projet.close_from_dn(transition)
+        return enveloppe_projet
+
+    @classmethod
+    def _reopened_if_treated(cls, enveloppe_projet: EnveloppeProjet) -> EnveloppeProjet:
+        """A treated EnveloppeProjet is kept as history (is_courant=False), with its
+        documents, and replaced by a new courant one, in processing."""
+        if enveloppe_projet.status not in ProjetStatus.FINAL:
+            return enveloppe_projet
+        # The new one is treated right away by DN: the projet stays notified.
+        return enveloppe_projet.set_back_status_to_processing_without_ds(
+            reset_notification=False
+        )

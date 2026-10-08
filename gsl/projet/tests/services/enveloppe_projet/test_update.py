@@ -374,6 +374,43 @@ def test_update_accepted_double_dotation_with_both_annotated_accepts_both(
     assert dsil.montant == 0
 
 
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
+@pytest.mark.parametrize(
+    "initial_dsil_status, expected_dsil_actions",
+    (
+        (ProjetStatus.PROCESSING, [ProjetStatus.ACCEPTED]),
+        (ProjetStatus.REFUSED, [ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED]),
+        (ProjetStatus.DISMISSED, [ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED]),
+        (ProjetStatus.ACCEPTED, []),
+    ),
+)
+def test_update_accepted_accepts_annotated_dotation_whatever_its_status(
+    perimetres, initial_dsil_status, expected_dsil_actions
+):
+    arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
+    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
+    ancienne_detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+
+    _accept_on_dn(
+        projet,
+        annotations_dotation="DETR et DSIL",
+        annotations_montant_accorde_dsil=4_000,
+    )
+    synchroniser(projet)
+
+    _assert_treated_from_dn(
+        projet, ancienne_detr, ProjetStatus.ACCEPTED, [ProjetStatus.ACCEPTED]
+    )
+    _assert_treated_from_dn(
+        projet, ancienne_dsil, ProjetStatus.ACCEPTED, expected_dsil_actions
+    )
+
+
 # -- accepted dossier — single dotation --
 
 
@@ -474,117 +511,72 @@ def test_update_accepted_double_dotation_with_empty_annotations_dotation_accepts
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_refused(perimetres):
-    arr_dijon, dep_21, region_bfc, *_ = perimetres
-    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
-    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
-
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.State.REFUSE,
-        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        dossier_ds__perimetre=arr_dijon,
-    )
-
-    # Create existing enveloppe projets with different statuses
-    detr_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
-    )
-    dsil_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
-    )
-
-    synchroniser(projet)
-
-    detr_dp.refresh_from_db()
-    assert detr_dp.status == ProjetStatus.REFUSED
-
-    dsil_dp.refresh_from_db()
-    assert dsil_dp.status == ProjetStatus.REFUSED
-
-
-@pytest.mark.django_db
-@freeze_time("2025-05-06")
-def test_update_refused_does_not_update_already_refused(
-    perimetres,
+@pytest.mark.parametrize(
+    "initial_dsil_status, expected_dsil_actions",
+    (
+        (ProjetStatus.PROCESSING, [ProjetStatus.REFUSED]),
+        (ProjetStatus.DISMISSED, [ProjetStatus.PROCESSING, ProjetStatus.REFUSED]),
+        (ProjetStatus.REFUSED, []),
+        (ProjetStatus.ACCEPTED, [ProjetStatus.PROCESSING, ProjetStatus.REFUSED]),
+    ),
+)
+def test_update_refused_refuses_every_dotation(
+    perimetres, initial_dsil_status, expected_dsil_actions
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
-
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.State.REFUSE,
-        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        dossier_ds__perimetre=arr_dijon,
-    )
-
-    # Create already refused enveloppe projet
-    detr_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.REFUSED
-    )
-
-    synchroniser(projet)
-
-    assert projet.enveloppeprojet_set.count() == 1
-    detr_dp.refresh_from_db()
-    assert detr_dp.status == ProjetStatus.REFUSED
-
-
-@pytest.mark.django_db
-@freeze_time("2025-05-06")
-def test_update_sans_suite(perimetres):
-    arr_dijon, dep_21, region_bfc, *_ = perimetres
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
-    DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
+    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
+    ancienne_detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
 
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.State.SANS_SUITE,
-        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        dossier_ds__perimetre=arr_dijon,
-    )
-
-    # Create existing enveloppe projets with different statuses
-    detr_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
-    )
-    dsil_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
-    )
-
+    _treat_on_dn(projet, Dossier.State.REFUSE)
     synchroniser(projet)
 
-    detr_dp.refresh_from_db()
-    assert detr_dp.status == ProjetStatus.DISMISSED
-
-    dsil_dp.refresh_from_db()
-    assert dsil_dp.status == ProjetStatus.DISMISSED
+    _assert_treated_from_dn(
+        projet, ancienne_detr, ProjetStatus.REFUSED, [ProjetStatus.REFUSED]
+    )
+    _assert_treated_from_dn(
+        projet, ancienne_dsil, ProjetStatus.REFUSED, expected_dsil_actions
+    )
 
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
-def test_update_sans_suite_does_not_update_already_dismissed_or_refused(
-    perimetres,
+@pytest.mark.parametrize(
+    "initial_dsil_status, expected_dsil_status, expected_dsil_actions",
+    (
+        (ProjetStatus.PROCESSING, ProjetStatus.DISMISSED, [ProjetStatus.DISMISSED]),
+        (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED, []),
+        (ProjetStatus.REFUSED, ProjetStatus.REFUSED, []),
+        (
+            ProjetStatus.ACCEPTED,
+            ProjetStatus.DISMISSED,
+            [ProjetStatus.PROCESSING, ProjetStatus.DISMISSED],
+        ),
+    ),
+)
+def test_update_sans_suite_dismisses_every_dotation_not_refused(
+    perimetres, initial_dsil_status, expected_dsil_status, expected_dsil_actions
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
+    DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
+    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
+    ancienne_detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
 
-    projet = ProjetFactory(
-        dossier_ds__ds_state=Dossier.State.SANS_SUITE,
-        dossier_ds__ds_date_traitement=timezone.datetime(2025, 1, 15, tzinfo=UTC),
-        dossier_ds__perimetre=arr_dijon,
-    )
-
-    # Create already dismissed and refused enveloppe projets
-    detr_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.DISMISSED
-    )
-    dsil_dp = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.REFUSED
-    )
-
+    _treat_on_dn(projet, Dossier.State.SANS_SUITE)
     synchroniser(projet)
 
-    assert projet.enveloppeprojet_set.count() == 2
-    detr_dp.refresh_from_db()
-    assert detr_dp.status == ProjetStatus.DISMISSED
-    dsil_dp.refresh_from_db()
-    assert dsil_dp.status == ProjetStatus.REFUSED
+    _assert_treated_from_dn(
+        projet, ancienne_detr, ProjetStatus.DISMISSED, [ProjetStatus.DISMISSED]
+    )
+    _assert_treated_from_dn(
+        projet, ancienne_dsil, expected_dsil_status, expected_dsil_actions
+    )
 
 
 def date_programmation_avant_instruction(status):
@@ -876,11 +868,19 @@ def _synchronised_projet_en_instruction(perimetre, demande):
 
 
 def _accept_on_dn(projet, annotations_dotation, **annotations):
+    _treat_on_dn(
+        projet,
+        Dossier.State.ACCEPTE,
+        annotations_dotation=annotations_dotation,
+        **annotations,
+    )
+
+
+def _treat_on_dn(projet, ds_state, **dossier_fields):
     dossier = projet.dossier_ds
-    dossier.ds_state = Dossier.State.ACCEPTE
+    dossier.ds_state = ds_state
     dossier.ds_date_traitement = timezone.datetime(2025, 1, 15, tzinfo=UTC)
-    dossier.annotations_dotation = annotations_dotation
-    for field, value in annotations.items():
+    for field, value in dossier_fields.items():
         setattr(dossier, field, value)
     dossier.save()
 
@@ -906,3 +906,23 @@ def _assert_empty_annotations_dotation_warning(caplog, projet):
     assert record.levelname == "WARNING"
     assert record.dossier_ds_number == projet.dossier_ds.ds_number
     assert record.projet == projet.pk
+
+
+def _assert_treated_from_dn(projet, ancienne, expected_status, expected_status_actions):
+    """A treated dotation changing status is kept as history and replaced by a new
+    one, set back to processing then treated: hence two status change actions."""
+    courante = projet.enveloppeprojet_set.for_dotation(ancienne.dotation).get()
+    assert courante.status == expected_status
+
+    is_replaced = ProjetStatus.PROCESSING in expected_status_actions
+    assert (courante.pk != ancienne.pk) is is_replaced
+    ancienne.refresh_from_db()
+    assert ancienne.is_courant is not is_replaced
+
+    status_actions = ProjetAction.objects.filter(
+        projet=projet,
+        dotation=ancienne.dotation,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        source=ProjetAction.SOURCE_DN,
+    ).order_by("pk")
+    assert [action.status for action in status_actions] == expected_status_actions
