@@ -384,6 +384,7 @@ if SENTRY_DSN:
             DjangoIntegration(),
             LoggingIntegration(
                 sentry_logs_level=None,
+                capture_sentry_logs=True,
             ),
         ],
         environment=SENTRY_ENV,
