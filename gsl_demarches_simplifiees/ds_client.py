@@ -11,7 +11,6 @@ from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
-from gsl_demarches_simplifiees.models import Dossier
 
 logger = getLogger(__name__)
 
@@ -183,60 +182,74 @@ class DsMutator(DsClientBase):
             "dossierModifierAnnotations", variables=variables
         )[0]
 
-    def dossier_repasser_en_instruction(
-        self, dossier_id, instructeur_id, disable_notification=False
-    ):
-        variables = {
-            "input": {
-                "clientMutationId": settings.DS_CLIENT_ID,
-                "disableNotification": disable_notification,
-                "dossierId": dossier_id,
-                "instructeurId": instructeur_id,
-            }
-        }
+    def dossier_repasser_en_instruction(self, dossier_id, instructeur_id):
         # TODO : We should check response to know if the dossier is in instruction after that
         # for the moment, if the dossier is in construction, it silently fails without any error
-        return self.launch_graphql_query(
-            "dossierRepasserEnInstruction", variables=variables
-        )[0]
+        return self._mutate_dossier(
+            "dossierRepasserEnInstruction", dossier_id, instructeur_id
+        )
 
-    def dossier_passer_en_instruction(
-        self, dossier_id, instructeur_id, disable_notification=False
-    ):
-        variables = {
-            "input": {
-                "clientMutationId": settings.DS_CLIENT_ID,
-                "disableNotification": disable_notification,
-                "dossierId": dossier_id,
-                "instructeurId": instructeur_id,
-            }
-        }
-        return self.launch_graphql_query(
-            "dossierPasserEnInstruction", variables=variables
-        )[0]
+    def dossier_passer_en_instruction(self, dossier_id, instructeur_id):
+        return self._mutate_dossier(
+            "dossierPasserEnInstruction", dossier_id, instructeur_id
+        )
 
-    def _mutate_with_justificatif_and_motivation(
+    def dossier_accepter(
         self,
-        action: str,
-        dossier_ds_id: str,
+        dossier_id: str,
         instructeur_id: str,
         motivation: str = "",
-        justificatif_id: str | None = None,
-        disable_notification: bool = False,
+        document: UploadedFile | None = None,
+    ):
+        return self._mutate_dossier(
+            "dossierAccepter", dossier_id, instructeur_id, motivation, document
+        )
+
+    def dossier_classer_sans_suite(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        motivation: str = "",
+        document: UploadedFile | None = None,
+    ):
+        return self._mutate_dossier(
+            "dossierClasserSansSuite", dossier_id, instructeur_id, motivation, document
+        )
+
+    def dossier_refuser(
+        self,
+        dossier_id: str,
+        instructeur_id: str,
+        motivation: str = "",
+        document: UploadedFile | None = None,
+    ):
+        return self._mutate_dossier(
+            "dossierRefuser", dossier_id, instructeur_id, motivation, document
+        )
+
+    def _mutate_dossier(
+        self,
+        action: str,
+        dossier_id: str,
+        instructeur_id: str,
+        motivation: str = "",
+        document: UploadedFile | None = None,
     ):
         variables = {
             "input": {
                 "clientMutationId": settings.DS_CLIENT_ID,
-                "disableNotification": disable_notification,
-                "dossierId": dossier_ds_id,
+                "disableNotification": False,
+                "dossierId": dossier_id,
                 "instructeurId": instructeur_id,
             }
         }
         if motivation:
             variables["input"]["motivation"] = motivation
 
-        if justificatif_id:
-            variables["input"]["justificatif"] = justificatif_id
+        if document is not None:
+            variables["input"]["justificatif"] = self._upload_attachment(
+                dossier_id, document
+            )
         return self.launch_graphql_query(action, variables=variables)[0]
 
     def _upload_attachment(self, dossier_ds_id: str, file: UploadedFile) -> str:
@@ -287,59 +300,3 @@ class DsMutator(DsClientBase):
             )
 
         return blob_id
-
-    def dossier_accepter(
-        self,
-        dossier_id: str,
-        instructeur_id: str,
-        motivation: str = "",
-        disable_notification: bool = False,
-        document: UploadedFile = None,
-    ):
-        justificatif_id = (
-            self._upload_attachment(dossier_id, document)
-            if document is not None
-            else None
-        )
-        return self._mutate_with_justificatif_and_motivation(
-            "dossierAccepter",
-            dossier_ds_id=dossier_id,
-            instructeur_id=instructeur_id,
-            motivation=motivation,
-            disable_notification=disable_notification,
-            justificatif_id=justificatif_id,
-        )
-
-    def dossier_classer_sans_suite(
-        self,
-        dossier_id: str,
-        instructeur_id: str,
-        motivation: str = "",
-        document: UploadedFile = None,
-    ):
-        if document is not None:
-            justificatif_id = self._upload_attachment(dossier_id, document)
-        else:
-            justificatif_id = None
-        return self._mutate_with_justificatif_and_motivation(
-            "dossierClasserSansSuite",
-            dossier_id,
-            instructeur_id,
-            motivation,
-            justificatif_id,
-        )
-
-    def dossier_refuser(
-        self,
-        dossier: Dossier,
-        instructeur_id: str,
-        motivation: str = "",
-        document: UploadedFile = None,
-    ):
-        if document is not None:
-            justificatif_id = self._upload_attachment(dossier.ds_id, document)
-        else:
-            justificatif_id = None
-        return self._mutate_with_justificatif_and_motivation(
-            "dossierRefuser", dossier.ds_id, instructeur_id, motivation, justificatif_id
-        )
