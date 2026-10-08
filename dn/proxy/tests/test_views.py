@@ -3,10 +3,10 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
 
+from dn.proxy.tests.factories import ProxyTokenFactory
 from gsl_demarches_simplifiees.tests.factories import (
     DemarcheFactory,
 )
-from gsl_ds_proxy.tests.factories import ProxyTokenFactory
 
 
 def _read_stream(response):
@@ -32,11 +32,11 @@ class GraphqlProxyViewTest(TestCase):
         # GraphqlProxyTokenLockTest; here we neutralise it (always acquired,
         # no-op release) so the rest of the suite doesn't need a live Redis.
         acquire_patcher = patch(
-            "gsl_ds_proxy.views.acquire_token_lock", return_value=MagicMock()
+            "dn.proxy.views.acquire_token_lock", return_value=MagicMock()
         )
         self.mock_acquire = acquire_patcher.start()
         self.addCleanup(acquire_patcher.stop)
-        release_patcher = patch("gsl_ds_proxy.views.release_token_lock")
+        release_patcher = patch("dn.proxy.views.release_token_lock")
         self.mock_release = release_patcher.start()
         self.addCleanup(release_patcher.stop)
 
@@ -104,7 +104,7 @@ class GraphqlProxyViewTest(TestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 405)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_successful_proxy(self, mock_post):
         ds_response_data = {
             "data": {
@@ -151,7 +151,7 @@ class GraphqlProxyViewTest(TestCase):
             "Bearer test-ds-token",
         )
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_ds_connection_error(self, mock_post):
         import requests as req
 
@@ -165,7 +165,7 @@ class GraphqlProxyViewTest(TestCase):
             "Erreur de connexion à Démarches Simplifiées.",
         )
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_ds_http_error(self, mock_post):
         import requests as req
 
@@ -179,7 +179,7 @@ class GraphqlProxyViewTest(TestCase):
             data["errors"][0]["message"], "Erreur de Démarches Simplifiées."
         )
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_upstream_errors_forwarded_when_data_null(self, mock_post):
         upstream = {
             "data": None,
@@ -197,7 +197,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertIn(upstream["errors"][0], errors)
         self.assertNotIn("La requête doit inclure", raw)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_upstream_errors_forwarded_when_data_empty(self, mock_post):
         upstream = {
             "data": {},
@@ -215,7 +215,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertIn(upstream["errors"][0], errors)
         self.assertNotIn("La requête doit inclure", raw)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_upstream_errors_forwarded_for_getDossier(self, mock_post):
         upstream = {
             "data": {"dossier": None},
@@ -252,7 +252,7 @@ class GraphqlProxyViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDossier_of_token_demarche_allowed(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -276,7 +276,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertIn("data", data)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDossier_of_other_demarche_rejected(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -300,7 +300,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertIn("errors", data)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDossier_without_demarche_in_response_rejected(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -336,7 +336,7 @@ class GraphqlProxyViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_arbitrary_operation_name_allowed_when_root_field_is_demarche(
         self, mock_post
     ):
@@ -386,7 +386,7 @@ class GraphqlProxyViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_introspection_query_allowed_with_arbitrary_name(self, mock_post):
         introspection_payload = {"data": {"__schema": {"types": [{"name": "Query"}]}}}
         mock_post.return_value.status_code = 200
@@ -414,7 +414,7 @@ class GraphqlProxyViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDemarche_response_with_wrong_demarche_number_rejected(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -437,7 +437,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertIn("errors", data)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDemarche_response_without_number_field_rejected(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -473,7 +473,7 @@ class GraphqlProxyViewTest(TestCase):
         response = self._post({"query": "subscription { dossierUpdated { id } }"})
         self.assertEqual(response.status_code, 403)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_query_with_leading_comment_parsed(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -495,7 +495,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertEqual(data["data"]["demarche"]["number"], self.demarche.ds_number)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_ds_timeout_returns_in_band_error(self, mock_post):
         import requests as req
 
@@ -509,7 +509,7 @@ class GraphqlProxyViewTest(TestCase):
             "Délai d'attente dépassé pour Démarches Simplifiées.",
         )
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_query_forwarded_verbatim(self, mock_post):
         """The proxy should not rewrite the query — it's forwarded as sent."""
         mock_post.return_value.status_code = 200
@@ -554,7 +554,7 @@ class GraphqlProxyViewTest(TestCase):
         response = self._post({"query": "fragment DossierFields on Dossier { number }"})
         self.assertEqual(response.status_code, 400)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_shorthand_query_accepted(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -576,7 +576,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertEqual(data["data"]["demarche"]["number"], self.demarche.ds_number)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDemarche_groupeInstructeurs_field_rejected(self, mock_post):
         response = self._post(
             {
@@ -596,7 +596,7 @@ class GraphqlProxyViewTest(TestCase):
             "Champ démarche non autorisé : `groupeInstructeurs`.",
         )
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDossier_demarche_groupeInstructeurs_field_rejected(self, mock_post):
         response = self._post(
             {
@@ -616,7 +616,7 @@ class GraphqlProxyViewTest(TestCase):
             "Champ démarche non autorisé : `groupeInstructeurs`.",
         )
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_getDemarche_allowed_fields_pass(self, mock_post):
         ds_response_data = {
             "data": {
@@ -669,7 +669,7 @@ class GraphqlProxyViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_ds_post_called_with_timeout(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -691,7 +691,7 @@ class GraphqlProxyViewTest(TestCase):
         _read_stream(response)
         self.assertEqual(mock_post.call_args.kwargs["timeout"], (5, 55))
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_first_byte_is_heartbeat_space(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -713,7 +713,7 @@ class GraphqlProxyViewTest(TestCase):
         first_chunk = next(iter(response.streaming_content))
         self.assertEqual(first_chunk, b" ")
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_final_payload_is_valid_json_with_leading_heartbeat(self, mock_post):
         ds_data = {
             "data": {
@@ -738,7 +738,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertTrue(stream_bytes.startswith(b" "))
         self.assertEqual(json.loads(stream_bytes.lstrip()), ds_data)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_connection_error_during_streaming_yields_graphql_error_with_200(
         self, mock_post
     ):
@@ -754,7 +754,7 @@ class GraphqlProxyViewTest(TestCase):
             "Erreur de connexion à Démarches Simplifiées.",
         )
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_scope_check_failure_during_streaming_yields_graphql_error_with_200(
         self, mock_post
     ):
@@ -861,7 +861,7 @@ class GraphqlProxyViewTest(TestCase):
         body = json.loads(response.content)
         self.assertTrue(body["errors"][0]["extensions"]["requestId"])
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_id_in_streamed_ds_http_error(self, mock_post):
         import requests as req
 
@@ -872,7 +872,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertTrue(data["errors"][0]["extensions"]["requestId"])
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_id_in_streamed_timeout(self, mock_post):
         import requests as req
 
@@ -882,7 +882,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertTrue(data["errors"][0]["extensions"]["requestId"])
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_id_in_streamed_connection_error(self, mock_post):
         import requests as req
 
@@ -892,7 +892,7 @@ class GraphqlProxyViewTest(TestCase):
         data = _parse_stream(response)
         self.assertTrue(data["errors"][0]["extensions"]["requestId"])
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_id_in_scope_error_after_response(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -915,7 +915,7 @@ class GraphqlProxyViewTest(TestCase):
     # Upstream DS errors preserved with scope error
     # ------------------------------------------------------------------
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_scope_error_preserves_upstream_ds_errors(self, mock_post):
         """When DS returns partial errors AND data fails scope check, both
         the upstream errors and our scope rejection are returned."""
@@ -953,7 +953,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(len(scope_messages), 1)
         self.assertIsNone(data["data"])
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_verbatim_forward_prepends_request_id_marker(self, mock_post):
         """DS errors + null data: forward verbatim AND add our request_id
         marker so the partner can correlate with our logs."""
@@ -981,13 +981,13 @@ class GraphqlProxyViewTest(TestCase):
     # Logging enrichment
     # ------------------------------------------------------------------
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_logging_extra_on_connection_error(self, mock_post):
         import requests as req
 
         mock_post.side_effect = req.exceptions.ConnectionError()
 
-        with self.assertLogs("gsl_ds_proxy.views", level="ERROR") as cm:
+        with self.assertLogs("dn.proxy.views", level="ERROR") as cm:
             response = self._post(self._get_demarche_payload())
             _read_stream(response)
 
@@ -997,13 +997,13 @@ class GraphqlProxyViewTest(TestCase):
         self.assertTrue(record.request_id)
         self.assertIsInstance(record.elapsed_ms, int)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_logging_extra_on_timeout(self, mock_post):
         import requests as req
 
         mock_post.side_effect = req.exceptions.Timeout()
 
-        with self.assertLogs("gsl_ds_proxy.views", level="ERROR") as cm:
+        with self.assertLogs("dn.proxy.views", level="ERROR") as cm:
             response = self._post(self._get_demarche_payload())
             _read_stream(response)
 
@@ -1013,14 +1013,14 @@ class GraphqlProxyViewTest(TestCase):
         self.assertTrue(record.request_id)
         self.assertIsInstance(record.elapsed_ms, int)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_logging_extra_on_http_error(self, mock_post):
         import requests as req
 
         mock_post.return_value.status_code = 503
         mock_post.return_value.raise_for_status.side_effect = req.exceptions.HTTPError()
 
-        with self.assertLogs("gsl_ds_proxy.views", level="ERROR") as cm:
+        with self.assertLogs("dn.proxy.views", level="ERROR") as cm:
             response = self._post(self._get_demarche_payload())
             _read_stream(response)
 
@@ -1039,7 +1039,7 @@ class GraphqlProxyViewTest(TestCase):
     def _request_log_records(records):
         return [r for r in records if r.getMessage() == "DS proxy: request"]
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_log_on_successful_getDemarche(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -1058,7 +1058,7 @@ class GraphqlProxyViewTest(TestCase):
             }
         }
 
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             response = self._post(self._get_demarche_payload())
             _read_stream(response)
 
@@ -1076,7 +1076,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertTrue(record.request_id)
         self.assertIsInstance(record.elapsed_ms, int)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_log_counts_all_demarche_connections(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -1104,7 +1104,7 @@ class GraphqlProxyViewTest(TestCase):
             }
         }
 
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             response = self._post(self._get_demarche_payload())
             _read_stream(response)
 
@@ -1112,7 +1112,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(record.ds_results_count, 4)
         self.assertEqual(record.filtered_out_count, 2)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_log_on_authorized_getDossier(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -1126,7 +1126,7 @@ class GraphqlProxyViewTest(TestCase):
             }
         }
 
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             response = self._post(
                 {
                     "query": "query getDossier { dossier { number } }",
@@ -1142,7 +1142,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(record.ds_results_count, 1)
         self.assertEqual(record.filtered_out_count, 0)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_log_on_filtered_getDossier(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -1156,7 +1156,7 @@ class GraphqlProxyViewTest(TestCase):
             }
         }
 
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             response = self._post(
                 {
                     "query": "query getDossier { dossier { number } }",
@@ -1171,7 +1171,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(record.ds_results_count, 1)
         self.assertEqual(record.filtered_out_count, 1)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_log_on_verbatim_forward(self, mock_post):
         upstream_errors = [
             {"message": "Field 'demaarche' doesn't exist on type 'Query'"},
@@ -1183,7 +1183,7 @@ class GraphqlProxyViewTest(TestCase):
             "errors": upstream_errors,
         }
 
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             response = self._post(self._get_demarche_payload())
             _read_stream(response)
 
@@ -1192,7 +1192,7 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(record.ds_errors_count, len(upstream_errors))
         self.assertEqual(record.filtered_out_count, 0)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_log_on_scope_error(self, mock_post):
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
@@ -1210,7 +1210,7 @@ class GraphqlProxyViewTest(TestCase):
             }
         }
 
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             response = self._post(self._get_demarche_payload())
             _read_stream(response)
 
@@ -1219,14 +1219,14 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(record.ds_results_count, 2)
         self.assertEqual(record.filtered_out_count, record.ds_results_count)
 
-    @patch("gsl_ds_proxy.views.requests.post")
+    @patch("dn.proxy.views.requests.post")
     def test_request_log_on_introspection_omits_dossier_counts(self, mock_post):
         introspection_payload = {"data": {"__schema": {"types": [{"name": "Query"}]}}}
         mock_post.return_value.status_code = 200
         mock_post.return_value.raise_for_status.return_value = None
         mock_post.return_value.json.return_value = introspection_payload
 
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             response = self._post(
                 {
                     "query": "query Whatever { __schema { types { name } } }",
@@ -1241,12 +1241,12 @@ class GraphqlProxyViewTest(TestCase):
         self.assertFalse(hasattr(record, "filtered_out_count"))
 
     def test_no_request_log_on_pre_ds_rejection(self):
-        with self.assertLogs("gsl_ds_proxy.views", level="INFO") as cm:
+        with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             # assertLogs requires at least one record at the given level; emit
             # a sentinel so the context manager has something to capture.
             import logging as _logging
 
-            _logging.getLogger("gsl_ds_proxy.views").info("sentinel")
+            _logging.getLogger("dn.proxy.views").info("sentinel")
             response = self._post({"query": "mutation { dossierAccepter { id } }"})
 
         self.assertEqual(response.status_code, 403)
@@ -1299,8 +1299,8 @@ class GraphqlProxyTokenLockTest(TestCase):
             }
         }
 
-    @patch("gsl_ds_proxy.views.release_token_lock")
-    @patch("gsl_ds_proxy.views.acquire_token_lock", return_value=None)
+    @patch("dn.proxy.views.release_token_lock")
+    @patch("dn.proxy.views.acquire_token_lock", return_value=None)
     def test_concurrent_request_rejected_with_429(self, mock_acquire, mock_release):
         # acquire returns None => a request from this token is already in flight.
         response = self._post(self._get_demarche_payload())
@@ -1317,9 +1317,9 @@ class GraphqlProxyTokenLockTest(TestCase):
         # No worker work happened and there is nothing to release.
         mock_release.assert_not_called()
 
-    @patch("gsl_ds_proxy.views.requests.post")
-    @patch("gsl_ds_proxy.views.release_token_lock")
-    @patch("gsl_ds_proxy.views.acquire_token_lock")
+    @patch("dn.proxy.views.requests.post")
+    @patch("dn.proxy.views.release_token_lock")
+    @patch("dn.proxy.views.acquire_token_lock")
     def test_lock_released_after_successful_request(
         self, mock_acquire, mock_release, mock_post
     ):
@@ -1333,9 +1333,9 @@ class GraphqlProxyTokenLockTest(TestCase):
 
         mock_release.assert_called_once_with(fake_lock, self.token.id)
 
-    @patch("gsl_ds_proxy.views.requests.post")
-    @patch("gsl_ds_proxy.views.release_token_lock")
-    @patch("gsl_ds_proxy.views.acquire_token_lock")
+    @patch("dn.proxy.views.requests.post")
+    @patch("dn.proxy.views.release_token_lock")
+    @patch("dn.proxy.views.acquire_token_lock")
     def test_lock_released_after_ds_error(self, mock_acquire, mock_release, mock_post):
         import requests as req
 
@@ -1350,9 +1350,9 @@ class GraphqlProxyTokenLockTest(TestCase):
 
         mock_release.assert_called_once_with(fake_lock, self.token.id)
 
-    @patch("gsl_ds_proxy.views.requests.post")
-    @patch("gsl_ds_proxy.views.release_token_lock")
-    @patch("gsl_ds_proxy.views.acquire_token_lock")
+    @patch("dn.proxy.views.requests.post")
+    @patch("dn.proxy.views.release_token_lock")
+    @patch("dn.proxy.views.acquire_token_lock")
     def test_distinct_tokens_acquire_independent_locks(
         self, mock_acquire, mock_release, mock_post
     ):

@@ -73,7 +73,7 @@ INSTALLED_APPS = [
     "ui",
     "gsl.core",
     "gsl_demarches_simplifiees",
-    "gsl_ds_proxy",
+    "dn.proxy",
     "gsl.projet",
     "gsl.chorus",
     "gsl.programmation",

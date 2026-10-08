@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, patch
 import redis
 from django.test import override_settings
 
-from gsl_ds_proxy.locks import acquire_token_lock, release_token_lock
+from dn.proxy.locks import acquire_token_lock, release_token_lock
 
 
 @override_settings(DS_PROXY_TOKEN_LOCK_TIMEOUT=90)
-@patch("gsl_ds_proxy.locks.redis.Redis.from_url")
+@patch("dn.proxy.locks.redis.Redis.from_url")
 def test_acquire_returns_lock_when_free(mock_from_url):
     lock = MagicMock()
     lock.acquire.return_value = True
@@ -22,7 +22,7 @@ def test_acquire_returns_lock_when_free(mock_from_url):
     lock.acquire.assert_called_once_with(blocking=False)
 
 
-@patch("gsl_ds_proxy.locks.redis.Redis.from_url")
+@patch("dn.proxy.locks.redis.Redis.from_url")
 def test_acquire_returns_none_when_held(mock_from_url):
     lock = MagicMock()
     lock.acquire.return_value = False
@@ -33,7 +33,7 @@ def test_acquire_returns_none_when_held(mock_from_url):
     assert acquire_token_lock(7) is None
 
 
-@patch("gsl_ds_proxy.locks.redis.Redis.from_url")
+@patch("dn.proxy.locks.redis.Redis.from_url")
 def test_distinct_tokens_use_distinct_keys(mock_from_url):
     client = MagicMock()
     client.lock.return_value.acquire.return_value = True

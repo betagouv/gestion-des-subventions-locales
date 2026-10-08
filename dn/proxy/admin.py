@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin, messages
 
-from gsl_ds_proxy.models import ProxyToken
+from dn.proxy.models import ProxyToken
 
 _MAX_EMAILS_IN_LABEL = 5
 

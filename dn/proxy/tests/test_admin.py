@@ -1,9 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
+from dn.proxy.admin import ProxyTokenAdminForm
+from dn.proxy.tests.factories import ProxyTokenFactory
 from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
-from gsl_ds_proxy.admin import ProxyTokenAdminForm
-from gsl_ds_proxy.tests.factories import ProxyTokenFactory
 
 
 def _raw_ds_data(groupes):

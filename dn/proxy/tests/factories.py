@@ -2,8 +2,8 @@ import secrets
 
 import factory
 
+from dn.proxy.models import ProxyToken
 from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
-from gsl_ds_proxy.models import ProxyToken
 
 
 class ProxyTokenFactory(factory.django.DjangoModelFactory):

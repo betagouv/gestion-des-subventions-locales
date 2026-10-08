@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from gsl_ds_proxy.filters import filter_response
+from dn.proxy.filters import filter_response
 
 
 def _make_dossier(number, groupe_id):
