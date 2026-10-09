@@ -342,9 +342,6 @@ def import_one_dossier_from_ds(dossier_number: int):
 
 
 def refresh_dossier_from_saved_data(dossier: Dossier):
-    old_is_active = dossier.is_active
-    old_raison = dossier.raison_desactivation
-
     dossier_converter = DossierConverter(dossier.ds_data.raw_data, dossier)
     dossier_converter.fill_unmapped_fields()
     dossier_converter.convert_all_fields()
@@ -356,47 +353,6 @@ def refresh_dossier_from_saved_data(dossier: Dossier):
         raise e
 
     ProjetService.create_or_update_projet_and_co_from_dossier(dossier.ds_number)
-    _create_deactivation_projet_actions(
-        dossier,
-        old_is_active,
-        old_raison,
-    )
-
-
-def _create_deactivation_projet_actions(
-    dossier,
-    old_is_active,
-    old_raison,
-):
-    try:
-        projet = dossier.projet
-    except Projet.DoesNotExist:
-        return
-
-    if old_is_active and not dossier.is_active:
-        ProjetAction.objects.create(
-            projet=projet,
-            action_type=ProjetAction.TYPE_DEACTIVATION,
-            source=ProjetAction.SOURCE_DN,
-            details=dossier.raison_desactivation,
-        )
-    elif (
-        not old_is_active
-        and not dossier.is_active
-        and old_raison != dossier.raison_desactivation
-    ):
-        ProjetAction.objects.create(
-            projet=projet,
-            action_type=ProjetAction.TYPE_DEACTIVATION,
-            source=ProjetAction.SOURCE_DN,
-            details=dossier.raison_desactivation,
-        )
-    elif not old_is_active and dossier.is_active:
-        ProjetAction.objects.create(
-            projet=projet,
-            action_type=ProjetAction.TYPE_REACTIVATION,
-            source=ProjetAction.SOURCE_DN,
-        )
 
 
 def refresh_dossier_instructeurs(
@@ -485,8 +441,6 @@ def _build_groupe_index_from_demarche(demarche: Demarche) -> dict[str, list[dict
 
 
 def _deactivate_deleted_dossier(deleted_dossier_data: dict, raison: str):
-    from gsl.projet.models import Projet
-
     ds_number = deleted_dossier_data["number"]
     try:
         dossier = Dossier.objects.get(ds_number=ds_number)
@@ -526,6 +480,8 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
     refresh_priority: int = TASK_PRIORITY_LOW,
 ):
     refresh_dossier_instructeurs(dossier_data, dossier, groupe_index=groupe_index)
+    # DN a renvoyé le dossier : il n'est ni supprimé ni dans la corbeille
+    _ensure_dossier_is_active(dossier)
     if dossier.data is None:
         DossierData.objects.create(dossier=dossier, raw_data=dossier_data)
     else:
@@ -543,6 +499,29 @@ def _save_dossier_data_and_refresh_dossier_and_projet_and_co(
         )
     else:
         refresh_dossier_from_saved_data(dossier)
+
+
+def _ensure_dossier_is_active(dossier: Dossier):
+    if dossier.is_active and not dossier.raison_desactivation:
+        return
+
+    was_inactive = not dossier.is_active
+    dossier.is_active = True
+    dossier.raison_desactivation = ""
+    dossier.save(update_fields=["is_active", "raison_desactivation"])
+
+    if not was_inactive:
+        return
+    try:
+        projet = dossier.projet
+    except Projet.DoesNotExist:
+        return
+
+    ProjetAction.objects.create(
+        projet=projet,
+        action_type=ProjetAction.TYPE_REACTIVATION,
+        source=ProjetAction.SOURCE_DN,
+    )
 
 
 def _get_handled_departement_insee_codes():
