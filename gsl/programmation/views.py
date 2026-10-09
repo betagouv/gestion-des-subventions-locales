@@ -153,6 +153,7 @@ class EnveloppeCreateView(RedirectURLMixin, CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user_perimetre"] = self.request.user.perimetre
+        kwargs["campagne"] = get_campagne()
         return kwargs
 
     def form_valid(self, form):
