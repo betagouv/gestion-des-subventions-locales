@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.utils.timezone import datetime
 
 from gsl.core.tests.factories import DepartementFactory
+from gsl.historique.models import ProjetAction
+from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.ds_client import DsClient
 from gsl_demarches_simplifiees.exceptions import DsConnectionError, DsServiceException
 from gsl_demarches_simplifiees.importer.dossier import (
@@ -751,44 +753,127 @@ def test_get_handled_departement_insee_codes_excludes_not_handled_and_unknown():
     assert "99" not in handled_codes
 
 
-@pytest.mark.django_db
-def test_archived_dossier_in_ds_stream_deactivates_existing_dossier():
-    demarche_number = 123
-    DemarcheFactory(
-        ds_number=demarche_number,
-        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
-    )
-    dossier = DossierFactory(ds_id="DOSS-1", ds_number=20240001, is_active=True)
+def _sync_one_dossier(demarche_number, archived=False):
     ds_dossiers = [
         {
             "id": "DOSS-1",
             "number": 20240001,
-            "archived": True,
-            "annotations": [],
-            "demarche": {"revision": {"id": "REV-1"}},
+            "archived": archived,
             "champs": [
                 {
-                    "id": "CHAMP-DEPT",
                     "label": "Département ou collectivité du demandeur",
                     "stringValue": "75 - Paris",
                 }
             ],
         }
     ]
-
-    with patch(
-        "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
-        return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
-    ):
-        with patch(
+    with (
+        patch(
+            "gsl_demarches_simplifiees.ds_client.DsClient.fetch_demarche_page",
+            return_value=(_make_demarche_page(dossiers=ds_dossiers), False),
+        ),
+        patch(
             "gsl_demarches_simplifiees.importer.dossier._get_handled_departement_insee_codes",
             return_value=["75"],
-        ):
-            save_demarche_dossiers_from_ds(demarche_number)
+        ),
+        patch(
+            "gsl_demarches_simplifiees.tasks.task_refresh_dossier_from_saved_data.apply_async"
+        ),
+    ):
+        save_demarche_dossiers_from_ds(demarche_number)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "raison_desactivation",
+    (
+        Dossier.RAISON_DESACTIVATION_CORBEILLE,
+        Dossier.RAISON_DESACTIVATION_SUPPRIME,
+    ),
+)
+def test_inactive_dossier_in_ds_stream_is_reactivated(raison_desactivation):
+    demarche = DemarcheFactory(
+        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
+    )
+    dossier = DossierFactory(
+        ds_id="DOSS-1",
+        ds_number=20240001,
+        is_active=False,
+        raison_desactivation=raison_desactivation,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+
+    _sync_one_dossier(demarche.ds_number)
 
     dossier.refresh_from_db()
-    assert dossier.is_active is False
-    assert dossier.raison_desactivation == Dossier.RAISON_DESACTIVATION_ARCHIVE
+    assert dossier.is_active is True
+    assert dossier.raison_desactivation == ""
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == ProjetAction.TYPE_REACTIVATION
+    assert action.source == ProjetAction.SOURCE_DN
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("archived", (True, False))
+def test_active_dossier_in_ds_stream_stays_active_without_action(archived):
+    demarche = DemarcheFactory(
+        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
+    )
+    dossier = DossierFactory(ds_id="DOSS-1", ds_number=20240001, is_active=True)
+    projet = ProjetFactory(dossier_ds=dossier)
+
+    _sync_one_dossier(demarche.ds_number, archived=archived)
+
+    dossier.refresh_from_db()
+    assert dossier.is_active is True
+    assert dossier.raison_desactivation == ""
+    assert not ProjetAction.objects.filter(projet=projet).exists()
+
+
+@pytest.mark.django_db
+def test_inactive_dossier_without_projet_is_reactivated():
+    demarche = DemarcheFactory(
+        raw_ds_data={"groupeInstructeurs": [{"id": "GROUPE-1", "instructeurs": []}]},
+    )
+    dossier = DossierFactory(
+        ds_id="DOSS-1",
+        ds_number=20240001,
+        is_active=False,
+        raison_desactivation=Dossier.RAISON_DESACTIVATION_CORBEILLE,
+    )
+
+    _sync_one_dossier(demarche.ds_number)
+
+    dossier.refresh_from_db()
+    assert dossier.is_active is True
+    assert dossier.raison_desactivation == ""
+    assert not ProjetAction.objects.exists()
+
+
+@pytest.mark.django_db
+def test_save_one_dossier_from_ds_reactivates_inactive_dossier():
+    dossier = DossierFactory(
+        is_active=False,
+        raison_desactivation=Dossier.RAISON_DESACTIVATION_CORBEILLE,
+    )
+    projet = ProjetFactory(dossier_ds=dossier)
+
+    with (
+        patch(
+            "gsl_demarches_simplifiees.ds_client.DsClient.get_one_dossier",
+            return_value={"id": dossier.ds_id, "number": dossier.ds_number},
+        ),
+        patch(
+            "gsl_demarches_simplifiees.importer.dossier.refresh_dossier_from_saved_data"
+        ),
+    ):
+        save_one_dossier_from_ds(dossier)
+
+    dossier.refresh_from_db()
+    assert dossier.is_active is True
+    assert dossier.raison_desactivation == ""
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == ProjetAction.TYPE_REACTIVATION
 
 
 # tests import_one_dossier_from_ds
