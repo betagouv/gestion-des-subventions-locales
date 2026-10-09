@@ -28,7 +28,7 @@ class ProxyToken(BaseModel):
         blank=True,
         db_index=True,
     )
-    is_active = models.BooleanField("Actif", default=True)
+    is_active = models.BooleanField("Actif", default=False)
 
     class Meta:
         verbose_name = "Token proxy DS"
@@ -43,17 +43,8 @@ class ProxyToken(BaseModel):
 
     def clean(self):
         super().clean()
-        if not self.is_active:
+        if not self.is_active or not self.groupe_instructeur_ds_id:
             return
-        if not self.groupe_instructeur_ds_id:
-            raise ValidationError(
-                {
-                    "groupe_instructeur_ds_id": (
-                        "Un groupe instructeur doit être sélectionné "
-                        "pour activer le token."
-                    )
-                }
-            )
         raw = (self.demarche.raw_ds_data or {}) if self.demarche_id else {}
         groupes = raw.get("groupeInstructeurs") or []
         known_ids = {g.get("id") for g in groupes}

@@ -35,7 +35,7 @@ class ProxyTokenAdminForm(forms.ModelForm):
         )
 
         if groupes:
-            choices = [("", "---------")] + [
+            choices = [("", "Toute la démarche")] + [
                 (g["id"], _format_groupe_choice(g)) for g in groupes if g.get("id")
             ]
             self.fields["groupe_instructeur_ds_id"] = forms.ChoiceField(
@@ -65,8 +65,8 @@ class ProxyTokenAdmin(admin.ModelAdmin):
     readonly_fields = ("key_hash", "created_at", "updated_at")
 
     def groupe_instructeur_label(self, obj):
-        if not obj.groupe_instructeur_ds_id or not obj.demarche_id:
-            return ""
+        if not obj.groupe_instructeur_ds_id:
+            return "Toute la démarche"
         groupes = (obj.demarche.raw_ds_data or {}).get("groupeInstructeurs") or []
         for g in groupes:
             if g.get("id") == obj.groupe_instructeur_ds_id:

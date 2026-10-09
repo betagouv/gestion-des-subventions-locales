@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from dn.proxy.admin import ProxyTokenAdminForm
+from dn.proxy.models import ProxyToken
 from dn.proxy.tests.factories import ProxyTokenFactory
 from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
 
@@ -85,7 +86,10 @@ class ProxyTokenAdminFormTest(TestCase):
 
 
 class ProxyTokenCleanTest(TestCase):
-    def test_active_token_requires_groupe(self):
+    def test_new_token_is_inactive(self):
+        self.assertFalse(ProxyToken(label="Nouveau").is_active)
+
+    def test_active_token_without_groupe_is_valid(self):
         demarche = DemarcheFactory(
             raw_ds_data=_raw_ds_data([{"id": "GROUPE-1", "number": 1, "label": "X"}])
         )
@@ -94,9 +98,7 @@ class ProxyTokenCleanTest(TestCase):
             is_active=True,
             groupe_instructeur_ds_id="",
         )
-        with self.assertRaises(ValidationError) as ctx:
-            token.clean()
-        self.assertIn("groupe_instructeur_ds_id", ctx.exception.message_dict)
+        token.clean()
 
     def test_active_token_rejects_unknown_groupe(self):
         demarche = DemarcheFactory(
