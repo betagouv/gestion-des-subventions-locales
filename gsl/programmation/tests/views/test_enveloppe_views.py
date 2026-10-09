@@ -165,3 +165,73 @@ class TestSubEnveloppeDeleteView:
             "Suppression impossible : 1 simulation et 1 enveloppe sont rattachées à cette enveloppe."
             == message.message
         )
+
+
+class TestSubEnveloppeCreateCampagne:
+    @pytest.fixture
+    def perimetre_dept(self):
+        return PerimetreDepartementalFactory()
+
+    @pytest.fixture
+    def perimetre_arr(self, perimetre_dept):
+        from gsl.core.tests.factories import ArrondissementFactory
+
+        arrondissement = ArrondissementFactory(departement=perimetre_dept.departement)
+        return PerimetreArrondissementFactory(arrondissement=arrondissement)
+
+    @pytest.fixture
+    def client(self, perimetre_dept):
+        user = CollegueFactory(perimetre=perimetre_dept)
+        return ClientWithLoggedUserFactory(user=user)
+
+    def _post_in_campagne(self, client, campagne, data):
+        session = client.session
+        session["campagne"] = campagne
+        session.save()
+        return client.post(reverse("gsl_projet:enveloppe-create"), data)
+
+    @pytest.mark.parametrize("campagne", (2026, 2027))
+    def test_sub_enveloppe_is_created_in_the_active_campagne(
+        self, client, perimetre_dept, perimetre_arr, campagne
+    ):
+        parents = {
+            annee: DetrEnveloppeFactory(perimetre=perimetre_dept, annee=annee)
+            for annee in (2026, 2027)
+        }
+
+        response = self._post_in_campagne(
+            client,
+            campagne,
+            {
+                "dotation": DOTATION_DETR,
+                "perimetre": perimetre_arr.pk,
+                "montant": 1000,
+            },
+        )
+
+        assert response.status_code == 302
+        sub_enveloppe = Enveloppe.objects.get(perimetre=perimetre_arr)
+        assert sub_enveloppe.annee == campagne
+        assert sub_enveloppe.parent == parents[campagne]
+
+    def test_cannot_create_sub_enveloppe_without_parent_in_the_active_campagne(
+        self, client, perimetre_dept, perimetre_arr
+    ):
+        DetrEnveloppeFactory(perimetre=perimetre_dept, annee=2026)
+
+        response = self._post_in_campagne(
+            client,
+            2027,
+            {
+                "dotation": DOTATION_DETR,
+                "perimetre": perimetre_arr.pk,
+                "montant": 1000,
+            },
+        )
+
+        assert response.status_code == 200
+        assert (
+            "L'enveloppe doit être une sous-enveloppe d'une enveloppe existante."
+            in response.context["form"].non_field_errors()
+        )
+        assert not Enveloppe.objects.filter(perimetre=perimetre_arr).exists()

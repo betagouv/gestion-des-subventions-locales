@@ -8,9 +8,10 @@ from gsl.projet.constants import DOTATION_DSIL
 
 
 class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
-    def __init__(self, *args, user_perimetre: Perimetre, **kwargs):
+    def __init__(self, *args, user_perimetre: Perimetre, campagne: int, **kwargs):
         super().__init__(*args, **kwargs)
         self.user_perimetre = user_perimetre
+        self.campagne = campagne
         if self.user_perimetre.type == Perimetre.TYPE_REGION:
             self.fields["dotation"].widget = self.fields["dotation"].hidden_widget()
             self.fields["dotation"].choices = ((DOTATION_DSIL, DOTATION_DSIL),)
@@ -28,23 +29,22 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
         )
 
     def clean(self):
+        self.instance.annee = self.campagne
         perimetre: Perimetre = self.cleaned_data.get("perimetre")
-        self.instance.parent = (
-            Enveloppe.objects.filter(
-                dotation=self.cleaned_data.get("dotation"), perimetre=perimetre.parent
+        try:
+            self.instance.parent = Enveloppe.objects.get(
+                dotation=self.cleaned_data.get("dotation"),
+                perimetre=perimetre.parent,
+                annee=self.campagne,
             )
-            .order_by("-annee")
-            .first()
-        )
-        if self.instance.parent is None:
+        except Enveloppe.DoesNotExist:
             # We need to fill this field to trigger model validation errors
-            self.instance.annee = 1
+            self.instance.annee = self.campagne
 
             raise ValidationError(
                 "L'enveloppe doit être une sous-enveloppe d'une enveloppe existante."
             )
 
-        self.instance.annee = self.instance.parent.annee
         return super().clean()
 
     def _get_validation_exclusions(self):
