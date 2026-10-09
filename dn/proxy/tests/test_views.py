@@ -1335,9 +1335,10 @@ class GraphqlProxyTokenLockTest(TestCase):
         }
 
     @patch("dn.proxy.views.release_token_lock")
-    @patch("dn.proxy.views.acquire_token_lock", return_value=None)
-    def test_concurrent_request_rejected_with_429(self, mock_acquire, mock_release):
-        # acquire returns None => a request from this token is already in flight.
+    @patch("dn.proxy.locks.redis.Redis.from_url")
+    def test_concurrent_request_rejected_with_429(self, mock_from_url, mock_release):
+        # Redis refuses the lock => a request from this token is already in flight.
+        mock_from_url.return_value.lock.return_value.acquire.return_value = False
         response = self._post(self._get_demarche_payload())
 
         self.assertEqual(response.status_code, 429)
