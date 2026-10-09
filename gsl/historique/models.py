@@ -160,7 +160,6 @@ class ProjetAction(models.Model):
     @property
     def _deactivation_label(self):
         labels = {
-            "archive": "Dossier archivé",
             "corbeille": "Dossier mis à la corbeille",
             "supprime": "Dossier supprimé",
         }
