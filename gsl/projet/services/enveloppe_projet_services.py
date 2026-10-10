@@ -52,14 +52,12 @@ class EnveloppeProjetService:
                     dotation=dotation,
                 )
 
-        enveloppe_projets = list(existing.values())
-        for enveloppe_projet in enveloppe_projets:
-            enveloppe_projet.update_assiette_from_dn()
-        cls._apply_dossier_state(projet, enveloppe_projets, dotations)
+        cls._apply_dossier_state(projet, list(existing.values()), dotations)
 
         # We changed the courant EnveloppeProjets, make sure to fetch the latest
         # (without using the cached enveloppeprojet_set)
         for enveloppe_projet in EnveloppeProjet.objects.filter(projet=projet):
+            enveloppe_projet.update_assiette_from_dn()
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
 
     # private

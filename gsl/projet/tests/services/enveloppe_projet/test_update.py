@@ -544,6 +544,29 @@ def test_update_refused_refuses_every_dotation(
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
+def test_update_refused_leaves_the_superseded_enveloppe_projet_assiette_untouched(
+    perimetres,
+):
+    arr_dijon, dep_21, *_ = perimetres
+    detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR")
+    _force_status(projet, DOTATION_DETR, ProjetStatus.ACCEPTED, detr_enveloppe)
+    projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).update(assiette=100_000)
+    ancienne = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+
+    _treat_on_dn(projet, Dossier.State.REFUSE, annotations_assiette_detr=80_000)
+    synchroniser(projet)
+
+    ancienne.refresh_from_db()
+    assert ancienne.is_courant is False
+    assert ancienne.assiette == 100_000
+    nouvelle = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    assert nouvelle.status == ProjetStatus.REFUSED
+    assert nouvelle.assiette == 80_000
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
 @pytest.mark.parametrize(
     "initial_dsil_status, expected_dsil_status, expected_dsil_actions",
     (
