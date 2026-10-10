@@ -581,15 +581,10 @@ class EnveloppeProjet(BaseModel):
         return ProjetAction.SOURCE_DN, created_at
 
     @transaction.atomic
-    def set_back_status_to_processing_without_ds(
-        self, actor=None, reset_notification=True
-    ) -> "EnveloppeProjet":
+    def set_back_status_to_processing_without_ds(self, actor=None) -> "EnveloppeProjet":
         """
         The treated EnveloppeProjet is kept untouched (with its documents) as
         history, and replaced by a new courant one, in processing.
-
-        `reset_notification=False` keeps the projet notified, when the new one is
-        treated right away by a DN decision.
         """
         from gsl.simulation.models import SimulationProjet
 
@@ -612,10 +607,6 @@ class EnveloppeProjet(BaseModel):
             status=SimulationProjet.STATUS_PROCESSING,
         )
 
-        if reset_notification:
-            self.projet.notified_at = None
-            self.projet.save()
-
         ProjetAction.objects.create(
             projet=self.projet,
             action_type=ProjetAction.TYPE_STATUS_CHANGE,
@@ -634,6 +625,8 @@ class EnveloppeProjet(BaseModel):
         ds_service = DsService()
 
         nouveau = self.set_back_status_to_processing_without_ds(actor=user)
+        self.projet.notified_at = None
+        self.projet.save()
 
         if is_notified:
             ds_service.repasser_en_instruction(self.projet.dossier_ds, user)

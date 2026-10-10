@@ -715,7 +715,6 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
         status=ProjetStatus.ACCEPTED,
         assiette=50_000,
         montant=10_000,
-        projet__notified_at=timezone.now(),
     )
     SimulationProjetFactory.create_batch(
         3,
@@ -723,8 +722,6 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=10_000,
     )
-
-    assert enveloppe_projet.projet.notified_at is not None
 
     # --
     nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
@@ -736,7 +733,6 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
     assert nouveau.status == ProjetStatus.PROCESSING
     assert not nouveau.is_programmee
     assert nouveau.is_courant
-    assert nouveau.projet.notified_at is None
 
     simulation_projets = SimulationProjet.objects.filter(enveloppe_projet=nouveau)
     assert simulation_projets.count() == 3
@@ -767,17 +763,13 @@ def test_set_back_status_to_processing_without_ds_from_accepted():
 def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
     projet_status, simulation_projet_status
 ):
-    enveloppe_projet = EnveloppeProjetFactory(
-        status=projet_status, projet__notified_at=timezone.now()
-    )
+    enveloppe_projet = EnveloppeProjetFactory(status=projet_status)
     SimulationProjetFactory.create_batch(
         3,
         enveloppe_projet=enveloppe_projet,
         status=simulation_projet_status,
         montant=0,
     )
-
-    assert enveloppe_projet.projet.notified_at is not None
 
     # --
 
@@ -789,7 +781,6 @@ def test_set_back_status_to_processing_without_ds_from_refused_or_dismissed(
 
     assert nouveau.status == ProjetStatus.PROCESSING
     assert not nouveau.is_programmee
-    assert nouveau.projet.notified_at is None
     assert nouveau.is_courant
     simulation_projets = SimulationProjet.objects.filter(enveloppe_projet=nouveau)
     assert simulation_projets.count() == 3
@@ -925,6 +916,24 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
     enveloppe_projet.save()
 
     mock_repasser_en_instruction.assert_not_called()
+
+
+@mock.patch("gsl_demarches_simplifiees.services.DsService.repasser_en_instruction")
+@mock.patch(
+    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+)
+def test_set_back_status_to_processing_resets_notified_at(
+    _mock_update_ds, _mock_repasser_en_instruction
+):
+    projet = ProjetFactory(notified_at=timezone.now())
+    enveloppe_projet = EnveloppeProjetFactory(
+        projet=projet, status=ProjetStatus.ACCEPTED
+    )
+
+    enveloppe_projet.set_back_status_to_processing(user=CollegueFactory())
+
+    projet.refresh_from_db()
+    assert projet.notified_at is None
 
 
 # -- save() default assiette --

@@ -250,7 +250,4 @@ class EnveloppeProjetService:
         documents, and replaced by a new courant one, in processing."""
         if enveloppe_projet.status not in ProjetStatus.FINAL:
             return enveloppe_projet
-        # The new one is treated right away by DN: the projet stays notified.
-        return enveloppe_projet.set_back_status_to_processing_without_ds(
-            reset_notification=False
-        )
+        return enveloppe_projet.set_back_status_to_processing_without_ds()
