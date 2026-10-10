@@ -126,6 +126,25 @@ class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySe
             **kwargs,
         )
 
+    @transaction.atomic
+    def supersede(self, ancien: "EnveloppeProjet") -> "EnveloppeProjet":
+        """The former one is kept untouched (with its documents) as history, and
+        replaced by a new courant one, in processing."""
+        from gsl.simulation.models import SimulationProjet
+
+        ancien.is_courant = False
+        ancien.save(update_fields=["is_courant"])
+        nouveau = self.create(
+            projet=ancien.projet,
+            enveloppe=ancien.enveloppe,
+            assiette=ancien.assiette,
+            detr_avis_commission=ancien.detr_avis_commission,
+        )
+        ancien.simulationprojet_set.update(
+            enveloppe_projet=nouveau, status=SimulationProjet.STATUS_PROCESSING
+        )
+        return nouveau
+
 
 class EnveloppeProjetCourantManager(EnveloppeProjetManager):
     def get_queryset(self):
@@ -582,30 +601,12 @@ class EnveloppeProjet(BaseModel):
 
     @transaction.atomic
     def set_back_status_to_processing_without_ds(self, actor=None) -> "EnveloppeProjet":
-        """
-        The treated EnveloppeProjet is kept untouched (with its documents) as
-        history, and replaced by a new courant one, in processing.
-        """
-        from gsl.simulation.models import SimulationProjet
-
         if self.status not in ProjetStatus.FINAL:
             raise TransitionNotAllowed(
                 f"Can't set back to processing from state '{self.status}'"
             )
 
-        self.is_courant = False
-        self.save(update_fields=["is_courant"])
-        nouveau = EnveloppeProjet.objects.create(
-            projet=self.projet,
-            enveloppe=self.enveloppe,
-            assiette=self.assiette,
-            detr_avis_commission=self.detr_avis_commission,
-        )
-
-        SimulationProjet.objects.filter(enveloppe_projet=self).update(
-            enveloppe_projet=nouveau,
-            status=SimulationProjet.STATUS_PROCESSING,
-        )
+        nouveau = EnveloppeProjet.objects.supersede(self)
 
         ProjetAction.objects.create(
             projet=self.projet,

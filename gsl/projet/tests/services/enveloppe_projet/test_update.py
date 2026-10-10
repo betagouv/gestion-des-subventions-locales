@@ -380,8 +380,8 @@ def test_update_accepted_double_dotation_with_both_annotated_accepts_both(
     "initial_dsil_status, expected_dsil_actions",
     (
         (ProjetStatus.PROCESSING, [ProjetStatus.ACCEPTED]),
-        (ProjetStatus.REFUSED, [ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED]),
-        (ProjetStatus.DISMISSED, [ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED]),
+        (ProjetStatus.REFUSED, [ProjetStatus.ACCEPTED]),
+        (ProjetStatus.DISMISSED, [ProjetStatus.ACCEPTED]),
         (ProjetStatus.ACCEPTED, []),
     ),
 )
@@ -515,9 +515,9 @@ def test_update_accepted_double_dotation_with_empty_annotations_dotation_accepts
     "initial_dsil_status, expected_dsil_actions",
     (
         (ProjetStatus.PROCESSING, [ProjetStatus.REFUSED]),
-        (ProjetStatus.DISMISSED, [ProjetStatus.PROCESSING, ProjetStatus.REFUSED]),
+        (ProjetStatus.DISMISSED, [ProjetStatus.REFUSED]),
         (ProjetStatus.REFUSED, []),
-        (ProjetStatus.ACCEPTED, [ProjetStatus.PROCESSING, ProjetStatus.REFUSED]),
+        (ProjetStatus.ACCEPTED, [ProjetStatus.REFUSED]),
     ),
 )
 def test_update_refused_refuses_every_dotation(
@@ -550,11 +550,7 @@ def test_update_refused_refuses_every_dotation(
         (ProjetStatus.PROCESSING, ProjetStatus.DISMISSED, [ProjetStatus.DISMISSED]),
         (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED, []),
         (ProjetStatus.REFUSED, ProjetStatus.REFUSED, []),
-        (
-            ProjetStatus.ACCEPTED,
-            ProjetStatus.DISMISSED,
-            [ProjetStatus.PROCESSING, ProjetStatus.DISMISSED],
-        ),
+        (ProjetStatus.ACCEPTED, ProjetStatus.DISMISSED, [ProjetStatus.DISMISSED]),
     ),
 )
 def test_update_sans_suite_dismisses_every_dotation_not_refused(
@@ -910,11 +906,13 @@ def _assert_empty_annotations_dotation_warning(caplog, projet):
 
 def _assert_treated_from_dn(projet, ancienne, expected_status, expected_status_actions):
     """A treated dotation changing status is kept as history and replaced by a new
-    one, set back to processing then treated: hence two status change actions."""
+    one."""
+    is_replaced = (
+        ancienne.status in ProjetStatus.FINAL and ancienne.status != expected_status
+    )
     courante = projet.enveloppeprojet_set.for_dotation(ancienne.dotation).get()
     assert courante.status == expected_status
 
-    is_replaced = ProjetStatus.PROCESSING in expected_status_actions
     assert (courante.pk != ancienne.pk) is is_replaced
     ancienne.refresh_from_db()
     assert ancienne.is_courant is not is_replaced

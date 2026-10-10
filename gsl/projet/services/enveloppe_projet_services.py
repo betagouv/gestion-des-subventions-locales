@@ -233,8 +233,6 @@ class EnveloppeProjetService:
 
     @classmethod
     def _reopened_if_treated(cls, enveloppe_projet: EnveloppeProjet) -> EnveloppeProjet:
-        """A treated EnveloppeProjet is kept as history (is_courant=False), with its
-        documents, and replaced by a new courant one, in processing."""
         if enveloppe_projet.status not in ProjetStatus.FINAL:
             return enveloppe_projet
-        return enveloppe_projet.set_back_status_to_processing_without_ds()
+        return EnveloppeProjet.objects.supersede(enveloppe_projet)
