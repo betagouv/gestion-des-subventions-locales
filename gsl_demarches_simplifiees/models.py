@@ -295,12 +295,10 @@ class Dossier(BaseModel):
         REFUSE_AUTOMATIQUEMENT = auto()
         CLASSE_SANS_SUITE = auto()
 
-    RAISON_DESACTIVATION_ARCHIVE = "archive"
     RAISON_DESACTIVATION_CORBEILLE = "corbeille"
     RAISON_DESACTIVATION_SUPPRIME = "supprime"
 
     RAISON_DESACTIVATION_CHOICES = (
-        (RAISON_DESACTIVATION_ARCHIVE, "Archivé"),
         (RAISON_DESACTIVATION_CORBEILLE, "Dans la corbeille"),
         (RAISON_DESACTIVATION_SUPPRIME, "Supprimé"),
     )
