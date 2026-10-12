@@ -380,8 +380,8 @@ def test_update_accepted_double_dotation_with_both_annotated_accepts_both(
     "initial_dsil_status, expected_dsil_actions",
     (
         (ProjetStatus.PROCESSING, [ProjetStatus.ACCEPTED]),
-        (ProjetStatus.REFUSED, [ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED]),
-        (ProjetStatus.DISMISSED, [ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED]),
+        (ProjetStatus.REFUSED, [ProjetStatus.ACCEPTED]),
+        (ProjetStatus.DISMISSED, [ProjetStatus.ACCEPTED]),
         (ProjetStatus.ACCEPTED, []),
     ),
 )
@@ -515,9 +515,9 @@ def test_update_accepted_double_dotation_with_empty_annotations_dotation_accepts
     "initial_dsil_status, expected_dsil_actions",
     (
         (ProjetStatus.PROCESSING, [ProjetStatus.REFUSED]),
-        (ProjetStatus.DISMISSED, [ProjetStatus.PROCESSING, ProjetStatus.REFUSED]),
+        (ProjetStatus.DISMISSED, [ProjetStatus.REFUSED]),
         (ProjetStatus.REFUSED, []),
-        (ProjetStatus.ACCEPTED, [ProjetStatus.PROCESSING, ProjetStatus.REFUSED]),
+        (ProjetStatus.ACCEPTED, [ProjetStatus.REFUSED]),
     ),
 )
 def test_update_refused_refuses_every_dotation(
@@ -544,17 +544,36 @@ def test_update_refused_refuses_every_dotation(
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
+def test_update_refused_leaves_the_superseded_enveloppe_projet_assiette_untouched(
+    perimetres,
+):
+    arr_dijon, dep_21, *_ = perimetres
+    detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR")
+    _force_status(projet, DOTATION_DETR, ProjetStatus.ACCEPTED, detr_enveloppe)
+    projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).update(assiette=100_000)
+    ancienne = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+
+    _treat_on_dn(projet, Dossier.State.REFUSE, annotations_assiette_detr=80_000)
+    synchroniser(projet)
+
+    ancienne.refresh_from_db()
+    assert ancienne.is_courant is False
+    assert ancienne.assiette == 100_000
+    nouvelle = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    assert nouvelle.status == ProjetStatus.REFUSED
+    assert nouvelle.assiette == 80_000
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
 @pytest.mark.parametrize(
     "initial_dsil_status, expected_dsil_status, expected_dsil_actions",
     (
         (ProjetStatus.PROCESSING, ProjetStatus.DISMISSED, [ProjetStatus.DISMISSED]),
         (ProjetStatus.DISMISSED, ProjetStatus.DISMISSED, []),
         (ProjetStatus.REFUSED, ProjetStatus.REFUSED, []),
-        (
-            ProjetStatus.ACCEPTED,
-            ProjetStatus.DISMISSED,
-            [ProjetStatus.PROCESSING, ProjetStatus.DISMISSED],
-        ),
+        (ProjetStatus.ACCEPTED, ProjetStatus.DISMISSED, [ProjetStatus.DISMISSED]),
     ),
 )
 def test_update_sans_suite_dismisses_every_dotation_not_refused(
@@ -910,11 +929,13 @@ def _assert_empty_annotations_dotation_warning(caplog, projet):
 
 def _assert_treated_from_dn(projet, ancienne, expected_status, expected_status_actions):
     """A treated dotation changing status is kept as history and replaced by a new
-    one, set back to processing then treated: hence two status change actions."""
+    one."""
+    is_replaced = (
+        ancienne.status in ProjetStatus.FINAL and ancienne.status != expected_status
+    )
     courante = projet.enveloppeprojet_set.for_dotation(ancienne.dotation).get()
     assert courante.status == expected_status
 
-    is_replaced = ProjetStatus.PROCESSING in expected_status_actions
     assert (courante.pk != ancienne.pk) is is_replaced
     ancienne.refresh_from_db()
     assert ancienne.is_courant is not is_replaced
