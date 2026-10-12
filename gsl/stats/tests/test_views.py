@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 import pytest
 from django.urls import reverse
 
@@ -11,177 +9,64 @@ from gsl.core.tests.factories import (
     DepartementFactory,
     PerimetreDepartementalFactory,
 )
-from gsl.projet.constants import ProjetStatus
-from gsl.projet.tests.factories import DetrProjetFactory, ProjetFactory
-from gsl.stats.models import Subvention
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import (
-    DossierFactory,
-    PersonneMoraleFactory,
-)
+from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 
 pytestmark = pytest.mark.django_db
 
 
-def _personne_morale(siret, **kwargs):
-    return PersonneMoraleFactory(siret=siret, **kwargs)
+def _personne_morale(siret, commune, **kwargs):
+    return PersonneMoraleFactory(
+        siret=siret, address=AdresseFactory(commune=commune), **kwargs
+    )
 
 
-class TestCollectiviteListView:
-    def test_keeps_only_one_personne_morale_per_siren(self):
-        _personne_morale("11111111100011", raison_sociale="Etab A")
-        _personne_morale("11111111100022", raison_sociale="Etab B")
-        _personne_morale("22222222200011", raison_sociale="Autre entité")
+@pytest.fixture
+def departement():
+    return DepartementFactory(insee_code="75")
 
-        client = ClientWithLoggedUserFactory(CollegueFactory(is_staff=True))
-        response = client.get(reverse("suivi_financier:collectivite-list"))
 
+@pytest.fixture
+def staff_client(departement):
+    user = CollegueFactory(
+        is_staff=True, perimetre=PerimetreDepartementalFactory(departement=departement)
+    )
+    return ClientWithLoggedUserFactory(user)
+
+
+class TestCollectiviteFicoView:
+    def test_menu_lists_the_perimetre_once_per_siren(self, staff_client, departement):
+        commune = CommuneFactory(departement=departement)
+        _personne_morale("11111111100011", commune, raison_sociale="Etab A")
+        _personne_morale("11111111100022", commune, raison_sociale="Etab B")
+        _personne_morale("22222222200011", commune, raison_sociale="Autre entité")
+        ailleurs = CommuneFactory(departement=DepartementFactory(insee_code="69"))
+        _personne_morale("33333333300011", ailleurs, raison_sociale="Hors périmètre")
+
+        response = staff_client.get(reverse("suivi_financier:collectivite-fico"))
+
+        assert response.status_code == 200
         collectivites = list(response.context["collectivites"])
-        assert len(collectivites) == 2
         assert [c.siren for c in collectivites] == ["222222222", "111111111"]
-        assert collectivites[1].siret == "11111111100011"
+        assert "<fico-fiche" not in response.content.decode()
 
-    def test_search_filters_by_nom_or_siren(self):
-        _personne_morale("11111111100011", raison_sociale="Ville de Paris")
-        _personne_morale("22222222200011", raison_sociale="Ville de Lyon")
-
-        client = ClientWithLoggedUserFactory(CollegueFactory(is_staff=True))
-        response = client.get(
-            reverse("suivi_financier:collectivite-list"), {"q": "Paris"}
+    def test_redirects_to_the_chosen_collectivite(self, staff_client):
+        response = staff_client.get(
+            reverse("suivi_financier:collectivite-fico"), {"siren": "111111111"}
         )
 
-        collectivites = list(response.context["collectivites"])
-        assert len(collectivites) == 1
-        assert collectivites[0].raison_sociale == "Ville de Paris"
-
-    def test_non_staff_user_only_sees_personnes_morales_in_their_departement(self):
-        dep_in = DepartementFactory(insee_code="75")
-        dep_out = DepartementFactory(insee_code="69")
-        commune_in = CommuneFactory(departement=dep_in)
-        commune_out = CommuneFactory(departement=dep_out)
-
-        _personne_morale(
-            "11111111100011",
-            raison_sociale="Dans le périmètre",
-            address=AdresseFactory(commune=commune_in),
-        )
-        _personne_morale(
-            "22222222200011",
-            raison_sociale="Hors périmètre",
-            address=AdresseFactory(commune=commune_out),
+        assert response.status_code == 302
+        assert response.url == reverse(
+            "suivi_financier:collectivite-fico", args=["111111111"]
         )
 
-        user = CollegueFactory(
-            perimetre=PerimetreDepartementalFactory(departement=dep_in)
-        )
-        client = ClientWithLoggedUserFactory(user)
-        response = client.get(reverse("suivi_financier:collectivite-list"))
+    def test_embeds_the_fiche_and_its_pdf(self, staff_client, settings):
+        settings.FICO_URL = "https://fico.example"
 
-        collectivites = list(response.context["collectivites"])
-        assert [c.raison_sociale for c in collectivites] == ["Dans le périmètre"]
-
-
-class TestCollectiviteDetailView:
-    def test_returns_404_for_a_siren_outside_the_user_perimetre(self):
-        dep_in = DepartementFactory(insee_code="75")
-        dep_out = DepartementFactory(insee_code="69")
-        commune_out = CommuneFactory(departement=dep_out)
-        pm = _personne_morale(
-            "22222222200011", address=AdresseFactory(commune=commune_out)
+        response = staff_client.get(
+            reverse("suivi_financier:collectivite-fico", args=["111111111"])
         )
 
-        user = CollegueFactory(
-            perimetre=PerimetreDepartementalFactory(departement=dep_in)
-        )
-        client = ClientWithLoggedUserFactory(user)
-        response = client.get(
-            reverse("suivi_financier:collectivite-detail", args=[pm.siren])
-        )
-
-        assert response.status_code == 404
-
-    def test_shows_subventions_from_both_sources(self):
-        pm = _personne_morale("21750056900011", raison_sociale="Ville de Paris")
-        Subvention.objects.create(
-            source=Subvention.SOURCE_DGCL,
-            siren=pm.siren,
-            exercice=2024,
-            dispositif="DETR",
-            programme=119,
-            intitule="Rénovation école",
-            cout_total=1000,
-            montant_attribue=500,
-        )
-        Subvention.objects.create(
-            source=Subvention.SOURCE_FONDS_VERT,
-            siren=pm.siren,
-            exercice=2026,
-            dispositif="FONDS VERT",
-            programme=380,
-            intitule="Isolation mairie",
-            status=Dossier.State.EN_INSTRUCTION,
-            montant_demande=200,
-            cout_total=400,
-            dossier_number=42,
-        )
-
-        client = ClientWithLoggedUserFactory(CollegueFactory(is_staff=True))
-        response = client.get(
-            reverse("suivi_financier:collectivite-detail", args=[pm.siren])
-        )
-
-        assert response.status_code == 200
-        subventions = list(response.context["subventions"])
-        assert {s.intitule for s in subventions} == {
-            "Rénovation école",
-            "Isolation mairie",
-        }
         html = response.content.decode()
-        assert "Rénovation école" in html
-        assert "Isolation mairie" in html
-        assert "En instruction" in html
-
-    def test_hides_the_status_badge_when_accepted(self):
-        pm = _personne_morale("21750056900011")
-        Subvention.objects.create(
-            source=Subvention.SOURCE_FONDS_VERT,
-            siren=pm.siren,
-            exercice=2026,
-            dispositif="FONDS VERT",
-            programme=380,
-            intitule="Isolation mairie",
-            status=Dossier.State.ACCEPTE,
-            montant_demande=200,
-            montant_attribue=200,
-            cout_total=400,
-            dossier_number=42,
-        )
-
-        client = ClientWithLoggedUserFactory(CollegueFactory(is_staff=True))
-        response = client.get(
-            reverse("suivi_financier:collectivite-detail", args=[pm.siren])
-        )
-
-        assert "Accepté" not in response.content.decode()
-
-    def test_shows_the_projets_of_the_collectivite(self):
-        pm = _personne_morale("21750056900011")
-        projet = ProjetFactory(dossier_ds=DossierFactory(ds_demandeur=pm))
-        DetrProjetFactory(
-            projet=projet,
-            status=ProjetStatus.ACCEPTED,
-            assiette=Decimal("2000"),
-            montant=Decimal("1500"),
-        )
-
-        client = ClientWithLoggedUserFactory(CollegueFactory(is_staff=True))
-        response = client.get(
-            reverse("suivi_financier:collectivite-detail", args=[pm.siren])
-        )
-
-        assert response.status_code == 200
-        assert list(response.context["projets"]) == [projet]
-        html = response.content.decode()
-        assert projet.dossier_ds.projet_intitule.lower().capitalize() in html
-        assert "DETR" in html
-        assert "1\xa0500\xa0€" in html
+        fiche = "https://fico.example/fiches/111111111"
+        assert f'<fico-fiche src="{fiche}.json?component=' in html
+        assert f'href="{fiche}.pdf?component=' in html

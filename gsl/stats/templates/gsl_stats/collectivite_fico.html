@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    {{ block.super }}
+    {% if fico_url %}<link rel="stylesheet" href="{{ fico_url }}/assets/fico.css">{% endif %}
+{% endblock extra_css %}
+
+{% block content %}
+    {% if not siren or not fico_url %}
+        <h1>{{ title }}</h1>
+    {% endif %}
+    {% if fico_url %}
+        <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom fr-mb-4w">
+            <form method="get" class="fr-col-12 fr-col-md-8">
+                <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
+                    <div class="fr-col fr-select-group fr-mb-0">
+                        <select class="fr-select" id="siren" name="siren">
+                            <option value=""
+                                    disabled
+                                    {% if not dans_perimetre %}selected{% endif %}>Choisir une collectivité</option>
+                            {% for c in collectivites %}
+                                <option value="{{ c.siren }}"
+                                        {% if c.siren == siren %}selected{% endif %}>{{ c.nom_affichage }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="fr-col-auto">
+                        <button class="fr-btn" type="submit">Afficher</button>
+                    </div>
+                </div>
+            </form>
+            {% if siren %}
+                <div class="fr-col-12 fr-col-md-4">
+                    <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-download-line"
+                       href="{{ pdf_url }}"
+                       target="_blank"
+                       rel="noopener"
+                       title="Exporter en PDF - nouvelle fenêtre">Exporter en PDF</a>
+                </div>
+            {% endif %}
+        </div>
+        {% if siren %}
+            <script type="module" src="{{ fico_url }}/assets/fiche.js"></script>
+            <fico-fiche src="{{ fiche_src }}"></fico-fiche>
+        {% endif %}
+    {% else %}
+        <div class="fr-alert fr-alert--warning">
+            <p>Le service Fico n'est pas configuré (variable d'environnement <code>FICO_URL</code>).</p>
+        </div>
+    {% endif %}
+{% endblock content %}
