@@ -466,7 +466,7 @@ def client_with_staff_user_logged():
 
 @pytest.mark.parametrize("route, kwargs, data", PATCH_ROUTES_AND_DATA)
 @pytest.mark.django_db
-def test_patch_projet_allowed_for_staff_user(
+def test_cant_patch_projet_for_staff_user_outside_perimetre(
     client_with_staff_user_logged, cote_dorien_simulation_projet, route, kwargs, data
 ):
     page_url = reverse(
@@ -483,7 +483,7 @@ def test_patch_projet_allowed_for_staff_user(
         headers={"HX-Request": "true", "HX-Request-URL": page_url},
         follow=True,
     )
-    assert response.status_code == 200
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db

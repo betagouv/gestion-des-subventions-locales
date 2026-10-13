@@ -573,13 +573,13 @@ sent to DN.
 
 ### Filtering by Perimeter
 
-Use `EnveloppeService` or query filters:
+Use `Enveloppe.objects.for_user` or query filters:
 
 ```python
-from gsl.programmation.services import EnveloppeService
+from gsl.programmation.models import Enveloppe
 
 # Get envelopes visible to a user
-envelopes = EnveloppeService.get_enveloppes_visible_for_a_user(user=request.user)
+envelopes = Enveloppe.objects.for_user(request.user)
 ```
 
 Or directly filter by user's perimeter:

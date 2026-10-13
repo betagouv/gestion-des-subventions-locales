@@ -22,7 +22,7 @@ from gsl.core.matomo_constants import (
 )
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import FilterSkiplinksMixin, NoFeedbackHtmxFormViewMixin
-from gsl.programmation.services.enveloppe_service import EnveloppeService
+from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import DOTATION_DSIL, DOTATIONS
 from gsl.projet.models import EnveloppeProjet, Projet
 
@@ -221,9 +221,7 @@ class SimulationDeleteView(DeleteView):
         )
 
     def get_queryset(self):
-        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
-            self.request.user
-        )
+        visible_by_user_enveloppes = Enveloppe.objects.for_user(self.request.user)
         return Simulation.objects.filter(
             enveloppe__in=visible_by_user_enveloppes
         ).order_by("-created_at")
@@ -234,9 +232,7 @@ class SimulationRenameView(UpdateView):
     template_name = "gsl_simulation/simulation_rename.html"
 
     def get_queryset(self):
-        visible_by_user_enveloppes = EnveloppeService.get_enveloppes_visible_for_a_user(
-            self.request.user
-        )
+        visible_by_user_enveloppes = Enveloppe.objects.for_user(self.request.user)
         return Simulation.objects.filter(enveloppe__in=visible_by_user_enveloppes)
 
     def _get_next_url(self):
@@ -297,9 +293,7 @@ class SimulationColumnsVisibilityView(NoFeedbackHtmxFormViewMixin, UpdateView):
 
     def get_queryset(self):
         return Simulation.objects.filter(
-            enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(
-                self.request.user
-            )
+            enveloppe__in=Enveloppe.objects.for_user(self.request.user)
         )
 
 

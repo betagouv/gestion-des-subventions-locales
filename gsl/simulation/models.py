@@ -10,7 +10,6 @@ from django_extensions.db.fields import AutoSlugField
 
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.programmation.models import Enveloppe
-from gsl.programmation.services.enveloppe_service import EnveloppeService
 from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.utils import compute_taux
@@ -51,9 +50,7 @@ class SimulationQuerySet(models.QuerySet):
         return qs
 
     def visible_for_user(self, user: Collegue):
-        return self.filter(
-            enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(user)
-        )
+        return self.filter(enveloppe__in=Enveloppe.objects.for_user(user))
 
     def for_campagne(self, annee: int):
         return self.filter(enveloppe__annee=annee)
@@ -169,13 +166,7 @@ class SimulationProjetQuerySet(models.QuerySet):
         return self.filter(enveloppe_projet__projet__dossier_ds__is_active=True)
 
     def in_user_perimeter(self, user: Collegue):
-        if user.is_staff:
-            return self.all()
-        return self.filter(
-            simulation__enveloppe__in=EnveloppeService.get_enveloppes_visible_for_a_user(
-                user
-            )
-        )
+        return self.filter(simulation__enveloppe__in=Enveloppe.objects.for_user(user))
 
 
 class SimulationProjetManager(models.Manager.from_queryset(SimulationProjetQuerySet)):
