@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
+from django.db.models import Q
 
 from gsl.core.models import BaseModel, Perimetre
 from gsl.projet.constants import (
@@ -44,6 +45,15 @@ class EnveloppeQueryset(models.QuerySet):
 
     def for_campagne(self, annee: int):
         return self.filter(annee=annee)
+
+    def for_user(self, user):
+        """Enveloppes of the user's perimetre, and those delegated from it
+        (up to two delegation levels)."""
+        return self.filter(
+            Q(perimetre=user.perimetre)
+            | Q(parent__perimetre=user.perimetre)
+            | Q(parent__parent__perimetre=user.perimetre)
+        )
 
     def root_for(self, dotation: str, perimetre: Perimetre, annee: int) -> "Enveloppe":
         perimetre_racine = perimetre.for_dotation(dotation)

@@ -3,7 +3,6 @@ from logging import getLogger
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
@@ -53,11 +52,7 @@ class SimulationForm(DsfrBaseForm, ModelForm):
         self.user = user
         self.fields["enveloppe"].queryset = (
             Enveloppe.objects.for_campagne(campagne)
-            .filter(
-                Q(perimetre=user.perimetre)
-                | Q(parent__perimetre=user.perimetre)
-                | Q(parent__parent__perimetre=user.perimetre)
-            )
+            .for_user(user)
             .order_by(
                 "dotation",
                 "-perimetre__region",
