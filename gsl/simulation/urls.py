@@ -1,12 +1,8 @@
 from django.urls import path
 
-from .views import simulation_views
 from .views.bulk_status_job_views import (
     BulkStatusJobProgressView,
     BulkStatusJobStartView,
-)
-from .views.decorators import (
-    simulation_must_be_visible_by_user,
 )
 from .views.simulation_projet_views import (
     BulkSimulationProjetStatusUpdateView,
@@ -21,16 +17,19 @@ from .views.simulation_projet_views import (
     SimulationProjetStatusUpdateView,
 )
 from .views.simulation_views import (
+    FilteredProjetsExportView,
     SimulationColumnsVisibilityView,
     SimulationCreateView,
     SimulationDeleteView,
+    SimulationDetailView,
+    SimulationListView,
     SimulationRenameView,
 )
 
 urlpatterns = [
     path(
         "liste/<int:campagne>/",
-        simulation_views.SimulationListView.as_view(),
+        SimulationListView.as_view(),
         name="simulation-list",
     ),
     path(
@@ -40,9 +39,7 @@ urlpatterns = [
     ),
     path(
         "voir/<slug:slug>/",
-        simulation_must_be_visible_by_user(
-            simulation_views.SimulationDetailView.as_view()
-        ),
+        SimulationDetailView.as_view(),
         name="simulation-detail",
     ),
     path(
@@ -62,9 +59,7 @@ urlpatterns = [
     ),
     path(
         "voir/<slug:slug>/<str:type>/",
-        simulation_must_be_visible_by_user(
-            simulation_views.FilteredProjetsExportView.as_view()
-        ),
+        FilteredProjetsExportView.as_view(),
         name="simulation-projets-export",
     ),
     path(

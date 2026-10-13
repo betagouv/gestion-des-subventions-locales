@@ -72,18 +72,20 @@ class SimulationListView(ListView):
 
 
 class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
-    queryset = Simulation.objects.select_related(
-        "enveloppe",
-        "enveloppe__perimetre",
-        "enveloppe__perimetre__region",
-        "enveloppe__perimetre__departement",
-        "enveloppe__perimetre__arrondissement",
-    )
     filterset_class = SimulationProjetFilters
     template_name = "gsl_simulation/simulation_detail.html"
     paginate_by = 25
 
     PARAMS_NOT_FILTERS = {"page", "reset_filters"}
+
+    def get_queryset(self):
+        return Simulation.objects.visible_for_user(self.request.user).select_related(
+            "enveloppe",
+            "enveloppe__perimetre",
+            "enveloppe__perimetre__region",
+            "enveloppe__perimetre__departement",
+            "enveloppe__perimetre__arrondissement",
+        )
 
     def _get_filter_params(self):
         return {
