@@ -103,6 +103,36 @@ class TestSimulationCreateView:
         assert visible_enveloppe.id in enveloppe_ids
         assert invisible_enveloppe.id not in enveloppe_ids
 
+    def test_create_simulation_form_shows_only_envelopes_of_selected_campagne(self):
+        enveloppe_2026 = DetrEnveloppeFactory(annee=2026)
+        enveloppe_2027 = DetrEnveloppeFactory(
+            annee=2027, perimetre=enveloppe_2026.perimetre
+        )
+        user = CollegueFactory(perimetre=enveloppe_2026.perimetre)
+        client = ClientWithLoggedUserFactory(user)
+        client.get(reverse("simulation:simulation-list", kwargs={"campagne": 2027}))
+
+        response = client.get(reverse("gsl_simulation:simulation-form"))
+
+        enveloppe_field = response.context["form"].fields["enveloppe"]
+        assert list(enveloppe_field.queryset) == [enveloppe_2027]
+
+    def test_create_simulation_cannot_use_envelope_of_other_campagne(self):
+        enveloppe_2026 = DetrEnveloppeFactory(annee=2026)
+        DetrEnveloppeFactory(annee=2027, perimetre=enveloppe_2026.perimetre)
+        user = CollegueFactory(perimetre=enveloppe_2026.perimetre)
+        client = ClientWithLoggedUserFactory(user)
+        client.get(reverse("simulation:simulation-list", kwargs={"campagne": 2027}))
+
+        response = client.post(
+            reverse("gsl_simulation:simulation-form"),
+            {"title": "Autre campagne", "enveloppe": enveloppe_2026.id},
+        )
+
+        assert response.status_code == 200
+        assert "enveloppe" in response.context["form"].errors
+        assert not Simulation.objects.filter(title="Autre campagne").exists()
+
     def test_create_simulation_with_delegated_envelope(self):
         # Arrange: create an enveloppe delegated to a user's perimetre
         parent_enveloppe = DetrEnveloppeFactory()

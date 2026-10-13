@@ -3,7 +3,6 @@ from logging import getLogger
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
@@ -48,18 +47,18 @@ def _add_enveloppe_projets_to_simulation(simulation: Simulation):
 
 
 class SimulationForm(DsfrBaseForm, ModelForm):
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user, campagne: int, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        self.fields["enveloppe"].queryset = Enveloppe.objects.filter(
-            Q(perimetre=user.perimetre)
-            | Q(parent__perimetre=user.perimetre)
-            | Q(parent__parent__perimetre=user.perimetre)
-        ).order_by(
-            "dotation",
-            "-perimetre__region",
-            "-perimetre__departement",
-            "-perimetre__arrondissement",
+        self.fields["enveloppe"].queryset = (
+            Enveloppe.objects.for_campagne(campagne)
+            .for_user(user)
+            .order_by(
+                "dotation",
+                "-perimetre__region",
+                "-perimetre__departement",
+                "-perimetre__arrondissement",
+            )
         )
 
     def save(self, commit=True):

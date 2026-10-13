@@ -269,7 +269,11 @@ class SimulationCreateView(CreateView):
         )
 
     def get_form_kwargs(self):
-        return {"user": self.request.user, **super().get_form_kwargs()}
+        return {
+            "user": self.request.user,
+            "campagne": get_campagne(),
+            **super().get_form_kwargs(),
+        }
 
     def form_valid(self, form):
         response = super().form_valid(form)
