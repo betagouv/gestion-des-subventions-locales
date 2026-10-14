@@ -46,13 +46,31 @@ def client_with_user(perimetre):
 
 @patch("gsl.notification.tasks.scan_uploaded_document")
 def test_upload_triggers_scan_task_when_antivirus_enabled(
-    mock_scan_task, settings, perimetre
+    mock_scan_task, settings, perimetre, django_capture_on_commit_callbacks
 ):
     settings.BYPASS_ANTIVIRUS = False
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
-    doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+    with django_capture_on_commit_callbacks(execute=True):
+        doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+
+    mock_scan_task.delay.assert_called_once_with(
+        "gsl_notification.LettreEtArreteSignes", doc.pk
+    )
+
+
+@patch("gsl.notification.tasks.scan_uploaded_document")
+def test_upload_triggers_scan_task_only_after_commit(
+    mock_scan_task, settings, enveloppe_projet, django_capture_on_commit_callbacks
+):
+    settings.BYPASS_ANTIVIRUS = False
+    with django_capture_on_commit_callbacks() as callbacks:
+        doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+        mock_scan_task.delay.assert_not_called()
+
+    for callback in callbacks:
+        callback()
 
     mock_scan_task.delay.assert_called_once_with(
         "gsl_notification.LettreEtArreteSignes", doc.pk
@@ -61,24 +79,28 @@ def test_upload_triggers_scan_task_when_antivirus_enabled(
 
 @patch("gsl.notification.tasks.scan_uploaded_document")
 def test_upload_does_not_trigger_scan_when_antivirus_bypassed(
-    mock_scan_task, settings, perimetre
+    mock_scan_task, settings, perimetre, django_capture_on_commit_callbacks
 ):
     settings.BYPASS_ANTIVIRUS = True
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
-    LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+    with django_capture_on_commit_callbacks(execute=True):
+        LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
 
     mock_scan_task.delay.assert_not_called()
 
 
 @patch("gsl.notification.tasks.scan_uploaded_document")
-def test_annexe_upload_triggers_scan_task(mock_scan_task, settings, perimetre):
+def test_annexe_upload_triggers_scan_task(
+    mock_scan_task, settings, perimetre, django_capture_on_commit_callbacks
+):
     settings.BYPASS_ANTIVIRUS = False
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.ACCEPTED
     )
-    doc = AnnexeFactory(enveloppe_projet=enveloppe_projet)
+    with django_capture_on_commit_callbacks(execute=True):
+        doc = AnnexeFactory(enveloppe_projet=enveloppe_projet)
 
     mock_scan_task.delay.assert_called_once_with("gsl_notification.Annexe", doc.pk)
 
@@ -315,9 +337,12 @@ def test_generated_document_is_always_downloadable(enveloppe_projet):
     ),
 )
 @patch("gsl.notification.tasks.scan_uploaded_document")
-def test_logo_create_triggers_scan(mock_scan_task, settings, factory, model_label):
+def test_logo_create_triggers_scan(
+    mock_scan_task, settings, factory, model_label, django_capture_on_commit_callbacks
+):
     settings.BYPASS_ANTIVIRUS = False
-    doc = factory()
+    with django_capture_on_commit_callbacks(execute=True):
+        doc = factory()
 
     mock_scan_task.delay.assert_called_once_with(model_label, doc.pk, "logo")
 
@@ -330,7 +355,9 @@ def test_logo_create_triggers_scan(mock_scan_task, settings, factory, model_labe
     ),
 )
 @patch("gsl.notification.tasks.scan_uploaded_document")
-def test_logo_update_triggers_scan(mock_scan_task, settings, factory, model_label):
+def test_logo_update_triggers_scan(
+    mock_scan_task, settings, factory, model_label, django_capture_on_commit_callbacks
+):
     settings.BYPASS_ANTIVIRUS = True
     doc = factory()
     mock_scan_task.delay.assert_not_called()
@@ -339,20 +366,24 @@ def test_logo_update_triggers_scan(mock_scan_task, settings, factory, model_labe
     from django.core.files.uploadedfile import SimpleUploadedFile
 
     doc.logo = SimpleUploadedFile("new_logo.png", b"fake-image-data")
-    doc.save()
+    with django_capture_on_commit_callbacks(execute=True):
+        doc.save()
 
     mock_scan_task.delay.assert_called_once_with(model_label, doc.pk, "logo")
 
 
 @patch("gsl.notification.tasks.scan_uploaded_document")
-def test_logo_unrelated_save_does_not_trigger_scan(mock_scan_task, settings):
+def test_logo_unrelated_save_does_not_trigger_scan(
+    mock_scan_task, settings, django_capture_on_commit_callbacks
+):
     settings.BYPASS_ANTIVIRUS = True
     doc = ModeleArreteFactory()
     mock_scan_task.delay.assert_not_called()
 
     settings.BYPASS_ANTIVIRUS = False
     doc.name = "Nouveau nom"
-    doc.save(update_fields=["name"])
+    with django_capture_on_commit_callbacks(execute=True):
+        doc.save(update_fields=["name"])
 
     mock_scan_task.delay.assert_not_called()
 
@@ -363,10 +394,11 @@ def test_logo_unrelated_save_does_not_trigger_scan(mock_scan_task, settings):
 )
 @patch("gsl.notification.tasks.scan_uploaded_document")
 def test_logo_create_does_not_trigger_scan_when_bypassed(
-    mock_scan_task, settings, factory
+    mock_scan_task, settings, factory, django_capture_on_commit_callbacks
 ):
     settings.BYPASS_ANTIVIRUS = True
-    factory()
+    with django_capture_on_commit_callbacks(execute=True):
+        factory()
 
     mock_scan_task.delay.assert_not_called()
 

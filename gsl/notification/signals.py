@@ -1,4 +1,7 @@
+from functools import partial
+
 from django.conf import settings
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 
 from gsl.notification.models import (
@@ -20,7 +23,10 @@ def trigger_antivirus_scan(sender, instance, created, **kwargs):
     if created and not settings.BYPASS_ANTIVIRUS:
         from gsl.notification.tasks import scan_uploaded_document
 
-        scan_uploaded_document.delay(sender._meta.label, instance.pk)
+        # Wait for the commit, otherwise the worker may not see the row yet
+        transaction.on_commit(
+            partial(scan_uploaded_document.delay, sender._meta.label, instance.pk)
+        )
 
 
 for _model in UPLOADED_DOCUMENTS.values():
@@ -36,7 +42,11 @@ def trigger_logo_antivirus_scan(sender, instance, created, update_fields, **kwar
     if created or update_fields is None or "logo" in update_fields:
         from gsl.notification.tasks import scan_uploaded_document
 
-        scan_uploaded_document.delay(sender._meta.label, instance.pk, "logo")
+        transaction.on_commit(
+            partial(
+                scan_uploaded_document.delay, sender._meta.label, instance.pk, "logo"
+            )
+        )
 
 
 def delete_logo_file_after_instance_deletion(sender, instance, *args, **kwargs):
