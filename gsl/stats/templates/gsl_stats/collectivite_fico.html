@@ -20,7 +20,7 @@
                                     {% if not dans_perimetre %}selected{% endif %}>Choisir une collectivité</option>
                             {% for c in collectivites %}
                                 <option value="{{ c.siren }}"
-                                        {% if c.siren == siren %}selected{% endif %}>{{ c.nom_affichage }}</option>
+                                        {% if c.siren == siren %}selected{% endif %}>{{ c.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
