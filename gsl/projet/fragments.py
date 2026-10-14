@@ -1,9 +1,13 @@
+from django.contrib import messages
+from django_htmx.http import HttpResponseClientRefresh
+
 from gsl.core.fragments import Fragment
 
 from .forms import (
     EnveloppeProjetAssietteForm,
     EnveloppeProjetForm,
     ProjetBudgetVertForm,
+    ProjetPremiereAnneeForm,
     ProjetZonageForm,
 )
 from .models import EnveloppeProjet, Projet
@@ -58,6 +62,25 @@ class ZonageFragment(ProjetFormFragment):
     name = "zonage_form"
     form_class = ProjetZonageForm
     template_name = "includes/forms/_boolean_fields_projet_form.html"
+
+
+class PremiereAnneeFragment(ProjetFormFragment):
+    name = "premiere_annee_form"
+    form_class = ProjetPremiereAnneeForm
+    template_name = "includes/forms/_premiere_annee_form.html"
+
+    def on_valid(self):
+        """A bascule changes most of the page: reload it."""
+        self.form.save()
+        if self.form.errors:
+            return self.on_invalid()
+        if "campagne" in self.form.changed_data:
+            messages.success(
+                self.request,
+                "Le projet a été basculé sur la campagne "
+                f"{self.form.cleaned_data['campagne']}.",
+            )
+        return HttpResponseClientRefresh()
 
 
 class EnveloppeProjetFormFragment(FormFragment):

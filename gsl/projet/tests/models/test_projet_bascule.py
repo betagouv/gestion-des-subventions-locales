@@ -51,6 +51,27 @@ def projet(perimetre):
     )
 
 
+# -- campagne du projet --
+
+
+def test_campagne_is_the_one_of_its_enveloppe_projets(projet):
+    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+    _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.ACCEPTED)
+
+    assert projet.campagne == CAMPAGNE
+
+
+def test_campagne_is_none_for_a_projet_on_two_campagnes(projet):
+    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED, CAMPAGNE)
+    _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.PROCESSING, CAMPAGNE_SUIVANTE)
+
+    assert projet.campagne is None
+
+
+def test_campagne_is_none_without_enveloppe_projet(projet):
+    assert projet.campagne is None
+
+
 # -- campagnes proposées --
 
 

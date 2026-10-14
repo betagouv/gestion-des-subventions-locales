@@ -21,6 +21,7 @@
    pour éviter un double espacement avec le padding du fr-callout. Les
    champs suivants masqués via .fr-hidden (cf conditionalField.js) ne
    comptent pas comme "visibles". */
-.fr-callout > .fr-checkbox-group:not(:has(~ *:not(.fr-hidden))) {
+.fr-callout > .fr-checkbox-group:not(:has(~ *:not(.fr-hidden))),
+.fr-callout > .fr-fieldset {
   margin-bottom: 0 !important;
 }

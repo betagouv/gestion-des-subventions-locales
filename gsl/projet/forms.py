@@ -143,6 +143,40 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             projet.save()
 
 
+class ProjetPremiereAnneeForm(ModelForm, DsfrBaseForm):
+    """Changing the year switches the projet onto that campagne (see Projet.basculer)."""
+
+    campagne = forms.TypedChoiceField(
+        label="Première année de traitement",
+        help_text="Permet de corriger l'année de traitement. Les dossiers déposés "
+        "après le 1er octobre sont attribués à l'année suivante par défaut.",
+        coerce=int,
+        widget=forms.RadioSelect,
+    )
+
+    class Meta:
+        model = Projet
+        fields = []
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        campagne = self.instance.campagne
+        self.fields["campagne"].initial = campagne
+        self.fields["campagne"].choices = [
+            (annee, annee)
+            for annee in sorted([campagne, *self.instance.campagnes_de_bascule])
+        ]
+
+    def save(self, commit=True):
+        if "campagne" in self.changed_data:
+            try:
+                self.instance.basculer(self.cleaned_data["campagne"], actor=self.user)
+            except ValidationError as error:
+                self.add_error("campagne", error)
+        return self.instance
+
+
 class ProjetAnnotationsForm(ModelForm, DsfrBaseForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
