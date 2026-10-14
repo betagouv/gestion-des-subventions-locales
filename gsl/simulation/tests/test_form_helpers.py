@@ -444,6 +444,10 @@ def test_add_enveloppe_projets_to_DETR_simulation_containing_DETR_in_demande_dis
     projet = ProjetFactory(
         dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
         dossier_ds__perimetre=arrondissement_perimetre,
+        # In the simulation's campagne (a random date may fall on the next one)
+        dossier_ds__ds_date_depot=datetime(
+            detr_simulation.enveloppe.annee, 3, 1, tzinfo=UTC
+        ),
     )
     EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet(projet)
 
@@ -479,6 +483,10 @@ def test_add_enveloppe_projets_to_DSIL_simulation_containing_DSIL_in_demande_dis
     projet = ProjetFactory(
         dossier_ds__demande_dispositif_sollicite=demande_dispositif_sollicite,
         dossier_ds__perimetre=arrondissement_perimetre,
+        # In the simulation's campagne (a random date may fall on the next one)
+        dossier_ds__ds_date_depot=datetime(
+            dsil_simulation.enveloppe.annee, 3, 1, tzinfo=UTC
+        ),
     )
     EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet(projet)
 

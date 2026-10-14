@@ -1,5 +1,4 @@
 import logging
-from datetime import date
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
@@ -37,17 +36,10 @@ class SimulationQuerySet(models.QuerySet):
         return self.filter(enveloppe__perimetre__in=perimetres_to_filter)
 
     def for_enveloppe_projet(self, enveloppe_projet: EnveloppeProjet):
-        dossier = enveloppe_projet.dossier_ds
-        qs = self.containing_perimetre(enveloppe_projet.projet.perimetre).filter(
+        return self.containing_perimetre(enveloppe_projet.projet.perimetre).filter(
             enveloppe__dotation=enveloppe_projet.dotation,
-            enveloppe__annee__gte=date.today().year,
+            enveloppe__annee=enveloppe_projet.enveloppe.annee,
         )
-        # TODO Investigate why we need those two checks
-        if dossier.is_treated and dossier.ds_date_traitement is not None:
-            qs = qs.filter(enveloppe__annee__lte=dossier.annee_de_traitement)
-        if enveloppe_projet.is_programmee:
-            qs = qs.filter(enveloppe__annee__lte=enveloppe_projet.enveloppe.annee)
-        return qs
 
     def visible_for_user(self, user: Collegue):
         return self.filter(enveloppe__in=Enveloppe.objects.for_user(user))
