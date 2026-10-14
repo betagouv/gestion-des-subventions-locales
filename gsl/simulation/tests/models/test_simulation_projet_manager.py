@@ -8,6 +8,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import (
     DOTATION_DETR,
     DOTATION_DSIL,
@@ -17,6 +18,7 @@ from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,
 )
+from gsl_demarches_simplifiees.models import Dossier
 
 from ...models import Simulation, SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory
@@ -266,7 +268,7 @@ def simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_
             )
 
 
-def test_reset_for_a_programmee_dotation_stops_at_its_enveloppe_year(
+def test_reset_for_a_programmee_dotation_only_in_its_campagne(
     perimetres,
     simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_and_dotation,
 ):
@@ -313,7 +315,7 @@ def test_reset_for_a_programmee_dotation_stops_at_its_enveloppe_year(
         )
 
 
-def test_reset_for_a_processing_dotation_reaches_the_next_year(
+def test_reset_for_a_processing_dotation_only_in_its_campagne(
     perimetres,
     simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_and_dotation,
 ):
@@ -326,31 +328,78 @@ def test_reset_for_a_processing_dotation_reaches_the_next_year(
 
     SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
 
-    # Nothing is decided yet, so no year ceiling applies.
-    assert enveloppe_projet.simulationprojet_set.count() == 4
-    for annee in [CURRENT_YEAR, CURRENT_YEAR + 1]:
-        for perimetre in [region_bfc, dep_21]:
-            simulation = Simulation.objects.filter(
-                enveloppe__annee=annee,
-                enveloppe__dotation=DOTATION_DSIL,
-                enveloppe__perimetre=perimetre,
-            ).first()
+    assert enveloppe_projet.simulationprojet_set.count() == 2
+    for perimetre in [region_bfc, dep_21]:
+        simulation = Simulation.objects.filter(
+            enveloppe__annee=CURRENT_YEAR,
+            enveloppe__dotation=DOTATION_DSIL,
+            enveloppe__perimetre=perimetre,
+        ).first()
 
-            simulation_projets = SimulationProjet.objects.filter(
-                simulation=simulation, enveloppe_projet=enveloppe_projet
-            )
-            assert simulation_projets.count() == 1
+        simulation_projets = SimulationProjet.objects.filter(
+            simulation=simulation, enveloppe_projet=enveloppe_projet
+        )
+        assert simulation_projets.count() == 1
 
-            simulation_projet = simulation_projets.first()
-            assert simulation_projet.enveloppe_projet == enveloppe_projet
-            assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-            assert simulation_projet.montant == 0
-            assert simulation_projet.taux == 0
+        simulation_projet = simulation_projets.first()
+        assert simulation_projet.enveloppe_projet == enveloppe_projet
+        assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
+        assert simulation_projet.montant == 0
+        assert simulation_projet.taux == 0
 
-    assert (
-        SimulationProjet.objects.filter(
+    for annee in [CURRENT_YEAR - 1, CURRENT_YEAR + 1]:
+        assert not SimulationProjet.objects.filter(
             enveloppe_projet=enveloppe_projet,
-            simulation__enveloppe__annee=CURRENT_YEAR - 1,
-        ).count()
-        == 0
+            simulation__enveloppe__annee=annee,
+        ).exists()
+
+
+def test_reset_for_an_enveloppe_projet_of_a_past_campagne(
+    perimetres,
+    simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_and_dotation,
+):
+    arr_dijon, dep_21, *_ = perimetres
+    enveloppe_projet = EnveloppeProjetFactory(
+        dotation=DOTATION_DETR,
+        status=ProjetStatus.PROCESSING,
+        projet__dossier_ds__perimetre=arr_dijon,
+        enveloppe=DetrEnveloppeFactory(
+            perimetre=arr_dijon, annee=CURRENT_YEAR - 1
+        ).delegation_root,
     )
+
+    SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
+
+    assert {
+        sp.simulation.enveloppe.perimetre
+        for sp in enveloppe_projet.simulationprojet_set.all()
+    } == {dep_21, arr_dijon}
+    assert {
+        sp.simulation.enveloppe.annee
+        for sp in enveloppe_projet.simulationprojet_set.all()
+    } == {CURRENT_YEAR - 1}
+
+
+def test_reset_ignores_date_de_traitement(
+    perimetres,
+    simulations_of_previous_year_current_year_and_next_year_for_each_perimetres_and_dotation,
+):
+    arr_dijon, *_ = perimetres
+    enveloppe_projet = EnveloppeProjetFactory(
+        dotation=DOTATION_DETR,
+        status=ProjetStatus.REFUSED,
+        projet__dossier_ds__perimetre=arr_dijon,
+        projet__dossier_ds__ds_state=Dossier.State.REFUSE,
+        projet__dossier_ds__ds_date_traitement=datetime.datetime(
+            CURRENT_YEAR - 1, 6, 1, tzinfo=datetime.UTC
+        ),
+    )
+    assert enveloppe_projet.enveloppe.annee == CURRENT_YEAR
+
+    SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
+
+    assert enveloppe_projet.simulationprojet_set.count() == 2
+    assert {
+        sp.simulation.enveloppe.annee
+        for sp in enveloppe_projet.simulationprojet_set.all()
+    } == {CURRENT_YEAR}
