@@ -152,6 +152,9 @@
                         <li>Début des travaux : {{ dossier.date_debut|default:"—" }}</li>
                         <li>Achèvement : {{ dossier.date_achevement|default:"—" }}</li>
                     </ul>
+                    {% if projet_form and projet.campagnes_de_bascule %}
+                        {% render_fragment "gsl_projet:premiere_annee_form" projet %}
+                    {% endif %}
                     <h3 id="presentation_details_proj">Détails du projet</h3>
                     <h4 id="presentation_details_proj_immobilier">
                         <span class="fr-icon-building-fill fr-mr-2v" aria-hidden="true"></span>

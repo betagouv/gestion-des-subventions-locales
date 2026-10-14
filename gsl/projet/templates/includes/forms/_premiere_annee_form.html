@@ -1,0 +1,5 @@
+{% extends "includes/forms/_htmx_fragment_form.html" %}
+
+{% block post_url %}
+    {% url 'fragment:gsl_projet:premiere_annee_form' projet.id %}
+{% endblock post_url %}
