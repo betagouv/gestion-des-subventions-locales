@@ -246,9 +246,6 @@ DS_API_URL = os.getenv(
 )
 DS_CLIENT_ID = os.getenv("DS_CLIENT_ID", ENV)
 
-# Connection to Fonds Vert API
-FONDS_VERT_USERNAME = os.getenv("FONDS_VERT_USERNAME", "")
-FONDS_VERT_PASSWORD = os.getenv("FONDS_VERT_PASSWORD", "")
 LOGIN_URL = "/admin/login/" if DEBUG else "/comptes/login/"
 
 # Redirect after login/logout - used by OIDC backends
