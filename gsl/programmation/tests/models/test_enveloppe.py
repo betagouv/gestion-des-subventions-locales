@@ -70,6 +70,16 @@ def test_for_user_regional_sees_own_and_twice_delegated_enveloppes(
 
 
 @pytest.mark.django_db
+def test_for_user_regional_sees_only_dsil_enveloppes(perimetres, delegated_enveloppes):
+    region = perimetres[0]
+    user = CollegueFactory(perimetre=region)
+    # Bypasses the queryset create() guard forbidding regional DETR enveloppes
+    DetrEnveloppeFactory.build(perimetre=region).save()
+
+    assert set(Enveloppe.objects.for_user(user)) == set(delegated_enveloppes)
+
+
+@pytest.mark.django_db
 def test_for_user_departemental_sees_own_and_delegated_enveloppes(
     perimetres, delegated_enveloppes
 ):
@@ -97,5 +107,15 @@ def test_for_user_arrondissement_sees_only_own_enveloppe(
 @pytest.mark.django_db
 def test_for_user_excludes_enveloppes_of_other_perimetres(delegated_enveloppes):
     user = CollegueFactory(perimetre=PerimetreRegionalFactory())
+
+    assert not Enveloppe.objects.for_user(user).exists()
+
+
+@pytest.mark.parametrize("is_staff, is_superuser", ((False, False), (True, True)))
+@pytest.mark.django_db
+def test_for_user_without_perimetre_sees_nothing(
+    delegated_enveloppes, is_staff, is_superuser
+):
+    user = CollegueFactory(perimetre=None, is_staff=is_staff, is_superuser=is_superuser)
 
     assert not Enveloppe.objects.for_user(user).exists()

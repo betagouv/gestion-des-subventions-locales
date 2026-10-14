@@ -48,12 +48,17 @@ class EnveloppeQueryset(models.QuerySet):
 
     def for_user(self, user):
         """Enveloppes of the user's perimetre, and those delegated from it
-        (up to two delegation levels)."""
-        return self.filter(
+        (up to two delegation levels). Regional users only see DSIL enveloppes."""
+        if user.perimetre is None:
+            return self.none()
+        qs = self.filter(
             Q(perimetre=user.perimetre)
             | Q(parent__perimetre=user.perimetre)
             | Q(parent__parent__perimetre=user.perimetre)
         )
+        if user.perimetre.type == Perimetre.TYPE_REGION:
+            qs = qs.filter(dotation=DOTATION_DSIL)
+        return qs
 
     def root_for(self, dotation: str, perimetre: Perimetre, annee: int) -> "Enveloppe":
         perimetre_racine = perimetre.for_dotation(dotation)
