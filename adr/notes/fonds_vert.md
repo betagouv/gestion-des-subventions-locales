@@ -3,6 +3,10 @@
 Date : 2026-06-25
 API : https://api-fonds-vert.datahub.din.developpement-durable.gouv.fr
 
+> **Mise à jour 2026-10-14** : pour l'instant, gsl ne traite plus directement
+> l'API Fonds Vert. Les données sont exposées par Fico, qui les récupère via
+> API Collectivités.
+
 ## Endpoints disponibles
 
 | Endpoint | Description |
