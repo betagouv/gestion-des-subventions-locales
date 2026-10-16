@@ -41,7 +41,7 @@
         </div>
         {% if siren %}
             <script type="module" src="{{ fico_url }}/assets/fiche.js"></script>
-            <fico-fiche src="{{ fiche_src }}"></fico-fiche>
+            <fico-fiche collectivite="{{ siren }}" components="{{ view.components }}"></fico-fiche>
         {% endif %}
     {% else %}
         <div class="fr-alert fr-alert--warning">

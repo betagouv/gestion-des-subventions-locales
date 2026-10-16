@@ -58,6 +58,5 @@ class TestCollectiviteFicoView:
         )
 
         html = response.content.decode()
-        fiche = "https://fico.example/fiches/111111111"
-        assert f'<fico-fiche src="{fiche}.json?component=' in html
-        assert f'href="{fiche}.pdf?component=' in html
+        assert '<fico-fiche collectivite="111111111" components="identite,' in html
+        assert 'href="https://fico.example/fiches/111111111.pdf?component=' in html

@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
@@ -7,7 +9,7 @@ from gsl.core.models import Commune
 
 class CollectiviteFicoView(TemplateView):
     template_name = "gsl_stats/collectivite_fico.html"
-    components = "identite,programmes,carto,chiffres,historique"
+    components = "identite,programmes,carto.*,chiffres,historique"
 
     def get(self, request, *args, **kwargs):
         choisie = request.GET.get("siren")
@@ -30,8 +32,6 @@ class CollectiviteFicoView(TemplateView):
             "fico_url": settings.FICO_URL,
         }
         if siren:
-            fiche_url = f"{settings.FICO_URL}/fiches/{siren}"
-            query = f"component={self.components}"
-            context["fiche_src"] = f"{fiche_url}.json?{query}"
-            context["pdf_url"] = f"{fiche_url}.pdf?{query}"
+            query = urlencode({"component": self.components})
+            context["pdf_url"] = f"{settings.FICO_URL}/fiches/{siren}.pdf?{query}"
         return super().get_context_data(**context, **kwargs)
