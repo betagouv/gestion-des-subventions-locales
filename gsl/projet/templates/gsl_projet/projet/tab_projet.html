@@ -22,7 +22,7 @@
                     <li>
                         <span aria-hidden="true">📍</span> Demandeur
                         : {{ dossier.ds_demandeur|default:"-" }}
-                        {% if dossier.ds_demandeur.siren %}
+                        {% if request.user.is_staff and dossier.ds_demandeur.siren %}
                             (<a href="{% url 'suivi_financier:collectivite-fico' dossier.ds_demandeur.siren %}">fiche collectivité</a>)
                         {% endif %}
                     </li>
