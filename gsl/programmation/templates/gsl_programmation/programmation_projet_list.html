@@ -28,6 +28,7 @@
         {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
         {{ can_generate_accepted_documents_ids|json_script:"checkbox-selection-accepted-ids" }}
         {{ can_generate_refus_documents_ids|json_script:"checkbox-selection-refus-ids" }}
+        {{ can_be_notified_as_accepted_ids|json_script:"checkbox-selection-notify-accepted-ids" }}
         <dialog class="fr-modal"
                 id="generate-multiple-modal"
                 aria-labelledby="generate-multiple-modal-title"
@@ -165,6 +166,14 @@
                                                 Générer <span data-checkbox-selection-target="refusCounter">0</span> lettres de refus ou de classement sans suite
                                             </button>
                                         </form>
+                                    </li>
+                                    <li>
+                                        <button type="button"
+                                                class="fr-nav__link fr-btn--icon-left fr-icon-mail-send-line"
+                                                disabled
+                                                data-checkbox-selection-target="notifyAcceptedActionButton">
+                                            Notifier <span data-checkbox-selection-target="notifyAcceptedCounter">0</span> projets acceptés
+                                        </button>
                                     </li>
                                 </ul>
                             </div>
