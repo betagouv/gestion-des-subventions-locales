@@ -9,7 +9,7 @@ from gsl.core.models import Commune
 
 class CollectiviteFicoView(TemplateView):
     template_name = "gsl_stats/collectivite_fico.html"
-    components = "identite,programmes,carto.*,chiffres,historique"
+    components = "identite,programmes,financements.*"
 
     def get(self, request, *args, **kwargs):
         choisie = request.GET.get("siren")
