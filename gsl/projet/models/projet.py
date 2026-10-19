@@ -344,8 +344,8 @@ class Projet(ProjetDNActionsMixin, BaseModel):
                 enveloppe_projet.dotation, campagne
             )
             enveloppe_projet.save(update_fields=["enveloppe"])
-
-        for enveloppe_projet in self.enveloppeprojet_set.all():
+            if not enveloppe_projet.is_courant:
+                continue
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
             ProjetAction.objects.create(
                 projet=self,
