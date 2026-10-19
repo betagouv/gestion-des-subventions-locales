@@ -107,6 +107,23 @@ class Demarche(BaseModel):
 
 
 class FormeJuridique(models.Model):
+    # Communes and groupements known to Fico, by INSEE legal form.
+    COLLECTIVITES = frozenset(
+        {
+            "7210",
+            "7340",
+            "7343",
+            "7344",
+            "7345",
+            "7346",
+            "7348",
+            "7353",
+            "7354",
+            "7355",
+            "7357",
+        }
+    )
+
     code = models.CharField("Code", primary_key=True)
     libelle = models.CharField("Libellé")
 
@@ -184,6 +201,10 @@ class PersonneMorale(models.Model):
         if self.siret:
             self.siren = self.siret[:9]
         super().save(*args, **kwargs)
+
+    @property
+    def is_collectivite(self):
+        return self.forme_juridique_id in FormeJuridique.COLLECTIVITES
 
     @property
     def nom_affichage(self):
