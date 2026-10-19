@@ -316,15 +316,25 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return Enveloppe.objects.root_for(dotation, self.perimetre, annee)
 
     @property
+    def campagne(self) -> int | None:
+        """The campagne of its enveloppe projets, none if they span several."""
+        annees = {ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()}
+        if len(annees) != 1:
+            return None
+        (annee,) = annees
+        return annee
+
+    @property
     def campagnes_de_bascule(self) -> list[int]:
         """The adjacent campagnes existing in Turgot, none if the projet spans
         several campagnes."""
-        annees = {ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()}
-        if len(annees) != 1:
+        actuelle = self.campagne
+        if actuelle is None:
             return []
-        (annee,) = annees
         return [
-            campagne for campagne in (annee - 1, annee + 1) if campagne in CAMPAGNES
+            campagne
+            for campagne in (actuelle - 1, actuelle + 1)
+            if campagne in CAMPAGNES
         ]
 
     @transaction.atomic
@@ -338,7 +348,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
                 f"Ce projet ne peut pas être basculé sur la campagne {campagne}."
             )
 
-        origine = self.enveloppeprojet_set.first().enveloppe.annee
+        origine = self.campagne
         for enveloppe_projet in EnveloppeProjet.all_objects.filter(projet=self):
             enveloppe_projet.enveloppe = self.root_enveloppe(
                 enveloppe_projet.dotation, campagne
