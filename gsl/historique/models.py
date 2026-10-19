@@ -34,6 +34,7 @@ class ProjetAction(models.Model):
     TYPE_RETOUR_EN_INSTRUCTION = "retour_en_instruction"
     TYPE_DEACTIVATION = "deactivation"
     TYPE_REACTIVATION = "reactivation"
+    TYPE_BASCULE = "bascule"
 
     ACTION_TYPES = [
         (TYPE_STATUS_CHANGE, "Changement de statut"),
@@ -54,6 +55,7 @@ class ProjetAction(models.Model):
         (TYPE_RETOUR_EN_INSTRUCTION, "Retour en instruction"),
         (TYPE_DEACTIVATION, "Désactivation du dossier"),
         (TYPE_REACTIVATION, "Réactivation du dossier"),
+        (TYPE_BASCULE, "Bascule de campagne"),
     ]
 
     projet = models.ForeignKey(
@@ -154,8 +156,17 @@ class ProjetAction(models.Model):
             self.TYPE_RETOUR_EN_INSTRUCTION: "Retour en instruction",
             self.TYPE_DEACTIVATION: self._deactivation_label,
             self.TYPE_REACTIVATION: "Réactivation du dossier",
+            self.TYPE_BASCULE: self._bascule_label,
         }
         return labels.get(self.action_type, self.get_action_type_display())
+
+    @property
+    def _bascule_label(self):
+        # The origin campagne is kept in `details`, the target one is the enveloppe's.
+        label = f"Bascule {self.dotation} de la campagne {self.details}"
+        if self.enveloppe_id:
+            label += f" vers {self.enveloppe.annee}"
+        return label
 
     @property
     def _deactivation_label(self):
