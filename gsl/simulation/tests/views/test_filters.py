@@ -211,7 +211,7 @@ def _get_filtered_projets(req, simulation, filter_params):
 
 def test_view_without_filter(req, simulation, create_simulation_projets):
     projets = _get_filtered_projets(req, simulation, {})
-    assert projets.count() == 7
+    assert projets.count() == 5
     assert (
         projets.filter(
             enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_ACCEPTED
@@ -222,7 +222,7 @@ def test_view_without_filter(req, simulation, create_simulation_projets):
         projets.filter(
             enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
-        == 4
+        == 2
     )
     assert (
         projets.filter(
@@ -244,12 +244,12 @@ def test_view_with_one_status_filter(req, simulation, create_simulation_projets)
     }
     projets = _get_filtered_projets(req, simulation, filter_params)
 
-    assert projets.count() == 4
+    assert projets.count() == 2
     assert (
         projets.filter(
             enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
-        == 4
+        == 2
     )
 
 
@@ -264,7 +264,7 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
     }
     projets = _get_filtered_projets(req, simulation, filter_params)
 
-    assert projets.count() == 3
+    assert projets.count() == 1
 
     assert (
         projets.filter(
@@ -276,7 +276,7 @@ def test_view_with_filters(req, simulation, create_simulation_projets):
         projets.filter(
             enveloppeprojet__simulationprojet__status=SimulationProjet.STATUS_PROCESSING
         ).count()
-        == 2
+        == 0
     )
     for projet in projets:
         assert (
@@ -292,7 +292,7 @@ def test_view_with_order(req, simulation, create_simulation_projets):
     }
     projets = _get_filtered_projets(req, simulation, filter_params)
 
-    assert projets.count() == 7
+    assert projets.count() == 5
     assert (
         projets.first().enveloppeprojet_set.first().simulationprojet_set.first().montant
         == 500_000
@@ -377,7 +377,7 @@ def test_view_with_search_filter(req, simulation, create_simulation_projets):
     assert list(projets) == [target.projet]
 
     projets = _get_filtered_projets(req, simulation, {"search": ""})
-    assert projets.count() == 7
+    assert projets.count() == 5
 
     projets = _get_filtered_projets(
         req, simulation, {"search": "ZZZ_ChaineQuiNeMatcheRien"}
@@ -392,10 +392,10 @@ def test_view_with_cout_total_filter(req, simulation, create_simulation_projets)
     }
     projets = _get_filtered_projets(req, simulation, filter_params)
 
-    assert projets.count() == 5
+    assert projets.count() == 3
 
     for status, count in [
-        (SimulationProjet.STATUS_PROCESSING, 2),
+        (SimulationProjet.STATUS_PROCESSING, 0),
         (SimulationProjet.STATUS_ACCEPTED, 1),
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
@@ -417,10 +417,10 @@ def test_view_with_montant_demande_filter(req, simulation, create_simulation_pro
     }
     projets = _get_filtered_projets(req, simulation, filter_params)
 
-    assert projets.count() == 5
+    assert projets.count() == 3
 
     for status, count in [
-        (SimulationProjet.STATUS_PROCESSING, 2),
+        (SimulationProjet.STATUS_PROCESSING, 0),
         (SimulationProjet.STATUS_ACCEPTED, 1),
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),
@@ -461,10 +461,10 @@ def test_view_with_porteur_filter(req, simulation, create_simulation_projets):
     }
     projets = _get_filtered_projets(req, simulation, filter_params)
 
-    assert projets.count() == 5
+    assert projets.count() == 3
 
     for status, count in [
-        (SimulationProjet.STATUS_PROCESSING, 2),
+        (SimulationProjet.STATUS_PROCESSING, 0),
         (SimulationProjet.STATUS_ACCEPTED, 1),
         (SimulationProjet.STATUS_REFUSED, 1),
         (SimulationProjet.STATUS_DISMISSED, 1),

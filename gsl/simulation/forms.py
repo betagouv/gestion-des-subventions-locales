@@ -27,15 +27,11 @@ logger = getLogger(__name__)
 
 
 def _add_enveloppe_projets_to_simulation(simulation: Simulation):
-    simulation_perimetre = simulation.enveloppe.perimetre
-    simulation_dotation = simulation.enveloppe.dotation
-    selected_projets = Projet.objects.active().for_perimetre(simulation_perimetre)
-    selected_projets = selected_projets.for_campagne(simulation.enveloppe.annee)
     selected_enveloppe_projet = (
         EnveloppeProjet.objects.active()
-        .filter(projet__in=selected_projets)
-        .for_dotation(simulation_dotation)
-        .exclude(enveloppe__annee__lt=simulation.enveloppe.annee)
+        .for_perimetre(simulation.enveloppe.perimetre)
+        .for_dotation(simulation.enveloppe.dotation)
+        .for_campagne(simulation.enveloppe.annee)
         .select_related(
             "projet",
             "projet__dossier_ds",
