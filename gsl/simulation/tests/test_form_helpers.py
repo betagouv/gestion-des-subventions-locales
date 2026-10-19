@@ -493,3 +493,27 @@ def test_add_enveloppe_projets_to_DSIL_simulation_containing_DSIL_in_demande_dis
     _add_enveloppe_projets_to_simulation(dsil_simulation)
 
     assert SimulationProjet.objects.count() == count
+
+
+@pytest.mark.django_db
+def test_add_enveloppe_projets_only_of_the_simulation_campagne(
+    dsil_simulation, region_perimetre, arrondissement_perimetre
+):
+    projet = ProjetFactory(dossier_ds__perimetre=arrondissement_perimetre)
+    DetrProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(
+            perimetre=arrondissement_perimetre, annee=CURRENT_YEAR
+        ).delegation_root,
+    )
+    DsilProjetFactory(
+        projet=projet,
+        enveloppe=DsilEnveloppeFactory(
+            perimetre=region_perimetre, annee=CURRENT_YEAR + 1
+        ),
+    )
+    assert dsil_simulation.enveloppe.annee == CURRENT_YEAR
+
+    _add_enveloppe_projets_to_simulation(dsil_simulation)
+
+    assert not SimulationProjet.objects.exists()
