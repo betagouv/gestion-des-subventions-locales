@@ -328,11 +328,12 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     def campagnes_de_bascule(self) -> list[int]:
         """The adjacent campagnes existing in Turgot, none if the projet spans
         several campagnes."""
-        if self.campagne is None:
+        actuelle = self.campagne
+        if actuelle is None:
             return []
         return [
             campagne
-            for campagne in (self.campagne - 1, self.campagne + 1)
+            for campagne in (actuelle - 1, actuelle + 1)
             if campagne in CAMPAGNES
         ]
 
