@@ -8,7 +8,6 @@ from django.template.defaultfilters import floatformat
 from django.utils.safestring import mark_safe
 
 from gsl.simulation.models import SimulationProjet
-from gsl_demarches_simplifiees.models import Dossier
 
 register = template.Library()
 
@@ -280,17 +279,3 @@ _DISPOSITIF_SHORT = {"dsil exceptionnelle": "DSIL EXC.", "fonds vert": "FV"}
 @register.filter
 def dispositif_short(label):
     return _DISPOSITIF_SHORT.get(label.lower(), label)
-
-
-_FONDS_VERT_STATUT_TO_CSS = {
-    Dossier.State.ACCEPTE: "accepted",
-    Dossier.State.REFUSE: "refused",
-    Dossier.State.SANS_SUITE: "dismissed",
-    Dossier.State.EN_INSTRUCTION: "processing",
-    Dossier.State.EN_CONSTRUCTION: "processing",
-}
-
-
-@register.filter
-def fonds_vert_statut_class(statut):
-    return _FONDS_VERT_STATUT_TO_CSS.get(statut, "processing")

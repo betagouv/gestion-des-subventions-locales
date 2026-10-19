@@ -246,9 +246,6 @@ DS_API_URL = os.getenv(
 )
 DS_CLIENT_ID = os.getenv("DS_CLIENT_ID", ENV)
 
-# Connection to Fonds Vert API
-FONDS_VERT_USERNAME = os.getenv("FONDS_VERT_USERNAME", "")
-FONDS_VERT_PASSWORD = os.getenv("FONDS_VERT_PASSWORD", "")
 LOGIN_URL = "/admin/login/" if DEBUG else "/comptes/login/"
 
 # Redirect after login/logout - used by OIDC backends
@@ -469,19 +466,24 @@ MAX_POST_FILE_SIZE_IN_MO = int(os.getenv("MAX_POST_FILE_SIZE_IN_MO", 20))
 # policy.
 MAX_IMPORT_TOTAL_SIZE_IN_MO = int(os.getenv("MAX_IMPORT_TOTAL_SIZE_IN_MO", 1024))
 
+# Fico serves collectivité fiches as web components, from its own origin.
+FICO_URL = os.getenv("FICO_URL", "").rstrip("/")
+FICO_ORIGINS = [FICO_URL] if FICO_URL else []
+
 # CSP Configuration
 
 SECURE_CSP = {
     "default-src": [CSP.SELF],
     "img-src": [CSP.SELF, "data:", "stats.beta.gouv.fr"],
-    "style-src": [CSP.SELF, CSP.NONCE],
-    "script-src": [CSP.SELF, CSP.NONCE, "stats.beta.gouv.fr"],
+    "style-src": [CSP.SELF, CSP.NONCE, *FICO_ORIGINS],
+    "script-src": [CSP.SELF, CSP.NONCE, "stats.beta.gouv.fr", *FICO_ORIGINS],
     # AWS_S3_ENDPOINT_URL is whitelisted so the signed-document import wizard can
     # upload PDFs straight from the browser to S3 via presigned POST.
     "connect-src": [
         CSP.SELF,
         "https://stats.beta.gouv.fr",
         *([AWS_S3_ENDPOINT_URL] if AWS_S3_ENDPOINT_URL else []),
+        *FICO_ORIGINS,
     ],
 }
 
