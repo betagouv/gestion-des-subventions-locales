@@ -118,7 +118,7 @@ def test_projet_detail_page_shows_to_generate_badge_for_decided_dotation_without
 ):
     """Une dotation décidée (accepted/refused/dismissed) sans document
     généré affiche le badge de statut de notification "À générer"
-    (`NOTIFICATION_STATUS_TO_GENERATE`, valeur par défaut de
+    (`NotificationStatus.TO_GENERATE`, valeur par défaut de
     `EnveloppeProjet.notification_status`). Une dotation encore "processing"
     n'est pas programmée, donc pas de badge de notification du tout (seul son
     badge de statut "En traitement" s'affiche)."""
