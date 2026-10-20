@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import DOTATION_DSIL, POSSIBLE_DOTATIONS
+from gsl.projet.constants import Dotation
 from gsl_demarches_simplifiees.ds_client import DsMutator
 from gsl_demarches_simplifiees.exceptions import (
     DsServiceException,
@@ -237,8 +237,8 @@ class DsService:
         self,
         dossier: Dossier,
         user: Collegue,
-        dotations_to_be_checked: list[POSSIBLE_DOTATIONS],
-        annotations_dotation_to_update: POSSIBLE_DOTATIONS | None = None,
+        dotations_to_be_checked: list[Dotation],
+        annotations_dotation_to_update: Dotation | None = None,
         assiette: float | None = None,
         montant: float | None = None,
         taux: float | None = None,
@@ -258,7 +258,7 @@ class DsService:
 
         if annotations_dotation_to_update:
             suffix = (
-                "dsil" if annotations_dotation_to_update == DOTATION_DSIL else "detr"
+                "dsil" if annotations_dotation_to_update == Dotation.DSIL else "detr"
             )
 
             if assiette is not None:

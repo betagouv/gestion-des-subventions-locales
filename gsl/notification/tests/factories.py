@@ -2,7 +2,7 @@ import datetime
 
 import factory
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 
 from ..models import (
     Annexe,
@@ -24,7 +24,7 @@ class ModeleArreteFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"Modele {n}")
     description = "La description du modèle"
     perimetre = factory.SubFactory("gsl.core.tests.factories.PerimetreFactory")
-    dotation = factory.Iterator([DOTATION_DETR, DOTATION_DSIL])
+    dotation = factory.Iterator([Dotation.DETR, Dotation.DSIL])
     logo = factory.django.ImageField(filename="logo.png")
     logo_alt_text = factory.Faker("word")
     top_right_text = "Le texte en haut à droite du modèle"

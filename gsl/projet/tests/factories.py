@@ -17,9 +17,7 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    DOTATIONS,
+    Dotation,
     ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet, ProjetNote
@@ -56,7 +54,7 @@ def _default_enveloppe(obj):
     """On the projet's own perimetre, the one spelling that always satisfies
     `contains_or_equal` whatever level that perimetre sits at."""
     perimetre = obj.projet.dossier_ds.perimetre
-    if obj.dotation == DOTATION_DETR:
+    if obj.dotation == Dotation.DETR:
         enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
     else:
         enveloppe = DsilEnveloppeFactory(perimetre=perimetre)
@@ -76,7 +74,7 @@ class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
         django_get_or_create = ("projet", "enveloppe")
 
     class Params:
-        dotation = factory.fuzzy.FuzzyChoice(DOTATIONS)
+        dotation = factory.fuzzy.FuzzyChoice(Dotation.values)
 
     projet = factory.SubFactory(ProjetFactory)
     status = factory.fuzzy.FuzzyChoice(ProjetStatus.values)
@@ -94,12 +92,12 @@ class EnveloppeProjetFactory(factory.django.DjangoModelFactory):
 
 class DetrProjetFactory(EnveloppeProjetFactory):
     class Params:
-        dotation = DOTATION_DETR
+        dotation = Dotation.DETR
 
 
 class DsilProjetFactory(EnveloppeProjetFactory):
     class Params:
-        dotation = DOTATION_DSIL
+        dotation = Dotation.DSIL
 
 
 class ProjetNoteFactory(factory.django.DjangoModelFactory):

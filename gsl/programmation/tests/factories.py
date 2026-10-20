@@ -8,7 +8,7 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):
@@ -16,7 +16,7 @@ class DsilEnveloppeFactory(DjangoModelFactory):
         model = Enveloppe
         django_get_or_create = ("perimetre", "dotation", "annee")
 
-    dotation = DOTATION_DSIL
+    dotation = Dotation.DSIL
     montant = Faker("random_number", digits=5)
     annee = date.today().year
     perimetre = SubFactory(PerimetreRegionalFactory)
@@ -27,7 +27,7 @@ class DetrEnveloppeFactory(DjangoModelFactory):
         model = Enveloppe
         django_get_or_create = ("perimetre", "dotation", "annee")
 
-    dotation = DOTATION_DETR
+    dotation = Dotation.DETR
     montant = Faker("random_number", digits=5)
     annee = date.today().year
     perimetre = SubFactory(PerimetreDepartementalFactory)

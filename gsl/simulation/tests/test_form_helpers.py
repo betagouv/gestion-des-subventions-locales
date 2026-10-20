@@ -13,7 +13,7 @@ from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 from gsl.projet.constants import (
-    DOTATION_DETR,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
@@ -153,7 +153,7 @@ def detr_projets(
         projet = ProjetFactory(
             dossier_ds=DossierFactory(
                 demande_montant=montant_demande,
-                demande_dispositif_sollicite=DOTATION_DETR,
+                demande_dispositif_sollicite=Dotation.DETR,
                 ds_state=state,
                 ds_date_traitement=date_traitement,
                 perimetre=arrondissement_perimetre,
@@ -288,7 +288,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 1_000
     assert round(simulation_projet.taux, 4) == Decimal("33.3333")
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-    assert simulation_projet.enveloppe.dotation == DOTATION_DETR
+    assert simulation_projet.enveloppe.dotation == Dotation.DETR
     assert (
         simulation_projet.enveloppe_projet
         == simulation_projet.projet.enveloppeprojet_set.first()
@@ -301,7 +301,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 600
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_PROCESSING
-    assert simulation_projet.enveloppe.dotation == DOTATION_DETR
+    assert simulation_projet.enveloppe.dotation == Dotation.DETR
     assert (
         simulation_projet.enveloppe_projet
         == simulation_projet.projet.enveloppeprojet_set.first()
@@ -314,7 +314,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 2_000
     assert simulation_projet.taux == 50
     assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
-    assert simulation_projet.enveloppe.dotation == DOTATION_DETR
+    assert simulation_projet.enveloppe.dotation == Dotation.DETR
     assert (
         simulation_projet.enveloppe_projet
         == simulation_projet.projet.enveloppeprojet_set.first()
@@ -327,7 +327,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
-    assert simulation_projet.enveloppe.dotation == DOTATION_DETR
+    assert simulation_projet.enveloppe.dotation == Dotation.DETR
     assert (
         simulation_projet.enveloppe_projet
         == simulation_projet.projet.enveloppeprojet_set.first()
@@ -340,7 +340,7 @@ def test_add_enveloppe_projets_to_detr_simulation(
     assert simulation_projet.montant == 0
     assert simulation_projet.taux == 0
     assert simulation_projet.status == SimulationProjet.STATUS_DISMISSED
-    assert simulation_projet.enveloppe.dotation == DOTATION_DETR
+    assert simulation_projet.enveloppe.dotation == Dotation.DETR
     assert (
         simulation_projet.enveloppe_projet
         == simulation_projet.projet.enveloppeprojet_set.first()

@@ -13,8 +13,7 @@ from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
 
 from .constants import (
-    DOTATION_CHOICES,
-    POSSIBLE_DOTATIONS,
+    Dotation,
     ProjetStatus,
 )
 from .models import EnveloppeProjet, Projet, ProjetNote
@@ -24,7 +23,7 @@ logger = getLogger(__name__)
 
 class ProjetForm(ModelForm, DsfrBaseForm):
     dotations = forms.MultipleChoiceField(
-        choices=DOTATION_CHOICES,
+        choices=Dotation.choices,
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={"form": "projet-form"}),
     )
@@ -69,7 +68,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     @transaction.atomic
     def update_dotation(
-        self, projet: Projet, dotations: list[POSSIBLE_DOTATIONS], user: Collegue
+        self, projet: Projet, dotations: list[Dotation], user: Collegue
     ):
         if len(dotations) == 0:
             logger.warning(
@@ -88,7 +87,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
             return
 
         new_dotations = set(dotations) - set(projet.dotations)
-        dotation_to_remove = set[POSSIBLE_DOTATIONS](projet.dotations) - set(dotations)
+        dotation_to_remove = set[Dotation](projet.dotations) - set(dotations)
         dotations_updated_in_app = new_dotations or dotation_to_remove
 
         for dotation in new_dotations:

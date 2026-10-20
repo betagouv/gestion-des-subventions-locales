@@ -17,8 +17,7 @@ from gsl.programmation.tests.factories import (
 from gsl_demarches_simplifiees.models import Dossier
 
 from ....constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ....models import EnveloppeProjet
@@ -75,14 +74,14 @@ def test_initialize_accepted_projet_with_annotations_dotation(
 
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
+    detr_dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.ACCEPTED
     assert detr_dp.assiette == 10_000
     assert detr_dp.detr_avis_commission is True
     assert detr_dp.montant_retenu == 5_000
     assert detr_dp.taux_retenu == 50
 
-    dsil_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DSIL).get(projet=projet)
+    dsil_dp = EnveloppeProjet.objects.for_dotation(Dotation.DSIL).get(projet=projet)
     assert dsil_dp.status == ProjetStatus.ACCEPTED
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.detr_avis_commission is None
@@ -116,7 +115,7 @@ def test_initialize_accepted_projet_with_empty_annotations_dotation_falls_back_t
     # --
 
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 1
-    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
+    detr_dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.ACCEPTED
     assert detr_dp.assiette is None, "Assiette should be None if assiette is missing"
     assert detr_dp.montant_retenu == 0, "Montant should be 0 if montant is missing"
@@ -142,7 +141,7 @@ def test_initialize_accepted_projet_with_empty_annotations_dotation_falls_back_t
     assert record.message == "Montant is missing in dossier annotations"
     assert record.levelname == "WARNING"
     assert getattr(record, "dossier_ds_number", None) == projet.dossier_ds.ds_number
-    assert getattr(record, "dotation", None) == DOTATION_DETR
+    assert getattr(record, "dotation", None) == Dotation.DETR
 
 
 @pytest.mark.django_db
@@ -165,7 +164,7 @@ def test_initialize_refused_projet(perimetres):
 
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
+    detr_dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.REFUSED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu is None
@@ -173,7 +172,7 @@ def test_initialize_refused_projet(perimetres):
     assert detr_dp.detr_avis_commission is None
     assert detr_dp.is_programmee
 
-    dsil_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DSIL).get(projet=projet)
+    dsil_dp = EnveloppeProjet.objects.for_dotation(Dotation.DSIL).get(projet=projet)
     assert dsil_dp.status == ProjetStatus.REFUSED
     assert dsil_dp.assiette is None
     assert dsil_dp.montant_retenu is None
@@ -202,13 +201,13 @@ def test_initialize_sans_suite_projet(perimetres):
 
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
+    detr_dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.DISMISSED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu is None
     assert detr_dp.taux_retenu is None
 
-    dsil_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DSIL).get(projet=projet)
+    dsil_dp = EnveloppeProjet.objects.for_dotation(Dotation.DSIL).get(projet=projet)
     assert dsil_dp.status == ProjetStatus.DISMISSED
     assert dsil_dp.assiette is None
     assert dsil_dp.montant_retenu is None
@@ -228,13 +227,13 @@ def test_initialize_en_construction_projet():
 
     assert EnveloppeProjet.objects.filter(projet=projet).count() == 2
 
-    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
+    detr_dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.PROCESSING
     assert detr_dp.assiette is None
     assert detr_dp.montant_retenu is None
     assert not detr_dp.is_programmee
 
-    dsil_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DSIL).get(projet=projet)
+    dsil_dp = EnveloppeProjet.objects.for_dotation(Dotation.DSIL).get(projet=projet)
     assert dsil_dp.status == ProjetStatus.PROCESSING
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.montant_retenu is None

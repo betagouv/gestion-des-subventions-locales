@@ -19,8 +19,7 @@ from gsl.core.tests.factories import (
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -53,13 +52,13 @@ def double_enveloppe_projet(collegue):
 
     detr_dotation = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         assiette=10_000,
     )
     dsil_dotation = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.PROCESSING,
         assiette=15_000,
     )

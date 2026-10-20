@@ -19,11 +19,9 @@ from gsl.core.models import (
 )
 from gsl.projet.constants import (
     ANNUAIRE_ENTREPRISE_URL,
-    DOTATION_DETR,
-    DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
-    POSSIBLE_DOTATIONS,
     PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE,
+    Dotation,
 )
 
 logger = getLogger(__name__)
@@ -815,27 +813,27 @@ class Dossier(BaseModel):
         return self.ds_instructeurs.filter(ds_id=user.ds_id).exists()
 
     @property
-    def dotations_demande(self) -> list[POSSIBLE_DOTATIONS]:
+    def dotations_demande(self) -> list[Dotation]:
         return self._parse_dotations("demande_dispositif_sollicite")
 
     @property
-    def dotations_annotees(self) -> list[POSSIBLE_DOTATIONS]:
+    def dotations_annotees(self) -> list[Dotation]:
         return self._parse_dotations("annotations_dotation")
 
-    def detr_avis_commission_for(self, dotation: POSSIBLE_DOTATIONS) -> bool | None:
+    def detr_avis_commission_for(self, dotation: Dotation) -> bool | None:
         """None means the dossier says nothing yet, which leaves the field free for
         an agent to fill."""
-        if dotation == DOTATION_DETR and self.ds_state == self.State.ACCEPTE:
+        if dotation == Dotation.DETR and self.ds_state == self.State.ACCEPTE:
             return True
         return None
 
-    def _parse_dotations(self, field: str) -> list[POSSIBLE_DOTATIONS]:
+    def _parse_dotations(self, field: str) -> list[Dotation]:
         value = getattr(self, field)
         if not value or value == "[]":
             return []
 
         dotations = [
-            dotation for dotation in (DOTATION_DETR, DOTATION_DSIL) if dotation in value
+            dotation for dotation in (Dotation.DETR, Dotation.DSIL) if dotation in value
         ]
         if not dotations:
             logger.warning(
@@ -844,13 +842,13 @@ class Dossier(BaseModel):
             )
         return dotations
 
-    def annotations_for(self, dotation: POSSIBLE_DOTATIONS) -> AnnotationsDotation:
-        if dotation == DOTATION_DETR:
+    def annotations_for(self, dotation: Dotation) -> AnnotationsDotation:
+        if dotation == Dotation.DETR:
             return AnnotationsDotation(
                 assiette=self.annotations_assiette_detr,
                 montant=self.annotations_montant_accorde_detr,
             )
-        if dotation == DOTATION_DSIL:
+        if dotation == Dotation.DSIL:
             return AnnotationsDotation(
                 assiette=self.annotations_assiette_dsil,
                 montant=self.annotations_montant_accorde_dsil,

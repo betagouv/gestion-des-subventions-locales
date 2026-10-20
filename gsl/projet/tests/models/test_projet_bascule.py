@@ -19,7 +19,7 @@ from gsl.programmation.tests.factories import (
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
-from ...constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
+from ...constants import Dotation, ProjetStatus
 from ...models import EnveloppeProjet, Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
@@ -55,15 +55,15 @@ def projet(perimetre):
 
 
 def test_campagne_is_the_one_of_its_enveloppe_projets(projet):
-    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
-    _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.ACCEPTED)
+    _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
+    _enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.ACCEPTED)
 
     assert projet.campagne == CAMPAGNE
 
 
 def test_campagne_is_none_for_a_projet_on_two_campagnes(projet):
-    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED, CAMPAGNE)
-    _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.PROCESSING, CAMPAGNE_SUIVANTE)
+    _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED, CAMPAGNE)
+    _enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.PROCESSING, CAMPAGNE_SUIVANTE)
 
     assert projet.campagne is None
 
@@ -84,7 +84,7 @@ def test_campagne_is_none_without_enveloppe_projet(projet):
     ),
 )
 def test_campagnes_de_bascule(projet, annee, campagnes_de_bascule):
-    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING, annee)
+    _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING, annee)
 
     assert projet.campagnes_de_bascule == campagnes_de_bascule
 
@@ -99,7 +99,7 @@ def test_campagnes_de_bascule(projet, annee, campagnes_de_bascule):
     ids=("non_adjacente", "absente_de_turgot", "campagne_du_projet"),
 )
 def test_can_not_basculer_to_an_unproposed_campagne(projet, annee, cible):
-    ep = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING, annee)
+    ep = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING, annee)
 
     with pytest.raises(ValidationError):
         projet.basculer(cible)
@@ -116,7 +116,7 @@ def test_can_not_basculer_to_an_unproposed_campagne(projet, annee, cible):
 def test_basculer_single_dotation_changes_enveloppe_without_creating_enveloppe_projet(
     projet, status, cible
 ):
-    ep = _enveloppe_projet(projet, DOTATION_DETR, status)
+    ep = _enveloppe_projet(projet, Dotation.DETR, status)
     before = {
         field: getattr(ep, field)
         for field in (
@@ -132,19 +132,19 @@ def test_basculer_single_dotation_changes_enveloppe_without_creating_enveloppe_p
 
     assert EnveloppeProjet.all_objects.filter(projet=projet).count() == 1
     ep.refresh_from_db()
-    assert ep.enveloppe == projet.root_enveloppe(DOTATION_DETR, cible)
+    assert ep.enveloppe == projet.root_enveloppe(Dotation.DETR, cible)
     assert ep.enveloppe.annee == cible
     for field, value in before.items():
         assert getattr(ep, field) == value
 
 
 def test_basculer_also_moves_superseded_enveloppe_projets(projet):
-    ancien = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED)
+    ancien = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED)
     courant = EnveloppeProjet.objects.supersede(ancien)
 
     projet.basculer(CAMPAGNE_SUIVANTE)
 
-    cible = projet.root_enveloppe(DOTATION_DETR, CAMPAGNE_SUIVANTE)
+    cible = projet.root_enveloppe(Dotation.DETR, CAMPAGNE_SUIVANTE)
     ancien.refresh_from_db()
     courant.refresh_from_db()
     assert ancien.is_courant is False
@@ -155,7 +155,7 @@ def test_basculer_also_moves_superseded_enveloppe_projets(projet):
 
 
 def test_superseded_enveloppe_projets_dont_make_a_second_campagne(projet):
-    ancien = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED)
+    ancien = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED)
     _nouveau = EnveloppeProjet.objects.supersede(ancien)
 
     assert projet.campagnes_de_bascule == [CAMPAGNE_PRECEDENTE, CAMPAGNE_SUIVANTE]
@@ -164,7 +164,7 @@ def test_superseded_enveloppe_projets_dont_make_a_second_campagne(projet):
 def test_basculer_targets_the_root_enveloppe_for_an_arrondissement_projet():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     projet = ProjetFactory(dossier_ds__perimetre=perimetre_arrondissement)
-    ep = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+    ep = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
     delegated = DetrEnveloppeFactory(
         perimetre=perimetre_arrondissement, annee=CAMPAGNE_SUIVANTE
     )
@@ -182,14 +182,14 @@ def test_basculer_creates_the_root_enveloppe_when_missing_on_target_campagne(
     projet, perimetre
 ):
     """As `Enveloppe.objects.root_for` does for the report."""
-    ep = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+    ep = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
     origine = ep.enveloppe
 
     projet.basculer(CAMPAGNE_SUIVANTE)
 
     ep.refresh_from_db()
     assert ep.enveloppe.annee == CAMPAGNE_SUIVANTE
-    assert ep.enveloppe.dotation == DOTATION_DETR
+    assert ep.enveloppe.dotation == Dotation.DETR
     assert ep.enveloppe.perimetre == perimetre
     # Like any root enveloppe created by `root_for`: the previous year's montant
     assert ep.enveloppe.montant == origine.montant
@@ -211,15 +211,15 @@ def test_basculer_creates_the_root_enveloppe_when_missing_on_target_campagne(
     ),
 )
 def test_basculer_double_dotation_moves_both(projet, status_detr, status_dsil):
-    detr = _enveloppe_projet(projet, DOTATION_DETR, status_detr)
-    dsil = _enveloppe_projet(projet, DOTATION_DSIL, status_dsil)
+    detr = _enveloppe_projet(projet, Dotation.DETR, status_detr)
+    dsil = _enveloppe_projet(projet, Dotation.DSIL, status_dsil)
 
     projet.basculer(CAMPAGNE_SUIVANTE)
 
     detr.refresh_from_db()
     dsil.refresh_from_db()
-    assert detr.enveloppe == projet.root_enveloppe(DOTATION_DETR, CAMPAGNE_SUIVANTE)
-    assert dsil.enveloppe == projet.root_enveloppe(DOTATION_DSIL, CAMPAGNE_SUIVANTE)
+    assert detr.enveloppe == projet.root_enveloppe(Dotation.DETR, CAMPAGNE_SUIVANTE)
+    assert dsil.enveloppe == projet.root_enveloppe(Dotation.DSIL, CAMPAGNE_SUIVANTE)
     assert detr.status == status_detr
     assert dsil.status == status_dsil
     assert EnveloppeProjet.all_objects.filter(projet=projet).count() == 2
@@ -230,9 +230,9 @@ def test_basculer_double_dotation_moves_both(projet, status_detr, status_dsil):
 
 def test_can_not_basculer_a_projet_on_two_campagnes(projet):
     """Typically a reported projet, or a dotation added on another campagne."""
-    detr = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED, CAMPAGNE)
+    detr = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED, CAMPAGNE)
     dsil = _enveloppe_projet(
-        projet, DOTATION_DSIL, ProjetStatus.PROCESSING, CAMPAGNE_SUIVANTE
+        projet, Dotation.DSIL, ProjetStatus.PROCESSING, CAMPAGNE_SUIVANTE
     )
 
     assert projet.campagnes_de_bascule == []
@@ -248,7 +248,7 @@ def test_can_not_basculer_a_projet_on_two_campagnes(projet):
 
 @pytest.mark.skip(reason="Dépend du merge du report (ma/report-projet)")
 def test_can_not_basculer_a_reported_projet(projet):
-    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED)
+    _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED)
     projet.reporter_without_dn()
 
     assert projet.campagnes_de_bascule == []
@@ -260,8 +260,8 @@ def test_can_not_basculer_a_reported_projet(projet):
 
 
 def test_basculed_projet_leaves_origin_campagne(projet):
-    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
-    _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.REFUSED)
+    _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.ACCEPTED)
+    _enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.REFUSED)
 
     projet.basculer(CAMPAGNE_SUIVANTE)
 
@@ -278,7 +278,7 @@ def test_basculed_projet_leaves_origin_campagne(projet):
 def test_basculer_deletes_simulation_projets_of_origin_enveloppes():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     projet = ProjetFactory(dossier_ds__perimetre=perimetre_arrondissement)
-    ep = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+    ep = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
     delegated = DetrEnveloppeFactory(perimetre=perimetre_arrondissement, annee=CAMPAGNE)
     for enveloppe in (ep.enveloppe, delegated):
         SimulationProjetFactory(
@@ -296,7 +296,7 @@ def test_basculer_creates_simulation_projets_in_target_campagne_simulations():
     perimetre_arrondissement = PerimetreArrondissementFactory()
     departement = perimetre_arrondissement.departement
     projet = ProjetFactory(dossier_ds__perimetre=perimetre_arrondissement)
-    ep = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+    ep = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
 
     enveloppe_arrondissement = DetrEnveloppeFactory(
         perimetre=perimetre_arrondissement, annee=CAMPAGNE_SUIVANTE
@@ -357,13 +357,13 @@ def test_basculer_creates_simulation_projets_in_target_campagne_simulations():
 def test_basculer_double_dotation_creates_simulation_projets_per_dotation(
     projet, perimetre
 ):
-    detr = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
-    dsil = _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.PROCESSING)
+    detr = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
+    dsil = _enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.PROCESSING)
     simulation_detr = SimulationFactory(
-        enveloppe=projet.root_enveloppe(DOTATION_DETR, CAMPAGNE_SUIVANTE)
+        enveloppe=projet.root_enveloppe(Dotation.DETR, CAMPAGNE_SUIVANTE)
     )
     simulation_dsil = SimulationFactory(
-        enveloppe=projet.root_enveloppe(DOTATION_DSIL, CAMPAGNE_SUIVANTE)
+        enveloppe=projet.root_enveloppe(Dotation.DSIL, CAMPAGNE_SUIVANTE)
     )
 
     projet.basculer(CAMPAGNE_SUIVANTE)
@@ -378,10 +378,10 @@ def test_basculer_double_dotation_creates_simulation_projets_per_dotation(
 
 def test_basculer_accepted_creates_valid_simulation_projet_with_montant(projet):
     ep = _enveloppe_projet(
-        projet, DOTATION_DETR, ProjetStatus.ACCEPTED, montant=Decimal("12345")
+        projet, Dotation.DETR, ProjetStatus.ACCEPTED, montant=Decimal("12345")
     )
     simulation = SimulationFactory(
-        enveloppe=projet.root_enveloppe(DOTATION_DETR, CAMPAGNE_SUIVANTE)
+        enveloppe=projet.root_enveloppe(Dotation.DETR, CAMPAGNE_SUIVANTE)
     )
 
     projet.basculer(CAMPAGNE_SUIVANTE)
@@ -422,7 +422,7 @@ def test_basculer_does_not_depend_on_dates(
     )
     ep = _enveloppe_projet(
         projet,
-        DOTATION_DETR,
+        Dotation.DETR,
         ProjetStatus.REFUSED,
         date_programmation=_datetime(date_programmation or "2026-06-15"),
     )
@@ -440,16 +440,16 @@ def test_basculer_does_not_depend_on_dates(
 
 def test_basculer_creates_a_projet_action_per_dotation(projet):
     user = CollegueFactory()
-    ancien = _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED)
+    ancien = _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED)
     EnveloppeProjet.objects.supersede(ancien)
-    _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.ACCEPTED)
+    _enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.ACCEPTED)
 
     projet.basculer(CAMPAGNE_SUIVANTE, actor=user)
 
     actions = ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_BASCULE
     )
-    assert {action.dotation for action in actions} == {DOTATION_DETR, DOTATION_DSIL}
+    assert {action.dotation for action in actions} == {Dotation.DETR, Dotation.DSIL}
     assert actions.count() == 2
     for action in actions:
         assert action.actor == user
@@ -457,7 +457,7 @@ def test_basculer_creates_a_projet_action_per_dotation(projet):
         assert action.enveloppe == projet.root_enveloppe(
             action.dotation, CAMPAGNE_SUIVANTE
         )
-    detr_action = actions.get(dotation=DOTATION_DETR)
+    detr_action = actions.get(dotation=Dotation.DETR)
     assert (
         detr_action.action_label
         == f"Bascule DETR de la campagne {CAMPAGNE} vers {CAMPAGNE_SUIVANTE}"
@@ -469,8 +469,8 @@ def test_basculer_creates_a_projet_action_per_dotation(projet):
 
 @mock.patch("gsl_demarches_simplifiees.ds_client.DsClientBase.launch_graphql_query")
 def test_basculer_does_not_call_dn(launch_graphql_query, projet):
-    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
-    _enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.REFUSED)
+    _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.ACCEPTED)
+    _enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.REFUSED)
 
     projet.basculer(CAMPAGNE_SUIVANTE)
 
@@ -482,7 +482,7 @@ def test_basculer_does_not_call_dn(launch_graphql_query, projet):
 
 @pytest.mark.skip(reason="Dépend du merge du report (ma/report-projet)")
 def test_basculed_projet_can_be_reported(projet):
-    _enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED, CAMPAGNE_PRECEDENTE)
+    _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED, CAMPAGNE_PRECEDENTE)
 
     projet.basculer(CAMPAGNE)
 
@@ -495,7 +495,7 @@ def test_basculed_projet_can_be_reported(projet):
 
 def _enveloppe_projet(projet, dotation, status, annee=CAMPAGNE, **kwargs):
     factory = (
-        DetrEnveloppeFactory if dotation == DOTATION_DETR else DsilEnveloppeFactory
+        DetrEnveloppeFactory if dotation == Dotation.DETR else DsilEnveloppeFactory
     )
     return EnveloppeProjetFactory(
         projet=projet,

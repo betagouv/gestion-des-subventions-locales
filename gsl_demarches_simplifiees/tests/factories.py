@@ -10,7 +10,7 @@ from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
 )
 from gsl.core.tests.factories import DepartementFactory as CoreDepartementFactory
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 
 from ..models import (
     CategorieDetr,
@@ -95,8 +95,8 @@ class DossierFactory(factory.django.DjangoModelFactory):
     porteur_de_projet_nature = factory.SubFactory(NaturePorteurProjetFactory)
     demande_dispositif_sollicite = factory.fuzzy.FuzzyChoice(
         [
-            DOTATION_DETR,
-            DOTATION_DSIL,
+            Dotation.DETR,
+            Dotation.DSIL,
         ]
     )
 

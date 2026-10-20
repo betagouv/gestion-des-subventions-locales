@@ -13,8 +13,7 @@ from gsl.core.tests.factories import (
 )
 
 from ...constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ..factories import EnveloppeProjetFactory, ProjetFactory
@@ -128,10 +127,10 @@ def test_projet_detail_page_shows_to_generate_badge_for_decided_dotation_without
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
 
     EnveloppeProjetFactory(
-        projet=projet, status=dotation_status_1, dotation=DOTATION_DETR
+        projet=projet, status=dotation_status_1, dotation=Dotation.DETR
     )
     EnveloppeProjetFactory(
-        projet=projet, status=dotation_status_2, dotation=DOTATION_DSIL
+        projet=projet, status=dotation_status_2, dotation=Dotation.DSIL
     )
 
     url = reverse(
@@ -174,10 +173,10 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=datetime.now())
 
     EnveloppeProjetFactory(
-        projet=projet, status=dotation_status_1, dotation=DOTATION_DETR
+        projet=projet, status=dotation_status_1, dotation=Dotation.DETR
     )
     EnveloppeProjetFactory(
-        projet=projet, status=dotation_status_2, dotation=DOTATION_DSIL
+        projet=projet, status=dotation_status_2, dotation=Dotation.DSIL
     )
 
     url = reverse(
@@ -203,7 +202,7 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=Dotation.DETR
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
@@ -243,7 +242,7 @@ def test_unified_projet_page_back_button_returns_to_programmation_when_back_para
     EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
+        kwargs={"dotation": Dotation.DETR, "campagne": default_campagne()},
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url, {"back": back})
@@ -267,7 +266,7 @@ def test_primary_nav_highlights_programmation_when_opened_from_programmation():
     EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
+        kwargs={"dotation": Dotation.DETR, "campagne": default_campagne()},
     )
     url = reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url, {"back": back})
@@ -293,7 +292,7 @@ def test_primary_nav_highlights_projet_list_without_back_param():
 def _accepted_projet(perimetre):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=Dotation.DETR
     )
     return projet
 
@@ -316,7 +315,7 @@ def test_notification_tab_highlights_programmation_when_opened_from_programmatio
     projet = _accepted_projet(perimetre)
     back = reverse(
         "gsl_programmation:programmation-projet-list-dotation",
-        kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
+        kwargs={"dotation": Dotation.DETR, "campagne": default_campagne()},
     )
     url = reverse("notification:documents", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url, {"back": back})
@@ -340,7 +339,7 @@ def test_assiette_form_shown_for_processing_non_notified_dotation():
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
     dp = EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
     )
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     assert response.status_code == 200
@@ -357,7 +356,7 @@ def test_readonly_block_shown_for_final_status_dotation(status):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
-    dp = EnveloppeProjetFactory(projet=projet, status=status, dotation=DOTATION_DETR)
+    dp = EnveloppeProjetFactory(projet=projet, status=status, dotation=Dotation.DETR)
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     content = response.content.decode()
     assiette_url = reverse(
@@ -372,7 +371,7 @@ def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
     user = CollegueFactory(perimetre=perimetre)
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=timezone.now())
     dp = EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
     )
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     content = response.content.decode()

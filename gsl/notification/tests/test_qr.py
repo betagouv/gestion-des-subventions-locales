@@ -13,14 +13,14 @@ from gsl.notification.qr.codec import (
     generate_qr_png_data_uri,
     parse_payload,
 )
-from gsl.projet.constants import ARRETE, DOTATION_DETR, DOTATION_DSIL, LETTRE
+from gsl.projet.constants import ARRETE, LETTRE, Dotation
 
 
 def test_build_payload_format():
-    assert build_payload(123456, DOTATION_DETR, ARRETE, 1) == "GSL1:123456:D:A:1"
+    assert build_payload(123456, Dotation.DETR, ARRETE, 1) == "GSL1:123456:D:A:1"
 
 
-@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation", [Dotation.DETR, Dotation.DSIL])
 @pytest.mark.parametrize("document_type", GENERATED_DOCUMENTS)
 def test_build_and_parse_roundtrip(dotation, document_type):
     payload = build_payload(987654, dotation, document_type, 3)
@@ -39,12 +39,12 @@ def test_build_payload_rejects_bad_dotation():
 
 def test_build_payload_rejects_bad_document_type():
     with pytest.raises(ValueError):
-        build_payload(1, DOTATION_DETR, "facture", 1)
+        build_payload(1, Dotation.DETR, "facture", 1)
 
 
 def test_build_payload_rejects_bad_page():
     with pytest.raises(ValueError):
-        build_payload(1, DOTATION_DETR, ARRETE, 0)
+        build_payload(1, Dotation.DETR, ARRETE, 0)
 
 
 @pytest.mark.parametrize(
@@ -65,7 +65,7 @@ def test_parse_payload_returns_none_on_invalid(raw):
 def test_parse_payload_tolerates_whitespace():
     assert parse_payload("  GSL1:42:S:L:2  \n") == QrPayload(
         ds_number=42,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         document_type=LETTRE,
         page=2,
     )

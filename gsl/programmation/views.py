@@ -24,8 +24,7 @@ from gsl.programmation.models import Enveloppe
 from gsl.programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
 from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
 )
 from gsl.projet.models import EnveloppeProjet
 
@@ -80,14 +79,14 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
         if self.dotation is None:
             return redirect(
                 "gsl_programmation:programmation-projet-list-dotation",
-                dotation=DOTATION_DETR,
+                dotation=Dotation.DETR,
                 campagne=kwargs["campagne"],
             )
-        if self.dotation not in (DOTATION_DETR, DOTATION_DSIL):
+        if self.dotation not in (Dotation.DETR, Dotation.DSIL):
             raise Http404(user_message="Dotation non reconnue.")
 
         if (
-            self.dotation == DOTATION_DETR
+            self.dotation == Dotation.DETR
             and self.perimetre.type == Perimetre.TYPE_REGION
         ):
             return redirect(

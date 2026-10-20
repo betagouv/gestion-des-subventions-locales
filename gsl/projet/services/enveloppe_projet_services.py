@@ -7,7 +7,7 @@ from gsl.simulation.models import SimulationProjet
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
-    POSSIBLE_DOTATIONS,
+    Dotation,
     ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet
@@ -66,8 +66,8 @@ class EnveloppeProjetService:
 
     @classmethod
     def _expected_dotations(
-        cls, projet: Projet, existing: set[POSSIBLE_DOTATIONS]
-    ) -> set[POSSIBLE_DOTATIONS]:
+        cls, projet: Projet, existing: set[Dotation]
+    ) -> set[Dotation]:
         dossier = projet.dossier_ds
         if dossier.ds_state == Dossier.State.ACCEPTE:
             if dossier.dotations_annotees:
@@ -108,7 +108,7 @@ class EnveloppeProjetService:
         cls,
         projet: Projet,
         enveloppe_projets: list[EnveloppeProjet],
-        dotations: set[POSSIBLE_DOTATIONS],
+        dotations: set[Dotation],
     ) -> None:
         dossier = projet.dossier_ds
         if dossier.ds_state == Dossier.State.ACCEPTE:
@@ -134,7 +134,7 @@ class EnveloppeProjetService:
         cls,
         dossier: Dossier,
         enveloppe_projets: list[EnveloppeProjet],
-        dotations: set[POSSIBLE_DOTATIONS],
+        dotations: set[Dotation],
     ) -> None:
         for enveloppe_projet in enveloppe_projets:
             # Without annotated dotations, DN says nothing about the ones already

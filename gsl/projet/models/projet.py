@@ -25,11 +25,8 @@ from gsl.programmation.models import Enveloppe
 from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    DOTATIONS,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
-    POSSIBLE_DOTATIONS,
+    Dotation,
     ProjetStatus,
 )
 from .enveloppe_projet import EnveloppeProjet
@@ -379,18 +376,18 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
-            self.enveloppeprojet_set.for_dotation(DOTATION_DETR).exists()
+            self.enveloppeprojet_set.for_dotation(Dotation.DETR).exists()
             and self.dossier_ds.demande_montant is not None
             and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
         )
 
     @property
-    def dotations(self) -> list[POSSIBLE_DOTATIONS]:
+    def dotations(self) -> list[Dotation]:
         return sorted(
             [
                 dotation.dotation
                 for dotation in self.enveloppeprojet_set.all()
-                if dotation.dotation in [DOTATION_DETR, DOTATION_DSIL]
+                if dotation.dotation in [Dotation.DETR, Dotation.DSIL]
             ]
         )
 
@@ -401,13 +398,13 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def dotation_detr(self):
         for dp in self.enveloppeprojet_set.all():
-            if dp.dotation == DOTATION_DETR:
+            if dp.dotation == Dotation.DETR:
                 return dp
 
     @property
     def dotation_dsil(self):
         for dp in self.enveloppeprojet_set.all():
-            if dp.dotation == DOTATION_DSIL:
+            if dp.dotation == Dotation.DSIL:
                 return dp
 
     @property
@@ -444,7 +441,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return self.has_accepted_dotation
 
     @property
-    def dotation_not_treated(self) -> Optional[POSSIBLE_DOTATIONS]:
+    def dotation_not_treated(self) -> Optional[Dotation]:
         # Python-side sort so we benefit from the enveloppeprojet_set
         # prefetch instead of re-querying via order_by().
         return next(
@@ -477,7 +474,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return sorted(
             documents,
             key=lambda d: (
-                DOTATIONS.index(d.enveloppe_projet.dotation),
+                Dotation.values.index(d.enveloppe_projet.dotation),
                 list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )
@@ -494,7 +491,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return sorted(
             documents,
             key=lambda d: (
-                DOTATIONS.index(d.enveloppe_projet.dotation),
+                Dotation.values.index(d.enveloppe_projet.dotation),
                 list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
             ),
         )

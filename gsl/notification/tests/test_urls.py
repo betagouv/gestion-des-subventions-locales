@@ -8,10 +8,9 @@ from gsl.notification.tests.factories import (
 from gsl.projet.constants import (
     ANNEXE,
     ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
+    Dotation,
 )
 
 
@@ -32,13 +31,13 @@ def test_select_modele_url(document_type):
         "gsl_notification:select-modele",
         kwargs={
             "projet_id": 123,
-            "dotation": DOTATION_DETR,
+            "dotation": Dotation.DETR,
             "document_type": document_type,
         },
     )
     assert (
         url
-        == f"/notification/123/selection-d-un-modele/{DOTATION_DETR}/{document_type}"
+        == f"/notification/123/selection-d-un-modele/{Dotation.DETR}/{document_type}"
     )
 
 
@@ -48,11 +47,11 @@ def test_modifier_document_url(document_type):
         "gsl_notification:modifier-document",
         kwargs={
             "projet_id": 123,
-            "dotation": DOTATION_DETR,
+            "dotation": Dotation.DETR,
             "document_type": document_type,
         },
     )
-    assert url == f"/notification/123/modifier-document/{DOTATION_DETR}/{document_type}"
+    assert url == f"/notification/123/modifier-document/{Dotation.DETR}/{document_type}"
 
 
 @pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
@@ -191,7 +190,7 @@ def test_delete_modele_url(modele_type, factory):
     assert url == f"/notification/modeles/{modele_type}/{modele.id}/"
 
 
-@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
+@pytest.mark.parametrize("dotation", (Dotation.DETR, Dotation.DSIL))
 def test_get_generic_modele_url(dotation):
     url = reverse(
         "gsl_notification:get-generic-modele-template", kwargs={"dotation": dotation}

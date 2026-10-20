@@ -9,7 +9,7 @@ from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
 )
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.tests.factories import (
     CategorieDetrFactory,
@@ -51,7 +51,7 @@ class TestDossierSansPieceUpdateViewCategories:
         url = reverse("ds:dossier-sans-piece-update", args=[dossier.pk])
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR, DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
             "demande_categorie_detr": cat_detr.pk,
@@ -130,7 +130,7 @@ class TestDossierSansPieceUpdateView:
         url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -153,7 +153,7 @@ class TestDossierSansPieceUpdateView:
         url = reverse("ds:dossier-sans-piece-update", args=[dossier_sans_pieces.pk])
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "150000.00",
             "demande_montant": "75000.00",
         }
@@ -164,7 +164,7 @@ class TestDossierSansPieceUpdateView:
             client.post(url, data=form_data)
 
         dossier_sans_pieces.refresh_from_db()
-        assert DOTATION_DETR in dossier_sans_pieces.demande_dispositif_sollicite
+        assert Dotation.DETR in dossier_sans_pieces.demande_dispositif_sollicite
         assert dossier_sans_pieces.finance_cout_total == Decimal("150000.00")
         assert dossier_sans_pieces.demande_montant == Decimal("75000.00")
 

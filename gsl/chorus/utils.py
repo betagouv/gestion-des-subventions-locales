@@ -1,6 +1,5 @@
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet
@@ -42,6 +41,6 @@ def resume_dotation(projet, dotation):
 def par_dotation(projet):
     return [
         resume
-        for dotation in (DOTATION_DETR, DOTATION_DSIL)
+        for dotation in (Dotation.DETR, Dotation.DSIL)
         if (resume := resume_dotation(projet, dotation)) is not None
     ]

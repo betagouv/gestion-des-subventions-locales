@@ -15,8 +15,7 @@ from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -69,7 +68,7 @@ class TestProgrammationProjetListViewWithDotation:
         )
         return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             status=ProjetStatus.ACCEPTED,
             enveloppe=dsil_enveloppe,
         )
@@ -79,7 +78,7 @@ class TestProgrammationProjetListViewWithDotation:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre)
         return EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=detr_enveloppe,
         )
@@ -203,7 +202,7 @@ class TestProgrammationProjetListViewContent:
         client = ClientWithLoggedUserFactory(user=CollegueFactory(perimetre=perimetre))
         url = reverse(
             "gsl_programmation:programmation-projet-list-dotation",
-            kwargs={"dotation": DOTATION_DETR, "campagne": default_campagne()},
+            kwargs={"dotation": Dotation.DETR, "campagne": default_campagne()},
         )
         response = client.get(url)
         assert response.status_code == 200
@@ -217,7 +216,7 @@ class TestProgrammationProjetListViewContent:
     ):
         enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre_arrondissement,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=status,
             enveloppe=enveloppe_racine,
         )
@@ -231,7 +230,7 @@ class TestProgrammationProjetListViewContent:
     ):
         EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre_arrondissement,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=enveloppe_racine,
         )
@@ -243,13 +242,13 @@ class TestProgrammationProjetListViewContent:
     ):
         detr_enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre_arrondissement,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=enveloppe_racine,
         )
         EnveloppeProjetFactory(
             projet=detr_enveloppe_projet.projet,
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             status=ProjetStatus.ACCEPTED,
         )
 
@@ -263,7 +262,7 @@ class TestProgrammationProjetListViewContent:
     ):
         enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre_arrondissement,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=status,
             enveloppe=enveloppe_racine,
         )
@@ -277,7 +276,7 @@ class TestProgrammationProjetListViewContent:
     ):
         EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre_autre_arrondissement,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe_racine,
         )
@@ -289,7 +288,7 @@ class TestProgrammationProjetListViewContent:
     ):
         EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre_arrondissement,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=enveloppe_racine,
         )
@@ -304,14 +303,14 @@ class TestProgrammationProjetListViewExcludesInactiveDossiers:
         detr_enveloppe = DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre)
         active_enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=detr_enveloppe,
         )
         EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=user_with_perimetre.perimetre,
             projet__dossier_ds__is_active=False,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=detr_enveloppe,
         )

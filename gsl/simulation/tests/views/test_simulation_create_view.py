@@ -9,7 +9,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import DOTATION_DETR
+from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 from ...models import Simulation, SimulationProjet
@@ -262,7 +262,7 @@ class TestSimulationCreateExcludesPreviouslyProgrammedProjets:
         arr_perimetre, dep_perimetre = self._setup_perimetres()
 
         enveloppe_projet = EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             projet__dossier_ds__perimetre=arr_perimetre,
         )
         previous_year_enveloppe = DetrEnveloppeFactory(
@@ -291,7 +291,7 @@ class TestSimulationCreateExcludesPreviouslyProgrammedProjets:
         arr_perimetre, dep_perimetre = self._setup_perimetres()
 
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             projet__dossier_ds__perimetre=arr_perimetre,
         )
 

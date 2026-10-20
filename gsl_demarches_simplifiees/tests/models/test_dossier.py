@@ -1,7 +1,7 @@
 import pytest
 
 from gsl.core.tests.factories import CollegueFactory
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl_demarches_simplifiees.models import (
     AnnotationsDotation,
     Dossier,
@@ -252,11 +252,11 @@ def test_is_treated(ds_state, expected):
     [
         ("", []),
         ("[]", []),
-        ("DETR", [DOTATION_DETR]),
-        ("DSIL", [DOTATION_DSIL]),
-        ("[DETR, DSIL]", [DOTATION_DETR, DOTATION_DSIL]),
-        ("DETR et DSIL", [DOTATION_DETR, DOTATION_DSIL]),
-        ("['DETR', 'DSIL', 'DETR et DSIL']", [DOTATION_DETR, DOTATION_DSIL]),
+        ("DETR", [Dotation.DETR]),
+        ("DSIL", [Dotation.DSIL]),
+        ("[DETR, DSIL]", [Dotation.DETR, Dotation.DSIL]),
+        ("DETR et DSIL", [Dotation.DETR, Dotation.DSIL]),
+        ("['DETR', 'DSIL', 'DETR et DSIL']", [Dotation.DETR, Dotation.DSIL]),
     ],
 )
 def test_dotations_are_parsed_from_their_field(
@@ -277,8 +277,8 @@ def test_unknown_dotation_is_logged(caplog):
 @pytest.mark.parametrize(
     "dotation, expected",
     (
-        (DOTATION_DETR, AnnotationsDotation(assiette=1_000, montant=100)),
-        (DOTATION_DSIL, AnnotationsDotation(assiette=2_000, montant=200)),
+        (Dotation.DETR, AnnotationsDotation(assiette=1_000, montant=100)),
+        (Dotation.DSIL, AnnotationsDotation(assiette=2_000, montant=200)),
     ),
 )
 def test_annotations_for(dotation, expected):

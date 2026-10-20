@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from gsl.core.tests.factories import CollegueFactory
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.models import Dossier, FieldMapping
 from gsl_demarches_simplifiees.services import (
@@ -915,8 +915,8 @@ def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
-            dotations_to_be_checked=[DOTATION_DSIL, DOTATION_DETR],
-            annotations_dotation_to_update=DOTATION_DSIL,
+            dotations_to_be_checked=[Dotation.DSIL, Dotation.DETR],
+            annotations_dotation_to_update=Dotation.DSIL,
             assiette=1000.50,
             montant=500.25,
             taux=50.0,
@@ -931,7 +931,7 @@ def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):
         # Check dotations annotation (always first)
         assert annotations[0] == {
             "id": "field_dotations_123",
-            "value": {"multipleDropDownList": [DOTATION_DSIL, DOTATION_DETR]},
+            "value": {"multipleDropDownList": [Dotation.DSIL, Dotation.DETR]},
         }
 
         # Check assiette annotation
@@ -961,7 +961,7 @@ def test_update_ds_annotations_for_one_dotation_annotations_dict(user, dossier):
 
 @pytest.mark.parametrize(
     "dotation, expected_suffix",
-    [(DOTATION_DSIL, "dsil"), (DOTATION_DETR, "detr")],
+    [(Dotation.DSIL, "dsil"), (Dotation.DETR, "detr")],
 )
 def test_update_ds_annotations_for_one_dotation_suffix(
     user, dossier, dotation, expected_suffix
@@ -1047,8 +1047,8 @@ def test_update_ds_annotations_for_one_dotation_optional_params(
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
-            dotations_to_be_checked=[DOTATION_DETR],
-            annotations_dotation_to_update=DOTATION_DETR,
+            dotations_to_be_checked=[Dotation.DETR],
+            annotations_dotation_to_update=Dotation.DETR,
             assiette=assiette,
             montant=montant,
             taux=taux,
@@ -1093,12 +1093,12 @@ def test_update_ds_annotations_for_one_dotation_dotations_list(user, dossier):
             "data": {"dossierModifierAnnotations": {"clientMutationId": "test"}}
         }
 
-        dotations_list = [DOTATION_DSIL]
+        dotations_list = [Dotation.DSIL]
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
             dotations_to_be_checked=dotations_list,
-            annotations_dotation_to_update=DOTATION_DSIL,
+            annotations_dotation_to_update=Dotation.DSIL,
         )
 
         annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]
@@ -1107,12 +1107,12 @@ def test_update_ds_annotations_for_one_dotation_dotations_list(user, dossier):
         assert annotations[0]["value"]["multipleDropDownList"] == dotations_list
 
         # Test with multiple dotations
-        dotations_list = [DOTATION_DSIL, DOTATION_DETR]
+        dotations_list = [Dotation.DSIL, Dotation.DETR]
         ds_service.update_ds_annotations_for_one_dotation(
             dossier=dossier,
             user=user,
             dotations_to_be_checked=dotations_list,
-            annotations_dotation_to_update=DOTATION_DSIL,
+            annotations_dotation_to_update=Dotation.DSIL,
         )
 
         annotations = mock_mutator.dossier_modifier_annotations.call_args[0][2]

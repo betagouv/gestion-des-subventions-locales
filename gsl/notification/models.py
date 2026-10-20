@@ -14,9 +14,9 @@ from gsl.core.utils import kebab_case
 from gsl.notification.validators import document_file_validator, logo_file_validator
 from gsl.projet.constants import (
     ARRETE,
-    DOTATION_CHOICES,
     LETTRE,
     LETTRE_REFUS,
+    Dotation,
     ProjetStatus,
 )
 
@@ -57,7 +57,7 @@ class ModeleDocument(VerboseNameMixin, models.Model):
         verbose_name="Périmètre",
         related_name="modeles_%(class)s",
     )
-    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
+    dotation = models.CharField("Dotation", choices=Dotation.choices)
 
     # Header
     logo = models.FileField(

@@ -9,7 +9,7 @@ from gsl.core.tests.factories import (
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
-from ...constants import DOTATION_DETR
+from ...constants import Dotation
 from ..factories import EnveloppeProjetFactory, ProjetNoteFactory
 
 
@@ -28,7 +28,7 @@ def client_with_user_logged(perimetre):
 def simulation_projet(perimetre):
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
     )
     simulation = SimulationFactory(enveloppe=DetrEnveloppeFactory(perimetre=perimetre))
     return SimulationProjetFactory(

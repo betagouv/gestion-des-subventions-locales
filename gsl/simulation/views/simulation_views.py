@@ -23,7 +23,7 @@ from gsl.core.matomo_constants import (
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import FilterSkiplinksMixin, NoFeedbackHtmxFormViewMixin
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import DOTATION_DSIL, DOTATIONS
+from gsl.projet.constants import Dotation
 from gsl.projet.models import EnveloppeProjet, Projet
 
 from ..filters import SimulationProjetFilters
@@ -152,7 +152,7 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
                 "status_summary": simulation.get_projet_status_summary(),
                 "enveloppe": simulation.enveloppe,
                 "enveloppes": [simulation.enveloppe],
-                "dotations": DOTATIONS,
+                "dotations": Dotation.values,
                 "current_order": self.request.GET.get("order", ""),
                 "columns": SIMULATION_TABLE_COLUMNS,
                 "aggregates": aggregates,
@@ -341,7 +341,7 @@ class FilteredProjetsExportView(SimulationDetailView):
 
         resource = (
             DsilSimulationProjetResource(export_format=export_type)
-            if self.object.dotation == DOTATION_DSIL
+            if self.object.dotation == Dotation.DSIL
             else DetrSimulationProjetResource(export_format=export_type)
         )
         dataset = resource.export(simu_projet_qs)

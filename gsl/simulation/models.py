@@ -9,7 +9,7 @@ from django_extensions.db.fields import AutoSlugField
 
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
+from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.utils import compute_taux
 
@@ -200,9 +200,9 @@ class SimulationProjetManager(models.Manager.from_queryset(SimulationProjetQuery
 
         dossier = enveloppe_projet.projet.dossier_ds
 
-        if enveloppe_projet.dotation == DOTATION_DETR:
+        if enveloppe_projet.dotation == Dotation.DETR:
             dossier_montant_annotations = dossier.annotations_montant_accorde_detr
-        elif enveloppe_projet.dotation == DOTATION_DSIL:
+        elif enveloppe_projet.dotation == Dotation.DSIL:
             dossier_montant_annotations = dossier.annotations_montant_accorde_dsil
 
         if dossier_montant_annotations:

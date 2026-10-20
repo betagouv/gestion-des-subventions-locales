@@ -14,8 +14,7 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ..models import EnveloppeProjet
@@ -60,7 +59,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
     """
     dossier = DossierFactory(
         ds_state=Dossier.State.EN_CONSTRUCTION,
-        annotations_dotation=DOTATION_DSIL,
+        annotations_dotation=Dotation.DSIL,
         demande_montant=400,
         finance_cout_total=4_000,
         perimetre=perimetre_arrondissement,
@@ -68,7 +67,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_an_other_dotation_than
     )
     projet = ProjetFactory(dossier_ds=dossier)
     detr_enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
 
     # --
@@ -91,7 +90,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     dossier = DossierFactory(
         ds_state=Dossier.State.EN_CONSTRUCTION,
         demande_dispositif_sollicite="['DETR']",
-        annotations_dotation=DOTATION_DETR,
+        annotations_dotation=Dotation.DETR,
         demande_montant=400,
         finance_cout_total=4_000,
         perimetre=perimetre_arrondissement,
@@ -99,7 +98,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         montant=400,
     )
@@ -125,7 +124,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()  # always exists
-    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette == 4_000
     assert enveloppe_projet.status == ProjetStatus.ACCEPTED  # always exists
 
@@ -148,7 +147,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     """
     dossier = DossierFactory(
         ds_state=Dossier.State.EN_INSTRUCTION,
-        annotations_dotation=DOTATION_DETR,
+        annotations_dotation=Dotation.DETR,
         annotations_montant_accorde_detr=400,
         demande_montant=400,
         finance_cout_total=4_000,
@@ -157,7 +156,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         montant=400,
     )
@@ -178,7 +177,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
-    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette == 4_000
     assert enveloppe_projet.status == ProjetStatus.ACCEPTED
     assert enveloppe_projet.projet.notified_at is None
@@ -201,7 +200,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     """
     dossier = DossierFactory(
         ds_state=Dossier.State.EN_INSTRUCTION,
-        annotations_dotation=DOTATION_DETR,
+        annotations_dotation=Dotation.DETR,
         demande_montant=400,
         finance_cout_total=4_000,
         perimetre=perimetre_arrondissement,
@@ -209,7 +208,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         montant=400,
     )
@@ -234,7 +233,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
-    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette == 4_000
     assert enveloppe_projet.status == ProjetStatus.ACCEPTED
 
@@ -258,14 +257,14 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
         ds_state=Dossier.State.ACCEPTE,
         perimetre=perimetre_arrondissement,
         ds_date_traitement=datetime(2024, 1, 15, tzinfo=UTC),
-        annotations_dotation=DOTATION_DETR,
+        annotations_dotation=Dotation.DETR,
         annotations_montant_accorde_detr=5_000,
         annotations_assiette_detr=50_000,
     )
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.REFUSED,
         enveloppe=detr_enveloppe,
     )
@@ -285,7 +284,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
-    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette == 50_000
     assert enveloppe_projet.status == ProjetStatus.ACCEPTED
 
@@ -304,14 +303,14 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
 ):
     dossier = DossierFactory(
         ds_state=Dossier.State.REFUSE,
-        annotations_dotation=DOTATION_DETR,
+        annotations_dotation=Dotation.DETR,
         perimetre=detr_enveloppe.perimetre,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
@@ -332,7 +331,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
-    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette is None
     assert enveloppe_projet.status == ProjetStatus.REFUSED
     assert enveloppe_projet.projet.notified_at == datetime(
@@ -354,14 +353,14 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
 ):
     dossier = DossierFactory(
         ds_state=Dossier.State.SANS_SUITE,
-        annotations_dotation=DOTATION_DETR,
+        annotations_dotation=Dotation.DETR,
         perimetre=detr_enveloppe.perimetre,
         ds_date_traitement=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
     )
     projet = ProjetFactory(dossier_ds=dossier)
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         enveloppe=detr_enveloppe,
         montant=500,
@@ -382,7 +381,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
     enveloppe_projet = enveloppe_projets.first()
-    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette is None
     assert enveloppe_projet.status == ProjetStatus.DISMISSED
     assert enveloppe_projet.projet.notified_at == datetime(
@@ -404,7 +403,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
 ):
     dossier = DossierFactory(
         ds_state=Dossier.State.ACCEPTE,
-        annotations_dotation=DOTATION_DETR,
+        annotations_dotation=Dotation.DETR,
         annotations_assiette_detr=60_000,
         annotations_montant_accorde_detr=6_000,
         annotations_is_budget_vert=True,
@@ -421,7 +420,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
     )
     EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         assiette=50_000,
         enveloppe=detr_enveloppe,
@@ -437,7 +436,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_update_from_annotation
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     enveloppe_projet = enveloppe_projets.first()
-    assert enveloppe_projet.dotation == DOTATION_DETR
+    assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette == 60_000
     assert enveloppe_projet.montant == 6_000
 

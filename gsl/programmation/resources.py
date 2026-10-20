@@ -3,7 +3,7 @@ from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
 from gsl.core.models import Departement, Perimetre, Region
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 
 from .models import Enveloppe
 
@@ -25,7 +25,7 @@ class EnveloppeDETRResource(resources.ModelResource):
 
     def before_import_row(self, row, **kwargs):
         row["enveloppe_id"] = None
-        row["dotation"] = DOTATION_DETR
+        row["dotation"] = Dotation.DETR
         provided_departement_number = row["perimetre"]
         departement = Departement.objects.get(insee_code=provided_departement_number)
         perimetre, _ = Perimetre.objects.get_or_create(
@@ -53,7 +53,7 @@ class EnveloppeDETRResource(resources.ModelResource):
 class EnveloppeDSILResource(EnveloppeDETRResource):
     def before_import_row(self, row, **kwargs):
         row["enveloppe_id"] = None
-        row["dotation"] = DOTATION_DSIL
+        row["dotation"] = Dotation.DSIL
         provided_region_number = row["perimetre"]
         region = Region.objects.get(insee_code=provided_region_number)
         perimetre, _ = Perimetre.objects.get_or_create(

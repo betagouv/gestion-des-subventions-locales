@@ -35,7 +35,7 @@ from gsl.core.templatetags.gsl_filters import euro
 from gsl.core.view_mixins import OpenHtmxModalMixin
 from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import (
-    DOTATIONS,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.models import projet_status_from_dotation_statuses
@@ -123,7 +123,7 @@ class SimulationTableCellEditMixin(UpdateView):
             "status_summary": self.object.simulation.get_projet_status_summary(),
             "total_amount_granted": total_amount_granted,
             "columns": SIMULATION_TABLE_COLUMNS,
-            "dotations": DOTATIONS,
+            "dotations": Dotation.values,
             "selectable_ids_list": selectable_ids_list,
         }
         # We only update the enveloppe summary line when the project is accepted,
@@ -229,7 +229,7 @@ class RefreshSimulationRowView(DetailView):
                 "enveloppe_projet": simulation_projet.enveloppe_projet,
                 "projet": simulation_projet.projet,
                 "columns": SIMULATION_TABLE_COLUMNS,
-                "dotations": DOTATIONS,
+                "dotations": Dotation.values,
             }
         )
         return context

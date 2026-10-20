@@ -25,8 +25,8 @@ from gsl.notification.tests.factories import (
     ModeleLettreRefusFactory,
 )
 from gsl.projet.constants import (
-    DOTATION_DETR,
     LETTRE_REFUS,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -47,7 +47,7 @@ def enveloppe_projets(perimetre):
     return EnveloppeProjetFactory.create_batch(
         3,
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.REFUSED,
         projet__notified_at=None,
     )
@@ -55,7 +55,7 @@ def enveloppe_projets(perimetre):
 
 @pytest.fixture
 def detr_refus_modele(perimetre):
-    return ModeleLettreRefusFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    return ModeleLettreRefusFactory(dotation=Dotation.DETR, perimetre=perimetre)
 
 
 @pytest.fixture
@@ -80,10 +80,10 @@ def _mock_logo_base64():
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
-WIZARD_PREFIX_DETR = f"generate_lettre_refus_wizard_{DOTATION_DETR}"
+WIZARD_PREFIX_DETR = f"generate_lettre_refus_wizard_{Dotation.DETR}"
 
 
-def _wizard_url(dotation=DOTATION_DETR):
+def _wizard_url(dotation=Dotation.DETR):
     from django.urls import reverse
 
     return reverse("gsl_notification:generate-refus-documents-modal", args=[dotation])
@@ -106,7 +106,7 @@ def _wizard_step_data(current_step, fields, prefix=WIZARD_PREFIX_DETR):
     return data
 
 
-def _post_launch(client, ids=None, dotation=DOTATION_DETR):
+def _post_launch(client, ids=None, dotation=Dotation.DETR):
     """POST the launch step of the wizard (the entry triggered by the button)."""
     fields = {}
     if ids is not None:
@@ -192,7 +192,7 @@ def test_launch_no_projects_renders_error_body(client):
 
 def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.REFUSED,
         projet__notified_at=None,
     )
@@ -208,7 +208,7 @@ def test_launch_ignores_ineligible_ids_silently(client, enveloppe_projets):
     must not fail validation: the ineligible one is silently dropped."""
     accepted = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=enveloppe_projets[0].dossier_ds.perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )
@@ -290,7 +290,7 @@ def _drive_through_step_format(
     modele_id,
     overwrite_strategy=None,
     export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
-    dotation=DOTATION_DETR,
+    dotation=Dotation.DETR,
 ):
     """Walk the wizard from launch through a step_format submit.
 
@@ -320,7 +320,7 @@ def _drive_through_step_format(
     )
 
 
-def _post_step_create_raw(client, dotation=DOTATION_DETR):
+def _post_step_create_raw(client, dotation=Dotation.DETR):
     """POST step_create and return the intermediate polling response."""
     return client.post(
         _wizard_url(dotation),
@@ -331,7 +331,7 @@ def _post_step_create_raw(client, dotation=DOTATION_DETR):
     )
 
 
-def _post_step_create(client, dotation=DOTATION_DETR):
+def _post_step_create(client, dotation=Dotation.DETR):
     """POST step_create then poll the status endpoint; returns the final success
     response."""
     polling_response = _post_step_create_raw(client, dotation)

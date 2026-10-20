@@ -1,17 +1,13 @@
-from typing import Literal
-
 from django.db import models
 from django.utils.functional import classproperty
 
 # TODO move this file in gsl/core
 
-DOTATION_DETR = "DETR"
-DOTATION_DSIL = "DSIL"
-DOTATIONS = (DOTATION_DETR, DOTATION_DSIL)
-DOTATION_CHOICES = ((DOTATION_DETR, DOTATION_DETR), (DOTATION_DSIL, DOTATION_DSIL))
 
-# TYPE
-POSSIBLE_DOTATIONS = Literal["DETR", "DSIL"]
+class Dotation(models.TextChoices):
+    DETR = "DETR", "DETR"
+    DSIL = "DSIL", "DSIL"
+
 
 PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE = 10
 

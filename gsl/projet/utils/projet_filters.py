@@ -26,9 +26,8 @@ from gsl_demarches_simplifiees.models import (
 )
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
     NOTIFICATION_STATUS_CHOICES,
+    Dotation,
     ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet
@@ -89,12 +88,12 @@ class ProjetOrderingFilter(OrderingFilter):
         )
 
 
-DOTATION_CHOICES = (
-    (DOTATION_DETR, DOTATION_DETR),
-    (DOTATION_DSIL, DOTATION_DSIL),
+DOTATION_FILTER_CHOICES = (
+    (Dotation.DETR, Dotation.DETR),
+    (Dotation.DSIL, Dotation.DSIL),
     (
         "DETR_et_DSIL",
-        f"{DOTATION_DETR} et {DOTATION_DSIL}",
+        f"{Dotation.DETR} et {Dotation.DSIL}",
     ),
 )
 
@@ -128,8 +127,8 @@ def filter_dotation(queryset, _name, values):
         ),
     )
 
-    if DOTATION_DETR in values:
-        if DOTATION_DSIL in values:
+    if Dotation.DETR in values:
+        if Dotation.DSIL in values:
             if "DETR_et_DSIL" in values:
                 # Inclure "DETR" ou "DSIL"
                 query &= Q(detr_count__gt=0) | Q(dsil_count__gt=0)
@@ -146,7 +145,7 @@ def filter_dotation(queryset, _name, values):
                 # Inclure "DETR" mais exclure ceux qui contiennent "DSIL"
                 query &= Q(detr_count__gt=0, dsil_count=0)
     else:
-        if DOTATION_DSIL in values:
+        if Dotation.DSIL in values:
             if "DETR_et_DSIL" in values:
                 # Inclure "DSIL" seul ou "DETR_et_DSIL", mais exclure "DETR" seul
                 query &= Q(dsil_count__gt=0)
@@ -487,7 +486,7 @@ class ProjetFilters(CommonFiltersFields):
 
     dotation = MultipleChoiceFilter(
         label="Dotation",
-        choices=DOTATION_CHOICES,
+        choices=DOTATION_FILTER_CHOICES,
         widget=CustomCheckboxSelectMultiple(placeholder="Toutes les dotations"),
         method="filter_dotation",
     )

@@ -7,8 +7,7 @@ from django_filters import (
 
 from gsl.core.models import Perimetre
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
 )
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.django_filters_custom_widget import (
@@ -69,7 +68,7 @@ class SimulationProjetFilters(CommonFiltersFields):
                 Q(id=perimetre.id) | Q(id__in=perimetre.children().values("id"))
             )
 
-        if dotation == DOTATION_DETR:
+        if dotation == Dotation.DETR:
             self.filters["categorie_detr"].queryset = (
                 CategorieDetr.objects.active()
                 .filter(dossier__projet__in=self.queryset)
@@ -79,7 +78,7 @@ class SimulationProjetFilters(CommonFiltersFields):
         else:
             del self.filters["categorie_detr"]
 
-        if dotation == DOTATION_DSIL:
+        if dotation == Dotation.DSIL:
             self.filters["categorie_dsil"].queryset = (
                 CategorieDsil.objects.active()
                 .filter(dossier__projet__in=self.queryset)

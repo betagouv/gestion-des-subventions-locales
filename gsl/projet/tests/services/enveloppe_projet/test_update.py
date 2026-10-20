@@ -21,8 +21,7 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ....constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ....models import EnveloppeProjet
@@ -82,7 +81,7 @@ def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetr
     assert projet.enveloppeprojet_set.count() == 2
 
     # Simulate DN adding DSIL after initial import had only DETR
-    projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).delete()
+    projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).delete()
     assert projet.enveloppeprojet_set.count() == 1
 
     synchroniser(projet)
@@ -92,11 +91,11 @@ def test_update_accepted_creates_dotation_added_action_for_new_dotation(perimetr
     )
     assert actions.count() == 1
     action = actions.first()
-    assert action.dotation == DOTATION_DSIL
+    assert action.dotation == Dotation.DSIL
     assert action.source == ProjetAction.SOURCE_DN
     assert action.actor is None
 
-    dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    dsil = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
     assert dsil.status == ProjetStatus.ACCEPTED
     assert dsil.montant == 10_000
 
@@ -120,10 +119,10 @@ def test_update_accepted_creates_dotation_removed_action_when_dotation_dropped(
     )
     projet = ProjetFactory(dossier_ds=dossier)
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
+        projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.PROCESSING
     )
 
     synchroniser(projet)
@@ -133,7 +132,7 @@ def test_update_accepted_creates_dotation_removed_action_when_dotation_dropped(
     )
     assert actions.count() == 1
     action = actions.first()
-    assert action.dotation == DOTATION_DSIL
+    assert action.dotation == Dotation.DSIL
     assert action.source == ProjetAction.SOURCE_DN
     assert action.actor is None
 
@@ -156,9 +155,9 @@ def test_update_accepted_does_not_create_removed_action_for_already_refused_dota
         perimetre=arr_dijon,
     )
     projet = ProjetFactory(dossier_ds=dossier)
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.REFUSED
+        projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.REFUSED
     )
 
     synchroniser(projet)
@@ -209,13 +208,13 @@ def test_update_accepted_creates_new_enveloppe_projets(
 
     assert projet.enveloppeprojet_set.count() == 2
 
-    detr_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(projet=projet)
+    detr_dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(projet=projet)
     assert detr_dp.status == ProjetStatus.ACCEPTED
     assert detr_dp.assiette == 10_000
     assert detr_dp.montant_retenu == 5_000
     assert detr_dp.taux_retenu == 50
 
-    dsil_dp = EnveloppeProjet.objects.for_dotation(DOTATION_DSIL).get(projet=projet)
+    dsil_dp = EnveloppeProjet.objects.for_dotation(Dotation.DSIL).get(projet=projet)
     assert dsil_dp.status == ProjetStatus.ACCEPTED
     assert dsil_dp.assiette == 20_000
     assert dsil_dp.montant_retenu == 15_000
@@ -248,7 +247,7 @@ def test_update_accepted_keeps_enveloppe_projets_not_annotated_if_refused_or_dis
     synchroniser(projet)
     assert projet.enveloppeprojet_set.count() == 2
 
-    projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).update(
+    projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).update(
         status=dotation_status,
         enveloppe=dsil_enveloppe,
         date_programmation=timezone.now(),
@@ -266,12 +265,12 @@ def test_update_accepted_keeps_enveloppe_projets_not_annotated_if_refused_or_dis
     # Assert
     assert projet.enveloppeprojet_set.count() == 2
     assert (
-        EnveloppeProjet.objects.for_dotation(DOTATION_DETR)
+        EnveloppeProjet.objects.for_dotation(Dotation.DETR)
         .filter(projet=projet, status=ProjetStatus.ACCEPTED)
         .exists()
     )
     assert (
-        EnveloppeProjet.objects.for_dotation(DOTATION_DSIL)
+        EnveloppeProjet.objects.for_dotation(Dotation.DSIL)
         .filter(projet=projet, status=dotation_status)
         .exists()
     )
@@ -293,9 +292,9 @@ def test_update_accepted_removes_enveloppe_projet_not_annotated_if_processing(
     synchroniser(projet)
 
     detr = projet.enveloppeprojet_set.get()
-    assert detr.dotation == DOTATION_DETR
+    assert detr.dotation == Dotation.DETR
     assert detr.status == ProjetStatus.ACCEPTED
-    assert not EnveloppeProjet.all_objects.for_dotation(DOTATION_DSIL).exists()
+    assert not EnveloppeProjet.all_objects.for_dotation(Dotation.DSIL).exists()
 
 
 @pytest.mark.django_db
@@ -315,12 +314,12 @@ def test_update_accepted_refuses_accepted_enveloppe_projet_not_annotated_and_kee
         annotations_montant_accorde_dsil=10_000,
     )
     synchroniser(projet)
-    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
 
     _accept_on_dn(projet, annotations_dotation="DETR")
     synchroniser(projet)
 
-    assert projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get().status == (
+    assert projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get().status == (
         ProjetStatus.ACCEPTED
     )
 
@@ -329,7 +328,7 @@ def test_update_accepted_refuses_accepted_enveloppe_projet_not_annotated_and_kee
     assert ancienne_dsil.status == ProjetStatus.ACCEPTED
     assert ancienne_dsil.montant == 10_000
 
-    nouvelle_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    nouvelle_dsil = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
     assert nouvelle_dsil.pk != ancienne_dsil.pk
     assert nouvelle_dsil.status == ProjetStatus.REFUSED
 
@@ -337,7 +336,7 @@ def test_update_accepted_refuses_accepted_enveloppe_projet_not_annotated_and_kee
     assert simulation_projet.enveloppe_projet == nouvelle_dsil
     assert simulation_projet.status == SimulationProjet.STATUS_REFUSED
 
-    dsil_actions = ProjetAction.objects.filter(projet=projet, dotation=DOTATION_DSIL)
+    dsil_actions = ProjetAction.objects.filter(projet=projet, dotation=Dotation.DSIL)
     assert dsil_actions.filter(
         action_type=ProjetAction.TYPE_STATUS_CHANGE,
         status=ProjetStatus.REFUSED,
@@ -366,10 +365,10 @@ def test_update_accepted_double_dotation_with_both_annotated_accepts_both(
     )
     synchroniser(projet)
 
-    detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    detr = projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get()
     assert detr.status == ProjetStatus.ACCEPTED
     assert detr.montant == 5_000
-    dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    dsil = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
     assert dsil.status == ProjetStatus.ACCEPTED
     assert dsil.montant == 0
 
@@ -392,9 +391,9 @@ def test_update_accepted_accepts_annotated_dotation_whatever_its_status(
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
-    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
-    ancienne_detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
-    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    _force_status(projet, Dotation.DSIL, initial_dsil_status, dsil_enveloppe)
+    ancienne_detr = projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get()
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
 
     _accept_on_dn(
         projet,
@@ -419,8 +418,8 @@ def test_update_accepted_accepts_annotated_dotation_whatever_its_status(
 @pytest.mark.parametrize(
     "dotation, montant_field",
     (
-        (DOTATION_DETR, "annotations_montant_accorde_detr"),
-        (DOTATION_DSIL, "annotations_montant_accorde_dsil"),
+        (Dotation.DETR, "annotations_montant_accorde_detr"),
+        (Dotation.DSIL, "annotations_montant_accorde_dsil"),
     ),
 )
 @pytest.mark.parametrize(
@@ -462,7 +461,7 @@ def test_update_accepted_single_dotation_with_empty_annotations_dotation_accepts
     arr_dijon, dep_21, *_ = perimetres
     detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR")
-    _force_status(projet, DOTATION_DETR, initial_status, detr_enveloppe)
+    _force_status(projet, Dotation.DETR, initial_status, detr_enveloppe)
 
     _accept_on_dn(projet, annotations_dotation="")
     with caplog.at_level(logging.WARNING):
@@ -494,16 +493,16 @@ def test_update_accepted_double_dotation_with_empty_annotations_dotation_accepts
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
-    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
+    _force_status(projet, Dotation.DSIL, initial_dsil_status, dsil_enveloppe)
 
     _accept_on_dn(projet, annotations_dotation="")
     with caplog.at_level(logging.WARNING):
         synchroniser(projet)
 
-    assert projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get().status == (
+    assert projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get().status == (
         ProjetStatus.ACCEPTED
     )
-    assert projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get().status == (
+    assert projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get().status == (
         expected_dsil_status
     )
     _assert_empty_annotations_dotation_warning(caplog, projet)
@@ -527,9 +526,9 @@ def test_update_refused_refuses_every_dotation(
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
-    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
-    ancienne_detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
-    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    _force_status(projet, Dotation.DSIL, initial_dsil_status, dsil_enveloppe)
+    ancienne_detr = projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get()
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
 
     _treat_on_dn(projet, Dossier.State.REFUSE)
     synchroniser(projet)
@@ -550,9 +549,9 @@ def test_update_refused_leaves_the_superseded_enveloppe_projet_assiette_untouche
     arr_dijon, dep_21, *_ = perimetres
     detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR")
-    _force_status(projet, DOTATION_DETR, ProjetStatus.ACCEPTED, detr_enveloppe)
-    projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).update(assiette=100_000)
-    ancienne = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    _force_status(projet, Dotation.DETR, ProjetStatus.ACCEPTED, detr_enveloppe)
+    projet.enveloppeprojet_set.for_dotation(Dotation.DETR).update(assiette=100_000)
+    ancienne = projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get()
 
     _treat_on_dn(projet, Dossier.State.REFUSE, annotations_assiette_detr=80_000)
     synchroniser(projet)
@@ -560,7 +559,7 @@ def test_update_refused_leaves_the_superseded_enveloppe_projet_assiette_untouche
     ancienne.refresh_from_db()
     assert ancienne.is_courant is False
     assert ancienne.assiette == 100_000
-    nouvelle = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
+    nouvelle = projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get()
     assert nouvelle.status == ProjetStatus.REFUSED
     assert nouvelle.assiette == 80_000
 
@@ -583,9 +582,9 @@ def test_update_sans_suite_dismisses_every_dotation_not_refused(
     DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
     dsil_enveloppe = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR et DSIL")
-    _force_status(projet, DOTATION_DSIL, initial_dsil_status, dsil_enveloppe)
-    ancienne_detr = projet.enveloppeprojet_set.for_dotation(DOTATION_DETR).get()
-    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    _force_status(projet, Dotation.DSIL, initial_dsil_status, dsil_enveloppe)
+    ancienne_detr = projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get()
+    ancienne_dsil = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
 
     _treat_on_dn(projet, Dossier.State.SANS_SUITE)
     synchroniser(projet)
@@ -630,13 +629,13 @@ def test_update_back_to_instruction(perimetres, status_1, status_2):
     # passage en instruction so none of them is kept as is.
     detr_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=status_1,
         date_programmation=date_programmation_avant_instruction(status_1),
     )
     dsil_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=status_2,
         date_programmation=date_programmation_avant_instruction(status_2),
     )
@@ -673,13 +672,13 @@ def test_update_back_to_instruction_with_one_accepted_and_one_dismissed(
     # before the passage en instruction.
     detr_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
     dsil_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=refused_or_dismissed,
         date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
@@ -725,13 +724,13 @@ def test_update_back_to_instruction_with_a_programmation_after_date_of_passage_e
 
     detr_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=first_status,
         date_programmation=timezone.datetime(2025, 1, 25, tzinfo=UTC),
     )
     dsil_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=second_status,
         date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
@@ -778,13 +777,13 @@ def test_update_back_to_instruction_with_one_accepted_and_programmation_after_da
 
     detr_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         date_programmation=timezone.datetime(2025, 1, 25, tzinfo=UTC),
     )
     dsil_dp = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=second_status,
         date_programmation=timezone.datetime(2025, 1, 10, tzinfo=UTC),
     )
@@ -809,7 +808,7 @@ def test_update_back_to_instruction_with_one_accepted_and_programmation_after_da
 @pytest.mark.django_db
 def test_update_assiette_creates_action_when_assiette_changes():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=20_000,
     )
@@ -819,7 +818,7 @@ def test_update_assiette_creates_action_when_assiette_changes():
     actions = ProjetAction.objects.filter(
         projet=enveloppe_projet.projet,
         action_type=ProjetAction.TYPE_ASSIETTE_MODIFIED,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
     )
     assert actions.count() == 1
     action = actions.first()
@@ -831,7 +830,7 @@ def test_update_assiette_creates_action_when_assiette_changes():
 @pytest.mark.django_db
 def test_update_assiette_does_not_create_action_when_assiette_unchanged():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=10_000,
     )
@@ -850,7 +849,7 @@ def test_update_assiette_does_not_create_action_when_assiette_unchanged():
 @pytest.mark.django_db
 def test_update_assiette_creates_action_when_assiette_changed():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
         projet__dossier_ds__annotations_assiette_detr=15_000,
     )

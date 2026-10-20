@@ -19,8 +19,7 @@ from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFa
 from gsl_demarches_simplifiees.models import Dossier
 
 from ....constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ....models import EnveloppeProjet
@@ -108,7 +107,7 @@ def test_create_or_update_enveloppe_projet_from_projet(
         assert enveloppe_projet.projet == projet
         assert enveloppe_projet.status == ProjetStatus.ACCEPTED
         assert enveloppe_projet.assiette == 1_000
-        if enveloppe_projet.dotation == DOTATION_DSIL:
+        if enveloppe_projet.dotation == Dotation.DSIL:
             assert enveloppe_projet.detr_avis_commission is None
         else:
             assert enveloppe_projet.detr_avis_commission is True
@@ -120,7 +119,7 @@ def test_create_or_update_enveloppe_projet_from_en_instruction_projet_ignore_ann
         dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__annotations_dotation="DETR",
     )
-    projet_dotation_dsil = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    projet_dotation_dsil = EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL)
     projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert projet_enveloppe_projets.count() == 1
 
@@ -131,10 +130,10 @@ def test_create_or_update_enveloppe_projet_from_en_instruction_projet_ignore_ann
     projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet_id=projet.id)
     assert projet_enveloppe_projets.count() == 1
 
-    dsil_enveloppe_projets = projet_enveloppe_projets.for_dotation(DOTATION_DSIL)
+    dsil_enveloppe_projets = projet_enveloppe_projets.for_dotation(Dotation.DSIL)
     assert dsil_enveloppe_projets.count() == 1
 
-    detr_enveloppe_projet = projet_enveloppe_projets.for_dotation(DOTATION_DETR)
+    detr_enveloppe_projet = projet_enveloppe_projets.for_dotation(Dotation.DETR)
     assert detr_enveloppe_projet.count() == 0
 
 
@@ -151,10 +150,10 @@ def test_create_or_update_enveloppe_projet_from_projet_also_refuse_dsil_envelopp
         dossier_ds__demande_dispositif_sollicite="DETR",
     )
     projet_dotation_detr = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
     projet_dotation_dsil = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
+        projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.PROCESSING
     )
     projet_enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert projet_enveloppe_projets.count() == 2
@@ -168,7 +167,7 @@ def test_create_or_update_enveloppe_projet_from_projet_also_refuse_dsil_envelopp
     assert projet_dotation_dsil.status == ProjetStatus.REFUSED
 
 
-@pytest.mark.parametrize("dotation", (DOTATION_DETR, DOTATION_DSIL))
+@pytest.mark.parametrize("dotation", (Dotation.DETR, Dotation.DSIL))
 @pytest.mark.parametrize(
     "dossier_state",
     (
@@ -190,7 +189,7 @@ def test_detr_avis_commission_is_set_only_for_accepted_detr(dotation, dossier_st
     synchroniser(projet)
 
     enveloppe_projet = projet.enveloppeprojet_set.get()
-    if dotation == DOTATION_DETR and dossier_state == Dossier.State.ACCEPTE:
+    if dotation == Dotation.DETR and dossier_state == Dossier.State.ACCEPTE:
         assert enveloppe_projet.detr_avis_commission is True
     else:
         assert enveloppe_projet.detr_avis_commission is None
@@ -210,13 +209,13 @@ def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in
         dossier_ds__perimetre=arr_dijon,
     )
     assert projet.dotations_updated_in_app is False
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
 
     synchroniser(projet)
 
     enveloppe_projets = projet.enveloppeprojet_set.all()
     assert enveloppe_projets.count() == 1
-    assert enveloppe_projets.first().dotation == DOTATION_DSIL
+    assert enveloppe_projets.first().dotation == Dotation.DSIL
 
 
 @pytest.mark.django_db
@@ -230,13 +229,13 @@ def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in
         dossier_ds__perimetre=arr_dijon,
     )
     assert projet.dotations_updated_in_app is False
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL)
 
     synchroniser(projet)
 
     enveloppe_projets = projet.enveloppeprojet_set.all()
     assert enveloppe_projets.count() == 2
-    assert set(projet.dotations) == {DOTATION_DETR, DOTATION_DSIL}
+    assert set(projet.dotations) == {Dotation.DETR, Dotation.DSIL}
 
 
 @pytest.mark.django_db
@@ -250,14 +249,14 @@ def test_create_or_update_enveloppe_projet_syncs_from_dn_when_dossier_updated_in
         dossier_ds__perimetre=arr_dijon,
     )
     assert projet.dotations_updated_in_app is False
-    detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    dsil_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    detr_dp = EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
+    dsil_dp = EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL)
 
     synchroniser(projet)
 
     assert not EnveloppeProjet.objects.filter(pk=detr_dp.pk).exists()
     assert EnveloppeProjet.objects.filter(pk=dsil_dp.pk).exists()
-    assert projet.dotations == [DOTATION_DSIL]
+    assert projet.dotations == [Dotation.DSIL]
 
 
 @pytest.mark.django_db
@@ -267,11 +266,11 @@ def test_dotations_are_not_synced_from_dn_once_updated_in_app():
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
         dotations_updated_in_app=True,
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
 
     synchroniser(projet)
 
-    assert projet.dotations == [DOTATION_DETR]
+    assert projet.dotations == [Dotation.DETR]
 
 
 @pytest.mark.django_db
@@ -280,11 +279,11 @@ def test_dotations_are_not_synced_from_dn_when_not_en_construction():
         dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
 
     synchroniser(projet)
 
-    assert projet.dotations == [DOTATION_DETR]
+    assert projet.dotations == [Dotation.DETR]
 
 
 @pytest.mark.django_db
@@ -293,12 +292,12 @@ def test_dotations_are_kept_when_they_match_the_dossier():
         dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
-    detr_dp = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
 
     synchroniser(projet)
 
     assert EnveloppeProjet.objects.filter(pk=detr_dp.pk).exists()
-    assert projet.dotations == [DOTATION_DETR]
+    assert projet.dotations == [Dotation.DETR]
 
 
 @pytest.mark.django_db
@@ -307,12 +306,12 @@ def test_dotations_are_kept_when_both_match_the_dossier():
         dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL)
 
     synchroniser(projet)
 
-    assert projet.dotations == [DOTATION_DETR, DOTATION_DSIL]
+    assert projet.dotations == [Dotation.DETR, Dotation.DSIL]
 
 
 @pytest.mark.django_db
@@ -323,11 +322,11 @@ def test_dotation_added_from_dn_gets_assiette_from_dossier():
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=20_000,
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
 
     synchroniser(projet)
 
-    dsil_dp = projet.enveloppeprojet_set.for_dotation(DOTATION_DSIL).get()
+    dsil_dp = projet.enveloppeprojet_set.for_dotation(Dotation.DSIL).get()
     assert dsil_dp.assiette == 20_000
 
 
@@ -337,8 +336,8 @@ def test_dotation_removed_from_dn_creates_removed_action():
         dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DSIL']",
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL)
 
     synchroniser(projet)
 
@@ -347,7 +346,7 @@ def test_dotation_removed_from_dn_creates_removed_action():
     )
     assert actions.count() == 1
     action = actions.first()
-    assert action.dotation == DOTATION_DETR
+    assert action.dotation == Dotation.DETR
     assert action.source == ProjetAction.SOURCE_DN
     assert action.actor is None
 
@@ -358,7 +357,7 @@ def test_dotation_added_from_dn_creates_added_action():
         dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR', 'DSIL']",
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
 
     synchroniser(projet)
 
@@ -367,7 +366,7 @@ def test_dotation_added_from_dn_creates_added_action():
     )
     assert actions.count() == 1
     action = actions.first()
-    assert action.dotation == DOTATION_DSIL
+    assert action.dotation == Dotation.DSIL
     assert action.source == ProjetAction.SOURCE_DN
     assert action.actor is None
 
@@ -378,7 +377,7 @@ def test_dotations_unchanged_creates_no_dotation_action():
         dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
         dossier_ds__demande_dispositif_sollicite="['DETR']",
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
 
     synchroniser(projet)
 
@@ -404,7 +403,7 @@ def test_update_assiette_from_dossier_single_detr():
         dossier_ds__annotations_assiette_dsil=20_000,
     )
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, assiette=0
+        projet=projet, dotation=Dotation.DETR, assiette=0
     )
 
     synchroniser(projet)
@@ -420,7 +419,7 @@ def test_update_assiette_from_dossier_single_dsil():
         dossier_ds__annotations_assiette_dsil=25_000,
     )
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, assiette=0
+        projet=projet, dotation=Dotation.DSIL, assiette=0
     )
 
     synchroniser(projet)
@@ -435,8 +434,8 @@ def test_update_assiette_from_dossier_both_dotations():
         dossier_ds__annotations_assiette_detr=10_000,
         dossier_ds__annotations_assiette_dsil=30_000,
     )
-    dp_detr = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR, assiette=0)
-    dp_dsil = EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DSIL, assiette=0)
+    dp_detr = EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR, assiette=0)
+    dp_dsil = EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL, assiette=0)
 
     synchroniser(projet)
 
@@ -453,7 +452,7 @@ def test_update_assiette_from_dossier_keeps_existing_assiette_when_missing_in_do
         dossier_ds__annotations_assiette_dsil=20_000,
     )
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, assiette=5_000
+        projet=projet, dotation=Dotation.DETR, assiette=5_000
     )
 
     synchroniser(projet)
@@ -473,24 +472,24 @@ def test_simulations_are_filtered_by_perimetre(
     arr_dijon, dep_21, region_bfc, arr_nanterre, dep_92, region_idf = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
     sim_arr_dijon = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_dep_21 = SimulationFactory(
         enveloppe__perimetre=dep_21,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     # This should not be included (different perimetre hierarchy)
     sim_arr_nanterre = SimulationFactory(
         enveloppe__perimetre=arr_nanterre,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -512,18 +511,18 @@ def test_simulations_are_filtered_by_dotation(
     arr_dijon, dep_21, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
     sim_detr = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_dsil = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -542,24 +541,24 @@ def test_simulations_are_those_of_the_enveloppe_projet_campagne(
     arr_dijon, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
     sim_current_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_next_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR + 1,
     )
     sim_previous_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR - 1,
     )
 
@@ -579,23 +578,23 @@ def test_simulations_with_department_perimetre(
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         projet__dossier_ds__perimetre=dep_21,
     )
 
     sim_arr_dijon = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_dep_21 = SimulationFactory(
         enveloppe__perimetre=dep_21,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_region_bfc = SimulationFactory(
         enveloppe__perimetre=region_bfc,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -618,30 +617,30 @@ def test_simulations_with_region_perimetre(
     arr_dijon, dep_21, region_bfc, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         projet__dossier_ds__perimetre=region_bfc,
     )
 
     sim_arr_dijon = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_dep_21 = SimulationFactory(
         enveloppe__perimetre=dep_21,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_region_bfc = SimulationFactory(
         enveloppe__perimetre=region_bfc,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
     # Different region should not be included
     _, _, _, _, _, region_idf = perimetres
     sim_region_idf = SimulationFactory(
         enveloppe__perimetre=region_idf,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -664,29 +663,29 @@ def test_simulations_combine_all_filters(
     arr_dijon, dep_21, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
     sim_valid = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
 
     sim_wrong_dotation = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DSIL,
+        enveloppe__dotation=Dotation.DSIL,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_wrong_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR - 1,
     )
     sim_dep_perimetre = SimulationFactory(
         enveloppe__perimetre=dep_21,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -708,7 +707,7 @@ def test_simulations_of_an_enveloppe_projet_of_a_past_campagne(
     arr_dijon, dep_21, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         enveloppe=DetrEnveloppeFactory(perimetre=dep_21, annee=CURRENT_YEAR - 1),
@@ -716,12 +715,12 @@ def test_simulations_of_an_enveloppe_projet_of_a_past_campagne(
 
     sim_last_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR - 1,
     )
     SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -742,7 +741,7 @@ def test_simulations_exclude_years_after_programmation_year(
         annee=CURRENT_YEAR,
     )
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
         enveloppe=enveloppe_current_year,
@@ -750,12 +749,12 @@ def test_simulations_exclude_years_after_programmation_year(
 
     sim_current_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_next_year = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR + 1,
     )
 
@@ -774,18 +773,18 @@ def test_simulation_projets_are_removed_when_perimetre_changed(
     arr_dijon, dep_21, region_bfc, arr_nanterre, dep_92, region_idf = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
     sim_concerned = SimulationFactory(
         enveloppe__perimetre=dep_21,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_unconcerned = SimulationFactory(
         enveloppe__perimetre=dep_92,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -810,18 +809,18 @@ def test_simulation_projets_are_kept_when_all_concerned(
     arr_dijon, dep_21, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
     sim_arr = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_dep = SimulationFactory(
         enveloppe__perimetre=dep_21,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
 
@@ -846,18 +845,18 @@ def test_simulation_projets_of_old_years_are_removed(
     arr_dijon, dep_21, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
     sim_current = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR,
     )
     sim_old = SimulationFactory(
         enveloppe__perimetre=arr_dijon,
-        enveloppe__dotation=DOTATION_DETR,
+        enveloppe__dotation=Dotation.DETR,
         enveloppe__annee=CURRENT_YEAR - 1,
     )
 
@@ -882,7 +881,7 @@ def test_no_simulation_projet_is_created_without_simulation(
     arr_dijon, *_ = perimetres
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         projet__dossier_ds__perimetre=arr_dijon,
     )
 
@@ -923,7 +922,7 @@ def test_accepted_dotation_is_reopened_only_when_dossier_is_retour_en_instructio
     date_traitement, date_passage_en_instruction, expected_back_to_instruction
 ):
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         date_programmation=datetime.datetime(2024, 4, 1, tzinfo=UTC),
         projet__dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
@@ -948,7 +947,7 @@ def test_accepted_dotation_is_reopened_only_when_dossier_is_retour_en_instructio
 @pytest.mark.django_db
 def test_update_accepted_montant_from_dn_skips_non_accepted():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
     )
@@ -960,7 +959,7 @@ def test_update_accepted_montant_from_dn_skips_non_accepted():
 @pytest.mark.django_db
 def test_update_accepted_montant_from_dn_updates_montant():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
@@ -973,7 +972,7 @@ def test_update_accepted_montant_from_dn_updates_montant():
 @pytest.mark.django_db
 def test_update_accepted_montant_from_dn_does_not_update_montant_when_none():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=None,
@@ -986,7 +985,7 @@ def test_update_accepted_montant_from_dn_does_not_update_montant_when_none():
 @pytest.mark.django_db
 def test_update_accepted_montant_from_dn_creates_action_when_montant_changes():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=2_000,
@@ -997,7 +996,7 @@ def test_update_accepted_montant_from_dn_creates_action_when_montant_changes():
     actions = ProjetAction.objects.filter(
         projet=enveloppe_projet.projet,
         action_type=ProjetAction.TYPE_MONTANT_MODIFIED,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
     )
     assert actions.count() == 1
     action = actions.first()
@@ -1009,7 +1008,7 @@ def test_update_accepted_montant_from_dn_creates_action_when_montant_changes():
 @pytest.mark.django_db
 def test_update_accepted_montant_from_dn_does_not_create_action_when_montant_unchanged():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         montant=1_000,
         projet__dossier_ds__annotations_montant_accorde_detr=1_000,
@@ -1040,14 +1039,14 @@ def test_accept_enveloppe_projet_conserve_enveloppe_existante(perimetres):
     DetrEnveloppeFactory(perimetre=dep_21, annee=2026)
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.State.ACCEPTE,
         projet__dossier_ds__ds_date_traitement=datetime.datetime(
             2026, 3, 1, tzinfo=UTC
         ),
-        projet__dossier_ds__annotations_dotation=DOTATION_DETR,
+        projet__dossier_ds__annotations_dotation=Dotation.DETR,
         projet__dossier_ds__annotations_montant_accorde_detr=5_000,
         enveloppe=enveloppe_2025,
         montant=4_000,

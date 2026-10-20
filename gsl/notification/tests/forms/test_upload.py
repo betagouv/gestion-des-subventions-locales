@@ -16,8 +16,8 @@ from gsl.notification.tests.factories import (
 )
 from gsl.projet.constants import (
     ANNEXE,
-    DOTATION_DETR,
     LETTRE_ET_ARRETE_SIGNES,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -89,7 +89,7 @@ def test_analyze_form_rejects_large_file(file_size, is_valid):
 def test_attach_form_only_offers_documents_importable_on_the_projet():
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
 
     form = ManualDocumentAttachForm(projet=projet)
@@ -105,7 +105,7 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
     user = CollegueFactory()
     projet = ProjetFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
 
     key = _parked_pdf()
@@ -132,7 +132,7 @@ def test_attach_form_refuses_a_document_already_imported():
     choice, so picking it cannot validate."""
     projet = ProjetFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
     LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
 
@@ -149,7 +149,7 @@ def test_attach_form_refuses_a_document_already_imported():
 def test_attach_form_refuses_a_key_outside_the_temporary_prefix():
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
 
     form = ManualDocumentAttachForm(

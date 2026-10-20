@@ -17,7 +17,7 @@ from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnvelopp
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
-from ..constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
+from ..constants import Dotation, ProjetStatus
 from ..models import Projet
 from .factories import (
     EnveloppeProjetFactory,
@@ -292,7 +292,7 @@ def test_annotate_status_query_count():
         ProjetStatus.REFUSED,
     ):
         projet = ProjetFactory()
-        _create_enveloppe_projet(projet, DOTATION_DETR, status)
+        _create_enveloppe_projet(projet, Dotation.DETR, status)
 
     with CaptureQueriesContext(connection) as ctx:
         statuses = {projet.status for projet in Projet.objects.annotate_status()}
@@ -317,14 +317,14 @@ ACCEPTED_WITHOUT_DOC = "accepted_without_doc"
 
 def test_has_document_ready_excludes_processing_projet():
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
+    _create_enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
 
     assert projet not in Projet.objects.has_document_ready()
 
 
 def test_has_document_ready_excludes_accepted_projet_without_signed_document():
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ACCEPTED_WITHOUT_DOC)
+    _create_enveloppe_projet(projet, Dotation.DETR, ACCEPTED_WITHOUT_DOC)
 
     assert projet not in Projet.objects.has_document_ready()
 
@@ -343,8 +343,8 @@ def test_has_document_ready_excludes_double_dotation_projet_with_a_processing_do
     other_status,
 ):
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.PROCESSING)
-    _create_enveloppe_projet(projet, DOTATION_DSIL, other_status)
+    _create_enveloppe_projet(projet, Dotation.DETR, ProjetStatus.PROCESSING)
+    _create_enveloppe_projet(projet, Dotation.DSIL, other_status)
 
     assert projet not in Projet.objects.has_document_ready()
 
@@ -362,8 +362,8 @@ def test_has_document_ready_excludes_double_dotation_projet_with_an_accepted_dot
     other_status,
 ):
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ACCEPTED_WITHOUT_DOC)
-    _create_enveloppe_projet(projet, DOTATION_DSIL, other_status)
+    _create_enveloppe_projet(projet, Dotation.DETR, ACCEPTED_WITHOUT_DOC)
+    _create_enveloppe_projet(projet, Dotation.DSIL, other_status)
 
     assert projet not in Projet.objects.has_document_ready()
 
@@ -373,7 +373,7 @@ def test_has_document_ready_excludes_double_dotation_projet_with_an_accepted_dot
 )
 def test_has_document_ready_includes_single_dotation_projet(status):
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, status)
+    _create_enveloppe_projet(projet, Dotation.DETR, status)
 
     assert projet in Projet.objects.has_document_ready()
 
@@ -386,8 +386,8 @@ def test_has_document_ready_includes_single_dotation_projet(status):
 )
 def test_has_document_ready_includes_double_dotation_projet(detr_status, dsil_status):
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, detr_status)
-    _create_enveloppe_projet(projet, DOTATION_DSIL, dsil_status)
+    _create_enveloppe_projet(projet, Dotation.DETR, detr_status)
+    _create_enveloppe_projet(projet, Dotation.DSIL, dsil_status)
 
     assert projet in Projet.objects.has_document_ready()
 
@@ -397,7 +397,7 @@ def test_has_document_ready_includes_double_dotation_projet(detr_status, dsil_st
 
 def test_accepted_includes_single_dotation_accepted_projet():
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
+    _create_enveloppe_projet(projet, Dotation.DETR, ProjetStatus.ACCEPTED)
 
     assert projet in Projet.objects.accepted()
 
@@ -408,7 +408,7 @@ def test_accepted_includes_single_dotation_accepted_projet():
 )
 def test_accepted_excludes_single_dotation_not_accepted_projet(status):
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, status)
+    _create_enveloppe_projet(projet, Dotation.DETR, status)
 
     assert projet not in Projet.objects.accepted()
 
@@ -427,24 +427,24 @@ def test_accepted_includes_double_dotation_projet_with_an_accepted_dotation(
     other_status,
 ):
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
-    _create_enveloppe_projet(projet, DOTATION_DSIL, other_status)
+    _create_enveloppe_projet(projet, Dotation.DETR, ProjetStatus.ACCEPTED)
+    _create_enveloppe_projet(projet, Dotation.DSIL, other_status)
 
     assert projet in Projet.objects.accepted()
 
 
 def test_accepted_excludes_double_dotation_projet_with_a_processing_dotation():
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
-    _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.PROCESSING)
+    _create_enveloppe_projet(projet, Dotation.DETR, ProjetStatus.ACCEPTED)
+    _create_enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.PROCESSING)
 
     assert projet not in Projet.objects.accepted()
 
 
 def test_accepted_excludes_double_dotation_projet_refused_and_dismissed():
     projet = ProjetFactory()
-    _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.REFUSED)
-    _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.DISMISSED)
+    _create_enveloppe_projet(projet, Dotation.DETR, ProjetStatus.REFUSED)
+    _create_enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.DISMISSED)
 
     assert projet not in Projet.objects.accepted()
 
@@ -452,8 +452,8 @@ def test_accepted_excludes_double_dotation_projet_refused_and_dismissed():
 def test_accepted_query_count():
     for _ in range(3):
         projet = ProjetFactory()
-        _create_enveloppe_projet(projet, DOTATION_DETR, ProjetStatus.ACCEPTED)
-        _create_enveloppe_projet(projet, DOTATION_DSIL, ProjetStatus.REFUSED)
+        _create_enveloppe_projet(projet, Dotation.DETR, ProjetStatus.ACCEPTED)
+        _create_enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.REFUSED)
 
     with CaptureQueriesContext(connection) as ctx:
         projets = list(Projet.objects.accepted())

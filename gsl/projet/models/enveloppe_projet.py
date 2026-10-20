@@ -19,14 +19,12 @@ from gsl.historique.models import ProjetAction
 from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NOTIFICATION_STATUS_NOTIFIED,
     NOTIFICATION_STATUS_TO_GENERATE,
     NOTIFICATION_STATUS_TO_NOTIFY,
     NOTIFICATION_STATUS_TO_SIGN,
-    POSSIBLE_DOTATIONS,
+    Dotation,
     ProjetStatus,
 )
 from ..utils.utils import compute_taux, floatize
@@ -39,7 +37,7 @@ if TYPE_CHECKING:
 
 
 class EnveloppeProjetQuerySet(models.QuerySet):
-    def for_dotation(self, dotation: POSSIBLE_DOTATIONS):
+    def for_dotation(self, dotation: Dotation):
         return self.filter(enveloppe__dotation=dotation)
 
     def for_campagne(self, annee: int):
@@ -300,7 +298,7 @@ class EnveloppeProjet(BaseModel):
         if self.detr_avis_commission is None:
             return
 
-        if self.dotation == DOTATION_DSIL:
+        if self.dotation == Dotation.DSIL:
             errors["detr_avis_commission"] = (
                 "L'avis de la commission DETR ne doit être renseigné que pour les projets DETR."
             )
@@ -325,7 +323,7 @@ class EnveloppeProjet(BaseModel):
         super().save(*args, **kwargs)
 
     @property
-    def dotation(self) -> POSSIBLE_DOTATIONS:
+    def dotation(self) -> Dotation:
         return self.enveloppe.dotation
 
     @property
@@ -341,7 +339,7 @@ class EnveloppeProjet(BaseModel):
         return list(d for d in self.projet.enveloppeprojet_set.all() if d.pk != self.pk)
 
     @property
-    def other_accepted_dotations(self) -> List[POSSIBLE_DOTATIONS]:
+    def other_accepted_dotations(self) -> List[Dotation]:
         return [
             d.dotation
             for d in self.other_dotations
@@ -650,7 +648,7 @@ class EnveloppeProjet(BaseModel):
         )
 
     def accept_from_dn(self) -> None:
-        if self.dotation == DOTATION_DETR:
+        if self.dotation == Dotation.DETR:
             self.detr_avis_commission = True
 
         # We keep the previous enveloppe to avoid squashing a manual rectification.

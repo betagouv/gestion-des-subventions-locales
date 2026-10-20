@@ -26,7 +26,7 @@ from gsl.notification.forms.bulk_generation import (
 )
 from gsl.notification.models import ExportJob
 from gsl.notification.tasks import generate_export_task
-from gsl.projet.constants import DOTATIONS, LETTRE_REFUS
+from gsl.projet.constants import LETTRE_REFUS, Dotation
 from gsl.projet.models import EnveloppeProjet
 
 
@@ -208,7 +208,7 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
     STATUS_URL_NAME: str = ""
 
     def dispatch(self, request, *args, **kwargs):
-        if kwargs.get("dotation") not in DOTATIONS:
+        if kwargs.get("dotation") not in Dotation.values:
             raise Http404(user_message="Dotation inconnue")
         return super().dispatch(request, *args, **kwargs)
 

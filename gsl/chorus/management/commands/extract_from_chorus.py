@@ -6,7 +6,7 @@ import openpyxl
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl_demarches_simplifiees.models import Dossier
 
 from ...models import LIGNE_IDENTITY_FIELDS, SuiviFinancier
@@ -25,8 +25,8 @@ COLUMN_HEADERS = {
 }
 
 DOMAINE_FONCTIONNEL_DOTATION = {
-    "0119-01-06": DOTATION_DETR,
-    "0119-01-07": DOTATION_DSIL,
+    "0119-01-06": Dotation.DETR,
+    "0119-01-07": Dotation.DSIL,
 }
 
 # The DN is hand-typed in the "Axe ministériel 2" column in inconsistent formats
