@@ -20,11 +20,8 @@ from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import (
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
-    NOTIFICATION_STATUS_NOTIFIED,
-    NOTIFICATION_STATUS_TO_GENERATE,
-    NOTIFICATION_STATUS_TO_NOTIFY,
-    NOTIFICATION_STATUS_TO_SIGN,
     Dotation,
+    NotificationStatus,
     ProjetStatus,
 )
 from ..utils.utils import compute_taux, floatize
@@ -84,25 +81,25 @@ class EnveloppeProjetQuerySet(models.QuerySet):
                 When(status=ProjetStatus.PROCESSING, then=Value(None)),
                 When(
                     projet__notified_at__isnull=False,
-                    then=Value(NOTIFICATION_STATUS_NOTIFIED),
+                    then=Value(NotificationStatus.NOTIFIED),
                 ),
                 When(
                     Q(lettre_et_arrete_signes__isnull=False)
                     | Q(lettre_refus_signee__isnull=False),
-                    then=Value(NOTIFICATION_STATUS_TO_NOTIFY),
+                    then=Value(NotificationStatus.TO_NOTIFY),
                 ),
                 When(
                     status=ProjetStatus.ACCEPTED,
                     arrete__isnull=False,
                     lettrenotification__isnull=False,
-                    then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                    then=Value(NotificationStatus.TO_SIGN),
                 ),
                 When(
                     status__in=ProjetStatus.NEGATIVE,
                     lettrerefus__isnull=False,
-                    then=Value(NOTIFICATION_STATUS_TO_SIGN),
+                    then=Value(NotificationStatus.TO_SIGN),
                 ),
-                default=Value(NOTIFICATION_STATUS_TO_GENERATE),
+                default=Value(NotificationStatus.TO_GENERATE),
                 output_field=models.CharField(null=True),
             )
         )

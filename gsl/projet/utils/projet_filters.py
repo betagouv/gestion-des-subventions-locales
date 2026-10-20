@@ -26,8 +26,8 @@ from gsl_demarches_simplifiees.models import (
 )
 
 from ..constants import (
-    NOTIFICATION_STATUS_CHOICES,
     Dotation,
+    NotificationStatus,
     ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet
@@ -325,7 +325,7 @@ class CommonFiltersFields(FixedFilterFieldsMixin, FilterSet):
     notification_status = MultipleChoiceFilter(
         label="Statut de notification",
         field_name="_notification_status",
-        choices=NOTIFICATION_STATUS_CHOICES,
+        choices=NotificationStatus.choices,
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 
@@ -474,7 +474,7 @@ class ProjetFilters(CommonFiltersFields):
     notification_status = MultipleChoiceFilter(
         label="Statut de notification",
         method="filter_notification_status",
-        choices=NOTIFICATION_STATUS_CHOICES,
+        choices=NotificationStatus.choices,
         widget=CustomCheckboxSelectMultiple(placeholder="Tous"),
     )
 

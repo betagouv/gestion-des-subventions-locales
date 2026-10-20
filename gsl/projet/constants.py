@@ -27,16 +27,12 @@ class ProjetStatus(models.TextChoices):
         return (cls.REFUSED, cls.DISMISSED)
 
 
-NOTIFICATION_STATUS_TO_GENERATE = "to_generate"
-NOTIFICATION_STATUS_TO_SIGN = "to_sign"
-NOTIFICATION_STATUS_TO_NOTIFY = "to_notify"
-NOTIFICATION_STATUS_NOTIFIED = "notified"
-NOTIFICATION_STATUS_CHOICES = (
-    (NOTIFICATION_STATUS_TO_GENERATE, "À générer"),
-    (NOTIFICATION_STATUS_TO_SIGN, "À signer"),
-    (NOTIFICATION_STATUS_TO_NOTIFY, "À notifier"),
-    (NOTIFICATION_STATUS_NOTIFIED, "Notifié"),
-)
+class NotificationStatus(models.TextChoices):
+    TO_GENERATE = "to_generate", "À générer"
+    TO_SIGN = "to_sign", "À signer"
+    TO_NOTIFY = "to_notify", "À notifier"
+    NOTIFIED = "notified", "Notifié"
+
 
 ARRETE = "arrete"
 LETTRE = "lettre"
