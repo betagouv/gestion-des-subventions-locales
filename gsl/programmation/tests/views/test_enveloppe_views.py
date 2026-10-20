@@ -13,7 +13,7 @@ from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl.simulation.tests.factories import SimulationFactory
 
 pytestmark = pytest.mark.django_db
@@ -37,7 +37,7 @@ class TestSubEnveloppeSecurity:
         arrondissement = ArrondissementFactory(departement=perimetre_dept.departement)
         perimetre_arr = PerimetreArrondissementFactory(arrondissement=arrondissement)
         delegated_child = Enveloppe.objects.create(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             montant=1000,
             annee=parent_enveloppe.annee,
             perimetre=perimetre_arr,
@@ -50,7 +50,7 @@ class TestSubEnveloppeSecurity:
         other_arrondissement = ArrondissementFactory(departement=other_dept.departement)
         other_arr = PerimetreArrondissementFactory(arrondissement=other_arrondissement)
         delegated_outside = Enveloppe.objects.create(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             montant=2000,
             annee=other_parent.annee,
             perimetre=other_arr,
@@ -137,14 +137,14 @@ class TestSubEnveloppeDeleteView:
         # Create a delegated sub-enveloppe
         parent_enveloppe = DsilEnveloppeFactory(perimetre=perimetr_reg, annee=2024)
         sub_enveloppe = Enveloppe.objects.create(
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             montant=1500,
             annee=parent_enveloppe.annee,
             perimetre=perimetre_dept,
             parent=parent_enveloppe,
         )
         _sub_sub_enveloppe = Enveloppe.objects.create(
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             montant=500,
             annee=parent_enveloppe.annee,
             perimetre=perimetre_arr,
@@ -203,7 +203,7 @@ class TestSubEnveloppeCreateCampagne:
             client,
             campagne,
             {
-                "dotation": DOTATION_DETR,
+                "dotation": Dotation.DETR,
                 "perimetre": perimetre_arr.pk,
                 "montant": 1000,
             },
@@ -223,7 +223,7 @@ class TestSubEnveloppeCreateCampagne:
             client,
             2027,
             {
-                "dotation": DOTATION_DETR,
+                "dotation": Dotation.DETR,
                 "perimetre": perimetre_arr.pk,
                 "montant": 1000,
             },

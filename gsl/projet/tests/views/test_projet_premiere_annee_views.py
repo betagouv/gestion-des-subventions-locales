@@ -14,7 +14,7 @@ from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 
-from ...constants import DOTATION_DETR, DOTATION_DSIL, ProjetStatus
+from ...constants import Dotation, ProjetStatus
 from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
@@ -45,7 +45,7 @@ def client(collegue):
 @pytest.fixture
 def projet(collegue):
     projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
-    _enveloppe_projet(projet, DOTATION_DETR, CAMPAGNE)
+    _enveloppe_projet(projet, Dotation.DETR, CAMPAGNE)
     return projet
 
 
@@ -64,7 +64,7 @@ def test_selecteur_is_displayed_with_the_projet_campagne_checked(client, projet)
 
 
 def test_selecteur_is_hidden_for_a_projet_on_two_campagnes(client, projet):
-    _enveloppe_projet(projet, DOTATION_DSIL, CAMPAGNE_SUIVANTE)
+    _enveloppe_projet(projet, Dotation.DSIL, CAMPAGNE_SUIVANTE)
 
     response = client.get(_detail_url(projet))
 
@@ -123,7 +123,7 @@ def test_post_an_unproposed_campagne_shows_an_error(client, projet):
 
 def test_post_out_of_perimetre_returns_404(client):
     other_projet = ProjetFactory(dossier_ds__perimetre=PerimetreDepartementalFactory())
-    _enveloppe_projet(other_projet, DOTATION_DETR, CAMPAGNE)
+    _enveloppe_projet(other_projet, Dotation.DETR, CAMPAGNE)
 
     response = client.post(
         _url(other_projet),
@@ -162,7 +162,7 @@ def _checked_radio(content):
 
 def _enveloppe_projet(projet, dotation, annee):
     factory = (
-        DetrEnveloppeFactory if dotation == DOTATION_DETR else DsilEnveloppeFactory
+        DetrEnveloppeFactory if dotation == Dotation.DETR else DsilEnveloppeFactory
     )
     return EnveloppeProjetFactory(
         projet=projet,

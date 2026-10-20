@@ -18,8 +18,7 @@ from gsl_demarches_simplifiees.tests.factories import (
 )
 
 from ...constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ..factories import EnveloppeProjetFactory, ProjetFactory
@@ -83,7 +82,7 @@ def notified_projet(collegue):
     EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
     )
     return projet
@@ -98,7 +97,7 @@ def non_notified_projet(collegue):
     EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
     )
     return projet
 
@@ -130,7 +129,7 @@ def test_post_clears_notified_at(client, collegue):
     EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
         date_programmation=timezone.now(),
     )
@@ -195,10 +194,10 @@ def test_double_dotation_post_calls_ds_once(mock_repasser, collegue):
         notified_at=timezone.now(),
     )
     EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=Dotation.DETR
     )
     EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DSIL
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=Dotation.DSIL
     )
     client = ClientWithLoggedUserFactory(collegue)
     client.post(_url(projet), {}, headers={"HX-Request": "true"})

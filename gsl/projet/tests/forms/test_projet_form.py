@@ -12,8 +12,7 @@ from gsl_demarches_simplifiees.exceptions import DsServiceException
 from gsl_demarches_simplifiees.services import DsService
 
 from ...constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ...forms import ProjetBudgetVertForm, ProjetForm
@@ -26,7 +25,7 @@ def projet():
     projet = ProjetFactory(
         is_in_qpv=False, is_attached_to_a_crte=False, is_budget_vert=False
     )
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR)
     return projet
 
 
@@ -46,7 +45,7 @@ def test_projet_form_fields(projet):
 
 @pytest.mark.django_db
 def test_projet_form_validation(projet):
-    form = ProjetForm(instance=projet, data={"dotations": [DOTATION_DSIL]})
+    form = ProjetForm(instance=projet, data={"dotations": [Dotation.DSIL]})
     assert form.is_valid()
 
     form = ProjetForm(instance=projet, data={"dotations": []})
@@ -105,13 +104,13 @@ def test_projet_budget_vert_form_save_unchanged_is_a_noop(
 
 @pytest.mark.django_db
 def test_projet_form_save_with_multiple_dotations(projet):
-    data = {"dotations": [DOTATION_DSIL, DOTATION_DETR]}
+    data = {"dotations": [Dotation.DSIL, Dotation.DETR]}
     form = ProjetForm(instance=projet, data=data)
     assert form.is_valid()
     projet = form.save(commit=True)
 
-    assert DOTATION_DSIL in projet.dotations
-    assert DOTATION_DETR in projet.dotations
+    assert Dotation.DSIL in projet.dotations
+    assert Dotation.DETR in projet.dotations
 
 
 @pytest.mark.django_db
@@ -124,7 +123,7 @@ def test_projet_form_cannot_change_dotations_when_notified(projet):
 
     # Try to change dotations from DETR to DSIL
     data = {
-        "dotations": [DOTATION_DSIL],
+        "dotations": [Dotation.DSIL],
     }
     form = ProjetForm(instance=projet, data=data)
     assert not form.is_valid()
@@ -145,7 +144,7 @@ def test_projet_form_allows_same_dotations_when_notified(projet):
 
     # Keep the same dotations (DETR)
     data = {
-        "dotations": [DOTATION_DETR],
+        "dotations": [Dotation.DETR],
     }
     form = ProjetForm(instance=projet, data=data)
     assert form.is_valid()
@@ -174,15 +173,15 @@ def test_update_dotation_with_more_than_2_values(projet_0, user, caplog):
     with caplog.at_level(logging.WARNING):
         form = ProjetForm(
             instance=projet_0,
-            data={"dotations": [DOTATION_DETR, DOTATION_DSIL, "unknown"]},
+            data={"dotations": [Dotation.DETR, Dotation.DSIL, "unknown"]},
             user=user,
         )
-        form.update_dotation(projet_0, [DOTATION_DETR, DOTATION_DSIL, "unknown"], user)
+        form.update_dotation(projet_0, [Dotation.DETR, Dotation.DSIL, "unknown"], user)
     assert "Le projet ne peut avoir plus de deux dotations." in form.errors["dotations"]
     assert "Projet can't have more than two dotations" in caplog.text
 
 
-@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation", [Dotation.DETR, Dotation.DSIL])
 @patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
 @pytest.mark.django_db
 def test_update_dotation_from_one_dotation_to_another(
@@ -193,7 +192,7 @@ def test_update_dotation_from_one_dotation_to_another(
     )
     SimulationProjetFactory.create_batch(3, enveloppe_projet=original_enveloppe_projet)
 
-    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    new_dotation = Dotation.DSIL if dotation == Dotation.DETR else Dotation.DETR
     form = ProjetForm(instance=projet_0, data={"dotations": [new_dotation]}, user=user)
     form.update_dotation(projet_0, [new_dotation], user)
 
@@ -209,7 +208,7 @@ def test_update_dotation_from_one_dotation_to_another(
     assert SimulationProjet.objects.count() == 0
 
 
-@pytest.mark.parametrize("original_dotation", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("original_dotation", [Dotation.DETR, Dotation.DSIL])
 @patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
 @pytest.mark.django_db
 def test_update_dotation_from_one_to_two(
@@ -221,13 +220,13 @@ def test_update_dotation_from_one_to_two(
     SimulationProjetFactory.create_batch(3, enveloppe_projet=original_enveloppe_projet)
 
     form = ProjetForm(
-        instance=projet_0, data={"dotations": [DOTATION_DETR, DOTATION_DSIL]}, user=user
+        instance=projet_0, data={"dotations": [Dotation.DETR, Dotation.DSIL]}, user=user
     )
-    form.update_dotation(projet_0, [DOTATION_DETR, DOTATION_DSIL], user)
+    form.update_dotation(projet_0, [Dotation.DETR, Dotation.DSIL], user)
 
     assert projet_0.enveloppeprojet_set.count() == 2
     assert all(
-        dotation in projet_0.dotations for dotation in {DOTATION_DETR, DOTATION_DSIL}
+        dotation in projet_0.dotations for dotation in {Dotation.DETR, Dotation.DSIL}
     )
     new_enveloppe_projet = projet_0.enveloppeprojet_set.exclude(
         pk=original_enveloppe_projet.pk
@@ -238,7 +237,7 @@ def test_update_dotation_from_one_to_two(
     assert new_enveloppe_projet.detr_avis_commission is None
 
 
-@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation", [Dotation.DETR, Dotation.DSIL])
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @pytest.mark.django_db
 def test_update_dotation_removes_accepted_dotation_calls_ds_service(
@@ -252,7 +251,7 @@ def test_update_dotation_removes_accepted_dotation_calls_ds_service(
         projet=projet_0, dotation=dotation, status=ProjetStatus.ACCEPTED
     )
 
-    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    new_dotation = Dotation.DSIL if dotation == Dotation.DETR else Dotation.DETR
     form = ProjetForm(instance=projet_0, data={"dotations": [new_dotation]}, user=user)
     form.update_dotation(projet_0, [new_dotation], user)
 
@@ -267,7 +266,7 @@ def test_update_dotation_removes_accepted_dotation_calls_ds_service(
     assert EnveloppeProjet.objects.filter(pk=accepted_enveloppe_projet.pk).count() == 0
 
 
-@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation", [Dotation.DETR, Dotation.DSIL])
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @pytest.mark.django_db
 def test_update_dotation_removes_processing_dotation_no_ds_service_call(
@@ -281,7 +280,7 @@ def test_update_dotation_removes_processing_dotation_no_ds_service_call(
         projet=projet_0, dotation=dotation, status=ProjetStatus.PROCESSING
     )
 
-    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    new_dotation = Dotation.DSIL if dotation == Dotation.DETR else Dotation.DETR
     form = ProjetForm(instance=projet_0, data={"dotations": [new_dotation]}, user=user)
     form.update_dotation(projet_0, [new_dotation], user)
 
@@ -294,7 +293,7 @@ def test_update_dotation_removes_processing_dotation_no_ds_service_call(
     )
 
 
-@pytest.mark.parametrize("dotation_to_remove", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation_to_remove", [Dotation.DETR, Dotation.DSIL])
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @pytest.mark.django_db
 def test_update_dotation_removes_accepted_dotation_keeps_other_accepted_dotations_in_dn(
@@ -306,7 +305,7 @@ def test_update_dotation_removes_accepted_dotation_keeps_other_accepted_dotation
     """Test that removing an ACCEPTED enveloppe_projet passes other_accepted_dotations correctly"""
     # Create two accepted dotations
     dotation_to_keep = (
-        DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
+        Dotation.DSIL if dotation_to_remove == Dotation.DETR else Dotation.DETR
     )
     accepted_dotation_to_remove = EnveloppeProjetFactory(
         projet=projet_0, dotation=dotation_to_remove, status=ProjetStatus.ACCEPTED
@@ -336,7 +335,7 @@ def test_update_dotation_removes_accepted_dotation_keeps_other_accepted_dotation
     assert EnveloppeProjet.objects.filter(pk=accepted_dotation_to_keep.pk).count() == 1
 
 
-@pytest.mark.parametrize("dotation_to_remove", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation_to_remove", [Dotation.DETR, Dotation.DSIL])
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @pytest.mark.django_db
 def test_update_dotation_removes_accepted_dotation_with_processing_dotation(
@@ -348,7 +347,7 @@ def test_update_dotation_removes_accepted_dotation_with_processing_dotation(
     """Test that removing an ACCEPTED enveloppe_projet ignores PROCESSING dotations in other_accepted_dotations"""
     # Create one accepted and one processing dotation
     dotation_to_keep = (
-        DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
+        Dotation.DSIL if dotation_to_remove == Dotation.DETR else Dotation.DETR
     )
     accepted_dotation_to_remove = EnveloppeProjetFactory(
         projet=projet_0, dotation=dotation_to_remove, status=ProjetStatus.ACCEPTED
@@ -380,7 +379,7 @@ def test_update_dotation_removes_accepted_dotation_with_processing_dotation(
     )
 
 
-@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation", [Dotation.DETR, Dotation.DSIL])
 @patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
 @pytest.mark.django_db
 def test_update_dotation_sets_dotations_has_been_updated_when_adding_dotation(
@@ -390,7 +389,7 @@ def test_update_dotation_sets_dotations_has_been_updated_when_adding_dotation(
     EnveloppeProjetFactory(projet=projet_0, dotation=dotation)
     assert projet_0.dotations_updated_in_app is False
 
-    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    new_dotation = Dotation.DSIL if dotation == Dotation.DETR else Dotation.DETR
     form = ProjetForm(
         instance=projet_0, data={"dotations": [dotation, new_dotation]}, user=user
     )
@@ -400,7 +399,7 @@ def test_update_dotation_sets_dotations_has_been_updated_when_adding_dotation(
     assert projet_0.dotations_updated_in_app is True
 
 
-@pytest.mark.parametrize("dotation", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation", [Dotation.DETR, Dotation.DSIL])
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @pytest.mark.django_db
 def test_update_dotation_sets_dotations_has_been_updated_when_removing_dotation(
@@ -412,7 +411,7 @@ def test_update_dotation_sets_dotations_has_been_updated_when_removing_dotation(
     )
     assert projet_0.dotations_updated_in_app is False
 
-    new_dotation = DOTATION_DSIL if dotation == DOTATION_DETR else DOTATION_DETR
+    new_dotation = Dotation.DSIL if dotation == Dotation.DETR else Dotation.DETR
     form = ProjetForm(instance=projet_0, data={"dotations": [new_dotation]}, user=user)
     form.update_dotation(projet_0, [new_dotation], user)
 
@@ -425,13 +424,13 @@ def test_update_dotation_does_not_set_dotations_has_been_updated_when_unchanged(
     projet_0, user
 ):
     """Test that dotations_updated_in_app stays False when dotations are unchanged"""
-    EnveloppeProjetFactory(projet=projet_0, dotation=DOTATION_DETR)
+    EnveloppeProjetFactory(projet=projet_0, dotation=Dotation.DETR)
     projet_0.dotations_updated_in_app = False
     projet_0.save()
     assert projet_0.dotations_updated_in_app is False
 
-    form = ProjetForm(instance=projet_0, data={"dotations": [DOTATION_DETR]}, user=user)
-    form.update_dotation(projet_0, [DOTATION_DETR], user)
+    form = ProjetForm(instance=projet_0, data={"dotations": [Dotation.DETR]}, user=user)
+    form.update_dotation(projet_0, [Dotation.DETR], user)
 
     projet_0.refresh_from_db()
     assert projet_0.dotations_updated_in_app is False
@@ -448,20 +447,20 @@ def test_projet_form_save_sets_dotations_has_been_updated_when_dotations_change(
 ):
     """Test that ProjetForm.save() sets dotations_updated_in_app when dotations change"""
     # projet fixture has DETR, we change to DSIL
-    assert projet.dotations == [DOTATION_DETR]
+    assert projet.dotations == [Dotation.DETR]
     assert projet.dotations_updated_in_app is False
 
-    form = ProjetForm(instance=projet, data={"dotations": [DOTATION_DSIL]}, user=user)
+    form = ProjetForm(instance=projet, data={"dotations": [Dotation.DSIL]}, user=user)
     assert form.is_valid()
 
     form.save(commit=True)
 
     projet.refresh_from_db()
-    assert projet.dotations == [DOTATION_DSIL]
+    assert projet.dotations == [Dotation.DSIL]
     assert projet.dotations_updated_in_app is True
 
 
-@pytest.mark.parametrize("dotation_to_remove", [DOTATION_DETR, DOTATION_DSIL])
+@pytest.mark.parametrize("dotation_to_remove", [Dotation.DETR, Dotation.DSIL])
 @patch.object(DsService, "update_ds_annotations_for_one_dotation")
 @pytest.mark.django_db
 def test_update_dotation_with_dn_error_cancel_update(
@@ -473,7 +472,7 @@ def test_update_dotation_with_dn_error_cancel_update(
     """Test that removing an ACCEPTED enveloppe_projet cancels the update if there is an error in the DS service"""
     # Create one accepted and one processing dotation
     dotation_to_keep = (
-        DOTATION_DSIL if dotation_to_remove == DOTATION_DETR else DOTATION_DETR
+        Dotation.DSIL if dotation_to_remove == Dotation.DETR else Dotation.DETR
     )
     accepted_dotation_to_remove = EnveloppeProjetFactory(
         projet=projet_0, dotation=dotation_to_remove, status=ProjetStatus.ACCEPTED

@@ -6,7 +6,7 @@ from gsl.core.models import Collegue
 from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.services import DsService
 
-from ..constants import DOTATIONS, ProjetStatus
+from ..constants import Dotation, ProjetStatus
 from ..utils.utils import merge_documents_into_pdf
 
 
@@ -46,5 +46,5 @@ class ProjetDNActionsMixin:
         if len(documents) <= 1:
             return os.path.splitext(documents[0].name)[0] + ".pdf"
         dotations = {doc.enveloppe_projet.dotation for doc in documents}
-        ordered = [d for d in DOTATIONS if d in dotations]
+        ordered = [d for d in Dotation.values if d in dotations]
         return f"Notification {self.dossier_ds.ds_number} {'-'.join(ordered)}.pdf"

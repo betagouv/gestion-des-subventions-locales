@@ -18,7 +18,7 @@ from gsl.core.s3 import get_s3_client
 from gsl.core.view_mixins import OpenHtmxModalMixin
 from gsl.notification.forms.upload import ImportJobStartForm, PresignedUploadForm
 from gsl.notification.models import DocumentImportJob
-from gsl.projet.constants import DOTATIONS
+from gsl.projet.constants import Dotation
 
 IMPORT_MODAL_ID = "import-modal"
 
@@ -49,7 +49,7 @@ class ImportDocumentsModalView(OpenHtmxModalMixin, TemplateView):
     modal_id = IMPORT_MODAL_ID
 
     def dispatch(self, request, *args, **kwargs):
-        if kwargs.get("dotation") not in DOTATIONS:
+        if kwargs.get("dotation") not in Dotation.values:
             raise Http404(user_message="Dotation inconnue")
         return super().dispatch(request, *args, **kwargs)
 

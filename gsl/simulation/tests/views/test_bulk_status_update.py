@@ -11,7 +11,7 @@ from gsl.core.tests.factories import (
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import (
-    DOTATION_DETR,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -96,7 +96,7 @@ def test_bulk_status_update_rejects_ids_outside_user_perimeter(
     other_dotation = EnveloppeProjetFactory(
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=other_perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
     )
     outside = SimulationProjetFactory(

@@ -35,8 +35,7 @@ from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -107,7 +106,7 @@ def client_with_user_logged(collegue):
 def _accepted_dotation(perimetre, projet, dotation, with_signed_document):
     enveloppe = (
         DetrEnveloppeFactory(perimetre=perimetre)
-        if dotation == DOTATION_DETR
+        if dotation == Dotation.DETR
         else DsilEnveloppeFactory(perimetre=perimetre)
     )
     enveloppe_projet = EnveloppeProjetFactory(
@@ -121,7 +120,7 @@ def _accepted_dotation(perimetre, projet, dotation, with_signed_document):
     return enveloppe_projet
 
 
-def _accepted_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=True):
+def _accepted_projet(perimetre, dotation=Dotation.DETR, with_signed_document=True):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     _accepted_dotation(perimetre, projet, dotation, with_signed_document)
     return projet
@@ -130,7 +129,7 @@ def _accepted_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=Tru
 def _treated_dotation(perimetre, projet, dotation, status, with_signed_document=False):
     enveloppe = (
         DetrEnveloppeFactory(perimetre=perimetre)
-        if dotation == DOTATION_DETR
+        if dotation == Dotation.DETR
         else DsilEnveloppeFactory(perimetre=perimetre)
     )
     enveloppe_projet = EnveloppeProjetFactory(
@@ -141,7 +140,7 @@ def _treated_dotation(perimetre, projet, dotation, status, with_signed_document=
     return enveloppe_projet
 
 
-def _refused_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=False):
+def _refused_projet(perimetre, dotation=Dotation.DETR, with_signed_document=False):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     _treated_dotation(
         perimetre, projet, dotation, ProjetStatus.REFUSED, with_signed_document
@@ -149,7 +148,7 @@ def _refused_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=Fals
     return projet
 
 
-def _dismissed_projet(perimetre, dotation=DOTATION_DETR, with_signed_document=False):
+def _dismissed_projet(perimetre, dotation=Dotation.DETR, with_signed_document=False):
     projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     _treated_dotation(
         perimetre, projet, dotation, ProjetStatus.DISMISSED, with_signed_document
@@ -185,7 +184,7 @@ class TestForm:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
+        _accepted_dotation(perimetre, projet, Dotation.DETR, with_signed_document=True)
 
         dn_date_traitement = timezone.now().isoformat()
 
@@ -221,7 +220,7 @@ class TestForm:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
+        _accepted_dotation(perimetre, projet, Dotation.DETR, with_signed_document=True)
 
         dn_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
 
@@ -261,7 +260,7 @@ class TestForm:
         DossierDataFactory(dossier=dossier, raw_data=full_raw_data)
         projet = ProjetFactory(dossier_ds=dossier)
         enveloppe_projet = _accepted_dotation(
-            perimetre, projet, DOTATION_DETR, with_signed_document=True
+            perimetre, projet, Dotation.DETR, with_signed_document=True
         )
 
         with (
@@ -317,11 +316,11 @@ class TestForm:
     def test_save_merges_documents_by_dotation_then_type(self, perimetre, collegue):
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
         detr_enveloppe_projet = _accepted_dotation(
-            perimetre, projet, DOTATION_DETR, with_signed_document=True
+            perimetre, projet, Dotation.DETR, with_signed_document=True
         )
         detr_annexe = AnnexeFactory(enveloppe_projet=detr_enveloppe_projet)
         dsil_enveloppe_projet = _accepted_dotation(
-            perimetre, projet, DOTATION_DSIL, with_signed_document=True
+            perimetre, projet, Dotation.DSIL, with_signed_document=True
         )
         dsil_annexe = AnnexeFactory(enveloppe_projet=dsil_enveloppe_projet)
 
@@ -451,7 +450,7 @@ class TestForm:
         enveloppe_projet = _treated_dotation(
             perimetre,
             projet,
-            DOTATION_DETR,
+            Dotation.DETR,
             ProjetStatus.REFUSED,
             with_signed_document=True,
         )
@@ -487,14 +486,14 @@ class TestForm:
         _treated_dotation(
             perimetre,
             projet,
-            DOTATION_DETR,
+            Dotation.DETR,
             ProjetStatus.REFUSED,
             with_signed_document=True,
         )
         _treated_dotation(
             perimetre,
             projet,
-            DOTATION_DSIL,
+            Dotation.DSIL,
             ProjetStatus.DISMISSED,
             with_signed_document=True,
         )
@@ -509,8 +508,8 @@ class TestForm:
     ):
         """REFUSED + DISMISSED resolves to DISMISSED (optimistic)."""
         projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-        _treated_dotation(perimetre, projet, DOTATION_DETR, ProjetStatus.REFUSED)
-        _treated_dotation(perimetre, projet, DOTATION_DSIL, ProjetStatus.DISMISSED)
+        _treated_dotation(perimetre, projet, Dotation.DETR, ProjetStatus.REFUSED)
+        _treated_dotation(perimetre, projet, Dotation.DSIL, ProjetStatus.DISMISSED)
 
         with (
             mock.patch(
@@ -545,7 +544,7 @@ class TestView:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
+        _accepted_dotation(perimetre, projet, Dotation.DETR, with_signed_document=True)
 
         url = reverse(
             "fragment:gsl_notification:notification_message",
@@ -597,7 +596,7 @@ class TestView:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _accepted_dotation(perimetre, projet, DOTATION_DETR, with_signed_document=True)
+        _accepted_dotation(perimetre, projet, Dotation.DETR, with_signed_document=True)
 
         first_date_traitement = datetime(2025, 6, 25, 11, 46, 30, tzinfo=UTC)
         ProjetActionFactory(
@@ -676,7 +675,7 @@ class TestView:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _treated_dotation(perimetre, projet, DOTATION_DETR, ProjetStatus.REFUSED)
+        _treated_dotation(perimetre, projet, Dotation.DETR, ProjetStatus.REFUSED)
 
         url = reverse(
             "fragment:gsl_notification:notification_message",
@@ -717,7 +716,7 @@ class TestView:
         )
         DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
         projet = ProjetFactory(dossier_ds=dossier)
-        _treated_dotation(perimetre, projet, DOTATION_DETR, ProjetStatus.DISMISSED)
+        _treated_dotation(perimetre, projet, Dotation.DETR, ProjetStatus.DISMISSED)
 
         url = reverse(
             "fragment:gsl_notification:notification_message",
@@ -799,9 +798,9 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         """One dotation still being processed means the projet isn't notifiable yet."""
-        projet = _accepted_projet(perimetre, dotation=DOTATION_DETR)
+        projet = _accepted_projet(perimetre, dotation=Dotation.DETR)
         EnveloppeProjetFactory(
-            projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
+            projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.PROCESSING
         )
 
         url = reverse(

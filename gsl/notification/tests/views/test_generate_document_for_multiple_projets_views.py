@@ -30,7 +30,7 @@ from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import DOTATION_DETR, LETTRE, ProjetStatus
+from gsl.projet.constants import LETTRE, Dotation, ProjetStatus
 from gsl.projet.models import Projet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
@@ -50,7 +50,7 @@ def enveloppe_projets(perimetre):
     return EnveloppeProjetFactory.create_batch(
         3,
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )
@@ -58,12 +58,12 @@ def enveloppe_projets(perimetre):
 
 @pytest.fixture
 def detr_lettre_modele(perimetre):
-    return ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    return ModeleLettreNotificationFactory(dotation=Dotation.DETR, perimetre=perimetre)
 
 
 @pytest.fixture
 def detr_arrete_modele(perimetre):
-    return ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    return ModeleArreteFactory(dotation=Dotation.DETR, perimetre=perimetre)
 
 
 @pytest.fixture
@@ -88,10 +88,10 @@ def _mock_logo_base64():
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
-WIZARD_PREFIX_DETR = f"generate_accepted_documents_wizard_{DOTATION_DETR}"
+WIZARD_PREFIX_DETR = f"generate_accepted_documents_wizard_{Dotation.DETR}"
 
 
-def _wizard_url(dotation=DOTATION_DETR):
+def _wizard_url(dotation=Dotation.DETR):
     from django.urls import reverse
 
     return reverse("gsl_notification:generate-documents-modal", args=[dotation])
@@ -114,7 +114,7 @@ def _wizard_step_data(current_step, fields, prefix=WIZARD_PREFIX_DETR):
     return data
 
 
-def _post_launch(client, ids=None, dotation=DOTATION_DETR):
+def _post_launch(client, ids=None, dotation=Dotation.DETR):
     """POST the launch step of the wizard (the entry triggered by the button)."""
     fields = {}
     if ids is not None:
@@ -194,7 +194,7 @@ def test_launch_no_projects_renders_error_body(client):
 
 def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )
@@ -404,7 +404,7 @@ def _drive_through_format_step(
     document_type=LETTRE,
     modele_selection_fields,
     export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
-    dotation=DOTATION_DETR,
+    dotation=Dotation.DETR,
 ):
     """Walk the wizard from launch through a format-step submit.
 
@@ -440,7 +440,7 @@ def _drive_through_format_step(
     )
 
 
-def _post_create_step_raw(client, dotation=DOTATION_DETR):
+def _post_create_step_raw(client, dotation=Dotation.DETR):
     """POST the create step and return the intermediate polling response."""
     return client.post(
         _wizard_url(dotation),
@@ -451,7 +451,7 @@ def _post_create_step_raw(client, dotation=DOTATION_DETR):
     )
 
 
-def _post_create_step(client, dotation=DOTATION_DETR):
+def _post_create_step(client, dotation=Dotation.DETR):
     """POST the create step then poll the status endpoint; returns the final success response."""
     polling_response = _post_create_step_raw(client, dotation)
     job_id = polling_response.context["job_id"]
@@ -742,7 +742,7 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
     enveloppe_projets = [
         EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             projet__notified_at=None,
         )
@@ -809,7 +809,7 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
     client = ClientWithLoggedUserFactory(user)
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         projet__notified_at=None,
     )

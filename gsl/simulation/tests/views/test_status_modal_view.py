@@ -10,7 +10,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 from ...models import SimulationProjet
@@ -51,7 +51,7 @@ def simulation_projet(collegue, simulation):
     enveloppe_projet = EnveloppeProjetFactory(
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
     )
     # Create a SimulationProjet within the user's perimeter. Let the factory handle creating a matching Simulation

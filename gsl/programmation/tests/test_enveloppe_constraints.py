@@ -9,7 +9,7 @@ from gsl.core.tests.factories import (
     DepartementFactory,
     PerimetreFactory,
 )
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 
 from ..models import Enveloppe
 
@@ -58,7 +58,7 @@ def test_dsil_delegated_must_not_have_regional_perimeter(
     perimetre_region, dsil_enveloppe
 ):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         montant=Decimal("123.00"),
         annee=2025,
         perimetre=perimetre_region,
@@ -77,7 +77,7 @@ def test_dsil_not_delegated_must_have_regional_perimeter(
 ):
     for perimetre_not_regional in (perimetre_departement, perimetre_arrondissement):
         enveloppe = Enveloppe(
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             montant=Decimal("123.00"),
             annee=2025,
             perimetre=perimetre_not_regional,
@@ -93,7 +93,7 @@ def test_dsil_not_delegated_must_have_regional_perimeter(
 
 def test_detr_must_not_have_regional_perimeter(perimetre_region):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("123.00"),
         annee=2025,
         perimetre=perimetre_region,
@@ -110,7 +110,7 @@ def test_departemental_detr_must_not_be_delegated(
     perimetre_departement, detr_enveloppe
 ):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("123.00"),
         annee=2025,
         perimetre=perimetre_departement,
@@ -126,7 +126,7 @@ def test_departemental_detr_must_not_be_delegated(
 
 def test_detr_not_delegated_must_have_departemental_perimeter(perimetre_arrondissement):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("123.00"),
         annee=2025,
         perimetre=perimetre_arrondissement,
@@ -141,7 +141,7 @@ def test_detr_not_delegated_must_have_departemental_perimeter(perimetre_arrondis
 
 def test_correct_dsil_non_delegated(perimetre_region):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_region,
@@ -152,7 +152,7 @@ def test_correct_dsil_non_delegated(perimetre_region):
 @pytest.fixture
 def dsil_enveloppe(perimetre_region):
     return Enveloppe.objects.create(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_region,
@@ -161,7 +161,7 @@ def dsil_enveloppe(perimetre_region):
 
 def test_correct_dsil_delegated_to_departement(dsil_enveloppe, perimetre_departement):
     enveloppe_departement = Enveloppe(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_departement,
@@ -174,7 +174,7 @@ def test_correct_dsil_delegated_to_arrondissement(
     dsil_enveloppe, perimetre_departement, perimetre_arrondissement
 ):
     enveloppe_departement = Enveloppe(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_departement,
@@ -183,7 +183,7 @@ def test_correct_dsil_delegated_to_arrondissement(
     enveloppe_departement.full_clean()
     enveloppe_departement.save()
     enveloppe_arrondissement = Enveloppe(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_arrondissement,
@@ -194,7 +194,7 @@ def test_correct_dsil_delegated_to_arrondissement(
 
 def test_correct_detr_non_delegated(perimetre_departement):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_departement,
@@ -205,7 +205,7 @@ def test_correct_detr_non_delegated(perimetre_departement):
 @pytest.fixture
 def detr_enveloppe(perimetre_departement):
     return Enveloppe.objects.create(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_departement,
@@ -214,7 +214,7 @@ def detr_enveloppe(perimetre_departement):
 
 def test_correct_detr_delegated(detr_enveloppe, perimetre_arrondissement):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_arrondissement,
@@ -232,7 +232,7 @@ def other_departement_detr_enveloppe():
         arrondissement=None,
     )
     return Enveloppe.objects.create(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_other_departement,
@@ -243,7 +243,7 @@ def test_arrondissement_detr_enveloppe_must_be_delegated_by_its_departement(
     perimetre_arrondissement, other_departement_detr_enveloppe
 ):
     enveloppe = Enveloppe(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         montant=Decimal("12345.00"),
         annee=2032,
         perimetre=perimetre_arrondissement,

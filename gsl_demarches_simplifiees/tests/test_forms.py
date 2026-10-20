@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from gsl.projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import ProjetFactory
 from gsl_demarches_simplifiees.forms import (
     DossierReporteSansPieceForm,
@@ -21,23 +21,23 @@ pytestmark = pytest.mark.django_db
 class TestDotationFormField:
     def test_dotation_form_field_choices(self):
         field = DotationFormField()
-        assert list(field.choices) == list(DOTATION_CHOICES)
+        assert list(field.choices) == list(Dotation.choices)
 
     def test_dotation_form_field_prepare_value_with_detr(self):
         field = DotationFormField()
-        result = field.prepare_value(DOTATION_DETR)
-        assert result == [DOTATION_DETR]
+        result = field.prepare_value(Dotation.DETR)
+        assert result == [Dotation.DETR]
 
     def test_dotation_form_field_prepare_value_with_dsil(self):
         field = DotationFormField()
-        result = field.prepare_value(DOTATION_DSIL)
-        assert result == [DOTATION_DSIL]
+        result = field.prepare_value(Dotation.DSIL)
+        assert result == [Dotation.DSIL]
 
     def test_dotation_form_field_prepare_value_with_both_dotations(self):
         field = DotationFormField()
-        result = field.prepare_value(f"{DOTATION_DETR}, {DOTATION_DSIL}")
-        assert DOTATION_DETR in result
-        assert DOTATION_DSIL in result
+        result = field.prepare_value(f"{Dotation.DETR}, {Dotation.DSIL}")
+        assert Dotation.DETR in result
+        assert Dotation.DSIL in result
         assert len(result) == 2
 
     def test_dotation_form_field_prepare_value_with_empty_string(self):
@@ -47,16 +47,16 @@ class TestDotationFormField:
 
     def test_dotation_form_field_prepare_value_with_list(self):
         field = DotationFormField()
-        result = field.prepare_value([DOTATION_DETR, DOTATION_DSIL])
-        assert DOTATION_DETR in result
-        assert DOTATION_DSIL in result
+        result = field.prepare_value([Dotation.DETR, Dotation.DSIL])
+        assert Dotation.DETR in result
+        assert Dotation.DSIL in result
 
 
 class TestDossierReporteSansPieceForm:
     def test_form_valid_with_detr(self):
         dossier = DossierFactory()
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -66,7 +66,7 @@ class TestDossierReporteSansPieceForm:
     def test_form_valid_with_dsil(self):
         dossier = DossierFactory()
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DSIL],
             "finance_cout_total": "200000.00",
             "demande_montant": "80000.00",
         }
@@ -76,7 +76,7 @@ class TestDossierReporteSansPieceForm:
     def test_form_valid_with_double_dotation(self):
         dossier = DossierFactory()
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR, DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
             "finance_cout_total": "150000.00",
             "demande_montant": "75000.00",
         }
@@ -97,7 +97,7 @@ class TestDossierReporteSansPieceForm:
     def test_form_invalid_missing_finance_cout_total(self):
         dossier = DossierFactory()
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "",
             "demande_montant": "50000.00",
         }
@@ -108,7 +108,7 @@ class TestDossierReporteSansPieceForm:
     def test_form_invalid_missing_demande_montant(self):
         dossier = DossierFactory()
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "",
         }
@@ -134,7 +134,7 @@ class TestDossierReporteSansPieceForm:
         ProjetFactory(dossier_ds=dossier)
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -147,7 +147,7 @@ class TestDossierReporteSansPieceForm:
             saved_dossier = form.save()
 
         saved_dossier.refresh_from_db()
-        assert DOTATION_DETR in saved_dossier.demande_dispositif_sollicite
+        assert Dotation.DETR in saved_dossier.demande_dispositif_sollicite
         assert saved_dossier.finance_cout_total == Decimal("100000.00")
         assert saved_dossier.demande_montant == Decimal("50000.00")
 
@@ -156,7 +156,7 @@ class TestDossierReporteSansPieceForm:
         projet = ProjetFactory(dossier_ds=dossier)
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -178,7 +178,7 @@ class TestDossierReporteSansPieceForm:
         assert projet.dotations_updated_in_app is False
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -198,7 +198,7 @@ class TestDossierReporteSansPieceForm:
         ProjetFactory(dossier_ds=dossier)
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR, DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
             "finance_cout_total": "200000.00",
             "demande_montant": "100000.00",
         }
@@ -211,8 +211,8 @@ class TestDossierReporteSansPieceForm:
             saved_dossier = form.save()
 
         saved_dossier.refresh_from_db()
-        assert DOTATION_DETR in saved_dossier.demande_dispositif_sollicite
-        assert DOTATION_DSIL in saved_dossier.demande_dispositif_sollicite
+        assert Dotation.DETR in saved_dossier.demande_dispositif_sollicite
+        assert Dotation.DSIL in saved_dossier.demande_dispositif_sollicite
 
     def test_form_save_creates_enveloppe_projet_with_assiette_from_finance_cout_total(
         self,
@@ -225,7 +225,7 @@ class TestDossierReporteSansPieceForm:
         ProjetFactory(dossier_ds=dossier)
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -236,7 +236,7 @@ class TestDossierReporteSansPieceForm:
 
         from gsl.projet.models import EnveloppeProjet
 
-        dp = EnveloppeProjet.objects.for_dotation(DOTATION_DETR).get(
+        dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(
             projet__dossier_ds=dossier
         )
         assert dp.assiette == Decimal("100000.00")
@@ -258,7 +258,7 @@ class TestDossierReporteSansPieceFormCategories:
         )
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
             "demande_categorie_detr": cat_detr.pk,
@@ -272,7 +272,7 @@ class TestDossierReporteSansPieceFormCategories:
         cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DSIL],
             "finance_cout_total": "200000.00",
             "demande_montant": "80000.00",
             "demande_categorie_dsil": cat_dsil.pk,
@@ -290,7 +290,7 @@ class TestDossierReporteSansPieceFormCategories:
         cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR, DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
             "finance_cout_total": "150000.00",
             "demande_montant": "75000.00",
             "demande_categorie_detr": cat_detr.pk,
@@ -301,7 +301,7 @@ class TestDossierReporteSansPieceFormCategories:
 
     def test_form_valid_without_categories(self, dossier_with_projet):
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -318,7 +318,7 @@ class TestDossierReporteSansPieceFormCategories:
         cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR, DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
             "finance_cout_total": "150000.00",
             "demande_montant": "75000.00",
             "demande_categorie_detr": cat_detr.pk,
@@ -347,7 +347,7 @@ class TestDossierReporteSansPieceFormCategories:
         dossier.save()
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DSIL],
+            "demande_dispositif_sollicite": [Dotation.DSIL],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }
@@ -370,7 +370,7 @@ class TestDossierReporteSansPieceFormCategories:
         dossier.save()
 
         form_data = {
-            "demande_dispositif_sollicite": [DOTATION_DETR],
+            "demande_dispositif_sollicite": [Dotation.DETR],
             "finance_cout_total": "100000.00",
             "demande_montant": "50000.00",
         }

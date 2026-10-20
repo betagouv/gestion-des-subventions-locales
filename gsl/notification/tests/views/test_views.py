@@ -27,9 +27,8 @@ from gsl.notification.tests.factories import (
 )
 from gsl.projet.constants import (
     ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
     LETTRE,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -70,7 +69,7 @@ def different_perimetre_client_with_user_logged():
 def accepted_detr_enveloppe_projet(perimetre):
     return EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
     )
 
@@ -177,9 +176,9 @@ def test_post_documents_creates_generated_documents_and_refreshes(
 ):
     enveloppe_projet = accepted_detr_enveloppe_projet
     projet = enveloppe_projet.projet
-    modele_arrete = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    modele_arrete = ModeleArreteFactory(dotation=Dotation.DETR, perimetre=perimetre)
     modele_lettre = ModeleLettreNotificationFactory(
-        dotation=DOTATION_DETR, perimetre=perimetre
+        dotation=Dotation.DETR, perimetre=perimetre
     )
     url = reverse(
         "fragment:gsl_notification:generate_documents", kwargs={"pk": projet.id}
@@ -188,8 +187,8 @@ def test_post_documents_creates_generated_documents_and_refreshes(
     response = correct_perimetre_client_with_user_logged.post(
         url,
         {
-            f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
-            f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+            f"modele_arrete_{Dotation.DETR}": modele_arrete.id,
+            f"modele_lettre_{Dotation.DETR}": modele_lettre.id,
         },
         headers={"HX-Request": "true"},
     )
@@ -212,9 +211,9 @@ def test_post_documents_after_notification_returns_404(
     projet.notified_at = timezone.now()
     projet.save()
 
-    modele_arrete = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    modele_arrete = ModeleArreteFactory(dotation=Dotation.DETR, perimetre=perimetre)
     modele_lettre = ModeleLettreNotificationFactory(
-        dotation=DOTATION_DETR, perimetre=perimetre
+        dotation=Dotation.DETR, perimetre=perimetre
     )
     url = reverse(
         "fragment:gsl_notification:generate_documents", kwargs={"pk": projet.id}
@@ -223,8 +222,8 @@ def test_post_documents_after_notification_returns_404(
     response = correct_perimetre_client_with_user_logged.post(
         url,
         {
-            f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
-            f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+            f"modele_arrete_{Dotation.DETR}": modele_arrete.id,
+            f"modele_lettre_{Dotation.DETR}": modele_lettre.id,
         },
         headers={"HX-Request": "true"},
     )
@@ -245,8 +244,8 @@ def test_post_documents_invalid_rerenders_block_with_errors(
     projet = enveloppe_projet.projet
     # A modele must exist, otherwise the skip checkbox is forced on and the
     # form becomes valid without a modele selection.
-    ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=perimetre)
-    ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=perimetre)
+    ModeleArreteFactory(dotation=Dotation.DETR, perimetre=perimetre)
+    ModeleLettreNotificationFactory(dotation=Dotation.DETR, perimetre=perimetre)
     url = reverse(
         "fragment:gsl_notification:generate_documents", kwargs={"pk": projet.id}
     )
@@ -257,7 +256,7 @@ def test_post_documents_invalid_rerenders_block_with_errors(
 
     assert response.status_code == 200
     assert response.templates[0].name == "includes/_generate_documents_form.html"
-    assert f"modele_arrete_{DOTATION_DETR}" in response.context["form"].errors
+    assert f"modele_arrete_{Dotation.DETR}" in response.context["form"].errors
     assert not Arrete.objects.filter(enveloppe_projet=enveloppe_projet).exists()
 
 
@@ -299,33 +298,33 @@ def test_get_select_modele_gives_correct_perimetre_and_dotation_modele(
 
     # Modèles DETR
     _detr_modele_arr_11 = modele_factory(
-        dotation=DOTATION_DETR, perimetre=arrondissement_11
+        dotation=Dotation.DETR, perimetre=arrondissement_11
     )
-    detr_modele_dep_1 = modele_factory(dotation=DOTATION_DETR, perimetre=departement_1)
+    detr_modele_dep_1 = modele_factory(dotation=Dotation.DETR, perimetre=departement_1)
     _detr_modele_arr_12 = modele_factory(
-        dotation=DOTATION_DETR, perimetre=arrondissement_12
+        dotation=Dotation.DETR, perimetre=arrondissement_12
     )
-    _detr_modele_dep_2 = modele_factory(dotation=DOTATION_DETR, perimetre=departement_2)
+    _detr_modele_dep_2 = modele_factory(dotation=Dotation.DETR, perimetre=departement_2)
     _detr_modele__arr_21 = modele_factory(
-        dotation=DOTATION_DETR, perimetre=_arrondissement_21
+        dotation=Dotation.DETR, perimetre=_arrondissement_21
     )
 
     # Modèles DSIL
     _dsil_modele_arr_11 = modele_factory(
-        dotation=DOTATION_DSIL, perimetre=arrondissement_11
+        dotation=Dotation.DSIL, perimetre=arrondissement_11
     )
-    _dsil_modele_dep_1 = modele_factory(dotation=DOTATION_DSIL, perimetre=departement_1)
-    _dsil_modele_reg = modele_factory(dotation=DOTATION_DSIL, perimetre=region)
+    _dsil_modele_dep_1 = modele_factory(dotation=Dotation.DSIL, perimetre=departement_1)
+    _dsil_modele_reg = modele_factory(dotation=Dotation.DSIL, perimetre=region)
     _dsil_modele_arr_12 = modele_factory(
-        dotation=DOTATION_DSIL, perimetre=arrondissement_12
+        dotation=Dotation.DSIL, perimetre=arrondissement_12
     )
-    _dsil_modele_dep_2 = modele_factory(dotation=DOTATION_DSIL, perimetre=departement_2)
+    _dsil_modele_dep_2 = modele_factory(dotation=Dotation.DSIL, perimetre=departement_2)
     _dsil_modele__arr_21 = modele_factory(
-        dotation=DOTATION_DSIL, perimetre=_arrondissement_21
+        dotation=Dotation.DSIL, perimetre=_arrondissement_21
     )
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__perimetre=departement_1,
     )

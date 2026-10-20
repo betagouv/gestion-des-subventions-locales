@@ -7,8 +7,7 @@ from gsl.notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -25,7 +24,7 @@ from gsl.projet.tests.factories import EnveloppeProjetFactory
 )
 @pytest.mark.parametrize(
     "dotation",
-    (DOTATION_DETR, DOTATION_DSIL),
+    (Dotation.DETR, Dotation.DSIL),
 )
 @pytest.mark.django_db
 def test_arrete_form_valid(form_class, modele_factory, dotation):

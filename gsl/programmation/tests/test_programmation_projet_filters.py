@@ -14,8 +14,7 @@ from gsl.core.tests.factories import (
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import (
@@ -50,7 +49,7 @@ def region(arrondissement):
 @pytest.fixture
 def enveloppe(departement):
     return DetrEnveloppeFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         perimetre=departement,
         montant=Decimal("1000000.00"),
     )
@@ -71,7 +70,7 @@ def mock_request(request_factory, user):
     request = request_factory.get("/")
     request.user = user
     request.resolver_match = type(
-        "MockResolverMatch", (), {"kwargs": {"dotation": DOTATION_DETR}}
+        "MockResolverMatch", (), {"kwargs": {"dotation": Dotation.DETR}}
     )()
     return request
 
@@ -81,7 +80,7 @@ def mock_request_dsil(request_factory, user):
     request = request_factory.get("/")
     request.user = user
     request.resolver_match = type(
-        "MockResolverMatch", (), {"kwargs": {"dotation": DOTATION_DSIL}}
+        "MockResolverMatch", (), {"kwargs": {"dotation": Dotation.DSIL}}
     )()
     return request
 
@@ -110,13 +109,13 @@ class TestProgrammationFilters:
 
         prog_commune = EnveloppeProjetFactory(
             projet=projet_commune,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_departement = EnveloppeProjetFactory(
             projet=projet_departement,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -150,19 +149,19 @@ class TestProgrammationFilters:
 
         prog_petit = EnveloppeProjetFactory(
             projet=projet_petit,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_moyen = EnveloppeProjetFactory(
             projet=projet_moyen,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_grand = EnveloppeProjetFactory(
             projet=projet_grand,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -207,19 +206,19 @@ class TestProgrammationFilters:
 
         prog_petit = EnveloppeProjetFactory(
             projet=projet_petit,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_moyen = EnveloppeProjetFactory(
             projet=projet_moyen,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_grand = EnveloppeProjetFactory(
             projet=projet_grand,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -253,21 +252,21 @@ class TestProgrammationFilters:
 
         prog_petit = EnveloppeProjetFactory(
             projet=projet1,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
             montant=Decimal("30000.00"),
         )
         prog_moyen = EnveloppeProjetFactory(
             projet=projet2,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
             montant=Decimal("70000.00"),
         )
         prog_grand = EnveloppeProjetFactory(
             projet=projet3,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
             montant=Decimal("120000.00"),
@@ -299,13 +298,13 @@ class TestProgrammationFilters:
 
         prog_accepted = EnveloppeProjetFactory(
             projet=projet1,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             enveloppe=enveloppe,
             status=ProjetStatus.ACCEPTED,
         )
         prog_refused = EnveloppeProjetFactory(
             projet=projet2,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             enveloppe=enveloppe,
             status=ProjetStatus.REFUSED,
         )
@@ -343,13 +342,13 @@ class TestProgrammationFilters:
 
         prog_arr1 = EnveloppeProjetFactory(
             projet=projet_arr1,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_arr2 = EnveloppeProjetFactory(
             projet=projet_arr2,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -389,14 +388,14 @@ class TestProgrammationFilters:
 
         prog_a = EnveloppeProjetFactory(
             projet=projet_a,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
             montant=Decimal("50000.00"),
         )
         prog_z = EnveloppeProjetFactory(
             projet=projet_z,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
             montant=Decimal("80000.00"),
@@ -445,13 +444,13 @@ class TestProgrammationFilters:
         dossier_z = DossierFactory(ds_number=9000, perimetre=arrondissement)
         prog_a = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_a),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_z = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_z),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -479,13 +478,13 @@ class TestProgrammationFilters:
         )
         prog_a = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_a),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_z = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_z),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -505,13 +504,13 @@ class TestProgrammationFilters:
         )
         prog_a = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_a),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_z = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_z),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -527,14 +526,14 @@ class TestProgrammationFilters:
         dossier_z = DossierFactory(perimetre=arrondissement)
         prog_a = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_a),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             assiette=Decimal("50000"),
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_z = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_z),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             assiette=Decimal("200000"),
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
@@ -552,7 +551,7 @@ class TestProgrammationFilters:
         # prog_a: montant=10000 / assiette=100000 = 10%
         prog_a = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_a),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             assiette=Decimal("100000"),
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
@@ -561,7 +560,7 @@ class TestProgrammationFilters:
         # prog_z: montant=80000 / assiette=100000 = 80%
         prog_z = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_z),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             assiette=Decimal("100000"),
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
@@ -581,13 +580,13 @@ class TestProgrammationFilters:
         )
         prog_a = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_a),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_z = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_z),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -615,7 +614,7 @@ class TestProgrammationFilters:
         projet = ProjetFactory(dossier_ds=dossier)
         prog_match = EnveloppeProjetFactory(
             projet=projet,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             enveloppe=enveloppe,
             montant=Decimal("60000.00"),
             status=ProjetStatus.ACCEPTED,
@@ -630,7 +629,7 @@ class TestProgrammationFilters:
         autre_projet = ProjetFactory(dossier_ds=autre_dossier)
         prog_no_match = EnveloppeProjetFactory(
             projet=autre_projet,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             enveloppe=enveloppe,
             status=ProjetStatus.ACCEPTED,
         )
@@ -698,13 +697,13 @@ class TestProgrammationFilters:
 
         prog_ancien = EnveloppeProjetFactory(
             projet=projet_ancien,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_recent = EnveloppeProjetFactory(
             projet=projet_recent,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -756,13 +755,13 @@ class TestProgrammationFilters:
 
         prog_tot = EnveloppeProjetFactory(
             projet=projet_tot,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_tard = EnveloppeProjetFactory(
             projet=projet_tard,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -789,13 +788,13 @@ class TestProgrammationFilters:
 
         prog_tot = EnveloppeProjetFactory(
             projet=projet_tot,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_tard = EnveloppeProjetFactory(
             projet=projet_tard,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -828,13 +827,13 @@ class TestProgrammationFilters:
 
         prog_ecole = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_ecole),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog_mairie = EnveloppeProjetFactory(
             projet=ProjetFactory(dossier_ds=dossier_mairie),
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
@@ -879,13 +878,13 @@ class TestProgrammationFilters:
 
         prog1 = EnveloppeProjetFactory(
             projet=projet1,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )
         prog2 = EnveloppeProjetFactory(
             projet=projet2,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=enveloppe,
         )

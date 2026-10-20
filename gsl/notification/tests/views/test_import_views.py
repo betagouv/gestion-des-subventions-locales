@@ -16,7 +16,7 @@ from gsl.notification.tests.factories import (
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -60,7 +60,7 @@ def _build_pdf_for_enveloppe_projet(ds_number, content_blocks=200, perimetre=Non
 
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__ds_number=ds_number,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         **extra,
     )
@@ -96,7 +96,7 @@ def _split_pdf(pdf_bytes: bytes, at: int) -> tuple[bytes, bytes]:
 
 def test_modal_opens_on_the_drop_step(client):
     url = reverse(
-        "gsl_notification:import-documents-modal", kwargs={"dotation": DOTATION_DETR}
+        "gsl_notification:import-documents-modal", kwargs={"dotation": Dotation.DETR}
     )
 
     response = client.get(url, **HTMX_HEADERS)

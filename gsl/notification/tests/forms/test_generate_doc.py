@@ -16,9 +16,8 @@ from gsl.notification.tests.factories import (
 )
 from gsl.projet.constants import (
     ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
     LETTRE,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -38,78 +37,78 @@ def _make_accepted_enveloppe_projet(dotation, projet=None):
 def test_generate_accepted_dotations_documents_form_only_lists_accepted_dotations():
     projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.PROCESSING
+        projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.PROCESSING
     )
-    _make_accepted_enveloppe_projet(DOTATION_DETR, projet=projet)
+    _make_accepted_enveloppe_projet(Dotation.DETR, projet=projet)
     user = CollegueFactory()
 
     form = GenerateDotationsDocumentsForm(projet=projet, user=user)
 
-    assert list(form.dotation_fields.keys()) == [DOTATION_DETR]
+    assert list(form.dotation_fields.keys()) == [Dotation.DETR]
 
 
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_has_no_detr_field_for_regional_user():
     user = CollegueFactory(perimetre=PerimetreRegionalFactory())
     projet = ProjetFactory()
-    _make_accepted_enveloppe_projet(DOTATION_DETR, projet=projet)
-    _make_accepted_enveloppe_projet(DOTATION_DSIL, projet=projet)
+    _make_accepted_enveloppe_projet(Dotation.DETR, projet=projet)
+    _make_accepted_enveloppe_projet(Dotation.DSIL, projet=projet)
 
     data = {
-        f"skip_arrete_{DOTATION_DSIL}": "on",
-        f"skip_lettre_{DOTATION_DSIL}": "on",
+        f"skip_arrete_{Dotation.DSIL}": "on",
+        f"skip_lettre_{Dotation.DSIL}": "on",
     }
     form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
 
-    assert form.dotation_fields[DOTATION_DETR]["fields"] == {}
-    assert set(form.dotation_fields[DOTATION_DSIL]["fields"]) == {ARRETE, LETTRE}
-    assert f"modele_arrete_{DOTATION_DETR}" not in form.fields
+    assert form.dotation_fields[Dotation.DETR]["fields"] == {}
+    assert set(form.dotation_fields[Dotation.DSIL]["fields"]) == {ARRETE, LETTRE}
+    assert f"modele_arrete_{Dotation.DETR}" not in form.fields
     assert form.is_valid(), form.errors
 
 
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_requires_modele_unless_skipped():
     user = CollegueFactory()
-    enveloppe_projet = _make_accepted_enveloppe_projet(DOTATION_DETR)
+    enveloppe_projet = _make_accepted_enveloppe_projet(Dotation.DETR)
     projet = enveloppe_projet.projet
-    ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
-    ModeleLettreNotificationFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
+    ModeleArreteFactory(dotation=Dotation.DETR, perimetre=user.perimetre)
+    ModeleLettreNotificationFactory(dotation=Dotation.DETR, perimetre=user.perimetre)
 
     form = GenerateDotationsDocumentsForm({}, projet=projet, user=user)
 
     assert not form.is_valid()
-    assert f"modele_arrete_{DOTATION_DETR}" in form.errors
-    assert f"modele_lettre_{DOTATION_DETR}" in form.errors
+    assert f"modele_arrete_{Dotation.DETR}" in form.errors
+    assert f"modele_lettre_{Dotation.DETR}" in form.errors
 
 
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_forces_skip_when_no_modele():
     user = CollegueFactory()
-    enveloppe_projet = _make_accepted_enveloppe_projet(DOTATION_DETR)
+    enveloppe_projet = _make_accepted_enveloppe_projet(Dotation.DETR)
     projet = enveloppe_projet.projet
 
     form = GenerateDotationsDocumentsForm({}, projet=projet, user=user)
 
-    fields = form.dotation_fields[DOTATION_DETR]["fields"]
+    fields = form.dotation_fields[Dotation.DETR]["fields"]
     assert fields[ARRETE]["has_modele"] is False
     assert fields[LETTRE]["has_modele"] is False
-    assert form.fields[f"skip_arrete_{DOTATION_DETR}"].disabled
-    assert form.fields[f"skip_lettre_{DOTATION_DETR}"].disabled
+    assert form.fields[f"skip_arrete_{Dotation.DETR}"].disabled
+    assert form.fields[f"skip_lettre_{Dotation.DETR}"].disabled
 
     assert form.is_valid(), form.errors
-    assert form.cleaned_data[f"skip_arrete_{DOTATION_DETR}"] is True
-    assert form.cleaned_data[f"skip_lettre_{DOTATION_DETR}"] is True
+    assert form.cleaned_data[f"skip_arrete_{Dotation.DETR}"] is True
+    assert form.cleaned_data[f"skip_lettre_{Dotation.DETR}"] is True
 
 
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_skip_does_not_require_modele():
     user = CollegueFactory()
-    enveloppe_projet = _make_accepted_enveloppe_projet(DOTATION_DETR)
+    enveloppe_projet = _make_accepted_enveloppe_projet(Dotation.DETR)
     projet = enveloppe_projet.projet
 
     data = {
-        f"skip_arrete_{DOTATION_DETR}": "on",
-        f"skip_lettre_{DOTATION_DETR}": "on",
+        f"skip_arrete_{Dotation.DETR}": "on",
+        f"skip_lettre_{Dotation.DETR}": "on",
     }
     form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
 
@@ -119,18 +118,18 @@ def test_generate_accepted_dotations_documents_form_skip_does_not_require_modele
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_creates_documents():
     user = CollegueFactory()
-    enveloppe_projet = _make_accepted_enveloppe_projet(DOTATION_DETR)
+    enveloppe_projet = _make_accepted_enveloppe_projet(Dotation.DETR)
     projet = enveloppe_projet.projet
     modele_arrete = ModeleArreteFactory(
-        dotation=DOTATION_DETR, perimetre=user.perimetre
+        dotation=Dotation.DETR, perimetre=user.perimetre
     )
     modele_lettre = ModeleLettreNotificationFactory(
-        dotation=DOTATION_DETR, perimetre=user.perimetre
+        dotation=Dotation.DETR, perimetre=user.perimetre
     )
 
     data = {
-        f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
-        f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+        f"modele_arrete_{Dotation.DETR}": modele_arrete.id,
+        f"modele_lettre_{Dotation.DETR}": modele_lettre.id,
     }
     form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
     assert form.is_valid(), form.errors
@@ -146,15 +145,15 @@ def test_generate_accepted_dotations_documents_form_creates_documents():
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_skip_prevents_creation():
     user = CollegueFactory()
-    enveloppe_projet = _make_accepted_enveloppe_projet(DOTATION_DETR)
+    enveloppe_projet = _make_accepted_enveloppe_projet(Dotation.DETR)
     projet = enveloppe_projet.projet
     modele_arrete = ModeleArreteFactory(
-        dotation=DOTATION_DETR, perimetre=user.perimetre
+        dotation=Dotation.DETR, perimetre=user.perimetre
     )
 
     data = {
-        f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
-        f"skip_lettre_{DOTATION_DETR}": "on",
+        f"modele_arrete_{Dotation.DETR}": modele_arrete.id,
+        f"skip_lettre_{Dotation.DETR}": "on",
     }
     form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
     assert form.is_valid(), form.errors
@@ -169,18 +168,18 @@ def test_generate_accepted_dotations_documents_form_skip_prevents_creation():
 @pytest.mark.django_db
 def test_generate_accepted_dotations_documents_form_overwrites_existing_document():
     user = CollegueFactory()
-    enveloppe_projet = _make_accepted_enveloppe_projet(DOTATION_DETR)
-    old_modele = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
+    enveloppe_projet = _make_accepted_enveloppe_projet(Dotation.DETR)
+    old_modele = ModeleArreteFactory(dotation=Dotation.DETR, perimetre=user.perimetre)
     existing = ArreteFactory(enveloppe_projet=enveloppe_projet, modele=old_modele)
     projet = enveloppe_projet.projet
-    new_modele = ModeleArreteFactory(dotation=DOTATION_DETR, perimetre=user.perimetre)
+    new_modele = ModeleArreteFactory(dotation=Dotation.DETR, perimetre=user.perimetre)
     modele_lettre = ModeleLettreNotificationFactory(
-        dotation=DOTATION_DETR, perimetre=user.perimetre
+        dotation=Dotation.DETR, perimetre=user.perimetre
     )
 
     data = {
-        f"modele_arrete_{DOTATION_DETR}": new_modele.id,
-        f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+        f"modele_arrete_{Dotation.DETR}": new_modele.id,
+        f"modele_lettre_{Dotation.DETR}": modele_lettre.id,
     }
     form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
     assert form.is_valid(), form.errors
@@ -201,18 +200,18 @@ def test_generate_accepted_dotations_documents_form_hide_qr_code_propagates(
     mock_generate_pdf,
 ):
     user = CollegueFactory()
-    enveloppe_projet = _make_accepted_enveloppe_projet(DOTATION_DETR)
+    enveloppe_projet = _make_accepted_enveloppe_projet(Dotation.DETR)
     projet = enveloppe_projet.projet
     modele_arrete = ModeleArreteFactory(
-        dotation=DOTATION_DETR, perimetre=user.perimetre
+        dotation=Dotation.DETR, perimetre=user.perimetre
     )
     modele_lettre = ModeleLettreNotificationFactory(
-        dotation=DOTATION_DETR, perimetre=user.perimetre
+        dotation=Dotation.DETR, perimetre=user.perimetre
     )
 
     data = {
-        f"modele_arrete_{DOTATION_DETR}": modele_arrete.id,
-        f"modele_lettre_{DOTATION_DETR}": modele_lettre.id,
+        f"modele_arrete_{Dotation.DETR}": modele_arrete.id,
+        f"modele_lettre_{Dotation.DETR}": modele_lettre.id,
         "hide_qr_code": "on",
     }
     form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)

@@ -13,7 +13,7 @@ from gsl.core.matomo_constants import (
     MATOMO_CATEGORY_SIMULATION,
 )
 from gsl.core.models import BulkActionsJob
-from gsl.projet.constants import DOTATIONS
+from gsl.projet.constants import Dotation
 
 from ..forms import BulkStatusJobForm
 from ..models import (
@@ -141,7 +141,7 @@ class BulkStatusJobProgressView(DetailView):
             if not sp.enveloppe_projet.projet.has_been_notified
         ]
         context["columns"] = SIMULATION_TABLE_COLUMNS
-        context["dotations"] = DOTATIONS
+        context["dotations"] = Dotation.values
         return context
 
     def render_to_response(self, context, **response_kwargs):

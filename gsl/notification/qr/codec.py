@@ -30,10 +30,9 @@ import segno
 from gsl.notification.models import GENERATED_DOCUMENTS
 from gsl.projet.constants import (
     ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
     LETTRE,
     LETTRE_REFUS,
+    Dotation,
 )
 
 PAYLOAD_PREFIX = "GSL1"
@@ -43,10 +42,10 @@ PAYLOAD_PREFIX = "GSL1"
 # reuse the bbox coordinates without rescaling.
 RENDER_SCALE = 200 / 72
 
-_ALLOWED_DOTATIONS = (DOTATION_DETR, DOTATION_DSIL)
+_ALLOWED_DOTATIONS = (Dotation.DETR, Dotation.DSIL)
 _ALLOWED_DOCUMENT_TYPES = GENERATED_DOCUMENTS
 
-_DOTATION_TO_CODE = {DOTATION_DETR: "D", DOTATION_DSIL: "S"}
+_DOTATION_TO_CODE = {Dotation.DETR: "D", Dotation.DSIL: "S"}
 _CODE_TO_DOTATION = {v: k for k, v in _DOTATION_TO_CODE.items()}
 
 _DOCUMENT_TYPE_TO_CODE = {ARRETE: "A", LETTRE: "L", LETTRE_REFUS: "R"}

@@ -13,7 +13,7 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
 )
@@ -148,7 +148,7 @@ def cote_dorien_simulation_projet(cote_d_or_perimetre):
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=cote_d_or_perimetre,
         projet__dossier_ds__finance_cout_total=1_000_000,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=500_000,
     )
     simulation = SimulationFactory(
@@ -419,7 +419,7 @@ def cote_dorien_dsil_simulation_projet(cote_d_or_perimetre):
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=cote_d_or_perimetre,
         assiette=1_000,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
     )
     simulation = SimulationFactory(
         enveloppe=DsilEnveloppeFactory(perimetre=cote_d_or_perimetre)

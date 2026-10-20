@@ -14,7 +14,7 @@ from gsl.core.tests.factories import (
     RequestFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
 
@@ -62,7 +62,7 @@ def simulation_projet(collegue, simulation):
     enveloppe_projet = EnveloppeProjetFactory(
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
     )
     return cast(
@@ -81,7 +81,7 @@ def accepted_simulation_projet(collegue, simulation):
     enveloppe_projet = EnveloppeProjetFactory(
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
     )
     return cast(

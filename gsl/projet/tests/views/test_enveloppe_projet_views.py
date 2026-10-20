@@ -13,7 +13,7 @@ from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
-from ...constants import DOTATION_DETR, ProjetStatus
+from ...constants import Dotation, ProjetStatus
 from ..factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -45,7 +45,7 @@ def accepted_simulation_projet(collegue, perimetre_departemental):
         assiette=10_000,
         projet__dossier_ds__perimetre=collegue.perimetre,
         projet__is_budget_vert=False,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
     )
     return SimulationProjetFactory(
         enveloppe_projet=enveloppe_projet,
@@ -58,7 +58,7 @@ def accepted_simulation_projet(collegue, perimetre_departemental):
 @pytest.fixture
 def processing_enveloppe_projet(perimetre_departemental):
     return EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         assiette=10_000,
         projet__dossier_ds__perimetre=perimetre_departemental,
@@ -151,7 +151,7 @@ def test_patch_assiette_notified_projet_returns_404(
     client_with_user_logged, perimetre_departemental
 ):
     dp = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=perimetre_departemental,
         projet__notified_at=timezone.now(),
@@ -165,7 +165,7 @@ def test_patch_assiette_notified_projet_returns_404(
 def test_patch_assiette_out_of_perimeter_returns_404(client_with_user_logged):
     other_perimetre = PerimetreDepartementalFactory()
     dp = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=other_perimetre,
         projet__notified_at=None,

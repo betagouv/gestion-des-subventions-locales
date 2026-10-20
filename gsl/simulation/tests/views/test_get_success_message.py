@@ -16,8 +16,7 @@ from gsl.core.tests.factories import (
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -29,8 +28,8 @@ from ..factories import SimulationFactory, SimulationProjetFactory
 pytestmark = pytest.mark.django_db
 
 OTHER_DOTATION = {
-    DOTATION_DSIL: DOTATION_DETR,
-    DOTATION_DETR: DOTATION_DSIL,
+    Dotation.DSIL: Dotation.DETR,
+    Dotation.DETR: Dotation.DSIL,
 }
 
 
@@ -70,7 +69,7 @@ def _call_get_success_message(view):
 class TestGetSuccessMessageWhenSimpleDotation:
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     def test_accepted_status(self, collegue, client_with_user_logged, dotation):
         """Test message when projet status is ACCEPTED."""
@@ -80,7 +79,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -107,7 +106,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     @pytest.mark.parametrize(
         "status, verbe",
@@ -131,7 +130,7 @@ class TestGetSuccessMessageWhenSimpleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -164,7 +163,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     def test_with_accepted_status_when_other_dotation_is_accepted(
         self, collegue, client_with_user_logged, dotation
@@ -180,7 +179,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -207,7 +206,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     @pytest.mark.parametrize(
         "status, verbe",
@@ -235,7 +234,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -262,7 +261,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     def test_with_accepted_status_when_other_dotation_is_refused(
         self, collegue, client_with_user_logged, dotation
@@ -278,7 +277,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -305,7 +304,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     def test_with_refused_status_when_other_dotation_is_refused(
         self, collegue, client_with_user_logged, dotation
@@ -321,7 +320,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -348,7 +347,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     def test_with_dismissed_status_when_other_dotation_is_refused(
         self,
@@ -367,7 +366,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -394,7 +393,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     def test_with_accepted_status_when_other_dotation_is_dismissed(
         self, collegue, client_with_user_logged, dotation
@@ -410,7 +409,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -438,8 +437,8 @@ class TestGetSuccessMessageWhenDoubleDotation:
     @pytest.mark.parametrize(
         "dotation",
         (
-            DOTATION_DSIL,
-            DOTATION_DETR,
+            Dotation.DSIL,
+            Dotation.DETR,
         ),
     )
     def test_with_refused_status_when_other_dotation_is_dismissed(
@@ -456,7 +455,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)
@@ -483,7 +482,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
 
     @pytest.mark.parametrize(
         "dotation",
-        (DOTATION_DSIL, DOTATION_DETR),
+        (Dotation.DSIL, Dotation.DETR),
     )
     def test_with_dismissed_status_when_other_dotation_is_dismissed(
         self, collegue, client_with_user_logged, dotation
@@ -499,7 +498,7 @@ class TestGetSuccessMessageWhenDoubleDotation:
         )
         enveloppe = (
             DsilEnveloppeFactory(perimetre=collegue.perimetre)
-            if dotation == DOTATION_DSIL
+            if dotation == Dotation.DSIL
             else DetrEnveloppeFactory(perimetre=collegue.perimetre)
         )
         simulation = SimulationFactory(enveloppe=enveloppe)

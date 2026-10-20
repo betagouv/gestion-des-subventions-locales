@@ -7,7 +7,7 @@ from gsl.core.tests.factories import (
 from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
-from gsl.projet.constants import DOTATION_DETR
+from gsl.projet.constants import Dotation
 from gsl.projet.models import Projet
 
 from ...models import Simulation, SimulationProjet
@@ -47,13 +47,13 @@ def test_get_total_amount_granted(simulation):
         simulation=simulation,
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=1_200,
-        enveloppe_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__dotation=Dotation.DETR,
     )
     provisionally_accepted_projet = SimulationProjetFactory(
         simulation=simulation,
         status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
         montant=2_300,
-        enveloppe_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__dotation=Dotation.DETR,
     )
 
     # must not be included
@@ -62,19 +62,19 @@ def test_get_total_amount_granted(simulation):
         simulation=simulation,
         status=SimulationProjet.STATUS_REFUSED,
         montant=3_000,
-        enveloppe_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__dotation=Dotation.DETR,
     )
     SimulationProjetFactory(
         simulation=simulation,
         status=SimulationProjet.STATUS_DISMISSED,
         montant=4_000,
-        enveloppe_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__dotation=Dotation.DETR,
     )
     SimulationProjetFactory(
         simulation=simulation,
         status=SimulationProjet.STATUS_PROCESSING,
         montant=5_000,
-        enveloppe_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__dotation=Dotation.DETR,
     )
     ## not in simulation
     SimulationProjetFactory(

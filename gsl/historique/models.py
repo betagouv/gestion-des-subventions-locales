@@ -2,7 +2,7 @@ from django.contrib.admin.models import LogEntry
 from django.db import models
 from django.utils import timezone
 
-from gsl.projet.constants import DOTATION_CHOICES
+from gsl.projet.constants import Dotation
 
 
 def projet_action_document_upload_to(instance, filename):
@@ -89,7 +89,7 @@ class ProjetAction(models.Model):
         ),
     )
     dotation = models.CharField(
-        max_length=10, choices=DOTATION_CHOICES, blank=True, default=""
+        max_length=10, choices=Dotation.choices, blank=True, default=""
     )
 
     status = models.CharField(max_length=50, blank=True, default="")

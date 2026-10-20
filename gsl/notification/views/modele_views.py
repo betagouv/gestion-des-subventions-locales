@@ -36,9 +36,7 @@ from gsl.notification.utils import (
     get_modele_perimetres,
 )
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
-    DOTATIONS,
+    Dotation,
 )
 from gsl.utils.csp import csp_update
 
@@ -59,7 +57,7 @@ class ModeleListView(ListView):
         )
 
     def dispatch(self, request, dotation, *args, **kwargs):
-        if dotation not in DOTATIONS:
+        if dotation not in Dotation.values:
             raise Http404(user_message="Dotation inconnue")
         self.perimetres = self.get_modele_perimetres(dotation, request.user.perimetre)
         self.dotation = dotation
@@ -125,7 +123,7 @@ class ChooseModeleDocumentType(FormView):
     form_class = ModeleDocumentStepZeroForm
 
     def dispatch(self, request, dotation, *args, **kwargs):
-        if dotation not in DOTATIONS:
+        if dotation not in Dotation.values:
             raise Http404(user_message="Dotation inconnue")
         self.dotation = dotation
         return super().dispatch(request, *args, **kwargs)
@@ -173,7 +171,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         *args,
         **kwargs,
     ):
-        if dotation not in DOTATIONS:
+        if dotation not in Dotation.values:
             raise Http404(user_message="Dotation inconnue")
         self.dotation = dotation
         self.modele_type = modele_type
@@ -385,7 +383,7 @@ class DeleteModeleView(DeleteView):
             return _class.objects.all()
 
         q = Q()
-        for dotation in DOTATIONS:
+        for dotation in Dotation.values:
             perimetres = get_modele_perimetres(dotation, user.perimetre)
             q |= Q(dotation=dotation, perimetre__in=perimetres)
         return _class.objects.filter(q)
@@ -414,9 +412,9 @@ class DeleteModeleView(DeleteView):
 
 @require_GET
 def get_generic_modele(request, dotation):
-    if dotation == DOTATION_DETR:
+    if dotation == Dotation.DETR:
         return render(request, "gsl_notification/modele/generique/detr_modele.html")
-    elif dotation == DOTATION_DSIL:
+    elif dotation == Dotation.DSIL:
         return render(request, "gsl_notification/modele/generique/dsil_modele.html")
     raise Http404(user_message="Dotation inconnue")
 

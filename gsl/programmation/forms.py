@@ -4,7 +4,7 @@ from dsfr.forms import DsfrBaseForm
 
 from gsl.core.models import Perimetre
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import DOTATION_DSIL
+from gsl.projet.constants import Dotation
 
 
 class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
@@ -14,8 +14,8 @@ class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):
         self.campagne = campagne
         if self.user_perimetre.type == Perimetre.TYPE_REGION:
             self.fields["dotation"].widget = self.fields["dotation"].hidden_widget()
-            self.fields["dotation"].choices = ((DOTATION_DSIL, DOTATION_DSIL),)
-            self.fields["dotation"].initial = DOTATION_DSIL
+            self.fields["dotation"].choices = ((Dotation.DSIL, Dotation.DSIL),)
+            self.fields["dotation"].initial = Dotation.DSIL
         self.fields["perimetre"].queryset = Perimetre.objects.filter(
             pk__in=(
                 p.id

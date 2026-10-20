@@ -9,7 +9,7 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl.projet.constants import DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 from ..models import Simulation, SimulationProjet
@@ -135,7 +135,7 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_assiette():
 @pytest.mark.django_db
 def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=100,
     )
@@ -154,8 +154,8 @@ def test_simulation_projet_cant_have_a_montant_higher_than_projet_cout_total():
 
 @pytest.mark.django_db
 def test_simulation_projet_must_have_a_dotation_consistency():
-    enveloppe_projet = EnveloppeProjetFactory(dotation=DOTATION_DSIL)
-    simulation = SimulationFactory(enveloppe__dotation=DOTATION_DETR)
+    enveloppe_projet = EnveloppeProjetFactory(dotation=Dotation.DSIL)
+    simulation = SimulationFactory(enveloppe__dotation=Dotation.DETR)
 
     with pytest.raises(ValidationError) as exc_info:
         sp = SimulationProjetFactory(

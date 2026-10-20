@@ -4,7 +4,7 @@ from django import forms
 from django.forms.widgets import CheckboxSelectMultiple
 from dsfr.forms import DsfrBaseForm
 
-from gsl.projet.constants import DOTATION_CHOICES, DOTATION_DETR, DOTATION_DSIL
+from gsl.projet.constants import Dotation
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl_demarches_simplifiees.models import (
     CategorieDetr,
@@ -27,7 +27,7 @@ class DotationFormField(forms.MultipleChoiceField):
         *args,
         **kwargs,
     ):
-        super().__init__(*args, choices=DOTATION_CHOICES, **kwargs)
+        super().__init__(*args, choices=Dotation.choices, **kwargs)
 
     def prepare_value(self, value):
         list_value = []
@@ -86,9 +86,9 @@ class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
 
     def save(self, commit=True):
         dotations = self.cleaned_data.get("demande_dispositif_sollicite", [])
-        if DOTATION_DETR not in dotations:
+        if Dotation.DETR not in dotations:
             self.instance.demande_categorie_detr = None
-        if DOTATION_DSIL not in dotations:
+        if Dotation.DSIL not in dotations:
             self.instance.demande_categorie_dsil = None
 
         self.instance.projet.dotations_updated_in_app = True

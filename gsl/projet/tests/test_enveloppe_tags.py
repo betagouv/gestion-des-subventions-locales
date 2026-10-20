@@ -13,8 +13,7 @@ from gsl.programmation.tests.factories import (
 )
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ..templatetags.enveloppe_tags import enveloppe_summary_line
@@ -43,7 +42,7 @@ def detr_enveloppe(perimetre_departemental):
 def submitted_projets(perimetre_departemental, detr_enveloppe):
     for _ in range(4):
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=detr_enveloppe,
             projet__dossier_ds__perimetre=perimetre_departemental,
@@ -57,7 +56,7 @@ def submitted_projets(perimetre_departemental, detr_enveloppe):
 def projets_programmes(perimetre_departemental, detr_enveloppe):
     for _ in range(3):
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.REFUSED,
             enveloppe=detr_enveloppe,
             projet__dossier_ds__perimetre=perimetre_departemental,
@@ -69,7 +68,7 @@ def projets_programmes(perimetre_departemental, detr_enveloppe):
 
     for montant in (200_000, 300_000):
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=detr_enveloppe,
             montant=montant,
@@ -144,7 +143,7 @@ class TestDelegatedEnveloppe:
             status=ProjetStatus.ACCEPTED,
             montant=200_000,
             projet__dossier_ds__demande_montant=500_000,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
         EnveloppeProjetFactory(
@@ -152,7 +151,7 @@ class TestDelegatedEnveloppe:
             projet__dossier_ds__perimetre=perimetre_arr_2,
             status=ProjetStatus.REFUSED,
             projet__dossier_ds__demande_montant=400_000,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             projet__dossier_ds__ds_date_depot=datetime(2020, 12, 1, tzinfo=UTC),
         )
 
@@ -205,7 +204,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
 
         EnveloppeProjetFactory(
             enveloppe=self.dsil_enveloppe,
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             projet__dossier_ds__perimetre=arrondissement,
             status=ProjetStatus.ACCEPTED,
             montant=200_000,
@@ -214,7 +213,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
         )
         EnveloppeProjetFactory(
             enveloppe=self.dsil_enveloppe,
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             projet__dossier_ds__perimetre=arrondissement,
             status=ProjetStatus.REFUSED,
             projet__dossier_ds__demande_montant=400_000,
@@ -224,7 +223,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
         # Outside the arrondissement, inside the departement
         EnveloppeProjetFactory(
             enveloppe=self.dsil_enveloppe,
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             projet__dossier_ds__perimetre=PerimetreArrondissementFactory(
                 arrondissement__departement=arrondissement.departement
             ),
@@ -236,7 +235,7 @@ class TestDelegatedEnveloppeWithTreeLevels:
         # Outside the departement, inside the region
         EnveloppeProjetFactory(
             enveloppe=self.dsil_enveloppe,
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             projet__dossier_ds__perimetre=PerimetreDepartementalFactory(
                 departement__region=arrondissement.region,
                 region=arrondissement.region,
@@ -288,7 +287,7 @@ class TestExcludeInactiveProjets:
         # 2 active accepted projets
         for montant in (100_000, 150_000):
             EnveloppeProjetFactory(
-                dotation=DOTATION_DETR,
+                dotation=Dotation.DETR,
                 status=ProjetStatus.ACCEPTED,
                 enveloppe=self.enveloppe,
                 montant=montant,
@@ -299,7 +298,7 @@ class TestExcludeInactiveProjets:
 
         # 1 active refused projet
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.REFUSED,
             enveloppe=self.enveloppe,
             projet__dossier_ds__perimetre=perimetre,
@@ -309,7 +308,7 @@ class TestExcludeInactiveProjets:
 
         # 1 active projet without programmation (eligible, not yet programmed)
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=self.enveloppe,
             projet__dossier_ds__perimetre=perimetre,
@@ -319,7 +318,7 @@ class TestExcludeInactiveProjets:
 
         # 1 INACTIVE accepted projet — must be excluded everywhere
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=self.enveloppe,
             montant=999_000,
@@ -331,7 +330,7 @@ class TestExcludeInactiveProjets:
 
         # 1 INACTIVE projet without programmation — must be excluded from included
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=self.enveloppe,
             projet__dossier_ds__is_active=False,
@@ -383,7 +382,7 @@ class TestOnlyEnveloppeProjetsLinkedToTheEnveloppe:
             (ProjetStatus.DISMISSED, None),
         ):
             EnveloppeProjetFactory(
-                dotation=DOTATION_DETR,
+                dotation=Dotation.DETR,
                 status=status,
                 enveloppe=self.enveloppe,
                 montant=montant,
@@ -397,7 +396,7 @@ class TestOnlyEnveloppeProjetsLinkedToTheEnveloppe:
 
         # Linked to the enveloppe although deposited after its year
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=self.enveloppe,
             montant=50_000,
@@ -409,7 +408,7 @@ class TestOnlyEnveloppeProjetsLinkedToTheEnveloppe:
 
         # Deposited during the enveloppe's year, but linked to the next year one
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             enveloppe=self.next_year_enveloppe,
             projet__dossier_ds__perimetre=perimetre,
@@ -417,7 +416,7 @@ class TestOnlyEnveloppeProjetsLinkedToTheEnveloppe:
             projet__dossier_ds__ds_date_depot=datetime(2021, 6, 1, tzinfo=UTC),
         )
         EnveloppeProjetFactory(
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             enveloppe=self.next_year_enveloppe,
             montant=400_000,
@@ -445,11 +444,11 @@ class TestOnlyEnveloppeProjetsLinkedToTheEnveloppe:
 
         for enveloppe, dotation, projet_perimetre in (
             # Same perimetre, previous year, processed during the enveloppe's year
-            (previous_year_enveloppe, DOTATION_DETR, perimetre),
+            (previous_year_enveloppe, Dotation.DETR, perimetre),
             # Same year, perimetre not included in the enveloppe's one
-            (other_departement_enveloppe, DOTATION_DETR, other_departement_perimetre),
+            (other_departement_enveloppe, Dotation.DETR, other_departement_perimetre),
             # Same year, perimetre including the enveloppe's one, other dotation
-            (dsil_enveloppe, DOTATION_DSIL, perimetre),
+            (dsil_enveloppe, Dotation.DSIL, perimetre),
         ):
             for status, montant in (
                 (ProjetStatus.PROCESSING, None),
@@ -520,7 +519,7 @@ class TestDelegatedEnveloppeOnlyCountsEnveloppeProjetsLinkedToItsRoot:
 
         EnveloppeProjetFactory(
             enveloppe=self.detr_enveloppe,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             montant=200_000,
             projet__dossier_ds__perimetre=perimetre_arrondissement,
@@ -530,7 +529,7 @@ class TestDelegatedEnveloppeOnlyCountsEnveloppeProjetsLinkedToItsRoot:
         # Same arrondissement, deposited in 2021, but linked to the 2022 enveloppe
         EnveloppeProjetFactory(
             enveloppe=next_year_enveloppe,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             montant=300_000,
             projet__dossier_ds__perimetre=perimetre_arrondissement,
@@ -542,7 +541,7 @@ class TestDelegatedEnveloppeOnlyCountsEnveloppeProjetsLinkedToItsRoot:
         # delegated enveloppe's perimetre
         EnveloppeProjetFactory(
             enveloppe=self.detr_enveloppe,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             montant=100_000,
             projet__dossier_ds__perimetre=other_perimetre_arrondissement,
@@ -552,7 +551,7 @@ class TestDelegatedEnveloppeOnlyCountsEnveloppeProjetsLinkedToItsRoot:
         # Same arrondissement, linked to the previous year enveloppe
         EnveloppeProjetFactory(
             enveloppe=previous_year_enveloppe,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
             montant=250_000,
             projet__dossier_ds__perimetre=perimetre_arrondissement,

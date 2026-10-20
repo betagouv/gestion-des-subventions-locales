@@ -11,7 +11,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 from ...models import SimulationProjet
@@ -118,7 +118,7 @@ def test_start_view_rejects_foreign_perimeter_ids(
     other_dp = EnveloppeProjetFactory(
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=other_perim,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=10_000,
     )
     outsider = SimulationProjetFactory(

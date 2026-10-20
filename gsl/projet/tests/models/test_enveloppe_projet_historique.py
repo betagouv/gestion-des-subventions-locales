@@ -3,7 +3,7 @@ from django.db import IntegrityError, transaction
 
 from gsl.simulation.tests.factories import SimulationProjetFactory
 
-from ...constants import DOTATION_DETR, ProjetStatus
+from ...constants import Dotation, ProjetStatus
 from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
@@ -19,7 +19,7 @@ def projet():
 def non_courant(projet):
     return EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         is_courant=False,
     )
@@ -47,7 +47,7 @@ def test_acces_par_cle_etrangere_atteint_un_non_courant(non_courant):
 
 def test_deux_courants_sur_la_meme_enveloppe_sont_refuses(projet):
     courant = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
 
     with pytest.raises(IntegrityError), transaction.atomic():

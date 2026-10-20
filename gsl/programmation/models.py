@@ -5,9 +5,7 @@ from django.db.models import Q
 
 from gsl.core.models import BaseModel, Perimetre
 from gsl.projet.constants import (
-    DOTATION_CHOICES,
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
 )
 
 
@@ -17,18 +15,18 @@ class EnveloppeQueryset(models.QuerySet):
         self, dotation: str | None = None, perimetre: Perimetre | None = None, **kwargs
     ):
         # Business constraints (there for safety but should never raise, we have form validation)
-        if dotation == DOTATION_DETR and perimetre.type == Perimetre.TYPE_REGION:
+        if dotation == Dotation.DETR and perimetre.type == Perimetre.TYPE_REGION:
             raise ValueError("For a DETR Enveloppe, region perimeter is not allowed")
 
         new_obj = super().create(dotation=dotation, perimetre=perimetre, **kwargs)
         if (
             new_obj.is_deleguee
             or (
-                new_obj.dotation == DOTATION_DETR
+                new_obj.dotation == Dotation.DETR
                 and new_obj.perimetre.arrondissement is None
             )
             or (
-                new_obj.dotation == DOTATION_DSIL
+                new_obj.dotation == Dotation.DSIL
                 and new_obj.perimetre.departement is None
             )
         ):
@@ -57,7 +55,7 @@ class EnveloppeQueryset(models.QuerySet):
             | Q(parent__parent__perimetre=user.perimetre)
         )
         if user.perimetre.type == Perimetre.TYPE_REGION:
-            qs = qs.filter(dotation=DOTATION_DSIL)
+            qs = qs.filter(dotation=Dotation.DSIL)
         return qs
 
     def root_for(self, dotation: str, perimetre: Perimetre, annee: int) -> "Enveloppe":
@@ -84,7 +82,7 @@ class EnveloppeManager(models.Manager.from_queryset(EnveloppeQueryset)):
 
 
 class Enveloppe(BaseModel):
-    dotation = models.CharField("Dotation", choices=DOTATION_CHOICES)
+    dotation = models.CharField("Dotation", choices=Dotation.choices)
     montant = models.DecimalField(
         "Montant",
         max_digits=14,
@@ -143,7 +141,7 @@ class Enveloppe(BaseModel):
         return self.perimetre.type == Perimetre.TYPE_ARRONDISSEMENT
 
     def clean(self):
-        if self.dotation == DOTATION_DETR:  # scope "département"
+        if self.dotation == Dotation.DETR:  # scope "département"
             if self.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(
                     "Une enveloppe DETR ne peut pas avoir un périmètre régional."
@@ -162,7 +160,7 @@ class Enveloppe(BaseModel):
                     "Une enveloppe DETR et de périmètre arrondissement doit obligatoirement être déléguée."
                 )
 
-        if self.dotation == DOTATION_DSIL:
+        if self.dotation == Dotation.DSIL:
             if self.is_deleguee and self.perimetre.type == Perimetre.TYPE_REGION:
                 raise ValidationError(
                     "Une enveloppe DSIL déléguée ne peut pas être une enveloppe régionale."

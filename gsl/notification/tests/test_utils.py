@@ -29,7 +29,7 @@ from gsl.notification.utils import (
     merge_generated_documents_into_pdf,
     replace_mentions_in_html,
 )
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl.projet.utils.utils import (
     _get_uploaded_document_pdf,
@@ -458,7 +458,7 @@ class TestMergeGeneratedDocumentsIntoPdf:
 @pytest.mark.django_db
 def test_generate_pdf_for_generated_document(enveloppe_projet):
     modele = ModeleLettreNotificationFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         perimetre=enveloppe_projet.projet.dossier_ds.perimetre,
     )
     document = LettreNotificationFactory(

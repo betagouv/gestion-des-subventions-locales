@@ -10,8 +10,7 @@ from gsl.core.campagne import get_campagne
 from gsl.core.models import Perimetre
 from gsl.programmation.models import Enveloppe
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet
@@ -136,7 +135,7 @@ class ProgrammationFilters(CommonFiltersFields):
         dotation = self.request.resolver_match.kwargs.get("dotation")
         visible_dossiers = Dossier.objects.for_user(self.request.user)
 
-        if dotation == DOTATION_DETR:
+        if dotation == Dotation.DETR:
             self.filters["categorie_detr"].queryset = (
                 CategorieDetr.objects.active()
                 .filter(dossier__in=visible_dossiers)
@@ -146,7 +145,7 @@ class ProgrammationFilters(CommonFiltersFields):
         else:
             del self.filters["categorie_detr"]
 
-        if dotation == DOTATION_DSIL:
+        if dotation == Dotation.DSIL:
             self.filters["categorie_dsil"].queryset = (
                 CategorieDsil.objects.active()
                 .filter(dossier__in=visible_dossiers)

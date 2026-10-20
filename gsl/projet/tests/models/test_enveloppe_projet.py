@@ -30,8 +30,7 @@ from gsl.simulation.tests.factories import SimulationProjetFactory
 from gsl_demarches_simplifiees.models import Dossier
 
 from ...constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ...models import (
@@ -114,7 +113,7 @@ def test_montant_and_date_refused_by_status(status, montant, with_date):
 
 def test_dsil_enveloppe_projet_must_have_a_detr_avis_commission_null():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL, detr_avis_commission=True
+        dotation=Dotation.DSIL, detr_avis_commission=True
     )
     with pytest.raises(ValidationError) as exc_info:
         enveloppe_projet.full_clean()
@@ -191,10 +190,10 @@ def test_is_treated(status, expected):
 @pytest.mark.parametrize(
     ("dotation, avis_commission, must_raise_error"),
     (
-        (DOTATION_DETR, True, False),
-        (DOTATION_DETR, False, False),
-        (DOTATION_DSIL, True, True),
-        (DOTATION_DSIL, False, True),
+        (Dotation.DETR, True, False),
+        (Dotation.DETR, False, False),
+        (Dotation.DSIL, True, True),
+        (Dotation.DSIL, False, True),
     ),
 )
 def test_error_raised_if_detr_avis_commission_is_set_on_dsil_projet(
@@ -228,7 +227,7 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
     cout_total, assiette, must_raise_error
 ):
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=assiette,
         projet__dossier_ds__finance_cout_total=cout_total,
     )
@@ -248,20 +247,20 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
 
 @pytest.mark.django_db
 def test_get_other_accepted_dotations_with_one_processing_dotation():
-    detr_dp = EnveloppeProjetFactory(dotation=DOTATION_DETR)
+    detr_dp = EnveloppeProjetFactory(dotation=Dotation.DETR)
 
     assert detr_dp.other_accepted_dotations == []
 
     dsil_dp = EnveloppeProjetFactory(
         projet=detr_dp.projet,
         status=ProjetStatus.PROCESSING,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
     )
     assert detr_dp.other_accepted_dotations == []
 
     dsil_dp.accept_without_ds_update(montant=1_000, enveloppe=DsilEnveloppeFactory())
     dsil_dp.save()
-    assert detr_dp.other_accepted_dotations == [DOTATION_DSIL]
+    assert detr_dp.other_accepted_dotations == [Dotation.DSIL]
 
 
 # Accept
@@ -269,7 +268,7 @@ def test_get_other_accepted_dotations_with_one_processing_dotation():
 
 def test_accept_enveloppe_projet_without_simulation_projet():
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        assiette=10_000, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
     assert enveloppe_projet.projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
 
@@ -296,7 +295,7 @@ def test_accept_enveloppe_projet_without_simulation_projet():
 
 def test_accept_enveloppe_projet():
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        assiette=10_000, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
     assert enveloppe_projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
 
@@ -348,7 +347,7 @@ def test_accept_enveloppe_projet_replaces_a_previous_programmation():
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=9_000,
         status=ProjetStatus.REFUSED,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         enveloppe=enveloppe,
     )
 
@@ -370,7 +369,7 @@ def test_accept_enveloppe_projet_select_parent_enveloppe():
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=9_000,
         status=ProjetStatus.PROCESSING,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
     )
     parent_enveloppe = DsilEnveloppeFactory()
     child_enveloppe = DsilEnveloppeFactory(parent=parent_enveloppe)
@@ -386,7 +385,7 @@ def test_accept_enveloppe_projet_select_parent_enveloppe():
 
 def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
     )
     enveloppe = DsilEnveloppeFactory()
@@ -400,7 +399,7 @@ def test_accept_with_a_dotation_enveloppe_different_from_the_dotation():
 
 def test_accept_creates_status_change_action_when_status_was_different():
     enveloppe_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        assiette=10_000, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
     enveloppe = DetrEnveloppeFactory(annee=2025)
 
@@ -419,7 +418,7 @@ def test_accept_does_not_create_status_change_action_when_already_accepted_and_s
     enveloppe = DetrEnveloppeFactory(annee=2025)
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         enveloppe=enveloppe,
     )
@@ -440,7 +439,7 @@ def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe
     new_enveloppe = DetrEnveloppeFactory(annee=2025)
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=10_000,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
         enveloppe=old_enveloppe,
     )
@@ -461,7 +460,7 @@ def test_accept_creates_status_change_action_when_already_accepted_but_enveloppe
 
 def test_refusing_a_enveloppe_projet_programmes_it():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
+        status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
     )
     assert enveloppe_projet.status == ProjetStatus.PROCESSING
     assert enveloppe_projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
@@ -481,7 +480,7 @@ def test_refusing_a_enveloppe_projet_programmes_it():
 
 def test_refusing_a_projet_updates_all_simulation_projet():
     enveloppe_projet = EnveloppeProjetFactory(
-        status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
+        status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
     )
     assert enveloppe_projet.status == ProjetStatus.PROCESSING
     assert enveloppe_projet.dossier_ds.ds_state == Dossier.State.EN_INSTRUCTION
@@ -525,7 +524,7 @@ def test_refusing_a_projet_updates_all_simulation_projet():
 
 def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
     )
     enveloppe = DsilEnveloppeFactory()
@@ -550,7 +549,7 @@ def test_refuse_with_an_dotation_enveloppe_different_from_the_dotation():
 def test_dismiss(status, montant):
     enveloppe = DetrEnveloppeFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        status=status, dotation=DOTATION_DETR, enveloppe=enveloppe
+        status=status, dotation=Dotation.DETR, enveloppe=enveloppe
     )
 
     simulation_projet_status = (
@@ -585,7 +584,7 @@ def test_dismiss(status, montant):
 def test_dismiss_from_processing():
     enveloppe = DetrEnveloppeFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        status=ProjetStatus.PROCESSING, dotation=DOTATION_DETR
+        status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
     )
     SimulationProjetFactory.create_batch(
         3,
@@ -625,7 +624,7 @@ def test_transition_action_uses_turgot_source_when_actor_given(
     transition_name, transition_kwargs, expected_status
 ):
     dotation_projet = EnveloppeProjetFactory(
-        assiette=10_000, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        assiette=10_000, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
     enveloppe = DetrEnveloppeFactory(annee=2025)
     actor = CollegueFactory()
@@ -656,7 +655,7 @@ def test_transition_action_uses_dn_source_and_now_when_no_actor_and_no_ds_date_t
 ):
     dotation_projet = EnveloppeProjetFactory(
         assiette=10_000,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__ds_date_traitement=None,
     )
@@ -690,7 +689,7 @@ def test_transition_action_is_backdated_to_ds_date_traitement_when_no_actor(
     ds_date_traitement = timezone.now() - timezone.timedelta(days=3)
     dotation_projet = EnveloppeProjetFactory(
         assiette=10_000,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__ds_date_traitement=ds_date_traitement,
     )
@@ -805,7 +804,7 @@ def test_set_back_status_to_processing_without_ds_creates_a_new_courant_envelopp
 ):
     enveloppe_projet = EnveloppeProjetFactory(
         status=status,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=50_000,
         detr_avis_commission=True,
         projet__dossier_ds__demande_montant=200_000,
@@ -862,10 +861,10 @@ def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
     projet = ProjetFactory()
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
     other_dotation = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.ACCEPTED
     )
 
     enveloppe_projet.set_back_status_to_processing(user=user)
@@ -888,7 +887,7 @@ def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notifi
     projet = ProjetFactory(notified_at=timezone.now())
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
 
     enveloppe_projet.set_back_status_to_processing(user=user)
@@ -909,7 +908,7 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
     projet = ProjetFactory(notified_at=None)
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
 
     enveloppe_projet.set_back_status_to_processing(user=user)
@@ -941,7 +940,7 @@ def test_set_back_status_to_processing_resets_notified_at(
 
 def test_enveloppe_projet_assiette_defaults_to_finance_cout_total_when_no_annotation():
     dp = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
         projet__dossier_ds__annotations_assiette_detr=None,
@@ -951,7 +950,7 @@ def test_enveloppe_projet_assiette_defaults_to_finance_cout_total_when_no_annota
 
 def test_enveloppe_projet_assiette_uses_detr_annotation_when_set():
     dp = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
         projet__dossier_ds__annotations_assiette_detr=30_000,
@@ -961,7 +960,7 @@ def test_enveloppe_projet_assiette_uses_detr_annotation_when_set():
 
 def test_enveloppe_projet_assiette_uses_dsil_annotation_when_set():
     dp = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
         projet__dossier_ds__annotations_assiette_dsil=20_000,
@@ -979,7 +978,7 @@ def test_enveloppe_projet_assiette_explicit_value_kept():
 
 def test_enveloppe_projet_assiette_stays_none_when_no_cout_total_and_no_annotation():
     dp = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=None,
         projet__dossier_ds__annotations_assiette_detr=None,
@@ -989,7 +988,7 @@ def test_enveloppe_projet_assiette_stays_none_when_no_cout_total_and_no_annotati
 
 def test_enveloppe_projet_save_update_does_not_reset_assiette():
     dp = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=None,
         projet__dossier_ds__finance_cout_total=50_000,
         projet__dossier_ds__annotations_assiette_detr=None,
@@ -1093,10 +1092,10 @@ def test_montant_cant_be_higher_than_assiette():
 
 def test_a_projet_can_be_accepted_on_two_different_enveloppes():
     detr_dotation = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
     EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         projet=detr_dotation.projet,
         status=ProjetStatus.ACCEPTED,
         enveloppe=DsilEnveloppeFactory(annee=detr_dotation.enveloppe.annee),
@@ -1110,7 +1109,7 @@ def test_clean_rejects_a_deleguee_enveloppe():
     )
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.ACCEPTED,
         montant=Decimal("100.00"),
         assiette=Decimal("1234.00"),
@@ -1128,7 +1127,7 @@ def test_clean_accepts_a_coherent_programmation():
     perimetre = PerimetreArrondissementFactory()
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.ACCEPTED,
         montant=Decimal("100.00"),
         assiette=Decimal("1234.00"),
@@ -1154,7 +1153,7 @@ def test_clean_rejects_a_refused_dotation_with_a_montant():
 
 def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.ACCEPTED,
         enveloppe=DsilEnveloppeFactory(),
     )

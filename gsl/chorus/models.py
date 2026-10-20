@@ -1,7 +1,7 @@
 from django.db import models
 
 from gsl.core.models import BaseModel
-from gsl.projet.constants import DOTATION_CHOICES
+from gsl.projet.constants import Dotation
 
 # Chorus "Ty.val." (type de pièce) — column TV.
 TV_LABELS = {
@@ -69,7 +69,7 @@ class SuiviFinancier(BaseModel):
     ej = models.CharField("EJ (n° pièce Chorus)", max_length=20, db_index=True)
     dn = models.IntegerField("Numéro DN", null=True, blank=True, db_index=True)
     dotation = models.CharField(
-        "Dotation", max_length=4, blank=True, choices=DOTATION_CHOICES
+        "Dotation", max_length=4, blank=True, choices=Dotation.choices
     )
     montant = models.DecimalField("Montant", max_digits=15, decimal_places=2)
     date_transaction = models.DateField(

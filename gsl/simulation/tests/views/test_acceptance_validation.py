@@ -21,8 +21,7 @@ from gsl.core.tests.factories import (
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -64,7 +63,7 @@ def _make_simulation_projet(collegue, simulation, *, assiette, montant):
     enveloppe_projet = EnveloppeProjetFactory(
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=collegue.perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=assiette,
     )
     enveloppe_projet.projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)
@@ -204,13 +203,13 @@ class TestAcceptanceModalView:
         projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)
         detr_dotation = EnveloppeProjetFactory(
             projet=projet,
-            dotation=DOTATION_DETR,
+            dotation=Dotation.DETR,
             status=ProjetStatus.PROCESSING,
             assiette=3_000,
         )
         EnveloppeProjetFactory(
             projet=projet,
-            dotation=DOTATION_DSIL,
+            dotation=Dotation.DSIL,
             status=ProjetStatus.PROCESSING,
             assiette=15_000,
         )

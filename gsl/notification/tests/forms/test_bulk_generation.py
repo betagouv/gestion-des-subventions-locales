@@ -15,7 +15,7 @@ from gsl.notification.tests.factories import (
 from gsl.notification.utils import MENTIONS
 from gsl.projet.constants import (
     ARRETE,
-    DOTATION_DETR,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet
@@ -29,7 +29,7 @@ def test_generate_documents_step3_form_exposes_with_qr_code():
     user = CollegueFactory()
     field = GenerateDocumentsFormatForm(
         user=user,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         request=None,
         document_type=ARRETE,
     ).fields["with_qr_code"]
@@ -44,7 +44,7 @@ def test_generate_documents_step3_form_valid_without_qr_field_submitted():
     form = GenerateDocumentsFormatForm(
         data={"export_format": EXPORT_FORMAT_ONE_PDF_ALL},
         user=user,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         request=None,
         document_type=ARRETE,
     )
@@ -68,7 +68,7 @@ def _save_documents(enveloppe_projets, modele) -> int:
     returns the number of queries it issued."""
     form = GenerateDocumentsCreateForm(
         user=CollegueFactory(),
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         request=None,
         enveloppe_projets=EnveloppeProjet.objects.filter(
             pk__in=[dp.pk for dp in enveloppe_projets]
@@ -90,16 +90,16 @@ def test_generate_documents_create_form_save_is_not_n_plus_1_on_all_mentions():
     chain for every mention, so the batch must eager-load it once for the
     whole batch instead of once per projet."""
     modele = ModeleLettreNotificationFactory(
-        dotation=DOTATION_DETR, content=_content_with_every_mention()
+        dotation=Dotation.DETR, content=_content_with_every_mention()
     )
 
     one = EnveloppeProjetFactory.create_batch(
-        1, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        1, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
     queries_for_one = _save_documents(one, modele)
 
     five = EnveloppeProjetFactory.create_batch(
-        5, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        5, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
     queries_for_five = _save_documents(five, modele)
 

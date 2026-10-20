@@ -3,8 +3,7 @@ import pytest
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ..models import EnveloppeProjet, Projet
@@ -24,7 +23,7 @@ def test_update_projet_status_on_post_save():
     enveloppe_projet: EnveloppeProjet = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.DISMISSED,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         enveloppe=enveloppe,
     )
 
@@ -46,10 +45,10 @@ def test_update_projet_status_on_post_save():
 def test_update_projet_status_on_post_delete():
     projet = ProjetFactory()
     accepted_enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.ACCEPTED, dotation=DOTATION_DETR
+        projet=projet, status=ProjetStatus.ACCEPTED, dotation=Dotation.DETR
     )
     EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.REFUSED, dotation=DOTATION_DSIL
+        projet=projet, status=ProjetStatus.REFUSED, dotation=Dotation.DSIL
     )
 
     accepted_enveloppe_projet.delete()
@@ -75,7 +74,7 @@ def test_status_mixed_dotations(
     accepted, processing, refused, dismissed, expected_status
 ):
     projet = ProjetFactory()
-    current_dotation = DOTATION_DETR
+    current_dotation = Dotation.DETR
 
     if accepted:
         EnveloppeProjetFactory(
@@ -83,21 +82,21 @@ def test_status_mixed_dotations(
             status=ProjetStatus.ACCEPTED,
             dotation=current_dotation,
         )
-        current_dotation = DOTATION_DSIL
+        current_dotation = Dotation.DSIL
     if processing:
         EnveloppeProjetFactory(
             projet=projet,
             status=ProjetStatus.PROCESSING,
             dotation=current_dotation,
         )
-        current_dotation = DOTATION_DSIL
+        current_dotation = Dotation.DSIL
     if refused:
         EnveloppeProjetFactory(
             projet=projet,
             status=ProjetStatus.REFUSED,
             dotation=current_dotation,
         )
-        current_dotation = DOTATION_DSIL
+        current_dotation = Dotation.DSIL
     if dismissed:
         EnveloppeProjetFactory(
             projet=projet,

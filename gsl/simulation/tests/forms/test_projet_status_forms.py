@@ -7,7 +7,7 @@ from gsl.core.models import Collegue
 from gsl.core.tests.factories import CollegueFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import (
-    DOTATION_DETR,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -116,7 +116,7 @@ def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING,
         simulation=simulation,
-        enveloppe_projet__dotation=DOTATION_DETR,
+        enveloppe_projet__dotation=Dotation.DETR,
         enveloppe_projet__status=ProjetStatus.PROCESSING,
     )
     new_status = SimulationProjet.STATUS_ACCEPTED
@@ -163,7 +163,7 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
     simulation = SimulationFactory(enveloppe=child_enveloppe)
     enveloppe_projet = EnveloppeProjetFactory(
         projet__dossier_ds__perimetre=child_enveloppe.perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=initial_programmation_status,
         enveloppe=mother_enveloppe,
     )

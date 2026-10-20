@@ -6,7 +6,7 @@ from factory.django import DjangoModelFactory
 
 from gsl.core.tests.factories import BulkActionsJobFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import DOTATION_DETR, ProjetStatus
+from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 from ..models import BULK_STATUS_ACTION, Simulation, SimulationProjet
@@ -77,7 +77,7 @@ def make_detr_simu_projet(
     enveloppe_projet = EnveloppeProjetFactory(
         status=dotation_status,
         projet__dossier_ds__perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         assiette=assiette,
     )
     return cast(

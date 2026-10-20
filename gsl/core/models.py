@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
-from gsl.projet.constants import DOTATION_DETR
+from gsl.projet.constants import Dotation
 
 
 class BaseModel(models.Model):
@@ -313,7 +313,7 @@ class Perimetre(BaseModel):
 
     def for_dotation(self, dotation: str) -> "Perimetre":
         """A DETR root enveloppe sits on a departement, a DSIL one on a region."""
-        departement_id = self.departement_id if dotation == DOTATION_DETR else None
+        departement_id = self.departement_id if dotation == Dotation.DETR else None
         return Perimetre.objects.get_or_create(
             region_id=self.region_id,
             departement_id=departement_id,

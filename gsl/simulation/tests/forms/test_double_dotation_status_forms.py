@@ -20,8 +20,7 @@ from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
@@ -44,13 +43,13 @@ def double_enveloppe_projet_detr_dsil():
     projet = ProjetFactory()
     detr_dotation = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         assiette=10_000,
     )
     dsil_dotation = EnveloppeProjetFactory(
         projet=projet,
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.PROCESSING,
         assiette=15_000,
     )
@@ -312,8 +311,8 @@ class TestAcceptOneDoubleDotation:
         mock_ds_update.assert_called_once_with(
             dossier=projet.dossier_ds,
             user=user,
-            dotations_to_be_checked=[DOTATION_DETR],
-            annotations_dotation_to_update=DOTATION_DETR,
+            dotations_to_be_checked=[Dotation.DETR],
+            annotations_dotation_to_update=Dotation.DETR,
             assiette=detr_dotation.assiette,
             montant=detr_simulation_projet.montant,
             taux=detr_simulation_projet.taux,

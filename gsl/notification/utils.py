@@ -28,8 +28,7 @@ from gsl.notification.models import (
 )
 from gsl.notification.qr.codec import build_payload, generate_qr_png_data_uri
 from gsl.projet.constants import (
-    DOTATION_DETR,
-    POSSIBLE_DOTATIONS,
+    Dotation,
 )
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.utils.utils import merge_pdf_bytes
@@ -219,9 +218,7 @@ def replace_mentions_in_html(htmlContent: str, enveloppe_projet: EnveloppeProjet
     return str(soup)
 
 
-def get_modele_perimetres(
-    dotation: POSSIBLE_DOTATIONS, perimetre: Perimetre
-) -> list[Perimetre]:
+def get_modele_perimetres(dotation: Dotation, perimetre: Perimetre) -> list[Perimetre]:
     """
     | user périmètre | DETR                     | DSIL                       |
     | -------------- | ------------------------ | -------------------------- |
@@ -230,7 +227,7 @@ def get_modele_perimetres(
     | Région         | /                        | Ma région                  |
     """
     try:
-        if dotation == DOTATION_DETR:
+        if dotation == Dotation.DETR:
             if perimetre.type == Perimetre.TYPE_ARRONDISSEMENT:
                 return [
                     perimetre,

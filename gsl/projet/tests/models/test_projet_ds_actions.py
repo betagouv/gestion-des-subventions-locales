@@ -7,7 +7,7 @@ from gsl.core.tests.factories import CollegueFactory
 from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 from gsl_demarches_simplifiees.models import Dossier
 
-from ...constants import DOTATION_DETR, ProjetStatus
+from ...constants import Dotation, ProjetStatus
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -26,7 +26,7 @@ DS_NOTIFY_METHODS = ("accepter", "refuser", "classer_sans_suite")
 )
 def test_notify_calls_the_ds_method_matching_projet_status(status, expected_method):
     projet = ProjetFactory(dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION)
-    EnveloppeProjetFactory(projet=projet, dotation=DOTATION_DETR, status=status)
+    EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR, status=status)
     user = CollegueFactory()
 
     with _patch_ds_notify_methods() as mocks:
@@ -44,7 +44,7 @@ def test_notify_calls_the_ds_method_matching_projet_status(status, expected_meth
 def test_notify_merges_imported_documents_into_one_pdf():
     projet = ProjetFactory(dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION)
     enveloppe_projet = EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.ACCEPTED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
     LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
     merged_pdf = mock.sentinel.merged_pdf
@@ -64,7 +64,7 @@ def test_notify_merges_imported_documents_into_one_pdf():
 def test_notify_without_imported_documents_does_not_merge():
     projet = ProjetFactory(dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION)
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.REFUSED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.REFUSED
     )
 
     with (
@@ -88,7 +88,7 @@ def test_notify_passes_dossier_en_instruction_only_when_en_construction(
 ):
     projet = ProjetFactory(dossier_ds__ds_state=ds_state)
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.REFUSED
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.REFUSED
     )
     user = CollegueFactory()
 
@@ -111,7 +111,7 @@ def test_notify_passes_dossier_en_instruction_only_when_en_construction(
 def test_notify_raises_on_processing_projet():
     projet = ProjetFactory(dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION)
     EnveloppeProjetFactory(
-        projet=projet, dotation=DOTATION_DETR, status=ProjetStatus.PROCESSING
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
 
     with _patch_ds_notify_methods() as mocks, pytest.raises(KeyError):

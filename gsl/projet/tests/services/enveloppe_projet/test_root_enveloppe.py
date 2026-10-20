@@ -18,8 +18,7 @@ from gsl_demarches_simplifiees.models import Dossier
 from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ....constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ....services.enveloppe_projet_services import EnveloppeProjetService
@@ -56,7 +55,7 @@ def test_refused_dotation_goes_to_the_root_enveloppe_with_a_detr_and_arrondissem
 ):
     arr_dijon, dep_21, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.State.REFUSE,
@@ -79,7 +78,7 @@ def test_refused_dotation_goes_to_the_root_enveloppe_with_a_dsil_and_region_proj
 ):
     arr_dijon, dep_21, region_bfc, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.State.REFUSE,
@@ -106,7 +105,7 @@ def test_refused_dotation_creates_the_missing_root_enveloppe(
     arr_dijon, _, region_bfc, *_ = perimetres
     enveloppe_2025 = DsilEnveloppeFactory(perimetre=region_bfc, annee=2025)
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.PROCESSING,
         enveloppe=enveloppe_2025,
         projet__dossier_ds__perimetre=arr_dijon,
@@ -131,7 +130,7 @@ def test_refused_dotation_creates_the_missing_root_enveloppe_without_montant(
 ):
     arr_dijon, _, region_bfc, *_ = perimetres
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.PROCESSING,
         enveloppe=DsilEnveloppeFactory(perimetre=region_bfc, annee=2020),
         projet__dossier_ds__perimetre=arr_dijon,
@@ -216,7 +215,7 @@ def test_refused_dotation_root_enveloppe_follows_the_treatment_year(
     DsilEnveloppeFactory(perimetre=region_bfc, annee=2027)
 
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL,
+        dotation=Dotation.DSIL,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=arr_dijon,
         projet__dossier_ds__ds_state=Dossier.State.REFUSE,

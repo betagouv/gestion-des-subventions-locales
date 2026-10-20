@@ -1,7 +1,7 @@
 import pytest
 from django import forms
 
-from ...constants import DOTATION_DETR
+from ...constants import Dotation
 from ...forms import EnveloppeProjetForm
 from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory
@@ -9,7 +9,7 @@ from ..factories import EnveloppeProjetFactory
 
 @pytest.fixture
 def enveloppe_projet():
-    return EnveloppeProjetFactory(dotation=DOTATION_DETR, detr_avis_commission=None)
+    return EnveloppeProjetFactory(dotation=Dotation.DETR, detr_avis_commission=None)
 
 
 @pytest.mark.django_db

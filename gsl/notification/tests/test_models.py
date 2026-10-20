@@ -20,9 +20,8 @@ from gsl.notification.tests.factories import (
 )
 from gsl.projet.constants import (
     ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
     LETTRE,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -216,9 +215,9 @@ def test_generate_document_validation_error_when_pp_and_model_have_different_dot
     modele_factory, factory
 ):
     enveloppe_projet = EnveloppeProjetFactory(
-        dotation=DOTATION_DSIL, status=ProjetStatus.ACCEPTED
+        dotation=Dotation.DSIL, status=ProjetStatus.ACCEPTED
     )
-    modele = modele_factory(dotation=DOTATION_DETR)
+    modele = modele_factory(dotation=Dotation.DETR)
     # Mock the logo base64 to avoid external requests during save()
     with patch("gsl.notification.utils.get_logo_base64", return_value="mocked_base64"):
         document = factory(enveloppe_projet=enveloppe_projet, modele=modele)
@@ -363,7 +362,7 @@ def test_two_models_have_different_logos():
         "name": "Nom du modèle",
         "description": "Description du modèle",
         "perimetre": PerimetreDepartementalFactory(),
-        "dotation": DOTATION_DETR,
+        "dotation": Dotation.DETR,
         "logo": updated_logo,
         "logo_alt_text": "texte alternatif",
         "top_right_text": "Texte en haut à droite",

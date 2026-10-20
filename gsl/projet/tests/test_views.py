@@ -25,8 +25,7 @@ from gsl_demarches_simplifiees.models import NaturePorteurProjet
 from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 
 from ..constants import (
-    DOTATION_DETR,
-    DOTATION_DSIL,
+    Dotation,
     ProjetStatus,
 )
 from ..models import Projet
@@ -206,7 +205,7 @@ def test_filter_by_dotation_only_detr(
 
     assert qs.count() == 3
     assert all(p.enveloppeprojet_set.count() == 1 for p in qs)
-    assert all(p.enveloppeprojet_set.first().dotation == DOTATION_DETR for p in qs)
+    assert all(p.enveloppeprojet_set.first().dotation == Dotation.DETR for p in qs)
 
 
 def test_filter_by_dotation_only_dsil(
@@ -225,7 +224,7 @@ def test_filter_by_dotation_only_dsil(
 
     assert qs.count() == 2
     assert all(p.enveloppeprojet_set.count() == 1 for p in qs)
-    assert all(p.enveloppeprojet_set.first().dotation == DOTATION_DSIL for p in qs)
+    assert all(p.enveloppeprojet_set.first().dotation == Dotation.DSIL for p in qs)
 
 
 def test_filter_by_dotation_detr_and_dsil(
@@ -244,8 +243,8 @@ def test_filter_by_dotation_detr_and_dsil(
 
     assert qs.count() == 3 + 2
     assert all(p.enveloppeprojet_set.count() == 1 for p in qs)
-    assert qs.filter(enveloppeprojet__enveloppe__dotation=DOTATION_DETR).count() == 3
-    assert qs.filter(enveloppeprojet__enveloppe__dotation=DOTATION_DSIL).count() == 2
+    assert qs.filter(enveloppeprojet__enveloppe__dotation=Dotation.DETR).count() == 3
+    assert qs.filter(enveloppeprojet__enveloppe__dotation=Dotation.DSIL).count() == 2
 
 
 def test_filter_by_dotation_only_detr_dsil(

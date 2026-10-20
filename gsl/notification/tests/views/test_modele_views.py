@@ -27,10 +27,9 @@ from gsl.notification.tests.factories import (
 )
 from gsl.projet.constants import (
     ARRETE,
-    DOTATION_DETR,
-    DOTATION_DSIL,
     LETTRE,
     LETTRE_REFUS,
+    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory
@@ -66,26 +65,26 @@ pytestmark = pytest.mark.django_db
 
 def test_list_modele_view(client, perimetre):
     # Must be in context
-    ModeleArreteFactory.create_batch(2, perimetre=perimetre, dotation=DOTATION_DETR)
+    ModeleArreteFactory.create_batch(2, perimetre=perimetre, dotation=Dotation.DETR)
     ModeleLettreNotificationFactory.create_batch(
-        3, perimetre=perimetre, dotation=DOTATION_DETR
+        3, perimetre=perimetre, dotation=Dotation.DETR
     )
 
     # Must NOT be in context
     ModeleArreteFactory.create_batch(
-        6, perimetre=PerimetreDepartementalFactory(), dotation=DOTATION_DETR
+        6, perimetre=PerimetreDepartementalFactory(), dotation=Dotation.DETR
     )
-    ModeleArreteFactory.create_batch(8, perimetre=perimetre, dotation=DOTATION_DSIL)
+    ModeleArreteFactory.create_batch(8, perimetre=perimetre, dotation=Dotation.DSIL)
     ModeleLettreNotificationFactory.create_batch(
-        7, perimetre=PerimetreDepartementalFactory(), dotation=DOTATION_DETR
+        7, perimetre=PerimetreDepartementalFactory(), dotation=Dotation.DETR
     )
     ModeleLettreNotificationFactory.create_batch(
-        9, perimetre=perimetre, dotation=DOTATION_DSIL
+        9, perimetre=perimetre, dotation=Dotation.DSIL
     )
 
     url = reverse(
         "notification:modele-liste",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"dotation": Dotation.DETR},
     )
     response = client.get(url)
     assert len(response.context["object_list"]) == 5  # = 3 + 2
@@ -106,7 +105,7 @@ def test_create_modele_arrete_views(client, modele_type, _class):
     assert not _class.objects.exists()
     url = reverse(
         "notification:modele-creer",
-        kwargs={"modele_type": modele_type, "dotation": DOTATION_DETR},
+        kwargs={"modele_type": modele_type, "dotation": Dotation.DETR},
     )
     data_step_1 = {
         "0-name": "Nom de l’arrêté",
@@ -144,7 +143,7 @@ def test_create_modele_arrete_views(client, modele_type, _class):
     assert response.status_code == 302
     assert response["Location"] == reverse(
         "notification:modele-liste",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"dotation": Dotation.DETR},
     )
 
     modele_en_base = _class.objects.first()
@@ -180,7 +179,7 @@ def test_update_modele_arrete_view_complete_workflow(
         top_right_text="The Top Right",
         content="<p>The Content</p>",
         perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
     )
     url = reverse(
         "gsl_notification:modele-modifier",
@@ -228,7 +227,7 @@ def test_update_modele_arrete_view_complete_workflow(
     assert response.status_code == 302
     assert response["Location"] == reverse(
         "gsl_notification:modele-liste",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"dotation": Dotation.DETR},
     )
 
     # Verify the model was updated
@@ -253,7 +252,7 @@ def test_update_modele_arrete_view_complete_workflow(
 def test_update_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
     """Test that users cannot update models from different perimeters"""
     different_perimetre = PerimetreDepartementalFactory()
-    modele_document = factory(perimetre=different_perimetre, dotation=DOTATION_DETR)
+    modele_document = factory(perimetre=different_perimetre, dotation=Dotation.DETR)
     url = reverse(
         "gsl_notification:modele-modifier",
         kwargs={"modele_type": modele_type, "modele_id": modele_document.id},
@@ -317,7 +316,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(
         top_right_text="The Top Right",
         content="<p>The Content</p>",
         perimetre=perimetre,
-        dotation=DOTATION_DETR,
+        dotation=Dotation.DETR,
         created_by=CollegueFactory(perimetre=perimetre),
     )
     url = reverse(
@@ -362,7 +361,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(
     assert response.status_code == 302
     assert response["Location"] == reverse(
         "gsl_notification:modele-liste",
-        kwargs={"dotation": DOTATION_DETR},
+        kwargs={"dotation": Dotation.DETR},
     )
 
     # Verify the model was updated
@@ -374,7 +373,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(
     assert new_modele.content == "<p>Updated HTML content</p>"
     assert initial_logo_name not in new_modele.logo.name
     assert "new_logo" in new_modele.logo.name
-    assert new_modele.dotation == DOTATION_DETR
+    assert new_modele.dotation == Dotation.DETR
     assert new_modele.perimetre == perimetre
     assert new_modele.created_by == client.user
 
@@ -390,7 +389,7 @@ def test_duplicate_modele_arrete_view_complete_workflow(
 def test_duplicate_modele_arrete_view_wrong_perimetre(client, modele_type, factory):
     """Test that users cannot update models from different perimeters"""
     different_perimetre = PerimetreDepartementalFactory()
-    modele = factory(perimetre=different_perimetre, dotation=DOTATION_DETR)
+    modele = factory(perimetre=different_perimetre, dotation=Dotation.DETR)
     url = reverse(
         "gsl_notification:modele-dupliquer",
         kwargs={"modele_type": modele_type, "modele_id": modele.id},
@@ -608,7 +607,7 @@ def test_delete_dsil_modele_from_region_by_dept_user():
     regional_perimetre = PerimetreRegionalFactory(region=dept_perimetre.region)
     user = CollegueFactory(perimetre=dept_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=DOTATION_DSIL)
+    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=Dotation.DSIL)
     url = reverse(
         "gsl_notification:delete-modele",
         kwargs={"modele_type": ARRETE, "modele_id": modele.id},
@@ -624,7 +623,7 @@ def test_delete_detr_modele_by_region_user_is_forbidden():
     regional_perimetre = PerimetreRegionalFactory()
     user = CollegueFactory(perimetre=regional_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=DOTATION_DETR)
+    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=Dotation.DETR)
     url = reverse(
         "gsl_notification:delete-modele",
         kwargs={"modele_type": ARRETE, "modele_id": modele.id},
@@ -640,7 +639,7 @@ def test_delete_dsil_modele_by_region_user():
     regional_perimetre = PerimetreRegionalFactory()
     user = CollegueFactory(perimetre=regional_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=DOTATION_DSIL)
+    modele = ModeleArreteFactory(perimetre=regional_perimetre, dotation=Dotation.DSIL)
     url = reverse(
         "gsl_notification:delete-modele",
         kwargs={"modele_type": ARRETE, "modele_id": modele.id},
@@ -659,7 +658,7 @@ def test_delete_detr_modele_from_dept_by_arrondissement_user():
     )
     user = CollegueFactory(perimetre=arr_perimetre)
     client = ClientWithLoggedUserFactory(user)
-    modele = ModeleArreteFactory(perimetre=dept_perimetre, dotation=DOTATION_DETR)
+    modele = ModeleArreteFactory(perimetre=dept_perimetre, dotation=Dotation.DETR)
     url = reverse(
         "gsl_notification:delete-modele",
         kwargs={"modele_type": ARRETE, "modele_id": modele.id},
