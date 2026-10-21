@@ -26,8 +26,8 @@
   "scripts": {
     "lint:css": "stylelint \"**/*.css\"",
     "lint-fix:css": "stylelint --fix \"**/*.css\"",
-    "format:js": "standard \"gsl/**/*.js\"",
-    "format-fix:js": "standard --fix \"gsl/**/*.js\"",
+    "format:js": "standard \"src/gsl/**/*.js\"",
+    "format-fix:js": "standard --fix \"src/gsl/**/*.js\"",
     "build": "esbuild static/to_bundle/tiptap.js --bundle --format=esm --outfile=static/vendor/tiptap.js --minify"
   },
   "standard": {
@@ -38,7 +38,7 @@
     ],
     "ignore": [
       "static/vendor",
-      "gsl/core/static/js/matomo.js"
+      "src/gsl/core/static/js/matomo.js"
     ]
   }
 }

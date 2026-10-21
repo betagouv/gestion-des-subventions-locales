@@ -11,7 +11,7 @@ install-js:
     npm run build # to build tiptap bundle
 
 run-celery:
-    uv run celery --app gsl worker --beat --loglevel INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    uv run celery --workdir src --app gsl worker --beat --loglevel INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
 manage command:
     uv run python manage.py {{command}}
