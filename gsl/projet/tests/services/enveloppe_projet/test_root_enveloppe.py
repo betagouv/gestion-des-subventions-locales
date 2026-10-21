@@ -4,6 +4,8 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import DossierFactory
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -14,8 +16,6 @@ from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ....constants import (
     Dotation,

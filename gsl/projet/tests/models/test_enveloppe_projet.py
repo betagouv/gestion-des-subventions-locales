@@ -7,6 +7,7 @@ from django.forms import ValidationError
 from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
+from dn.sync.models import Dossier
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
@@ -27,7 +28,6 @@ from gsl.programmation.tests.factories import (
 )
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
-from gsl_demarches_simplifiees.models import Dossier
 
 from ...constants import (
     Dotation,
@@ -854,9 +854,7 @@ def test_set_back_status_to_processing_without_ds_from_other_status_than_accepte
         enveloppe_projet.set_back_status_to_processing_without_ds()
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
     projet = ProjetFactory()
     user = CollegueFactory()
@@ -877,10 +875,8 @@ def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
     )
 
 
-@mock.patch("gsl_demarches_simplifiees.services.DsService.repasser_en_instruction")
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.repasser_en_instruction")
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notified(
     _mock_update_ds, mock_repasser_en_instruction
 ):
@@ -898,10 +894,8 @@ def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notifi
     )
 
 
-@mock.patch("gsl_demarches_simplifiees.services.DsService.repasser_en_instruction")
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.repasser_en_instruction")
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_when_not_notified(
     _mock_update_ds, mock_repasser_en_instruction
 ):
@@ -917,10 +911,8 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
     mock_repasser_en_instruction.assert_not_called()
 
 
-@mock.patch("gsl_demarches_simplifiees.services.DsService.repasser_en_instruction")
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.repasser_en_instruction")
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_set_back_status_to_processing_resets_notified_at(
     _mock_update_ds, _mock_repasser_en_instruction
 ):

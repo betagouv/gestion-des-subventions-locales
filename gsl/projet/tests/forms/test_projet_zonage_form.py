@@ -2,10 +2,10 @@ from unittest.mock import patch
 
 import pytest
 
+from dn.sync.exceptions import DsServiceException
+from dn.sync.services import DsService
 from gsl.core.tests.factories import CollegueWithDSProfileFactory
 from gsl.historique.models import ProjetAction
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.services import DsService
 
 from ...forms import ProjetZonageForm
 from ..factories import ProjetFactory

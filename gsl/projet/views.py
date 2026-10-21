@@ -29,6 +29,14 @@ from django.views.generic import (
 from django_filters.views import FilterView
 from django_htmx.http import HttpResponseClientRedirect
 
+from dn.sync.exceptions import DsServiceException
+from dn.sync.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Cofinancement,
+    ProjetContractualisation,
+    ProjetZonage,
+)
 from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
 from gsl.core.campagne import get_campagne
@@ -42,14 +50,6 @@ from gsl.core.view_mixins import (
 from gsl.historique.models import ProjetAction
 from gsl.simulation.forms import SimulationProjetForm
 from gsl.simulation.models import SimulationProjet
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.models import (
-    CategorieDetr,
-    CategorieDsil,
-    Cofinancement,
-    ProjetContractualisation,
-    ProjetZonage,
-)
 
 from .forms import (
     ProjetCommentForm,

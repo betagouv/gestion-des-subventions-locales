@@ -16,6 +16,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import (
+    DossierDataFactory,
+    DossierFactory,
+)
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -39,15 +44,11 @@ from gsl.projet.constants import (
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import (
-    DossierDataFactory,
-    DossierFactory,
-)
 
 DS_FIXTURES_DIR = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
-    / "gsl_demarches_simplifiees"
+    / "dn"
+    / "sync"
     / "tests"
     / "ds_fixtures"
 )
@@ -190,7 +191,7 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                "dn.sync.ds_client.DsMutator.dossier_accepter",
                 return_value=_ds_mutation_response(
                     "dossierAccepter",
                     state="accepte",
@@ -226,7 +227,7 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                "dn.sync.ds_client.DsMutator.dossier_accepter",
                 return_value=_ds_mutation_response(
                     "dossierAccepter",
                     state="accepte",
@@ -265,7 +266,7 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_passer_en_instruction",
+                "dn.sync.ds_client.DsMutator.dossier_passer_en_instruction",
                 return_value={
                     "data": {
                         "dossierPasserEnInstruction": {
@@ -283,7 +284,7 @@ class TestForm:
                 },
             ) as passer_en_instruction,
             mock.patch(
-                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                "dn.sync.ds_client.DsMutator.dossier_accepter",
                 return_value=_ds_mutation_response(
                     "dossierAccepter",
                     state="accepte",
@@ -326,7 +327,7 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.accepter",
+                "dn.sync.services.DsService.accepter",
                 return_value=None,
             ),
             mock.patch(
@@ -369,15 +370,15 @@ class TestForm:
         projet = _refused_projet(perimetre, with_signed_document=True)
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser",
+                "dn.sync.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite",
+                "dn.sync.services.DsService.classer_sans_suite",
                 return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.accepter",
+                "dn.sync.services.DsService.accepter",
                 return_value=None,
             ) as accepter,
             mock.patch(
@@ -398,15 +399,15 @@ class TestForm:
         projet = _dismissed_projet(perimetre, with_signed_document=True)
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite",
+                "dn.sync.services.DsService.classer_sans_suite",
                 return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser",
+                "dn.sync.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.accepter",
+                "dn.sync.services.DsService.accepter",
                 return_value=None,
             ) as accepter,
             mock.patch(
@@ -429,7 +430,7 @@ class TestForm:
         projet = _refused_projet(perimetre, with_signed_document=False)
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser",
+                "dn.sync.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
             mock.patch(
@@ -458,7 +459,7 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser",
+                "dn.sync.services.DsService.refuser",
                 return_value=None,
             ),
             mock.patch(
@@ -513,11 +514,11 @@ class TestForm:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite",
+                "dn.sync.services.DsService.classer_sans_suite",
                 return_value=None,
             ) as dismiss,
             mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.refuser",
+                "dn.sync.services.DsService.refuser",
                 return_value=None,
             ) as refuser,
         ):
@@ -554,7 +555,7 @@ class TestView:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                "dn.sync.ds_client.DsMutator.dossier_accepter",
                 return_value=_ds_mutation_response(
                     "dossierAccepter",
                     state="accepte",
@@ -617,7 +618,7 @@ class TestView:
 
         with (
             mock.patch(
-                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_accepter",
+                "dn.sync.ds_client.DsMutator.dossier_accepter",
                 return_value=_ds_mutation_response(
                     "dossierAccepter",
                     state="accepte",
@@ -684,7 +685,7 @@ class TestView:
         dn_date_traitement = timezone.now().isoformat()
 
         with mock.patch(
-            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser",
+            "dn.sync.ds_client.DsMutator.dossier_refuser",
             return_value=_ds_mutation_response(
                 "dossierRefuser",
                 state="refuse",
@@ -725,7 +726,7 @@ class TestView:
         dn_date_traitement = timezone.now().isoformat()
 
         with mock.patch(
-            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_classer_sans_suite",
+            "dn.sync.ds_client.DsMutator.dossier_classer_sans_suite",
             return_value=_ds_mutation_response(
                 "dossierClasserSansSuite",
                 state="sans_suite",

@@ -6,7 +6,7 @@ from import_export.widgets import (
     Widget,
 )
 
-from gsl_demarches_simplifiees.models import Dossier
+from dn.sync.models import Dossier
 
 from .models import SimulationProjet
 

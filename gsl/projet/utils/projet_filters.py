@@ -14,8 +14,7 @@ from django_filters import (
     RangeFilter,
 )
 
-from gsl.core.models import Perimetre
-from gsl_demarches_simplifiees.models import (
+from dn.sync.models import (
     CategorieDetr,
     CategorieDsil,
     Cofinancement,
@@ -24,6 +23,7 @@ from gsl_demarches_simplifiees.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
+from gsl.core.models import Perimetre
 
 from ..constants import (
     Dotation,

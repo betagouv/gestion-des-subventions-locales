@@ -3,6 +3,8 @@ from decimal import Decimal
 
 import pytest
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import DossierFactory
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -23,8 +25,6 @@ from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,
 )
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..forms import _add_enveloppe_projets_to_simulation
 from ..models import SimulationProjet

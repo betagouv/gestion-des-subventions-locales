@@ -3,13 +3,13 @@ from unittest import mock
 
 import pytest
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.models import BulkActionsJob
 from gsl.core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from ..models import SimulationProjet
 from ..tasks import run_bulk_status_job

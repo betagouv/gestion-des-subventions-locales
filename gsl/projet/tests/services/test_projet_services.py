@@ -2,14 +2,14 @@ from datetime import UTC, datetime
 
 import pytest
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import (
+    DossierFactory,
+    NaturePorteurProjetFactory,
+)
 from gsl.core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
-)
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import (
-    DossierFactory,
-    NaturePorteurProjetFactory,
 )
 
 from ...constants import ProjetStatus

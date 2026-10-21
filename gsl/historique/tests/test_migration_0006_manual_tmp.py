@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 import pytest
 from django.apps import apps as django_apps
 
+from dn.sync.tests.factories import DossierFactory
 from gsl.historique.models import ProjetAction
 from gsl.projet.tests.factories import ProjetFactory
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 
 @pytest.mark.django_db

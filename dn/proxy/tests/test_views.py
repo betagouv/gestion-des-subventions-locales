@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase, override_settings
 
 from dn.proxy.tests.factories import ProxyTokenFactory
-from gsl_demarches_simplifiees.tests.factories import (
+from dn.sync.tests.factories import (
     DemarcheFactory,
 )
 

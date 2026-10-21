@@ -16,6 +16,7 @@ from django_htmx.http import (
     trigger_client_event,
 )
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
@@ -39,7 +40,6 @@ from gsl.projet.constants import (
     ProjetStatus,
 )
 from gsl.projet.models import projet_status_from_dotation_statuses
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from ..filters import SimulationProjetFilters
 from ..forms import (

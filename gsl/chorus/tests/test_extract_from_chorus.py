@@ -6,7 +6,7 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
+from dn.sync.tests.factories import DossierFactory
 
 from ..management.commands.extract_from_chorus import (
     COLUMN_HEADERS,

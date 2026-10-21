@@ -2,8 +2,8 @@ from celery import shared_task
 from django.core.exceptions import ValidationError
 from django_fsm import TransitionNotAllowed
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.models import BulkActionsJob
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from .forms import SimulationProjetStatusForm
 from .models import BULK_STATUS_ACTION, SimulationProjet

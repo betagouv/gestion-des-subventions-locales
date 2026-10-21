@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from dn.sync.models import Dossier
 from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
-from gsl_demarches_simplifiees.models import Dossier
 
 if TYPE_CHECKING:
     from gsl.projet.models import Projet

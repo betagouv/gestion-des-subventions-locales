@@ -2,8 +2,8 @@ from itertools import batched
 
 from celery import shared_task
 
+from dn.sync.models import Dossier
 from gsl.celery import TASK_PRIORITY_LOW
-from gsl_demarches_simplifiees.models import Dossier
 
 from .models import Projet
 from .services.enveloppe_projet_services import EnveloppeProjetService

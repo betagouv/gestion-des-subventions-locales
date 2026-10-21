@@ -5,6 +5,13 @@ from django_filters import (
     RangeFilter,
 )
 
+from dn.sync.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Cofinancement,
+    ProjetContractualisation,
+    ProjetZonage,
+)
 from gsl.core.models import Perimetre
 from gsl.projet.constants import (
     Dotation,
@@ -22,13 +29,6 @@ from gsl.projet.utils.projet_filters import (
     make_filter_search,
 )
 from gsl.projet.utils.utils import order_couples_tuple_by_first_value
-from gsl_demarches_simplifiees.models import (
-    CategorieDetr,
-    CategorieDsil,
-    Cofinancement,
-    ProjetContractualisation,
-    ProjetZonage,
-)
 
 from .models import SimulationProjet
 

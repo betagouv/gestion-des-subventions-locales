@@ -2,9 +2,9 @@ import logging
 
 from django.db import transaction
 
+from dn.sync.models import Dossier
 from gsl.historique.models import ProjetAction
 from gsl.simulation.models import SimulationProjet
-from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
     Dotation,

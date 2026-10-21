@@ -14,6 +14,7 @@ from django.db.models import (
     When,
 )
 
+from dn.sync.models import Dossier
 from gsl.core.campagne import CAMPAGNES
 from gsl.core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl.historique.models import ProjetAction
@@ -22,7 +23,6 @@ from gsl.notification.models import (
     UPLOADED_DOCUMENTS,
 )
 from gsl.programmation.models import Enveloppe
-from gsl_demarches_simplifiees.models import Dossier
 
 from ..constants import (
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
@@ -33,7 +33,7 @@ from .enveloppe_projet import EnveloppeProjet
 from .mixins import ProjetDNActionsMixin
 
 if TYPE_CHECKING:
-    from gsl_demarches_simplifiees.models import Dossier
+    from dn.sync.models import Dossier
 
 
 class ProjetQuerySet(models.QuerySet):

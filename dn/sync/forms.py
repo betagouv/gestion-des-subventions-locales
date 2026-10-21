@@ -1,0 +1,151 @@
+from itertools import groupby
+
+from django import forms
+from django.forms.widgets import CheckboxSelectMultiple
+from dsfr.forms import DsfrBaseForm
+
+from dn.sync.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Demarche,
+    Dossier,
+)
+from gsl.projet.constants import Dotation
+from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
+
+
+class DotationFormField(forms.MultipleChoiceField):
+    """
+    Widget for overriding demande_dispositif_sollicite, which is a CharField
+    for legacy reason, but should be a ArrayField or MultipleChoiceField.
+    """
+
+    widget = CheckboxSelectMultiple
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, choices=Dotation.choices, **kwargs)
+
+    def prepare_value(self, value):
+        list_value = []
+        for v in self.choices:
+            if v[0] in value:
+                list_value.append(v[0])
+        return list_value
+
+
+class DossierReporteSansPieceForm(forms.ModelForm, DsfrBaseForm):
+    demande_dispositif_sollicite = DotationFormField(
+        required=True, label="Dispositif de financement sollicité"
+    )
+    finance_cout_total = forms.DecimalField(
+        required=True, label="Coût total de l'opération (en euros HT)", min_value=0
+    )
+    demande_montant = forms.DecimalField(
+        required=True, label="Montant de l'aide demandée", min_value=0
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        demarche = self.instance.ds_demarche
+
+        self.fields["demande_categorie_dsil"].queryset = CategorieDsil.objects.filter(
+            demarche=demarche, active=True
+        )
+
+        try:
+            departement = self.instance.projet.perimetre.departement
+        except (AttributeError, Dossier.projet.RelatedObjectDoesNotExist):
+            departement = None
+
+        if departement:
+            detr_qs = CategorieDetr.objects.filter(
+                demarche=demarche, departement=departement, active=True
+            ).order_by("parent_label", "rank", "label")
+            self.fields["demande_categorie_detr"].queryset = detr_qs
+
+            if detr_qs.count() != detr_qs.filter(parent_label="").count():
+                # Group choices by parent_label for optgroup display
+                field = self.fields["demande_categorie_detr"]
+                choices = []
+                if field.empty_label is not None:
+                    choices.append(("", field.empty_label))
+                for parent_label, categories in groupby(
+                    detr_qs, key=lambda c: c.parent_label or ""
+                ):
+                    group_choices = [(c.pk, str(c)) for c in categories]
+                    choices.append((parent_label or "—", group_choices))
+                field.choices = choices
+        else:
+            self.fields[
+                "demande_categorie_detr"
+            ].queryset = CategorieDetr.objects.none()
+
+    def save(self, commit=True):
+        dotations = self.cleaned_data.get("demande_dispositif_sollicite", [])
+        if Dotation.DETR not in dotations:
+            self.instance.demande_categorie_detr = None
+        if Dotation.DSIL not in dotations:
+            self.instance.demande_categorie_dsil = None
+
+        self.instance.projet.dotations_updated_in_app = True
+        self.instance.projet.save()
+
+        instance = super().save(commit=commit)
+        service = EnveloppeProjetService()
+        service.create_or_update_enveloppe_projet_from_projet(instance.projet)
+        return instance
+
+    class Meta:
+        model = Dossier
+        fields = [
+            "demande_dispositif_sollicite",
+            "finance_cout_total",
+            "demande_montant",
+            "demande_categorie_detr",
+            "demande_categorie_dsil",
+        ]
+        widgets = {
+            "finance_cout_total": forms.TextInput(attrs={"inputmode": "numeric"}),
+            "demande_montant": forms.TextInput(attrs={"inputmode": "numeric"}),
+        }
+
+
+class ImportDossierFromDsForm(forms.Form):
+    """Formulaire admin : importer un dossier depuis DN par son numéro."""
+
+    dossier_number = forms.IntegerField(
+        label="Numéro du dossier",
+        help_text=(
+            "Le dossier sera importé uniquement si sa démarche est présente sur Turgot "
+            "et s'il n'existe pas encore."
+        ),
+        min_value=1,
+    )
+
+
+class AddDemarcheFromDsForm(forms.Form):
+    """Formulaire admin : ajouter une démarche depuis DN par son numéro."""
+
+    ds_number = forms.IntegerField(
+        label="Numéro de la démarche",
+        min_value=1,
+    )
+
+
+class RefreshDossiersDepotForm(forms.Form):
+    """Formulaire admin : rafraîchir les dossiers d'une démarche déposés après une date."""
+
+    demarche = forms.ModelChoiceField(
+        queryset=Demarche.objects.defer("raw_ds_data").order_by("ds_number"),
+        label="Démarche",
+        empty_label=None,
+    )
+    updated_after = forms.DateTimeField(
+        label="Date et heure de dépôt (dossiers déposés après)",
+        help_text="Seuls les dossiers déposés après cette date seront rafraîchis depuis Démarches Numériques.",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+    )

@@ -1,0 +1,40 @@
+import pytest
+
+from dn.sync.models import (
+    CategorieDetr,
+    Demarche,
+    Dossier,
+    FieldMapping,
+    NaturePorteurProjet,
+    PersonneMorale,
+    Profile,
+)
+
+from .factories import (
+    CategorieDetrFactory,
+    DemarcheFactory,
+    DossierFactory,
+    FieldMappingFactory,
+    NaturePorteurProjetFactory,
+    PersonneMoraleFactory,
+    ProfileFactory,
+)
+
+pytestmark = pytest.mark.django_db
+
+test_data = (
+    (DemarcheFactory, Demarche),
+    (DossierFactory, Dossier),
+    (NaturePorteurProjetFactory, NaturePorteurProjet),
+    (PersonneMoraleFactory, PersonneMorale),
+    (FieldMappingFactory, FieldMapping),
+    (ProfileFactory, Profile),
+    (CategorieDetrFactory, CategorieDetr),
+)
+
+
+@pytest.mark.parametrize("factory,expected_class", test_data)
+def test_every_factory_can_be_called_twice(factory, expected_class):
+    for _ in range(2):
+        obj = factory()
+        assert isinstance(obj, expected_class)

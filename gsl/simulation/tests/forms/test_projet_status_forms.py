@@ -45,12 +45,8 @@ def test_refuse_or_dismiss_does_not_touch_ds(
         wraps=getattr(simulation_projet.enveloppe_projet, enveloppe_projet_transition),
     ) as mock_transition:
         with (
-            mock.patch(
-                "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser"
-            ) as mock_refuser,
-            mock.patch(
-                "gsl_demarches_simplifiees.services.DsService.classer_sans_suite"
-            ) as mock_dismiss,
+            mock.patch("dn.sync.ds_client.DsMutator.dossier_refuser") as mock_refuser,
+            mock.patch("dn.sync.services.DsService.classer_sans_suite") as mock_dismiss,
         ):
             form = SimulationProjetStatusForm(
                 instance=simulation_projet, status=simulation_projet_status
@@ -67,9 +63,7 @@ def test_refuse_or_dismiss_does_not_touch_ds(
     assert simulation_projet.projet.notified_at is None
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_update_status_with_accepted(mock_ds_update, user):
     simulation_projet = SimulationProjetFactory(
         status=SimulationProjet.STATUS_PROCESSING
@@ -103,9 +97,7 @@ def test_update_status_with_processing(user):
     assert simulation_projet.status == new_status
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
     mock_ds_update,
     user,
@@ -138,9 +130,7 @@ def test_accept_a_simulation_projet_programmes_it_on_the_mother_enveloppe(
     assert simulation_projet.enveloppe_projet.enveloppe == mother_enveloppe
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 @pytest.mark.parametrize(
     "initial_programmation_status, new_projet_status, programmation_status_expected",
     (
@@ -200,9 +190,7 @@ def test_accept_a_simulation_projet_reprogrammes_it_on_the_mother_enveloppe(
 # ---------------------------------------------------------------------------
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 @pytest.mark.parametrize(
     "initial_simulation_status, initial_dotation_status",
     (
@@ -230,9 +218,7 @@ def test_revert_from_final_status_resets_enveloppe_projet_to_processing(
     assert simulation_projet.enveloppe_projet.status == ProjetStatus.PROCESSING
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 @pytest.mark.parametrize(
     "initial_simulation_status, initial_dotation_status",
     (
@@ -260,9 +246,7 @@ def test_revert_from_final_status_drops_the_programmation(
     assert not simulation_projet.enveloppe_projet.is_programmee
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 @pytest.mark.parametrize(
     "initial_simulation_status, initial_dotation_status",
     (
@@ -293,9 +277,7 @@ def test_revert_from_final_status_moves_simulation_projet_to_a_new_enveloppe_pro
     assert ancien.status == initial_dotation_status
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 @pytest.mark.parametrize(
     "initial_status, new_status",
     (

@@ -467,7 +467,7 @@ def test_basculer_creates_a_projet_action_per_dotation(projet):
 # -- DN --
 
 
-@mock.patch("gsl_demarches_simplifiees.ds_client.DsClientBase.launch_graphql_query")
+@mock.patch("dn.sync.ds_client.DsClientBase.launch_graphql_query")
 def test_basculer_does_not_call_dn(launch_graphql_query, projet):
     _enveloppe_projet(projet, Dotation.DETR, ProjetStatus.ACCEPTED)
     _enveloppe_projet(projet, Dotation.DSIL, ProjetStatus.REFUSED)

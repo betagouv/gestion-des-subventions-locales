@@ -6,11 +6,11 @@ from django.db import transaction
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from dn.sync.exceptions import DsServiceException
+from dn.sync.services import DsService
 from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
 from gsl.simulation.models import SimulationProjet
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.services import DsService
 
 from .constants import (
     Dotation,

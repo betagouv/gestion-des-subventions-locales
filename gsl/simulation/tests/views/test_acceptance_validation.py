@@ -14,6 +14,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -25,7 +26,6 @@ from gsl.projet.constants import (
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from ...forms import SimulationProjetStatusForm
 from ...models import SimulationProjet

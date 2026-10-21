@@ -3,9 +3,9 @@ from unittest import mock
 
 import pytest
 
+from dn.sync.models import Dossier
 from gsl.core.tests.factories import CollegueFactory
 from gsl.notification.tests.factories import LettreEtArreteSignesFactory
-from gsl_demarches_simplifiees.models import Dossier
 
 from ...constants import Dotation, ProjetStatus
 from ..factories import EnveloppeProjetFactory, ProjetFactory
@@ -95,7 +95,7 @@ def test_notify_passes_dossier_en_instruction_only_when_en_construction(
     with (
         _patch_ds_notify_methods(),
         mock.patch(
-            "gsl_demarches_simplifiees.services.DsService.passer_en_instruction"
+            "dn.sync.services.DsService.passer_en_instruction"
         ) as passer_en_instruction,
     ):
         projet.notify(user, motivation="Motif")
@@ -127,7 +127,7 @@ def _patch_ds_notify_methods():
     with ExitStack() as stack:
         yield {
             method: stack.enter_context(
-                mock.patch(f"gsl_demarches_simplifiees.services.DsService.{method}")
+                mock.patch(f"dn.sync.services.DsService.{method}")
             )
             for method in DS_NOTIFY_METHODS
         }

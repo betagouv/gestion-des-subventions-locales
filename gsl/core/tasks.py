@@ -4,8 +4,8 @@ from typing import List
 from celery import shared_task
 from django.db.models import OuterRef, Subquery
 
+from dn.sync.models import Profile
 from gsl.core.models import Collegue
-from gsl_demarches_simplifiees.models import Profile
 
 logger = logging.getLogger(__name__)
 

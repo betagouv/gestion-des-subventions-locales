@@ -4,6 +4,12 @@ from unittest.mock import patch
 import pytest
 from django.urls import resolve, reverse
 
+from dn.sync.models import Dossier, NaturePorteurProjet
+from dn.sync.tests.factories import (
+    DossierFactory,
+    FieldMappingFactory,
+    NaturePorteurProjetFactory,
+)
 from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ArrondissementFactory,
@@ -23,12 +29,6 @@ from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,
-)
-from gsl_demarches_simplifiees.models import Dossier, NaturePorteurProjet
-from gsl_demarches_simplifiees.tests.factories import (
-    DossierFactory,
-    FieldMappingFactory,
-    NaturePorteurProjetFactory,
 )
 
 from ...forms import _add_enveloppe_projets_to_simulation

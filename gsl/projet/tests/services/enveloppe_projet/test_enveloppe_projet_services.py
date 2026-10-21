@@ -4,6 +4,7 @@ from datetime import UTC
 import pytest
 from freezegun import freeze_time
 
+from dn.sync.models import Dossier
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -16,7 +17,6 @@ from gsl.programmation.tests.factories import (
 )
 from gsl.simulation.models import Simulation, SimulationProjet
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
-from gsl_demarches_simplifiees.models import Dossier
 
 from ....constants import (
     Dotation,
