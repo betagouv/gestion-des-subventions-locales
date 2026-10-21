@@ -53,13 +53,6 @@ dependencies = [
     "openpyxl>=3.1.5",
 ]
 
-[tool.setuptools]
-packages = ["gsl"]
-
-[build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
-
 [tool.uv]
 package = false
 
@@ -83,6 +76,7 @@ dev = [
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "gsl.settings_test"
+pythonpath = ["src"]
 addopts = "--reuse-db"
 
 [tool.ruff.lint]

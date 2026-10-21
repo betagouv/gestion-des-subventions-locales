@@ -54,7 +54,7 @@ python -m celery --app gsl worker --beat --scheduler django_celery_beat.schedule
 # Python
 ruff format                         # Format all Python files
 ruff check --fix                    # Fix linting errors
-ruff check gsl/core/                # Check specific app
+ruff check src/gsl/core/            # Check specific app
 
 # JavaScript
 npm run format:js                   # Check JS style (Standard)
@@ -388,7 +388,7 @@ dossier.dossier_dotation_dsil.status = "refused"
 ### View Architecture Patterns
 
 - **CBVs (Class-Based Views)** are the standard pattern, with `DsfrBaseForm` for DSFR-compliant forms
-- **HTMX-specific mixins** in `gsl/core/view_mixins.py`:
+- **HTMX-specific mixins** in `src/gsl/core/view_mixins.py`:
   - `OpenHtmxModalMixin` - Auto-opens DSFR modal after HTMX swap
   - `NoFeedbackHtmxFormViewMixin` - Handles HTMX form submissions (204 on success, 400 on error)
 - **Business logic placement:** `Form.save()` for complex mutations, `Model.clean()`/`clean_fields()` for validation
@@ -413,8 +413,8 @@ dossier.dossier_dotation_dsil.status = "refused"
 ### Async Tasks & Celery
 
 Tasks are spread across multiple apps:
-- `gsl/core/tasks.py`: `associate_or_update_ds_profile_to_users()` - Link DS profiles to user accounts
-- `dn/sync/tasks.py`: DS dossier import/refresh (fetch, save, refresh dossiers and démarches)
+- `src/gsl/core/tasks.py`: `associate_or_update_ds_profile_to_users()` - Link DS profiles to user accounts
+- `src/dn/sync/tasks.py`: DS dossier import/refresh (fetch, save, refresh dossiers and démarches)
 - `gsl_projet/tasks.py`: Project and dotation creation/update from imported dossiers
 
 Run with: `python -m celery --app gsl worker --beat --scheduler django_celery_beat.schedulers:DatabaseScheduler`
@@ -425,7 +425,7 @@ Or use `just run-celery`.
 
 Priority is decided **at the dispatch site**, not baked into the task — the same
 task can be high or low depending on context. Constants and helper live in
-`gsl/celery.py` (Redis: lower number = served first): `TASK_PRIORITY_HIGH = 0`,
+`src/gsl/celery.py` (Redis: lower number = served first): `TASK_PRIORITY_HIGH = 0`,
 `TASK_PRIORITY_NORMAL = 5` (= `CELERY_TASK_DEFAULT_PRIORITY`),
 `TASK_PRIORITY_LOW = 9`, `TASK_BULK_DISPATCH_THRESHOLD = 10`.
 
@@ -508,12 +508,12 @@ of hardcoding it (see `_save_dossier_data_and_refresh_dossier_and_projet_and_co`
 1. Add view class to `gsl_*/views.py` or `gsl_*/views/` directory (depends on the app; `gsl_simulation` and `gsl_notification` use a `views/` directory)
 2. Add URL pattern to `gsl_*/urls.py`
 3. Create template in `gsl_*/templates/gsl_*/`
-4. Add to main `gsl/urls.py` if a new app
+4. Add to main `src/gsl/urls.py` if a new app
 5. Test with `pytest gsl_*/tests/`
 
 ### Updating DS Annotations
 
-Use `DsService` in `dn/sync/services.py` (instantiated):
+Use `DsService` in `src/dn/sync/services.py` (instantiated):
 
 ```python
 from dn.sync.services import DsService
@@ -545,13 +545,13 @@ aware, fully implemented):
   (see `Projet.dotation_not_treated`).
 - All imported documents (across every dotation) are concatenated into a
   single PDF sent to DN (`merge_documents_into_pdf`,
-  `gsl/projet/utils/utils.py`).
+  `src/gsl/projet/utils/utils.py`).
 - The notification message is **mandatory** for a refused/dismissed,
   **optional** for an accepted.
 
 Single entry point for all three outcomes: the "3 - Notifier" step of the
 notification tab (`NotificationMessageForm`/`NotificationMessageFormView`,
-`gsl/notification/forms.py` / `gsl/notification/views/views.py`) branches on
+`src/gsl/notification/forms.py` / `src/gsl/notification/views/views.py`) branches on
 `projet.status` — `DsMutator().dossier_accepter(...)` for accepted,
 `DsService().refuser`/`classer_sans_suite` for refused/dismissed — and
 merges `projet.imported_documents` (which already spans `LettreEtArreteSignes`,
@@ -564,9 +564,9 @@ sent to DN.
 - User manually triggers notification to send documents to applicant
 
 **Adding a new document template:**
-1. Create model class in `gsl/notification/models.py` (e.g., `ModeleMonDocument`)
+1. Create model class in `src/gsl/notification/models.py` (e.g., `ModeleMonDocument`)
 2. Add admin inline to configure templates
-3. Create template file in `gsl/notification/templates/`
+3. Create template file in `src/gsl/notification/templates/`
 4. Add generation method in views to render template
 5. Implement file upload for signed documents like `LettreEtArreteSignes` or
    `LettreRefusSignee`
@@ -643,7 +643,7 @@ Tests are in `gsl_*/tests/` directories:
 
 ### Double Dotation Display Tests
 
-#### Programmation Page Tests (`gsl/programmation/tests/test_double_dotation_display.py`)
+#### Programmation Page Tests (`src/gsl/programmation/tests/test_double_dotation_display.py`)
 
 Tests that ensure when viewing DETR/DSIL programming pages, the other dotation information is displayed under each project line for user reference:
 
@@ -661,7 +661,7 @@ Tests that ensure when viewing DETR/DSIL programming pages, the other dotation i
 
 **Template Structure:** The programmation list uses `other-dotation-row` class for secondary rows displaying complementary dotation info.
 
-**Implementation Reference:** See `gsl/programmation/templates/gsl_programmation/programmation_projet_list.html` lines 244-282 for the existing template structure that renders other-dotation rows.
+**Implementation Reference:** See `src/gsl/programmation/templates/gsl_programmation/programmation_projet_list.html` lines 244-282 for the existing template structure that renders other-dotation rows.
 
 #### Simulation Page Tests (`gsl_simulation/tests/test_double_dotation_display.py`)
 
@@ -757,21 +757,21 @@ See `.env.example` for required variables:
 
 | Path | Purpose |
 |------|---------|
-| `gsl/settings.py` | Django configuration |
-| `gsl/urls.py` | Main URL routing |
+| `src/gsl/settings.py` | Django configuration |
+| `src/gsl/urls.py` | Main URL routing |
 | `manage.py` | Django CLI entry point |
 | `justfile` | Task automation (build, test, deploy) |
 | `conftest.py` | pytest configuration and fixtures |
-| `gsl/core/models.py` | User, Perimetre, Geography models |
-| `dn/sync/models.py` | Dossier, DS integration models |
+| `src/gsl/core/models.py` | User, Perimetre, Geography models |
+| `src/dn/sync/models.py` | Dossier, DS integration models |
 | `gsl_projet/models.py` | Project, DotationProjet models |
-| `gsl/programmation/models.py` | Enveloppe, ProgrammationProjet models |
-| `gsl/notification/models.py` | Template and document models |
+| `src/gsl/programmation/models.py` | Enveloppe, ProgrammationProjet models |
+| `src/gsl/notification/models.py` | Template and document models |
 | `package.json` | JS dependencies and build scripts |
 | `pyproject.toml` | Python dependencies, declared for uv (main deps + `dev` group) |
 | `uv.lock` | Pinned Python dependency lockfile (managed by uv) |
-| `gsl/core/view_mixins.py` | Reusable HTMX/DSFR view mixins (`OpenHtmxModalMixin`, `NoFeedbackHtmxFormViewMixin`) |
-| `gsl/core/middlewares.py` | OTP verification and Perimeter check middlewares |
+| `src/gsl/core/view_mixins.py` | Reusable HTMX/DSFR view mixins (`OpenHtmxModalMixin`, `NoFeedbackHtmxFormViewMixin`) |
+| `src/gsl/core/middlewares.py` | OTP verification and Perimeter check middlewares |
 
 ## Architecture Diagrams
 
@@ -858,7 +858,7 @@ redis-cli
 
 ### DS API Integration
 
-Check `dn/sync/importer/` for dossier import logic.
+Check `src/dn/sync/importer/` for dossier import logic.
 Logs from `DsService` and `DsMutator` show API calls and responses.
 
 ### Perimeter Filtering
