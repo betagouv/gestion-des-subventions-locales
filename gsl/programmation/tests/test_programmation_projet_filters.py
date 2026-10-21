@@ -4,6 +4,12 @@ from decimal import Decimal
 import pytest
 from django.test import RequestFactory
 
+from dn.sync.models import NaturePorteurProjet
+from dn.sync.tests.factories import (
+    DossierFactory,
+    NaturePorteurProjetFactory,
+    PersonneMoraleFactory,
+)
 from gsl.core.tests.factories import (
     ArrondissementFactory,
     CollegueFactory,
@@ -20,12 +26,6 @@ from gsl.projet.constants import (
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,
-)
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_demarches_simplifiees.tests.factories import (
-    DossierFactory,
-    NaturePorteurProjetFactory,
-    PersonneMoraleFactory,
 )
 
 

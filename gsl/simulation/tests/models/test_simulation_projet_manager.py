@@ -3,6 +3,7 @@ import logging
 
 import pytest
 
+from dn.sync.models import Dossier
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -17,7 +18,6 @@ from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,
 )
-from gsl_demarches_simplifiees.models import Dossier
 
 from ...models import Simulation, SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory

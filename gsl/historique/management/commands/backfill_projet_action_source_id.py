@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 from django.core.management.base import BaseCommand
 
-from gsl_demarches_simplifiees.ds_client import DsClient
-from gsl_demarches_simplifiees.models import Dossier
+from dn.sync.ds_client import DsClient
+from dn.sync.models import Dossier
 
 from ...models import ProjetAction
 

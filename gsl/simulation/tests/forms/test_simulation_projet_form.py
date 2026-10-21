@@ -5,11 +5,11 @@ from unittest.mock import patch
 import pytest
 from django import forms
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import CollegueWithDSProfileFactory
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import DetrProjetFactory
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from ...forms import SimulationProjetForm
 from ...models import SimulationProjet
@@ -72,9 +72,7 @@ def test_montant_field(simulation_projet):
     assert not form.is_valid()
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_empty_montant_is_converted_to_zero(_mock, simulation_projet):
     """Test that an empty montant field is converted to 0 to avoid IntegrityError"""
     # Test with empty string
@@ -118,9 +116,7 @@ def test_taux_field(simulation_projet):
     assert not form.is_valid()
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_new_montant(_mock, simulation_projet, initial_data):
     data = initial_data
     data["montant"] = 300
@@ -135,9 +131,7 @@ def test_new_montant(_mock, simulation_projet, initial_data):
     assert simulation_projet.taux == 30
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_new_taux(_mock, simulation_projet, initial_data):
     data = initial_data
     data["taux"] = 30
@@ -152,9 +146,7 @@ def test_new_taux(_mock, simulation_projet, initial_data):
     assert simulation_projet.taux == 30
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_coherent_new_montant_and_new_taux(_mock, simulation_projet, initial_data):
     data = initial_data
     data["montant"] = 300
@@ -170,9 +162,7 @@ def test_coherent_new_montant_and_new_taux(_mock, simulation_projet, initial_dat
     assert simulation_projet.taux == 30
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_incoherent_new_montant_and_new_taux(_mock, simulation_projet, initial_data):
     data = initial_data
     data["montant"] = 400
@@ -188,9 +178,7 @@ def test_incoherent_new_montant_and_new_taux(_mock, simulation_projet, initial_d
     assert simulation_projet.taux == 40
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_incoherent_new_assiette_and_new_taux(_mock, simulation_projet, initial_data):
     data = initial_data
     data["assiette"] = 2_000
@@ -246,7 +234,7 @@ def test_save_with_dn_error(simulation_projet, user):
     assert form.is_valid()
 
     with patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+        "dn.sync.services.DsService.update_ds_annotations_for_one_dotation"
     ) as mock_update_ds:
         mock_update_ds.side_effect = DsServiceException("Some error")
         try:
@@ -260,9 +248,7 @@ def test_save_with_dn_error(simulation_projet, user):
     assert simulation_projet.taux == 20  # not updated
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_remove_assiette_field(_mock):
     simulation_projet = SimulationProjetFactory(
         enveloppe_projet__projet__dossier_ds__finance_cout_total=10_000,

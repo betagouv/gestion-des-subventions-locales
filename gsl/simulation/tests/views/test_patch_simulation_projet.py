@@ -7,6 +7,8 @@ import pytest
 from django.contrib.messages import INFO, SUCCESS, get_messages
 from django.urls import reverse
 
+from dn.sync.exceptions import DsServiceException
+from dn.sync.tests.factories import FieldMappingFactory
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -19,8 +21,6 @@ from gsl.projet.constants import (
 )
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_demarches_simplifiees.exceptions import DsServiceException
-from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
 
 from ...models import SimulationProjet
 from ..factories import SimulationFactory, SimulationProjetFactory
@@ -90,7 +90,7 @@ def test_patch_status_simulation_projet_with_accepted_value_with_htmx(
         args=[simulation_projet.id, SimulationProjet.STATUS_ACCEPTED],
     )
     with patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+        "dn.sync.services.DsService.update_ds_annotations_for_one_dotation"
     ) as mock_update_ds_annotations_for_one_dotation:
         mock_update_ds_annotations_for_one_dotation.return_value = None
         response = client_with_user_logged.post(
@@ -128,9 +128,7 @@ data_test = (
 )
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 @pytest.mark.parametrize("status, expected_message, expected_tag", data_test)
 def test_patch_status_simulation_projet_gives_message(
     mock_ds_update,
@@ -246,7 +244,7 @@ def test_patch_status_simulation_projet_cancelling_all_when_error_in_ds_update(
     )
 
     with patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+        "dn.sync.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -285,9 +283,7 @@ def test_edit_taux_get_returns_form(
     assert "Annuler" in content
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_edit_taux_post_saves_and_returns_oob(
     mock_ds_update,
     client_with_user_logged,
@@ -347,7 +343,7 @@ def test_edit_taux_post_rolls_back_on_ds_error(
     url = reverse("simulation:edit-taux", args=[accepted_simulation_projet.id])
 
     with patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+        "dn.sync.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(
@@ -376,9 +372,7 @@ def test_edit_montant_get_returns_form(
     assert "Enregistrer" in content
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_edit_montant_post_saves_and_returns_oob(
     mock_ds_update,
     client_with_user_logged,
@@ -448,7 +442,7 @@ def test_edit_montant_post_rolls_back_on_ds_error(
     )
 
     with patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+        "dn.sync.services.DsService.update_ds_annotations_for_one_dotation",
         side_effect=DsServiceException("Erreur !"),
     ):
         response = client_with_user_logged.post(

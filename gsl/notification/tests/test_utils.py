@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
+from dn.sync.tests.factories import PersonneMoraleFactory
 from gsl.core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
@@ -35,7 +36,6 @@ from gsl.projet.utils.utils import (
     _get_uploaded_document_pdf,
     merge_documents_into_pdf,
 )
-from gsl_demarches_simplifiees.tests.factories import PersonneMoraleFactory
 
 
 @pytest.fixture

@@ -101,9 +101,7 @@ class CollegueFactory(factory.django.DjangoModelFactory):
 
 
 class CollegueWithDSProfileFactory(CollegueFactory):
-    ds_profile = factory.SubFactory(
-        "gsl_demarches_simplifiees.tests.factories.ProfileFactory"
-    )
+    ds_profile = factory.SubFactory("dn.sync.tests.factories.ProfileFactory")
 
 
 class BulkActionsJobFactory(factory.django.DjangoModelFactory):

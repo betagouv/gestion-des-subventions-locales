@@ -72,7 +72,7 @@ INSTALLED_APPS = [
     # gsl apps:
     "ui",
     "gsl.core",
-    "gsl_demarches_simplifiees",
+    "dn.sync",
     "dn.proxy",
     "gsl.projet",
     "gsl.chorus",

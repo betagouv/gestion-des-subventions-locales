@@ -1,0 +1,421 @@
+from decimal import Decimal
+from unittest.mock import patch
+
+import pytest
+
+from dn.sync.forms import (
+    DossierReporteSansPieceForm,
+    DotationFormField,
+)
+from dn.sync.tests.factories import (
+    CategorieDetrFactory,
+    CategorieDsilFactory,
+    DossierFactory,
+)
+from gsl.projet.constants import Dotation
+from gsl.projet.tests.factories import ProjetFactory
+
+pytestmark = pytest.mark.django_db
+
+
+class TestDotationFormField:
+    def test_dotation_form_field_choices(self):
+        field = DotationFormField()
+        assert list(field.choices) == list(Dotation.choices)
+
+    def test_dotation_form_field_prepare_value_with_detr(self):
+        field = DotationFormField()
+        result = field.prepare_value(Dotation.DETR)
+        assert result == [Dotation.DETR]
+
+    def test_dotation_form_field_prepare_value_with_dsil(self):
+        field = DotationFormField()
+        result = field.prepare_value(Dotation.DSIL)
+        assert result == [Dotation.DSIL]
+
+    def test_dotation_form_field_prepare_value_with_both_dotations(self):
+        field = DotationFormField()
+        result = field.prepare_value(f"{Dotation.DETR}, {Dotation.DSIL}")
+        assert Dotation.DETR in result
+        assert Dotation.DSIL in result
+        assert len(result) == 2
+
+    def test_dotation_form_field_prepare_value_with_empty_string(self):
+        field = DotationFormField()
+        result = field.prepare_value("")
+        assert result == []
+
+    def test_dotation_form_field_prepare_value_with_list(self):
+        field = DotationFormField()
+        result = field.prepare_value([Dotation.DETR, Dotation.DSIL])
+        assert Dotation.DETR in result
+        assert Dotation.DSIL in result
+
+
+class TestDossierReporteSansPieceForm:
+    def test_form_valid_with_detr(self):
+        dossier = DossierFactory()
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+    def test_form_valid_with_dsil(self):
+        dossier = DossierFactory()
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DSIL],
+            "finance_cout_total": "200000.00",
+            "demande_montant": "80000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+    def test_form_valid_with_double_dotation(self):
+        dossier = DossierFactory()
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
+            "finance_cout_total": "150000.00",
+            "demande_montant": "75000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+    def test_form_invalid_missing_dispositif_sollicite(self):
+        dossier = DossierFactory()
+        form_data = {
+            "demande_dispositif_sollicite": [],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert not form.is_valid()
+        assert "demande_dispositif_sollicite" in form.errors
+
+    def test_form_invalid_missing_finance_cout_total(self):
+        dossier = DossierFactory()
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert not form.is_valid()
+        assert "finance_cout_total" in form.errors
+
+    def test_form_invalid_missing_demande_montant(self):
+        dossier = DossierFactory()
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert not form.is_valid()
+        assert "demande_montant" in form.errors
+
+    def test_form_invalid_missing_all_fields(self):
+        dossier = DossierFactory()
+        form_data = {}
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert not form.is_valid()
+        assert "demande_dispositif_sollicite" in form.errors
+        assert "finance_cout_total" in form.errors
+        assert "demande_montant" in form.errors
+
+    def test_form_save_updates_dossier_fields(self):
+        dossier = DossierFactory(
+            demande_dispositif_sollicite="",
+            finance_cout_total=None,
+            demande_montant=None,
+        )
+        ProjetFactory(dossier_ds=dossier)
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "dn.sync.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
+        ):
+            saved_dossier = form.save()
+
+        saved_dossier.refresh_from_db()
+        assert Dotation.DETR in saved_dossier.demande_dispositif_sollicite
+        assert saved_dossier.finance_cout_total == Decimal("100000.00")
+        assert saved_dossier.demande_montant == Decimal("50000.00")
+
+    def test_form_save_calls_enveloppe_projet_service(self):
+        dossier = DossierFactory()
+        projet = ProjetFactory(dossier_ds=dossier)
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "dn.sync.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
+        ) as mock_service:
+            form.save()
+            mock_service.assert_called_once_with(projet)
+
+    def test_form_save_updates_dotations_has_been_updated_in_app_on_projet(self):
+        dossier = DossierFactory()
+        projet = ProjetFactory(
+            dossier_ds=dossier,
+            dotations_updated_in_app=False,
+        )
+        assert projet.dotations_updated_in_app is False
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "dn.sync.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
+        ):
+            form.save()
+
+        projet.refresh_from_db()
+        assert projet.dotations_updated_in_app is True
+
+    def test_form_save_with_double_dotation_updates_dispositif(self):
+        dossier = DossierFactory(demande_dispositif_sollicite="")
+        ProjetFactory(dossier_ds=dossier)
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
+            "finance_cout_total": "200000.00",
+            "demande_montant": "100000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "dn.sync.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
+        ):
+            saved_dossier = form.save()
+
+        saved_dossier.refresh_from_db()
+        assert Dotation.DETR in saved_dossier.demande_dispositif_sollicite
+        assert Dotation.DSIL in saved_dossier.demande_dispositif_sollicite
+
+    def test_form_save_creates_enveloppe_projet_with_assiette_from_finance_cout_total(
+        self,
+    ):
+        dossier = DossierFactory(
+            demande_dispositif_sollicite="",
+            finance_cout_total=None,
+            annotations_assiette_detr=None,
+        )
+        ProjetFactory(dossier_ds=dossier)
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        form.save()
+
+        from gsl.projet.models import EnveloppeProjet
+
+        dp = EnveloppeProjet.objects.for_dotation(Dotation.DETR).get(
+            projet__dossier_ds=dossier
+        )
+        assert dp.assiette == Decimal("100000.00")
+
+
+class TestDossierReporteSansPieceFormCategories:
+    @pytest.fixture
+    def dossier_with_projet(self):
+        dossier = DossierFactory()
+        ProjetFactory(dossier_ds=dossier)
+        return dossier
+
+    def test_form_valid_with_detr_category(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
+        )
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+            "demande_categorie_detr": cat_detr.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+    def test_form_valid_with_dsil_category(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DSIL],
+            "finance_cout_total": "200000.00",
+            "demande_montant": "80000.00",
+            "demande_categorie_dsil": cat_dsil.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+    def test_form_valid_with_both_categories(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
+        )
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
+            "finance_cout_total": "150000.00",
+            "demande_montant": "75000.00",
+            "demande_categorie_detr": cat_detr.pk,
+            "demande_categorie_dsil": cat_dsil.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+    def test_form_valid_without_categories(self, dossier_with_projet):
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier_with_projet)
+        assert form.is_valid(), form.errors
+
+    def test_save_persists_categories(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
+        )
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR, Dotation.DSIL],
+            "finance_cout_total": "150000.00",
+            "demande_montant": "75000.00",
+            "demande_categorie_detr": cat_detr.pk,
+            "demande_categorie_dsil": cat_dsil.pk,
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "dn.sync.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
+        ):
+            saved_dossier = form.save()
+
+        saved_dossier.refresh_from_db()
+        assert saved_dossier.demande_categorie_detr == cat_detr
+        assert saved_dossier.demande_categorie_dsil == cat_dsil
+
+    def test_save_clears_detr_category_when_detr_unchecked(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+        departement = dossier.projet.perimetre.departement
+        cat_detr = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
+        )
+        dossier.demande_categorie_detr = cat_detr
+        dossier.save()
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DSIL],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "dn.sync.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
+        ):
+            saved_dossier = form.save()
+
+        saved_dossier.refresh_from_db()
+        assert saved_dossier.demande_categorie_detr is None
+
+    def test_save_clears_dsil_category_when_dsil_unchecked(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+        cat_dsil = CategorieDsilFactory(demarche=demarche, active=True)
+        dossier.demande_categorie_dsil = cat_dsil
+        dossier.save()
+
+        form_data = {
+            "demande_dispositif_sollicite": [Dotation.DETR],
+            "finance_cout_total": "100000.00",
+            "demande_montant": "50000.00",
+        }
+        form = DossierReporteSansPieceForm(data=form_data, instance=dossier)
+        assert form.is_valid(), form.errors
+
+        with patch(
+            "dn.sync.forms.EnveloppeProjetService.create_or_update_enveloppe_projet_from_projet"
+        ):
+            saved_dossier = form.save()
+
+        saved_dossier.refresh_from_db()
+        assert saved_dossier.demande_categorie_dsil is None
+
+    def test_detr_queryset_filtered_by_demarche_and_departement(
+        self, dossier_with_projet
+    ):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+        departement = dossier.projet.perimetre.departement
+
+        matching_cat = CategorieDetrFactory(
+            demarche=demarche, departement=departement, active=True
+        )
+        # Different demarche
+        CategorieDetrFactory(departement=departement, active=True)
+        # Different departement
+        CategorieDetrFactory(demarche=demarche, active=True)
+        # Inactive
+        CategorieDetrFactory(demarche=demarche, departement=departement, active=False)
+
+        form = DossierReporteSansPieceForm(instance=dossier)
+        detr_qs = form.fields["demande_categorie_detr"].queryset
+        assert list(detr_qs) == [matching_cat]
+
+    def test_dsil_queryset_filtered_by_demarche(self, dossier_with_projet):
+        dossier = dossier_with_projet
+        demarche = dossier.ds_demarche
+
+        matching_cat = CategorieDsilFactory(demarche=demarche, active=True)
+        # Different demarche
+        CategorieDsilFactory(active=True)
+        # Inactive
+        CategorieDsilFactory(demarche=demarche, active=False)
+
+        form = DossierReporteSansPieceForm(instance=dossier)
+        dsil_qs = form.fields["demande_categorie_dsil"].queryset
+        assert list(dsil_qs) == [matching_cat]

@@ -297,7 +297,7 @@ class TestPostNoLongerPushesDsAtStatusChange:
             args=[detr_simulation_projet.id, SimulationProjet.STATUS_REFUSED],
         )
         with mock.patch(
-            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser"
+            "dn.sync.ds_client.DsMutator.dossier_refuser"
         ) as mock_ds_refuser:
             response = client_with_user_logged.post(
                 url, {}, headers={"HX-Request": "true"}

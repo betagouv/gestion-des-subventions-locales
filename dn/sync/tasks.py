@@ -1,0 +1,138 @@
+import logging
+from datetime import datetime
+
+from celery import shared_task
+from django.conf import settings
+from django.utils import timezone
+
+from dn.sync.importer.demarche import (
+    refresh_field_mappings_on_demarche,
+    save_demarche_from_ds,
+)
+from dn.sync.importer.dossier import (
+    refresh_dossier_from_saved_data,
+    save_demarche_dossiers_from_ds,
+    save_one_dossier_from_ds,
+)
+from dn.sync.locks import demarche_sync_lock
+from dn.sync.models import Demarche, Dossier
+from gsl.celery import priority_for_dispatch_count
+
+logger = logging.getLogger(__name__)
+
+# Task names are persisted in django_celery_beat periodic tasks and in queued
+# messages, so they keep the app label instead of following the module path.
+TASK_NAME_PREFIX = "gsl_demarches_simplifiees.tasks"
+
+
+## Refresh demarches from DN
+#### of every demarches => useful in cron tasks !
+@shared_task(name=f"{TASK_NAME_PREFIX}.task_refresh_every_demarche")
+def task_refresh_every_demarche(refresh_only_if_demarche_has_been_updated=True):
+    demarches = list(Demarche.objects.all())
+    priority = priority_for_dispatch_count(len(demarches))
+    for d in demarches:
+        task_save_demarche_from_ds.apply_async(
+            (d.ds_number, refresh_only_if_demarche_has_been_updated),
+            priority=priority,
+        )
+
+
+#### of one demarche
+@shared_task(name=f"{TASK_NAME_PREFIX}.task_save_demarche_from_ds")
+def task_save_demarche_from_ds(
+    demarche_number, refresh_only_if_demarche_has_been_updated=False
+):
+    return save_demarche_from_ds(
+        demarche_number, refresh_only_if_demarche_has_been_updated
+    )
+
+
+## Refresh dossiers
+### from DN
+#### of every published demarches — incremental sync using stored updated_since + cursor
+@shared_task(
+    name=f"{TASK_NAME_PREFIX}.task_fetch_new_or_modified_ds_dossiers_for_every_published_demarche"
+)
+def task_fetch_new_or_modified_ds_dossiers_for_every_published_demarche():
+    for d in Demarche.objects.filter(ds_state=Demarche.STATE_PUBLIEE):
+        task_save_demarche_dossiers_from_ds.delay(d.ds_number)
+
+
+#### of one demarche — incremental sync
+@shared_task(name=f"{TASK_NAME_PREFIX}.task_save_demarche_dossiers_from_ds")
+def task_save_demarche_dossiers_from_ds(demarche_number):
+    with demarche_sync_lock(
+        demarche_number, timeout=settings.DS_SYNC_LOCK_TIMEOUT
+    ) as acquired:
+        if not acquired:
+            logger.info(
+                "A DS sync is already running for demarche %s, skipping.",
+                demarche_number,
+            )
+            return
+        return save_demarche_dossiers_from_ds(demarche_number)
+
+
+#### init sync for one demarche from a given date
+@shared_task(name=f"{TASK_NAME_PREFIX}.task_init_demarche_sync")
+def task_init_demarche_sync(demarche_number, updated_since_iso: str):
+    """
+    Initialise (ou réinitialise) la synchronisation d'une démarche à partir d'une date donnée.
+
+    Met à jour demarche.updated_since avec la date fournie, réinitialise demarche.sync_cursor,
+    puis lance un premier appel sans curseur pour commencer la synchronisation.
+
+    :param demarche_number: numéro de la démarche
+    :param updated_since_iso: date/heure en ISO à partir de laquelle récupérer les dossiers
+    """
+    updated_since = datetime.fromisoformat(updated_since_iso.replace("Z", "+00:00"))
+    if timezone.is_naive(updated_since):
+        updated_since = timezone.make_aware(updated_since)
+
+    with demarche_sync_lock(
+        demarche_number, timeout=settings.DS_INIT_SYNC_LOCK_TIMEOUT
+    ) as acquired:
+        if not acquired:
+            logger.info(
+                "A DS sync is already running for demarche %s, skipping init.",
+                demarche_number,
+            )
+            return
+        demarche = Demarche.objects.get(ds_number=demarche_number)
+        demarche.updated_since = updated_since
+        demarche.sync_cursor = ""
+        demarche.pending_deleted_cursor = ""
+        demarche.deleted_cursor = ""
+        demarche.save(
+            update_fields=[
+                "updated_since",
+                "sync_cursor",
+                "pending_deleted_cursor",
+                "deleted_cursor",
+            ]
+        )
+
+        return save_demarche_dossiers_from_ds(demarche_number)
+
+
+#### of one dossier
+@shared_task(name=f"{TASK_NAME_PREFIX}.task_save_one_dossier_from_ds")
+def task_save_one_dossier_from_ds(dossier_number):
+    dossier = Dossier.objects.get(ds_number=dossier_number)
+    return save_one_dossier_from_ds(dossier)
+
+
+### from saved data
+#### of one dossier
+@shared_task(name=f"{TASK_NAME_PREFIX}.task_refresh_dossier_from_saved_data")
+def task_refresh_dossier_from_saved_data(dossier_number):
+    dossier = Dossier.objects.get(ds_number=dossier_number)
+    refresh_dossier_from_saved_data(dossier)
+
+
+## Refresh demarche field mappings
+## from saved data if existing else from DN
+@shared_task(name=f"{TASK_NAME_PREFIX}.task_refresh_field_mappings_from_demarche_data")
+def task_refresh_field_mappings_from_demarche_data(demarche_number):
+    return refresh_field_mappings_on_demarche(demarche_number)

@@ -61,9 +61,7 @@ def test_clean_assiette_accepts_within_cout_total(user):
 # -- AssietteSingleFieldForm.save (accepted) --
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_assiette_form_save_accepted_triggers_accept(mock_ds_update, user):
     enveloppe_projet = DetrProjetFactory(
         projet__dossier_ds__finance_cout_total=100_000,
@@ -146,9 +144,7 @@ def test_montant_form_save_updates_montant(user):
     assert simulation_projet.taux == 50
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_montant_form_save_accepted_triggers_accept(mock_ds_update, user):
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=1000, status=ProjetStatus.PROCESSING
@@ -246,9 +242,7 @@ def test_taux_form_save_updates_montant_from_taux(user):
     assert simulation_projet.montant == 150
 
 
-@mock.patch(
-    "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-)
+@mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
 def test_taux_form_save_accepted_triggers_accept(mock_ds_update, user):
     enveloppe_projet = EnveloppeProjetFactory(
         assiette=1000, status=ProjetStatus.PROCESSING

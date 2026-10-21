@@ -6,6 +6,14 @@ from django_filters import (
     RangeFilter,
 )
 
+from dn.sync.models import (
+    CategorieDetr,
+    CategorieDsil,
+    Cofinancement,
+    Dossier,
+    ProjetContractualisation,
+    ProjetZonage,
+)
 from gsl.core.campagne import get_campagne
 from gsl.core.models import Perimetre
 from gsl.programmation.models import Enveloppe
@@ -23,14 +31,6 @@ from gsl.projet.utils.projet_filters import (
     CommonFiltersFields,
     ProjetOrderingFilter,
     make_filter_search,
-)
-from gsl_demarches_simplifiees.models import (
-    CategorieDetr,
-    CategorieDsil,
-    Cofinancement,
-    Dossier,
-    ProjetContractualisation,
-    ProjetZonage,
 )
 
 PROGRAMMATION_ORDERING_MAP = {

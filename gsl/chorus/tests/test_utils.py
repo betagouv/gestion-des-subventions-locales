@@ -2,13 +2,13 @@ from decimal import Decimal
 
 import pytest
 
+from dn.sync.tests.factories import DossierFactory
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     ProjetFactory,
 )
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..models import SuiviFinancier
 from ..utils import par_dotation

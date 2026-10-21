@@ -6,15 +6,15 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import (
+    DossierDataFactory,
+    DossierFactory,
+)
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
-)
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import (
-    DossierDataFactory,
-    DossierFactory,
 )
 
 from ...constants import (
@@ -27,7 +27,8 @@ pytestmark = pytest.mark.django_db
 
 DS_FIXTURES_DIR = (
     Path(__file__).resolve().parent.parent.parent.parent.parent
-    / "gsl_demarches_simplifiees"
+    / "dn"
+    / "sync"
     / "tests"
     / "ds_fixtures"
 )
@@ -135,7 +136,7 @@ def test_post_clears_notified_at(client, collegue):
     )
 
     with patch(
-        "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_repasser_en_instruction",
+        "dn.sync.ds_client.DsMutator.dossier_repasser_en_instruction",
         return_value=_ds_repasser_en_instruction_response(
             date_traitement=timezone.now().isoformat()
         ),

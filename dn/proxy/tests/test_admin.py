@@ -4,7 +4,7 @@ from django.test import TestCase
 from dn.proxy.admin import ProxyTokenAdminForm
 from dn.proxy.models import ProxyToken
 from dn.proxy.tests.factories import ProxyTokenFactory
-from gsl_demarches_simplifiees.tests.factories import DemarcheFactory
+from dn.sync.tests.factories import DemarcheFactory
 
 
 def _raw_ds_data(groupes):

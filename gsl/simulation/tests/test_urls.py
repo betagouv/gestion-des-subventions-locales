@@ -280,7 +280,7 @@ def test_patch_status_simulation_projet_url_with_htmx(
         },
     )
     with mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
+        "dn.sync.services.DsService.update_ds_annotations_for_one_dotation"
     ) as mock_ds_update:
         mock_ds_update.return_value = None
         response = client_with_cote_d_or_user_logged.post(url, headers=htmx_headers)
@@ -448,7 +448,7 @@ def test_regional_user_can_patch_projet_if_simulation_projet_is_associated_to_ds
         kwargs={"pk": cote_dorien_dsil_simulation_projet.pk, **kwargs},
     )
     with mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation",
+        "dn.sync.services.DsService.update_ds_annotations_for_one_dotation",
     ):
         response = client_with_bourguignon_user_logged.post(
             url,

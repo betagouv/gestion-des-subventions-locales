@@ -6,6 +6,7 @@ from django.test import Client
 from django.urls import resolve, reverse
 from django.utils import timezone
 
+from dn.sync.tests.factories import FieldMappingFactory
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -16,7 +17,6 @@ from gsl.core.tests.factories import (
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.projet.constants import Dotation, ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
-from gsl_demarches_simplifiees.tests.factories import FieldMappingFactory
 
 from ...models import SimulationProjet
 from ...views.simulation_views import FilteredProjetsExportView
@@ -120,9 +120,7 @@ class TestSimulationUpdatedAtOnFieldChange:
         simulation_projet.simulation.refresh_from_db()
         assert simulation_projet.simulation.updated_at > before
 
-    @mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    )
+    @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
     def test_edit_taux_updates_simulation_updated_at(
         self, _mock_ds, client_with_user_logged, accepted_simulation_projet
     ):
@@ -177,9 +175,7 @@ class TestSimulationUpdatedAtOnStatusChange:
         simulation_projet.simulation.refresh_from_db()
         assert simulation_projet.simulation.updated_at > before
 
-    @mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    )
+    @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
     def test_programmation_status_accept_updates_simulation_updated_at(
         self, _mock_ds, client_with_user_logged, simulation_projet
     ):
@@ -199,9 +195,7 @@ class TestSimulationUpdatedAtOnStatusChange:
         simulation_projet.simulation.refresh_from_db()
         assert simulation_projet.simulation.updated_at > before
 
-    @mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    )
+    @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
     def test_accept_does_not_update_other_simulations_updated_at(
         self, _mock_ds, client_with_user_logged, simulation_projet
     ):

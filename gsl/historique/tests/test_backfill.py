@@ -5,10 +5,10 @@ from unittest import mock
 import pytest
 from django.core.management import call_command
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import DossierDataFactory
 from gsl.core.tests.factories import PerimetreArrondissementFactory
 from gsl.projet.tests.factories import ProjetFactory
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 
 from ..models import ProjetAction
 

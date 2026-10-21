@@ -6,6 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
 
+from dn.sync.tests.factories import ProfileFactory
 from gsl.core.admin_alerts import notify_admins
 from gsl.core.models import Departement
 from gsl.core.tests.factories import (
@@ -14,7 +15,6 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     RegionFactory,
 )
-from gsl_demarches_simplifiees.tests.factories import ProfileFactory
 
 
 @pytest.fixture

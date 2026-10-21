@@ -4,6 +4,8 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import DossierFactory
 from gsl.core.models import Departement, Perimetre
 from gsl.core.tests.factories import (
     ArrondissementFactory,
@@ -14,8 +16,6 @@ from gsl.core.tests.factories import (
 )
 from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..constants import Dotation, ProjetStatus
 from ..models import Projet

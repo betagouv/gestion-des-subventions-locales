@@ -14,9 +14,9 @@ from django.db.models import (
 from django.utils import timezone
 from django_fsm import FSMField, TransitionNotAllowed, transition
 
+from dn.sync.services import DsService
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.historique.models import ProjetAction
-from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import (
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,

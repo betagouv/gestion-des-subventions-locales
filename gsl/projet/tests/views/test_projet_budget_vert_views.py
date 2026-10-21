@@ -4,12 +4,12 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 from ..factories import ProjetFactory
 

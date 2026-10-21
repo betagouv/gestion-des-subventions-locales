@@ -1,10 +1,10 @@
 import kombu
 import pytest
 
+from dn.sync.tests.factories import ProfileFactory
 from gsl.core.models import Collegue
 from gsl.core.tasks import associate_or_update_ds_profile_to_users
 from gsl.core.tests.factories import CollegueFactory
-from gsl_demarches_simplifiees.tests.factories import ProfileFactory
 
 
 @pytest.mark.django_db

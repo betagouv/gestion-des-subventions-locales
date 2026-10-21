@@ -114,7 +114,7 @@ class TestRefuseOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_demarches_simplifiees.ds_client.DsMutator.dossier_refuser"
+            "dn.sync.ds_client.DsMutator.dossier_refuser"
         ) as mock_ds_refuser:
             form = SimulationProjetStatusForm(
                 instance=detr_simulation_projet,
@@ -222,7 +222,7 @@ class TestDismissOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_demarches_simplifiees.services.DsService.classer_sans_suite"
+            "dn.sync.services.DsService.classer_sans_suite"
         ) as mock_ds_dismiss:
             form = SimulationProjetStatusForm(
                 instance=dsil_simulation_projet,
@@ -261,7 +261,7 @@ class TestDismissOneDoubleDotation:
         )
 
         with mock.patch(
-            "gsl_demarches_simplifiees.services.DsService.classer_sans_suite"
+            "dn.sync.services.DsService.classer_sans_suite"
         ) as mock_ds_dismiss:
             form = SimulationProjetStatusForm(
                 instance=dsil_simulation_projet,
@@ -284,9 +284,7 @@ class TestAcceptOneDoubleDotation:
     """Accepting still updates DS annotations because that's a per-dotation push,
     not the applicant-facing notification."""
 
-    @mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    )
+    @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
     def test_accept_detr_leaves_dsil_processing(
         self, mock_ds_update, double_enveloppe_projet_detr_dsil, user
     ):
@@ -329,9 +327,7 @@ class TestAcceptOneDoubleDotation:
         assert detr_dotation.is_programmee
         assert not dsil_dotation.is_programmee
 
-    @mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    )
+    @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
     def test_accept_both_dotations_separately(
         self, mock_ds_update, double_enveloppe_projet_detr_dsil, user
     ):
@@ -383,9 +379,7 @@ class TestAcceptOneDoubleDotation:
         assert detr_dotation.is_programmee
         assert dsil_dotation.is_programmee
 
-    @mock.patch(
-        "gsl_demarches_simplifiees.services.DsService.update_ds_annotations_for_one_dotation"
-    )
+    @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
     def test_accept_detr_when_dsil_refused_projet_becomes_accepted(
         self, mock_ds_update, double_enveloppe_projet_detr_dsil, user
     ):

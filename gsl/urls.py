@@ -29,7 +29,7 @@ urlpatterns = [
     path("", include("gsl.pages.urls")),
     path(
         "ds/",
-        include(("gsl_demarches_simplifiees.urls", "gsl_demarches_simplifiees"), "ds"),
+        include(("dn.sync.urls", "gsl_demarches_simplifiees"), "ds"),
     ),
     path("projets/", include(("gsl.projet.urls", "gsl_projet"), "projet")),
     path(

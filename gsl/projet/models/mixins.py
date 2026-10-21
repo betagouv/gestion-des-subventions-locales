@@ -2,9 +2,9 @@ import os
 
 from django.db import transaction
 
+from dn.sync.models import Dossier
+from dn.sync.services import DsService
 from gsl.core.models import Collegue
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.services import DsService
 
 from ..constants import Dotation, ProjetStatus
 from ..utils.utils import merge_documents_into_pdf

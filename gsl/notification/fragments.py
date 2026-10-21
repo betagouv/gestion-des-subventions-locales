@@ -8,6 +8,7 @@ from django_htmx.http import HttpResponseClientRefresh
 from pikepdf import PdfError
 from pypdfium2 import PdfiumError
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.matomo import queue_matomo_event
 from gsl.core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
@@ -33,7 +34,6 @@ from gsl.notification.qr.reattach import (
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
 from gsl.projet.models import EnveloppeProjet, Projet
-from gsl_demarches_simplifiees.exceptions import DsServiceException
 
 logger = logging.getLogger(__name__)
 

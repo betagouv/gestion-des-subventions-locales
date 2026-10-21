@@ -237,7 +237,7 @@ _(optionnel) Une ou plusieurs captures d'écran_
 | App | Purpose |
 |-----|---------|
 | **gsl_core** | Base infrastructure, user model (`Collegue`), geographic data (Region/Departement/Arrondissement), perimeter/access control |
-| **gsl_demarches_simplifiees** | Integration with French "Démarches Simplifiées" (DS) API for form submissions, dossier sync, field mapping |
+| **dn.sync** (label `gsl_demarches_simplifiees`) | Integration with French "Démarches Simplifiées" (DS) API for form submissions, dossier sync, field mapping |
 | **gsl_projet** | Project management, dotation eligibility (DETR/DSIL), state machine on `DotationProjet` (PROCESSING → ACCEPTED/REFUSED/DISMISSED) |
 | **gsl_programmation** | Budget allocation & programming, `Enveloppe` (budget envelope), approval decision recording |
 | **gsl_simulation** | "What-if" scenario modeling for subsidy allocations (`views/` directory) |
@@ -329,7 +329,7 @@ Projects can be eligible for **both DETR and DSIL simultaneously**. This is a co
 **When Updating DS Annotations:**
 Always push DETR and DSIL updates **separately** via `DsService` (instantiated, not static):
 ```python
-from gsl_demarches_simplifiees.services import DsService
+from dn.sync.services import DsService
 
 service = DsService()
 service.update_ds_annotations_for_one_dotation(
@@ -414,7 +414,7 @@ dossier.dossier_dotation_dsil.status = "refused"
 
 Tasks are spread across multiple apps:
 - `gsl/core/tasks.py`: `associate_or_update_ds_profile_to_users()` - Link DS profiles to user accounts
-- `gsl_demarches_simplifiees/tasks.py`: DS dossier import/refresh (fetch, save, refresh dossiers and démarches)
+- `dn/sync/tasks.py`: DS dossier import/refresh (fetch, save, refresh dossiers and démarches)
 - `gsl_projet/tasks.py`: Project and dotation creation/update from imported dossiers
 
 Run with: `python -m celery --app gsl worker --beat --scheduler django_celery_beat.schedulers:DatabaseScheduler`
@@ -513,10 +513,10 @@ of hardcoding it (see `_save_dossier_data_and_refresh_dossier_and_projet_and_co`
 
 ### Updating DS Annotations
 
-Use `DsService` in `gsl_demarches_simplifiees/services.py` (instantiated):
+Use `DsService` in `dn/sync/services.py` (instantiated):
 
 ```python
-from gsl_demarches_simplifiees.services import DsService
+from dn.sync.services import DsService
 
 service = DsService()
 service.update_ds_annotations_for_one_dotation(
@@ -763,7 +763,7 @@ See `.env.example` for required variables:
 | `justfile` | Task automation (build, test, deploy) |
 | `conftest.py` | pytest configuration and fixtures |
 | `gsl/core/models.py` | User, Perimetre, Geography models |
-| `gsl_demarches_simplifiees/models.py` | Dossier, DS integration models |
+| `dn/sync/models.py` | Dossier, DS integration models |
 | `gsl_projet/models.py` | Project, DotationProjet models |
 | `gsl/programmation/models.py` | Enveloppe, ProgrammationProjet models |
 | `gsl/notification/models.py` | Template and document models |
@@ -858,7 +858,7 @@ redis-cli
 
 ### DS API Integration
 
-Check `gsl_demarches_simplifiees/importer/` for dossier import logic.
+Check `dn/sync/importer/` for dossier import logic.
 Logs from `DsService` and `DsMutator` show API calls and responses.
 
 ### Perimeter Filtering

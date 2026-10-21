@@ -1,7 +1,7 @@
 import logging
 
+from dn.sync.models import Dossier
 from gsl.historique.utils import create_projet_actions_from_dossier_traitements
-from gsl_demarches_simplifiees.models import Dossier
 
 from ..models import Projet
 

@@ -2,11 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import DossierDataFactory
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import CollegueFactory
 from gsl.projet.tests.factories import ProjetFactory
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierDataFactory
 
 from ..models import ProjetAction
 from ..utils import (

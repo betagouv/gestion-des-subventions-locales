@@ -4,6 +4,8 @@ from random import randint
 import factory
 from django.utils import timezone
 
+from dn.sync.models import Dossier
+from dn.sync.tests.factories import DossierFactory
 from gsl.core.tests.factories import (
     AdresseFactory,
     CollegueFactory,
@@ -13,8 +15,6 @@ from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl_demarches_simplifiees.models import Dossier
-from gsl_demarches_simplifiees.tests.factories import DossierFactory
 
 from ..constants import (
     Dotation,

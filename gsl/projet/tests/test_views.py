@@ -7,6 +7,8 @@ from django.db.models import Count, F, Q
 from django.urls import reverse
 from django.utils import timezone
 
+from dn.sync.models import NaturePorteurProjet
+from dn.sync.tests.factories import NaturePorteurProjetFactory
 from gsl.core.campagne import default_campagne
 from gsl.core.models import Collegue, Departement, Perimetre
 from gsl.core.tests.factories import (
@@ -21,8 +23,6 @@ from gsl.core.tests.factories import (
     RequestFactory,
 )
 from gsl.notification.tests.factories import ArreteFactory, LettreNotificationFactory
-from gsl_demarches_simplifiees.models import NaturePorteurProjet
-from gsl_demarches_simplifiees.tests.factories import NaturePorteurProjetFactory
 
 from ..constants import (
     Dotation,
