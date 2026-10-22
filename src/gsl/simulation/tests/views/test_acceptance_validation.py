@@ -15,16 +15,14 @@ import pytest
 from django.urls import reverse
 
 from dn.sync.exceptions import DsServiceException
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 
 from ...forms import SimulationProjetStatusForm

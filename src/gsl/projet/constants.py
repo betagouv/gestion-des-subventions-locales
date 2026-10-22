@@ -1,16 +1,6 @@
 from django.db import models
 from django.utils.functional import classproperty
 
-# TODO move this file in gsl/core
-
-
-class Dotation(models.TextChoices):
-    DETR = "DETR", "DETR"
-    DSIL = "DSIL", "DSIL"
-
-
-PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE = 10
-
 
 class ProjetStatus(models.TextChoices):
     ACCEPTED = "accepted", "✅ Accepté"
@@ -42,5 +32,3 @@ LETTRE_ET_ARRETE_SIGNES = "lettre_et_arrete_signes"
 ANNEXE = "annexe"
 
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000
-
-ANNUAIRE_ENTREPRISE_URL = "https://annuaire-entreprises.data.gouv.fr/entreprise/"

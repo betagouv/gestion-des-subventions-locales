@@ -6,6 +6,7 @@ import pytest
 from django.urls import reverse
 from pikepdf import Pdf
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -16,7 +17,7 @@ from gsl.notification.tests.factories import (
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import Dotation, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db

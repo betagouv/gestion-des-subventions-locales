@@ -14,13 +14,13 @@ from django.db.models import (
 from django.utils import timezone
 from django_fsm import FSMField, TransitionNotAllowed, transition
 
+from dn.sync.models import Dotation
 from dn.sync.services import DsService
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.historique.models import ProjetAction
 
 from ..constants import (
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
-    Dotation,
     NotificationStatus,
     ProjetStatus,
 )

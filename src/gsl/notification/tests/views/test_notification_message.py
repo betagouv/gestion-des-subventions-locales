@@ -16,7 +16,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import (
     DossierDataFactory,
     DossierFactory,
@@ -39,10 +39,7 @@ from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 
 DS_FIXTURES_DIR = (

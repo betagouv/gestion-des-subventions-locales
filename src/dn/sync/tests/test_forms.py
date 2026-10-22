@@ -7,12 +7,12 @@ from dn.sync.forms import (
     DossierReporteSansPieceForm,
     DotationFormField,
 )
+from dn.sync.models import Dotation
 from dn.sync.tests.factories import (
     CategorieDetrFactory,
     CategorieDsilFactory,
     DossierFactory,
 )
-from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db

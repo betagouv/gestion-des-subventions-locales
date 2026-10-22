@@ -1,11 +1,9 @@
 import pytest
 
+from dn.sync.models import Dotation
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
-from ..constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ..constants import ProjetStatus
 from ..models import EnveloppeProjet, Projet
 from .factories import EnveloppeProjetFactory, ProjetFactory
 

@@ -1,9 +1,10 @@
 import pytest
 from django.db import IntegrityError, transaction
 
+from dn.sync.models import Dotation
 from gsl.simulation.tests.factories import SimulationProjetFactory
 
-from ...constants import Dotation, ProjetStatus
+from ...constants import ProjetStatus
 from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 

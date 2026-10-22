@@ -16,6 +16,7 @@ from django.views.generic import FormView, ListView
 from django.views.generic.edit import DeleteView
 from formtools.wizard.views import SessionWizardView
 
+from dn.sync.models import Dotation
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
 from gsl.core.matomo_constants import (
@@ -34,9 +35,6 @@ from gsl.notification.utils import (
     MENTIONS,
     duplicate_field_file,
     get_modele_perimetres,
-)
-from gsl.projet.constants import (
-    Dotation,
 )
 from gsl.utils.csp import csp_update
 

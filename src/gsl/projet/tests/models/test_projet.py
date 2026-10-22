@@ -1,6 +1,7 @@
 import pytest
 from django.utils import timezone
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl.notification.tests.factories import (
     AnnexeFactory,
@@ -10,10 +11,7 @@ from gsl.notification.tests.factories import (
     LettreRefusSigneeFactory,
 )
 
-from ...constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ...constants import ProjetStatus
 from ...models import Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 

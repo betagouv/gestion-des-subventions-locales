@@ -15,11 +15,10 @@ from dn.sync.exceptions import (
     InstructeurUnknown,
     UserRightsError,
 )
-from dn.sync.models import Dossier, FieldMapping
+from dn.sync.models import Dossier, Dotation, FieldMapping
 from dn.sync.utils import most_recent_traitement
 from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import Dotation
 
 logger = getLogger(__name__)
 

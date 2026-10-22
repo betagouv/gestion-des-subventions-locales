@@ -6,8 +6,7 @@ import openpyxl
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from dn.sync.models import Dossier
-from gsl.projet.constants import Dotation
+from dn.sync.models import Dossier, Dotation
 
 from ...models import LIGNE_IDENTITY_FIELDS, SuiviFinancier
 

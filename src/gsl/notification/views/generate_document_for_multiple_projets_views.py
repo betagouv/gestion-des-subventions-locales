@@ -8,6 +8,7 @@ from django.views.generic import DetailView
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
+from dn.sync.models import Dotation
 from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
@@ -26,7 +27,7 @@ from gsl.notification.forms.bulk_generation import (
 )
 from gsl.notification.models import ExportJob
 from gsl.notification.tasks import generate_export_task
-from gsl.projet.constants import LETTRE_REFUS, Dotation
+from gsl.projet.constants import LETTRE_REFUS
 from gsl.projet.models import EnveloppeProjet
 
 

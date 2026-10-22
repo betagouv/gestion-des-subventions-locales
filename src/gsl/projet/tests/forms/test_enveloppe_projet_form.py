@@ -1,7 +1,8 @@
 import pytest
 from django import forms
 
-from ...constants import Dotation
+from dn.sync.models import Dotation
+
 from ...forms import EnveloppeProjetForm
 from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory

@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
+from dn.sync.models import Dotation
 from dn.sync.tests.factories import (
     CategorieDetrFactory,
     CategorieDsilFactory,
@@ -14,7 +15,6 @@ from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
 )
-from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db

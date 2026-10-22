@@ -11,16 +11,14 @@ from dn.sync.models import (
     CategorieDsil,
     Cofinancement,
     Dossier,
+    Dotation,
     ProjetContractualisation,
     ProjetZonage,
 )
 from gsl.core.campagne import get_campagne
 from gsl.core.models import Perimetre
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,

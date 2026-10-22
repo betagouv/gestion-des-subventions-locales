@@ -1,11 +1,11 @@
 import pytest
 from django.test import RequestFactory
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreDepartementalFactory,
 )
-from gsl.projet.constants import Dotation
 
 from ..filters import SimulationProjetFilters
 

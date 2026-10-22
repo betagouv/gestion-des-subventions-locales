@@ -2,6 +2,7 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory
 from gsl.notification.forms.bulk_generation import (
     EXPORT_FORMAT_ONE_PDF_ALL,
@@ -15,7 +16,6 @@ from gsl.notification.tests.factories import (
 from gsl.notification.utils import MENTIONS
 from gsl.projet.constants import (
     ARRETE,
-    Dotation,
     ProjetStatus,
 )
 from gsl.projet.models import EnveloppeProjet

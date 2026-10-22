@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import get_valid_filename
 
+from dn.sync.models import Dotation
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.core.utils import kebab_case
 from gsl.notification.validators import document_file_validator, logo_file_validator
@@ -16,7 +17,6 @@ from gsl.projet.constants import (
     ARRETE,
     LETTRE,
     LETTRE_REFUS,
-    Dotation,
     ProjetStatus,
 )
 

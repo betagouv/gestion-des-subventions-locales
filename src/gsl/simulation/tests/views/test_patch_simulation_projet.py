@@ -8,6 +8,7 @@ from django.contrib.messages import INFO, SUCCESS, get_messages
 from django.urls import reverse
 
 from dn.sync.exceptions import DsServiceException
+from dn.sync.models import Dotation
 from dn.sync.tests.factories import FieldMappingFactory
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -15,10 +16,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 

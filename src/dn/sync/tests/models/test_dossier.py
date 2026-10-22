@@ -4,13 +4,13 @@ from dn.sync.models import (
     AnnotationsDotation,
     Dossier,
     DossierData,
+    Dotation,
 )
 from dn.sync.tests.factories import (
     DossierDataFactory,
     DossierFactory,
 )
 from gsl.core.tests.factories import CollegueFactory
-from gsl.projet.constants import Dotation
 
 pytestmark = pytest.mark.django_db
 

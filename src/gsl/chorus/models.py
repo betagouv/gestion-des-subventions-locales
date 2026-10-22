@@ -1,7 +1,7 @@
 from django.db import models
 
+from dn.sync.models import Dotation
 from gsl.core.models import BaseModel
-from gsl.projet.constants import Dotation
 
 # Chorus "Ty.val." (type de pièce) — column TV.
 TV_LABELS = {

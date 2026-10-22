@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from freezegun import freeze_time
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -30,7 +31,7 @@ from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import LETTRE, Dotation, ProjetStatus
+from gsl.projet.constants import LETTRE, ProjetStatus
 from gsl.projet.models import Projet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 

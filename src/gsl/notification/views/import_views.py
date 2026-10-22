@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import DetailView, FormView, TemplateView
 
+from dn.sync.models import Dotation
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
@@ -18,7 +19,6 @@ from gsl.core.s3 import get_s3_client
 from gsl.core.view_mixins import OpenHtmxModalMixin
 from gsl.notification.forms.upload import ImportJobStartForm, PresignedUploadForm
 from gsl.notification.models import DocumentImportJob
-from gsl.projet.constants import Dotation
 
 IMPORT_MODAL_ID = "import-modal"
 

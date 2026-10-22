@@ -12,16 +12,14 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 
 from ...models import SimulationProjet

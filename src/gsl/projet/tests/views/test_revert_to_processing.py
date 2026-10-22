@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import (
     DossierDataFactory,
     DossierFactory,
@@ -17,10 +17,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 
-from ...constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ...constants import ProjetStatus
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db

@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from dn.sync.models import Dotation
 from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
@@ -10,7 +11,6 @@ from gsl.projet.constants import (
     ARRETE,
     LETTRE,
     LETTRE_ET_ARRETE_SIGNES,
-    Dotation,
 )
 
 

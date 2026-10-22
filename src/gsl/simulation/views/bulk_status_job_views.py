@@ -5,6 +5,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from django_htmx.http import trigger_client_event
 
+from dn.sync.models import Dotation
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
@@ -13,7 +14,6 @@ from gsl.core.matomo_constants import (
     MATOMO_CATEGORY_SIMULATION,
 )
 from gsl.core.models import BulkActionsJob
-from gsl.projet.constants import Dotation
 
 from ..forms import BulkStatusJobForm
 from ..models import (

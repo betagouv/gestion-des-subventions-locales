@@ -20,6 +20,7 @@ from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
+from dn.sync.models import Dotation
 from gsl.core.models import Perimetre
 from gsl.core.templatetags.gsl_filters import euro, percent
 from gsl.historique.models import ProjetAction
@@ -27,9 +28,6 @@ from gsl.notification.models import (
     GeneratedDocument,
 )
 from gsl.notification.qr.codec import build_payload, generate_qr_png_data_uri
-from gsl.projet.constants import (
-    Dotation,
-)
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.utils.utils import merge_pdf_bytes
 

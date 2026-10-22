@@ -4,6 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models.fields.files import FieldFile
 from django.urls import reverse
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -29,7 +30,6 @@ from gsl.projet.constants import (
     ARRETE,
     LETTRE,
     LETTRE_REFUS,
-    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory

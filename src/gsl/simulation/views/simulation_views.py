@@ -13,6 +13,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
+from dn.sync.models import Dotation
 from gsl.core.campagne import get_campagne
 from gsl.core.matomo import queue_matomo_event
 from gsl.core.matomo_constants import (
@@ -23,7 +24,6 @@ from gsl.core.matomo_constants import (
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import FilterSkiplinksMixin, NoFeedbackHtmxFormViewMixin
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import Dotation
 from gsl.projet.models import EnveloppeProjet, Projet
 
 from ..filters import SimulationProjetFilters

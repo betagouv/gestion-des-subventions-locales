@@ -1,5 +1,6 @@
 import pytest
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreRegionalFactory,
@@ -7,7 +8,6 @@ from gsl.core.tests.factories import (
 from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
-from gsl.projet.constants import Dotation
 from gsl.projet.models import Projet
 
 from ...models import Simulation, SimulationProjet

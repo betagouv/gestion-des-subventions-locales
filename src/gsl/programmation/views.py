@@ -10,6 +10,7 @@ from django.views.generic import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
 from django_filters.views import FilterView
 
+from dn.sync.models import Dotation
 from gsl.core.campagne import get_campagne
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
@@ -23,9 +24,6 @@ from gsl.programmation.forms import SubEnveloppeCreateForm, SubEnveloppeUpdateFo
 from gsl.programmation.models import Enveloppe
 from gsl.programmation.table_columns import PROGRAMMATION_TABLE_COLUMNS
 from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
-from gsl.projet.constants import (
-    Dotation,
-)
 from gsl.projet.models import EnveloppeProjet
 
 

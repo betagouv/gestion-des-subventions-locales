@@ -7,7 +7,7 @@ from django.forms import ValidationError
 from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
@@ -29,10 +29,7 @@ from gsl.programmation.tests.factories import (
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 
-from ...constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ...constants import ProjetStatus
 from ...models import (
     EnveloppeProjet,
 )

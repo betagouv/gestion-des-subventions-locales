@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import DossierFactory
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
@@ -13,10 +13,7 @@ from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationProjetFactory
 
-from ..constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ..constants import ProjetStatus
 from ..models import EnveloppeProjet
 from ..tasks import (
     task_create_or_update_enveloppe_projets_from_projet_batch,

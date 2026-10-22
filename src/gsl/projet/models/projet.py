@@ -14,7 +14,7 @@ from django.db.models import (
     When,
 )
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from gsl.core.campagne import CAMPAGNES
 from gsl.core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl.historique.models import ProjetAction
@@ -24,11 +24,7 @@ from gsl.notification.models import (
 )
 from gsl.programmation.models import Enveloppe
 
-from ..constants import (
-    MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
-    Dotation,
-    ProjetStatus,
-)
+from ..constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR, ProjetStatus
 from .enveloppe_projet import EnveloppeProjet
 from .mixins import ProjetDNActionsMixin
 
@@ -374,11 +370,18 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         )
 
     @property
+    def demande_montant_is_greater_than_min_montant_for_detr_commission(self) -> bool:
+        demande_montant = self.dossier_ds.demande_montant
+        return (
+            demande_montant is not None
+            and demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+        )
+
+    @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
             self.enveloppeprojet_set.for_dotation(Dotation.DETR).exists()
-            and self.dossier_ds.demande_montant is not None
-            and self.dossier_ds.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
+            and self.demande_montant_is_greater_than_min_montant_for_detr_commission
         )
 
     @property

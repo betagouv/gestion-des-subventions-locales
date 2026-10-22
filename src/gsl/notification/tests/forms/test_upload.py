@@ -2,6 +2,7 @@ import pytest
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory
 from gsl.notification.forms.upload import (
     ManualDocumentAttachForm,
@@ -17,7 +18,6 @@ from gsl.notification.tests.factories import (
 from gsl.projet.constants import (
     ANNEXE,
     LETTRE_ET_ARRETE_SIGNES,
-    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory

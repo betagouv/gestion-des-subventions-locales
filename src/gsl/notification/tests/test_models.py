@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl.notification.models import ModeleArrete
 from gsl.notification.tests.factories import (
@@ -21,7 +22,6 @@ from gsl.notification.tests.factories import (
 from gsl.projet.constants import (
     ARRETE,
     LETTRE,
-    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory

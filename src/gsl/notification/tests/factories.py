@@ -2,7 +2,7 @@ import datetime
 
 import factory
 
-from gsl.projet.constants import Dotation
+from dn.sync.models import Dotation
 
 from ..models import (
     Annexe,
