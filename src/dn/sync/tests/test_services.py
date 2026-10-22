@@ -10,7 +10,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
-from dn.sync.models import Dossier, FieldMapping
+from dn.sync.models import Dossier, Dotation, FieldMapping
 from dn.sync.services import (
     DsService,
     DsServiceException,
@@ -27,7 +27,6 @@ from dn.sync.tests.factories import (
 )
 from gsl.core.tests.factories import CollegueFactory
 from gsl.historique.models import ProjetAction
-from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import ProjetFactory
 
 pytestmark = pytest.mark.django_db

@@ -27,12 +27,12 @@ from typing import Iterator
 
 import segno
 
+from dn.sync.models import Dotation
 from gsl.notification.models import GENERATED_DOCUMENTS
 from gsl.projet.constants import (
     ARRETE,
     LETTRE,
     LETTRE_REFUS,
-    Dotation,
 )
 
 PAYLOAD_PREFIX = "GSL1"

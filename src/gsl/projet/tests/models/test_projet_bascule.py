@@ -6,6 +6,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from freezegun import freeze_time
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
@@ -19,7 +20,7 @@ from gsl.programmation.tests.factories import (
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
-from ...constants import Dotation, ProjetStatus
+from ...constants import ProjetStatus
 from ...models import EnveloppeProjet, Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 

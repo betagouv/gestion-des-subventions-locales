@@ -3,6 +3,7 @@ import re
 import pytest
 from django.urls import reverse
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -14,7 +15,7 @@ from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 
-from ...constants import Dotation, ProjetStatus
+from ...constants import ProjetStatus
 from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 

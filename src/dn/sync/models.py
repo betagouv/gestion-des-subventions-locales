@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.functional import classproperty
 from django.utils.text import slugify
 
+from gsl.core.campagne import PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE
 from gsl.core.models import (
     Adresse,
     Arrondissement,
@@ -17,14 +18,15 @@ from gsl.core.models import (
     Departement,
     Perimetre,
 )
-from gsl.projet.constants import (
-    ANNUAIRE_ENTREPRISE_URL,
-    MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
-    PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE,
-    Dotation,
-)
 
 logger = getLogger(__name__)
+
+ANNUAIRE_ENTREPRISE_URL = "https://annuaire-entreprises.data.gouv.fr/entreprise/"
+
+
+class Dotation(models.TextChoices):
+    DETR = "DETR", "DETR"
+    DSIL = "DSIL", "DSIL"
 
 
 @dataclass(frozen=True)
@@ -798,12 +800,6 @@ class Dossier(BaseModel):
         if not self.ds_demandeur or not self.ds_demandeur.siren:
             return None
         return f"{ANNUAIRE_ENTREPRISE_URL}{self.ds_demandeur.siren}"
-
-    @property
-    def demande_montant_is_greater_than_min_montant_for_detr_commission(self):
-        if self.demande_montant is None:
-            return False
-        return self.demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
 
     @property
     def is_sans_pieces(self) -> bool:

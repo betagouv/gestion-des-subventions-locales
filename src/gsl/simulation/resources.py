@@ -296,7 +296,7 @@ class DsilSimulationProjetResource(BaseSimulationProjetResource):
 
 class DetrSimulationProjetResource(BaseSimulationProjetResource):
     can_have_a_commission_detr_avis = Field(
-        attribute="projet__dossier_ds__demande_montant_is_greater_than_min_montant_for_detr_commission",
+        attribute="projet__demande_montant_is_greater_than_min_montant_for_detr_commission",
         column_name="Montant demandé supérieur à 100 000€ ?",
         widget=OuiNonWidget(),
     )

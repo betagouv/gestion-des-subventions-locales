@@ -13,16 +13,14 @@ from unittest import mock
 
 import pytest
 
+from dn.sync.models import Dotation
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import CollegueFactory
 from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 
 from ...forms import SimulationProjetStatusForm

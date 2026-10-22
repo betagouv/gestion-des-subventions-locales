@@ -3,8 +3,6 @@
 from django.db import migrations
 from django.db.migrations import RunPython
 
-from gsl.projet.constants import Dotation
-
 
 def delegate_enveloppes(apps, schema_editor):
     Enveloppe = apps.get_model("gsl_programmation", "Enveloppe")
@@ -12,8 +10,8 @@ def delegate_enveloppes(apps, schema_editor):
     for e in Enveloppe.objects.all():
         if (
             e.deleguee_by is not None
-            or (e.dotation == Dotation.DETR and e.perimetre.arrondissement is None)
-            or (e.dotation == Dotation.DSIL and e.perimetre.departement is None)
+            or (e.dotation == "DETR" and e.perimetre.arrondissement is None)
+            or (e.dotation == "DSIL" and e.perimetre.departement is None)
         ):
             continue
 

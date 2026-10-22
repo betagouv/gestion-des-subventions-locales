@@ -2,7 +2,7 @@ import pytest
 from django.conf import settings
 from django.db import IntegrityError
 
-from gsl.projet.constants import Dotation
+from dn.sync.models import Dotation
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
 )

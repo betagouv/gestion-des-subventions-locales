@@ -17,6 +17,7 @@ from django_htmx.http import (
 )
 
 from dn.sync.exceptions import DsServiceException
+from dn.sync.models import Dotation
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
@@ -35,10 +36,7 @@ from gsl.core.matomo_constants import (
 from gsl.core.templatetags.gsl_filters import euro
 from gsl.core.view_mixins import OpenHtmxModalMixin
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import projet_status_from_dotation_statuses
 
 from ..filters import SimulationProjetFilters

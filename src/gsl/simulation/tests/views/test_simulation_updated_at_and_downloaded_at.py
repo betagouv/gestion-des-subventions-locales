@@ -6,6 +6,7 @@ from django.test import Client
 from django.urls import resolve, reverse
 from django.utils import timezone
 
+from dn.sync.models import Dotation
 from dn.sync.tests.factories import FieldMappingFactory
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -15,7 +16,7 @@ from gsl.core.tests.factories import (
     RequestFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import Dotation, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 from ...models import SimulationProjet

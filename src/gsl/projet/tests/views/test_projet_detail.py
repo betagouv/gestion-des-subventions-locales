@@ -5,6 +5,7 @@ import pytest
 from django.shortcuts import reverse
 from django.utils import timezone
 
+from dn.sync.models import Dotation
 from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -12,10 +13,7 @@ from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
 )
 
-from ...constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ...constants import ProjetStatus
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db()

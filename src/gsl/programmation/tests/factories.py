@@ -3,12 +3,12 @@ from datetime import date
 from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import Dotation
 
 
 class DsilEnveloppeFactory(DjangoModelFactory):

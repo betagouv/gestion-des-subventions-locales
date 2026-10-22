@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
+from dn.sync.models import Dotation
 from dn.sync.tests.factories import PersonneMoraleFactory
 from gsl.core.tests.factories import (
     AdresseFactory,
@@ -30,7 +31,7 @@ from gsl.notification.utils import (
     merge_generated_documents_into_pdf,
     replace_mentions_in_html,
 )
-from gsl.projet.constants import Dotation, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 from gsl.projet.utils.utils import (
     _get_uploaded_document_pdf,

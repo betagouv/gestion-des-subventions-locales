@@ -4,8 +4,7 @@ from typing import Callable, Optional
 
 from django.utils.html import format_html
 
-from dn.sync.models import Dossier
-from gsl.projet.constants import ANNUAIRE_ENTREPRISE_URL
+from dn.sync.models import ANNUAIRE_ENTREPRISE_URL, Dossier
 
 
 class StickyPosition(Enum):

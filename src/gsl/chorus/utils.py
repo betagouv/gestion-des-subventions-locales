@@ -1,7 +1,5 @@
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from dn.sync.models import Dotation
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet
 
 from .models import SuiviFinancier

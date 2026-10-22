@@ -4,7 +4,7 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import DossierFactory
 from gsl.core.models import Departement, Perimetre
 from gsl.core.tests.factories import (
@@ -17,7 +17,7 @@ from gsl.core.tests.factories import (
 from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
-from ..constants import Dotation, ProjetStatus
+from ..constants import ProjetStatus
 from ..models import Projet
 from .factories import (
     EnveloppeProjetFactory,

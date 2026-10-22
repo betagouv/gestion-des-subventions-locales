@@ -4,9 +4,10 @@ from typing import cast
 from factory import LazyAttribute, SelfAttribute, Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import BulkActionsJobFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import Dotation, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 from ..models import BULK_STATUS_ACTION, Simulation, SimulationProjet

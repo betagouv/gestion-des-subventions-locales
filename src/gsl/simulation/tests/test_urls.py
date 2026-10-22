@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from dn.sync.models import Dotation
 from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -13,7 +14,6 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
-from gsl.projet.constants import Dotation
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
 )

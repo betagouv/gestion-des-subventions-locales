@@ -3,11 +3,11 @@ from unittest import mock
 
 import pytest
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from gsl.core.tests.factories import CollegueFactory
 from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 
-from ...constants import Dotation, ProjetStatus
+from ...constants import ProjetStatus
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db

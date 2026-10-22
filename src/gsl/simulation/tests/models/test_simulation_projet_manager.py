@@ -3,17 +3,14 @@ import logging
 
 import pytest
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,

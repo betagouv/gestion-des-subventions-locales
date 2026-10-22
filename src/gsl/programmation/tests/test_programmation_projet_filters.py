@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 from django.test import RequestFactory
 
-from dn.sync.models import NaturePorteurProjet
+from dn.sync.models import Dotation, NaturePorteurProjet
 from dn.sync.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
@@ -19,10 +19,7 @@ from gsl.core.tests.factories import (
 )
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import (
     EnveloppeProjetFactory,
     ProjetFactory,

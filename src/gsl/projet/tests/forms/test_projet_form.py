@@ -5,16 +5,14 @@ import pytest
 from django import forms
 
 from dn.sync.exceptions import DsServiceException
+from dn.sync.models import Dotation
 from dn.sync.services import DsService
 from gsl.core.tests.factories import CollegueWithDSProfileFactory
 from gsl.historique.models import ProjetAction
 from gsl.simulation.models import SimulationProjet, SimulationProjetManager
 from gsl.simulation.tests.factories import SimulationProjetFactory
 
-from ...constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ...constants import ProjetStatus
 from ...forms import ProjetBudgetVertForm, ProjetForm
 from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory, ProjetFactory

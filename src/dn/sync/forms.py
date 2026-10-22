@@ -9,8 +9,8 @@ from dn.sync.models import (
     CategorieDsil,
     Demarche,
     Dossier,
+    Dotation,
 )
-from gsl.projet.constants import Dotation
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 
 

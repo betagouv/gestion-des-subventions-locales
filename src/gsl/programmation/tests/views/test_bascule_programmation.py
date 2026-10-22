@@ -4,9 +4,10 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
-from gsl.projet.constants import Dotation, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.templatetags.enveloppe_tags import enveloppe_summary_line
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 

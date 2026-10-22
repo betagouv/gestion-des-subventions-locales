@@ -19,6 +19,7 @@ from dn.sync.models import (
     CategorieDsil,
     Cofinancement,
     Dossier,
+    Dotation,
     NaturePorteurProjet,
     ProjetContractualisation,
     ProjetZonage,
@@ -26,7 +27,6 @@ from dn.sync.models import (
 from gsl.core.models import Perimetre
 
 from ..constants import (
-    Dotation,
     NotificationStatus,
     ProjetStatus,
 )

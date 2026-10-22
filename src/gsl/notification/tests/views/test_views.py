@@ -8,6 +8,7 @@ from django.utils.text import slugify
 from freezegun import freeze_time
 from pikepdf import Pdf
 
+from dn.sync.models import Dotation
 from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -28,7 +29,6 @@ from gsl.notification.tests.factories import (
 from gsl.projet.constants import (
     ARRETE,
     LETTRE,
-    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory

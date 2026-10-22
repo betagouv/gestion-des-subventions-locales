@@ -9,6 +9,7 @@ from django.core.files.storage import default_storage
 from django.test import override_settings
 from freezegun import freeze_time
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueFactory,
@@ -26,7 +27,6 @@ from gsl.notification.tests.factories import (
 )
 from gsl.projet.constants import (
     LETTRE_REFUS,
-    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory

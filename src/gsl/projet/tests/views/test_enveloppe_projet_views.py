@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -13,7 +14,7 @@ from gsl.programmation.tests.factories import DetrEnveloppeFactory
 from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
-from ...constants import Dotation, ProjetStatus
+from ...constants import ProjetStatus
 from ..factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db

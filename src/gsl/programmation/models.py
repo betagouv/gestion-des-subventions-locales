@@ -3,10 +3,8 @@ from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Q
 
+from dn.sync.models import Dotation
 from gsl.core.models import BaseModel, Perimetre
-from gsl.projet.constants import (
-    Dotation,
-)
 
 
 class EnveloppeQueryset(models.QuerySet):
@@ -59,7 +57,13 @@ class EnveloppeQueryset(models.QuerySet):
         return qs
 
     def root_for(self, dotation: str, perimetre: Perimetre, annee: int) -> "Enveloppe":
-        perimetre_racine = perimetre.for_dotation(dotation)
+        # A DETR root enveloppe sits on a departement, a DSIL one on a region.
+        departement_id = perimetre.departement_id if dotation == Dotation.DETR else None
+        perimetre_racine = Perimetre.objects.get_or_create(
+            region_id=perimetre.region_id,
+            departement_id=departement_id,
+            arrondissement_id=None,
+        )[0]
         existante = self.filter(
             dotation=dotation, annee=annee, perimetre=perimetre_racine
         ).first()

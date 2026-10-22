@@ -7,9 +7,10 @@ from django.db.models import Count, QuerySet, Sum
 from django.forms import ValidationError
 from django_extensions.db.fields import AutoSlugField
 
+from dn.sync.models import Dotation
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import Dotation, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.utils import compute_taux
 

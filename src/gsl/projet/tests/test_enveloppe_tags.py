@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -12,10 +13,7 @@ from gsl.programmation.tests.factories import (
     DsilEnveloppeFactory,
 )
 
-from ..constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ..constants import ProjetStatus
 from ..templatetags.enveloppe_tags import enveloppe_summary_line
 from .factories import EnveloppeProjetFactory
 

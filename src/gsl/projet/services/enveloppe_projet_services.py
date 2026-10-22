@@ -2,14 +2,11 @@ import logging
 
 from django.db import transaction
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from gsl.historique.models import ProjetAction
 from gsl.simulation.models import SimulationProjet
 
-from ..constants import (
-    Dotation,
-    ProjetStatus,
-)
+from ..constants import ProjetStatus
 from ..models import EnveloppeProjet, Projet
 
 logger = logging.getLogger(__name__)

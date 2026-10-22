@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.test import override_settings
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory, PerimetreRegionalFactory
 from gsl.notification.forms.generate_doc import GenerateDotationsDocumentsForm
 from gsl.notification.models import (
@@ -17,7 +18,6 @@ from gsl.notification.tests.factories import (
 from gsl.projet.constants import (
     ARRETE,
     LETTRE,
-    Dotation,
     ProjetStatus,
 )
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory

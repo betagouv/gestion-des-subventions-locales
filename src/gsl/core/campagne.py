@@ -10,6 +10,8 @@ from django.views.generic import RedirectView
 
 CAMPAGNES = (2026, 2027)
 
+PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE = 10
+
 _active: ContextVar[int | None] = ContextVar("campagne", default=None)
 
 

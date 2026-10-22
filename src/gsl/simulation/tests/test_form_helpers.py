@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from dn.sync.models import Dossier
+from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import DossierFactory
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
@@ -14,10 +14,7 @@ from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
 )
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.services.enveloppe_projet_services import EnveloppeProjetService
 from gsl.projet.tests.factories import (
     DetrProjetFactory,

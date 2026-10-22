@@ -9,13 +9,11 @@ from dn.sync.models import (
     CategorieDetr,
     CategorieDsil,
     Cofinancement,
+    Dotation,
     ProjetContractualisation,
     ProjetZonage,
 )
 from gsl.core.models import Perimetre
-from gsl.projet.constants import (
-    Dotation,
-)
 from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.utils.django_filters_custom_widget import (
     CustomCheckboxSelectMultiple,

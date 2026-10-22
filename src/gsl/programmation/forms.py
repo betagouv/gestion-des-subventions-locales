@@ -2,9 +2,9 @@ from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 from dsfr.forms import DsfrBaseForm
 
+from dn.sync.models import Dotation
 from gsl.core.models import Perimetre
 from gsl.programmation.models import Enveloppe
-from gsl.projet.constants import Dotation
 
 
 class SubEnveloppeCreateForm(DsfrBaseForm, ModelForm):

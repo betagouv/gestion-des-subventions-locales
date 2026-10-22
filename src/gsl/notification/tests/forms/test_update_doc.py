@@ -1,15 +1,13 @@
 import pytest
 
+from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory
 from gsl.notification.forms.update_doc import ArreteForm, LettreNotificationForm
 from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import (
-    Dotation,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 # GeneratedDocumentForm
