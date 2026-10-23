@@ -69,7 +69,8 @@
                     "radioNavigate": "{% static 'js/controllers/radioNavigate.js' %}",
                     "formatMontant": "{% static 'js/controllers/formatMontant.js' %}",
                     "autoDismiss": "{% static 'js/controllers/autoDismiss.js' %}",
-                    "htmxError": "{% static 'js/controllers/htmxError.js' %}"
+                    "htmxError": "{% static 'js/controllers/htmxError.js' %}",
+                    "collectiviteMenu": "{% static 'js/controllers/collectiviteMenu.js' %}"
                 }
             }
             </script>
@@ -133,6 +134,7 @@
             import { BindAmountFields } from "bindAmountFields"
             import { CancelPollOnModalClose } from "cancelPollOnModalClose"
             import { CheckboxSelection } from "checkboxSelection"
+            import { CollectiviteMenu } from "collectiviteMenu"
             import { CommentArbitrage } from "commentArbitrage"
             import { ConditionalField } from "conditionalField"
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
@@ -176,6 +178,7 @@
             Stimulus.register("format-montant", FormatMontant)
             Stimulus.register("auto-dismiss", AutoDismiss)
             Stimulus.register("htmx-error", HtmxError)
+            Stimulus.register("collectivite-menu", CollectiviteMenu)
         </script>
 
         {% block extra_js %}

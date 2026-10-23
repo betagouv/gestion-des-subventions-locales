@@ -14,14 +14,12 @@
             <form method="get" class="fr-col-12 fr-col-md-8">
                 <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
                     <div class="fr-col fr-select-group fr-mb-0">
-                        <select class="fr-select" id="siren" name="siren">
-                            <option value=""
-                                    disabled
-                                    {% if not dans_perimetre %}selected{% endif %}>Choisir une collectivité</option>
-                            {% for c in collectivites %}
-                                <option value="{{ c.siren }}"
-                                        {% if c.siren == siren %}selected{% endif %}>{{ c.name }}</option>
-                            {% endfor %}
+                        <select class="fr-select"
+                                id="siren"
+                                name="siren"
+                                {% if perimetre %}data-controller="collectivite-menu" data-collectivite-menu-query-value="{{ geo_api_query }}" data-collectivite-menu-selected-value="{{ siren|default:'' }}"{% endif %}
+                                {% if arrondissement_communes %}data-collectivite-menu-communes-value="{{ arrondissement_communes }}"{% endif %}>
+                            <option value="" disabled selected>Choisir une collectivité</option>
                         </select>
                     </div>
                     <div class="fr-col-auto">
