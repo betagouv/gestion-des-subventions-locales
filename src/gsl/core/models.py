@@ -62,18 +62,6 @@ class Arrondissement(BaseModel):
         return f"Arr. {self.insee_code} - {self.name}"
 
 
-class CommuneQuerySet(models.QuerySet):
-    def for_perimetre(self, perimetre: "Perimetre | None"):
-        if perimetre is None:
-            return self
-        if perimetre.arrondissement:
-            return self.filter(arrondissement=perimetre.arrondissement)
-        if perimetre.departement:
-            return self.filter(departement=perimetre.departement)
-        if perimetre.region:
-            return self.filter(departement__region=perimetre.region)
-
-
 class Commune(BaseModel):
     insee_code = models.CharField("Code INSEE", unique=True, primary_key=True)
     name = models.CharField("Nom")
@@ -81,16 +69,6 @@ class Commune(BaseModel):
     arrondissement = models.ForeignKey(
         Arrondissement, on_delete=models.PROTECT, null=True
     )
-    siren = models.CharField(
-        "SIREN",
-        max_length=9,
-        blank=True,
-        help_text=(
-            "Identifiant SIREN de la commune (cf. la commande import_commune_siren)."
-        ),
-    )
-
-    objects = CommuneQuerySet.as_manager()
 
     def __str__(self):
         return f"Commune {self.insee_code} - {self.name}"
