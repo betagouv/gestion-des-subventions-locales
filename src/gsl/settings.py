@@ -482,6 +482,7 @@ SECURE_CSP = {
     "connect-src": [
         CSP.SELF,
         "https://stats.beta.gouv.fr",
+        "https://geo.api.gouv.fr",
         *([AWS_S3_ENDPOINT_URL] if AWS_S3_ENDPOINT_URL else []),
         *FICO_ORIGINS,
     ],
