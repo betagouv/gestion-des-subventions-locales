@@ -734,7 +734,7 @@ class CommuneAdmin(
     AllPermsForSuperUserAndViewOnlyForStaffUser, ImportMixin, admin.ModelAdmin
 ):
     resource_classes = (CommuneResource,)
-    list_display = ("name", "insee_code", "siren", "departement", "arrondissement")
+    list_display = ("name", "insee_code", "departement", "arrondissement")
     list_filter = ("departement__region", "departement", "arrondissement")
     search_fields = (
         "name",
