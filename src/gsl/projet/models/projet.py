@@ -288,6 +288,20 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return Enveloppe.objects.root_for(dotation, self.perimetre, annee)
 
     @property
+    def enveloppe_projets_actifs(self) -> list[EnveloppeProjet]:
+        """Python side twin of `EnveloppeProjetQuerySet.actifs`, to benefit from
+        the prefetch."""
+        enveloppe_projets = self.enveloppeprojet_set.all()
+        derniere_campagne = max(
+            (ep.enveloppe.annee for ep in enveloppe_projets), default=None
+        )
+        return [
+            ep
+            for ep in enveloppe_projets
+            if not (ep.is_notified and ep.enveloppe.annee < derniere_campagne)
+        ]
+
+    @property
     def campagne(self) -> int | None:
         """The campagne of its enveloppe projets, none if they span several."""
         annees = {ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()}

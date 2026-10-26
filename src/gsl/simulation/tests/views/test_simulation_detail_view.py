@@ -246,7 +246,7 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         projet = ProjetFactory(
             dossier_ds__perimetre=perimetre, notified_at=timezone.now()
         )
-        detr_dotation = DetrProjetFactory(projet=projet)
+        detr_dotation = DetrProjetFactory(projet=projet, notified_at=projet.notified_at)
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
         simu = SimulationProjetFactory(

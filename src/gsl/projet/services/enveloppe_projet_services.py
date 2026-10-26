@@ -58,6 +58,8 @@ class EnveloppeProjetService:
             enveloppe_projet.update_ej_from_dn()
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
 
+        cls._update_notified_at(projet)
+
     # private
 
     ## -------------------------- Dotations --------------------------
@@ -208,6 +210,23 @@ class EnveloppeProjetService:
             if ep.date_programmation > ep.dossier_ds.ds_date_passage_en_instruction:
                 continue
             ep.set_back_status_to_processing_without_ds()
+
+    ## -------------------------- Notification --------------------------
+
+    @classmethod
+    def _update_notified_at(cls, projet: Projet) -> None:
+        """Mirrors the DN treatment on the programmed actifs enveloppe projets: the
+        figés ones keep the date of their own campagne."""
+        dossier = projet.dossier_ds
+        enveloppe_projets = (
+            EnveloppeProjet.objects.filter(projet=projet).actifs().programmees()
+        )
+        if dossier.is_treated:
+            enveloppe_projets.filter(notified_at__isnull=True).update(
+                notified_at=dossier.ds_date_traitement
+            )
+        else:
+            enveloppe_projets.update(notified_at=None)
 
     ## -------------------------- Transitions --------------------------
 
