@@ -261,7 +261,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return (
             SimulationProjet.objects.active()
             .in_user_perimeter(self.request.user)
-            .filter(enveloppe_projet__projet__notified_at__isnull=True)
+            .filter(enveloppe_projet__notified_at__isnull=True)
         )
 
     def get_form_kwargs(self):
@@ -456,7 +456,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
 
     @staticmethod
     def applies_to(simulation_projet) -> bool:
-        return not simulation_projet.enveloppe_projet.projet.has_been_notified
+        return not simulation_projet.enveloppe_projet.is_notified
 
     def post(self, request, *args, **kwargs):
         target_status = kwargs["status"]
@@ -728,7 +728,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             SimulationProjet.objects.active()
             .in_user_perimeter(self.request.user)
             # On exclut les simulations-projet liés à une programmation-projet déjà notifiée.
-            .exclude(enveloppe_projet__projet__notified_at__isnull=False)
+            .exclude(enveloppe_projet__notified_at__isnull=False)
             .select_related(
                 "simulation",
                 "simulation__enveloppe",

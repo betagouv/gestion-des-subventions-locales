@@ -53,6 +53,19 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def programmees(self):
         return self.filter(status__in=ProjetStatus.FINAL)
 
+    def actifs(self):
+        """Excludes the figés ones: notified, while their projet goes on with an
+        enveloppe projet on a later campagne."""
+        return self.exclude(
+            Q(notified_at__isnull=False)
+            & Exists(
+                EnveloppeProjet.objects.filter(
+                    projet=OuterRef("projet"),
+                    enveloppe__annee__gt=OuterRef("enveloppe__annee"),
+                )
+            )
+        )
+
     def without_signed_document(self):
         return (
             self.programmees()
@@ -81,7 +94,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
             _notification_status=Case(
                 When(status=ProjetStatus.PROCESSING, then=Value(None)),
                 When(
-                    projet__notified_at__isnull=False,
+                    notified_at__isnull=False,
                     then=Value(NotificationStatus.NOTIFIED),
                 ),
                 When(
@@ -201,6 +214,7 @@ class EnveloppeProjet(BaseModel):
         "Date de programmation", blank=True, null=True
     )
     is_courant = models.BooleanField("Courant", default=True)
+    notified_at = models.DateTimeField("Date de notification", null=True, blank=True)
     ej = models.CharField("Engagement juridique", max_length=20, blank=True)
 
     objects = EnveloppeProjetCourantManager()
@@ -349,6 +363,10 @@ class EnveloppeProjet(BaseModel):
     @property
     def dossier_ds(self):
         return self.projet.dossier_ds
+
+    @property
+    def is_notified(self) -> bool:
+        return self.notified_at is not None
 
     @property
     def is_programmee(self) -> bool:

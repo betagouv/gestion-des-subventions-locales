@@ -103,7 +103,7 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     @classmethod
     def applies_to(cls, enveloppe_projet) -> bool:
         return (
-            not enveloppe_projet.projet.has_been_notified
+            not enveloppe_projet.is_notified
             and cls.document in enveloppe_projet.decision_documents
         )
 
