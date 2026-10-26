@@ -1,0 +1,51 @@
+{% extends "htmx/_base_htmx_modal.html" %}
+
+{% block button %}
+    <button class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-calendar-event-line"
+            id="{{ modal_button_id }}"
+            aria-controls="{{ modal_id }}"
+            type="button"
+            data-fr-opened="false">
+        Reporter le projet
+    </button>
+{% endblock button %}
+
+{% block dialog_close_behavior %}
+{% endblock dialog_close_behavior %}
+
+{% block content %}
+    <h1 class="fr-modal__title">
+        <span class="fr-icon-calendar-event-line fr-icon--lg" aria-hidden="true"></span>
+        Reporter le projet sur la campagne {{ object.campagne|add:1 }}
+    </h1>
+    <p>
+        Vous vous apprêtez à reporter le projet
+        «&nbsp;{{ object.dossier_ds.projet_intitule }}&nbsp;» sur la campagne {{ object.campagne|add:1 }}.
+        Le dossier repassera en instruction sur Démarche Numérique et le demandeur sera notifié via la messagerie.
+    </p>
+    <ul>
+        <li>
+            Les dotations refusées ou classées sans suite seront à nouveau en traitement sur la campagne {{ object.campagne|add:1 }}.
+        </li>
+        <li>
+            La programmation de la campagne {{ object.campagne }} est conservée, et ne pourra plus être repassée en traitement.
+        </li>
+    </ul>
+    <form id="{{ modal_id }}-form"
+          hx-post="{{ request.path }}"
+          hx-target="#{{ modal_id }}"
+          hx-swap="outerHTML"
+          hx-disabled-elt="#{{ modal_id }}-submit-button, #{{ modal_id }}-cancel-button">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+    </form>
+{% endblock content %}
+
+{% block confirmation_button %}
+    <button type="submit"
+            class="fr-btn fr-btn--primary"
+            form="{{ modal_id }}-form"
+            id="{{ modal_id }}-submit-button">
+        Oui, reporter le projet
+    </button>
+{% endblock confirmation_button %}
