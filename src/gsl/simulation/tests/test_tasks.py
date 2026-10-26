@@ -358,6 +358,8 @@ def test_run_bulk_status_job_records_error_for_notified_projects(
     sp = _make_simu_projet(perimetre, simulation)
     sp.projet.notified_at = "2025-01-01T00:00:00Z"
     sp.projet.save()
+    sp.enveloppe_projet.notified_at = "2025-01-01T00:00:00Z"
+    sp.enveloppe_projet.save()
     job = _make_job(
         simulation, collegue, [sp], SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED
     )

@@ -253,6 +253,8 @@ def test_bulk_status_update_rejects_notified_projets(
     )
     sp_notified.projet.notified_at = timezone.now()
     sp_notified.projet.save()
+    sp_notified.enveloppe_projet.notified_at = timezone.now()
+    sp_notified.enveloppe_projet.save()
 
     response = client_with_user_logged.post(
         _bulk_url(SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED),

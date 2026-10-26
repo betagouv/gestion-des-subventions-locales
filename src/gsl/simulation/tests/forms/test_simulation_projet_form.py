@@ -285,6 +285,8 @@ def test_simulation_projet_form_cannot_change_amounts_when_notified():
     )
     simulation_projet.enveloppe_projet.projet.notified_at = timezone.now()
     simulation_projet.enveloppe_projet.projet.save()
+    simulation_projet.enveloppe_projet.notified_at = timezone.now()
+    simulation_projet.enveloppe_projet.save()
 
     # Try to change montant
     data = {"assiette": 1_000, "montant": 500, "taux": 20}
