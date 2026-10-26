@@ -252,6 +252,28 @@ class TestProgrammationProjetListViewContent:
 
         assert self._get_enveloppe_projets(enveloppe_racine.perimetre) == set()
 
+    def test_n_affiche_pas_l_ep_accepte_d_une_autre_campagne(
+        self, perimetre_arrondissement, enveloppe_racine
+    ):
+        refused_enveloppe_projet = EnveloppeProjetFactory(
+            projet__dossier_ds__perimetre=perimetre_arrondissement,
+            dotation=Dotation.DETR,
+            status=ProjetStatus.REFUSED,
+            enveloppe=enveloppe_racine,
+        )
+        EnveloppeProjetFactory(
+            projet=refused_enveloppe_projet.projet,
+            status=ProjetStatus.ACCEPTED,
+            enveloppe=DetrEnveloppeFactory(
+                perimetre=enveloppe_racine.perimetre,
+                annee=enveloppe_racine.annee + 1,
+            ),
+        )
+
+        assert self._get_enveloppe_projets(enveloppe_racine.perimetre) == {
+            refused_enveloppe_projet
+        }
+
     # --- Enveloppe déléguée ---
 
     @pytest.mark.parametrize("status", ProjetStatus.FINAL)

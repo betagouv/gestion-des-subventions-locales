@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 
 from dn.sync.models import Dossier, Dotation
+from gsl.core.campagne import get_campagne
 from gsl.core.tests.factories import CollegueFactory
 from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 
@@ -30,7 +31,7 @@ def test_notify_calls_the_ds_method_matching_projet_status(status, expected_meth
     user = CollegueFactory()
 
     with _patch_ds_notify_methods() as mocks:
-        projet.notify(user, motivation="Motif")
+        projet.notify(user, campagne=get_campagne(), motivation="Motif")
 
     for method, method_mock in mocks.items():
         if method == expected_method:
@@ -55,7 +56,7 @@ def test_notify_merges_imported_documents_into_one_pdf():
             "gsl.projet.models.mixins.merge_documents_into_pdf", return_value=merged_pdf
         ) as merge_mock,
     ):
-        projet.notify(CollegueFactory())
+        projet.notify(CollegueFactory(), campagne=get_campagne())
 
     assert merge_mock.call_args.args[0] == projet.imported_documents
     assert mocks["accepter"].call_args.kwargs["document"] is merged_pdf
@@ -71,7 +72,7 @@ def test_notify_without_imported_documents_does_not_merge():
         _patch_ds_notify_methods(),
         mock.patch("gsl.projet.models.mixins.merge_documents_into_pdf") as merge_mock,
     ):
-        projet.notify(CollegueFactory(), motivation="Motif")
+        projet.notify(CollegueFactory(), campagne=get_campagne(), motivation="Motif")
 
     merge_mock.assert_not_called()
 
@@ -98,7 +99,7 @@ def test_notify_passes_dossier_en_instruction_only_when_en_construction(
             "dn.sync.services.DsService.passer_en_instruction"
         ) as passer_en_instruction,
     ):
-        projet.notify(user, motivation="Motif")
+        projet.notify(user, campagne=get_campagne(), motivation="Motif")
 
     if expected_passer_en_instruction:
         passer_en_instruction.assert_called_once_with(
@@ -115,7 +116,7 @@ def test_notify_raises_on_processing_projet():
     )
 
     with _patch_ds_notify_methods() as mocks, pytest.raises(KeyError):
-        projet.notify(CollegueFactory())
+        projet.notify(CollegueFactory(), campagne=get_campagne())
 
     for method_mock in mocks.values():
         method_mock.assert_not_called()

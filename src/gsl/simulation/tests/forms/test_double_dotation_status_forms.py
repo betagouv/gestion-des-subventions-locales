@@ -14,6 +14,7 @@ from unittest import mock
 import pytest
 
 from dn.sync.models import Dotation
+from gsl.core.campagne import get_campagne
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import CollegueFactory
 from gsl.programmation.tests.factories import (
@@ -88,7 +89,7 @@ class TestRefuseOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.PROCESSING
-        assert projet.status == ProjetStatus.PROCESSING
+        assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
         assert projet.notified_at is None
 
     def test_refuse_detr_when_dsil_already_refused(
@@ -127,7 +128,7 @@ class TestRefuseOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.REFUSED
-        assert projet.status == ProjetStatus.REFUSED
+        assert projet.status_for(get_campagne()) == ProjetStatus.REFUSED
         assert projet.notified_at is None
 
     def test_refuse_detr_when_dsil_accepted(
@@ -162,7 +163,7 @@ class TestRefuseOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.ACCEPTED
-        assert projet.status == ProjetStatus.ACCEPTED
+        assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
         assert projet.notified_at is None
 
 
@@ -196,7 +197,7 @@ class TestDismissOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.PROCESSING
         assert dsil_dotation.status == ProjetStatus.DISMISSED
-        assert projet.status == ProjetStatus.PROCESSING
+        assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
         assert projet.notified_at is None
 
     def test_dismiss_dsil_when_detr_dismissed(
@@ -235,7 +236,7 @@ class TestDismissOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.DISMISSED
         assert dsil_dotation.status == ProjetStatus.DISMISSED
-        assert projet.status == ProjetStatus.DISMISSED
+        assert projet.status_for(get_campagne()) == ProjetStatus.DISMISSED
         assert projet.notified_at is None
 
     def test_dismiss_dsil_when_detr_refused(
@@ -274,7 +275,7 @@ class TestDismissOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.DISMISSED
-        assert projet.status == ProjetStatus.DISMISSED
+        assert projet.status_for(get_campagne()) == ProjetStatus.DISMISSED
         assert projet.notified_at is None
 
 
@@ -320,7 +321,7 @@ class TestAcceptOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.ACCEPTED
         assert dsil_dotation.status == ProjetStatus.PROCESSING
-        assert projet.status == ProjetStatus.PROCESSING
+        assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
 
         assert detr_dotation.is_programmee
         assert not dsil_dotation.is_programmee
@@ -357,7 +358,7 @@ class TestAcceptOneDoubleDotation:
         form_detr.save(user)
 
         projet.refresh_from_db()
-        assert projet.status == ProjetStatus.PROCESSING
+        assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
 
         form_dsil = SimulationProjetStatusForm(
             instance=dsil_simulation_projet, status=SimulationProjet.STATUS_ACCEPTED
@@ -372,7 +373,7 @@ class TestAcceptOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.ACCEPTED
         assert dsil_dotation.status == ProjetStatus.ACCEPTED
-        assert projet.status == ProjetStatus.ACCEPTED
+        assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
         assert detr_dotation.is_programmee
         assert dsil_dotation.is_programmee
@@ -408,7 +409,7 @@ class TestAcceptOneDoubleDotation:
 
         assert detr_dotation.status == ProjetStatus.ACCEPTED
         assert dsil_dotation.status == ProjetStatus.REFUSED
-        assert projet.status == ProjetStatus.ACCEPTED
+        assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
 
 # Silence unused-import warnings for the factory used only in fixtures above.

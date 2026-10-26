@@ -15,7 +15,7 @@ class ProjetDNActionsMixin:
     Actions of a Projet that go through Démarches Numériques.
     """
 
-    def notify(self, user: Collegue, motivation: str = "") -> None:
+    def notify(self, user: Collegue, campagne: int, motivation: str = "") -> None:
         documents = self.imported_documents
         justificatif_file = None
         if documents:
@@ -33,7 +33,7 @@ class ProjetDNActionsMixin:
             ProjetStatus.ACCEPTED: ds_service.accepter,
             ProjetStatus.REFUSED: ds_service.refuser,
             ProjetStatus.DISMISSED: ds_service.classer_sans_suite,
-        }[self.status]
+        }[self.status_for(campagne)]
         with transaction.atomic():
             notify_in_ds(
                 self.dossier_ds,

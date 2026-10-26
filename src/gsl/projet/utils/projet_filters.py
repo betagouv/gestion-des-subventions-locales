@@ -24,6 +24,7 @@ from dn.sync.models import (
     ProjetContractualisation,
     ProjetZonage,
 )
+from gsl.core.campagne import get_campagne
 from gsl.core.models import Perimetre
 
 from ..constants import (
@@ -531,7 +532,7 @@ class ProjetFilters(CommonFiltersFields):
         return queryset.annotate(match=Exists(dotation_qs)).filter(match=True)
 
     def filter_status(self, queryset, _name, values: list[str]):
-        return queryset.annotate_status().filter(_status__in=values)
+        return queryset.annotate_status(get_campagne()).filter(_status__in=values)
 
     def filter_notification_status(self, queryset, _name, values: list[str]):
         # Unlike `status`, this matches a projet as soon as ONE of its

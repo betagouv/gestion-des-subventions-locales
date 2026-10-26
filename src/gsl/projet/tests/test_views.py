@@ -23,6 +23,7 @@ from gsl.core.tests.factories import (
     RequestFactory,
 )
 from gsl.notification.tests.factories import ArreteFactory, LettreNotificationFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import ProjetStatus
 from ..models import Projet
@@ -796,7 +797,7 @@ def test_filter_by_status(req, view, projets_with_status, status, expected_count
     qs = view.get_filterset(ProjetFilters).qs
 
     assert qs.count() == expected_count
-    assert qs.first().status == status
+    assert qs.first().status_for(default_campagne()) == status
 
 
 def test_filter_by_status_refused_excludes_project_without_dotation(req, view):
@@ -1041,6 +1042,40 @@ def test_projet_list_view_excludes_inactive_dossiers():
     object_list = response.context["object_list"]
     assert object_list.count() == 1
     assert active_projet in object_list
+
+
+@pytest.mark.parametrize(
+    "campagne, status, is_listed",
+    (
+        (2026, ProjetStatus.ACCEPTED, False),
+        (2026, ProjetStatus.REFUSED, True),
+        (2027, ProjetStatus.ACCEPTED, True),
+        (2027, ProjetStatus.REFUSED, False),
+    ),
+)
+def test_projet_list_view_filters_status_of_the_campagne(campagne, status, is_listed):
+    perimetre = PerimetreDepartementalFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+
+    client = ClientWithLoggedUserFactory(user)
+    response = client.get(
+        reverse("projet:list", kwargs={"campagne": campagne}),
+        data={"status": status},
+    )
+
+    assert response.status_code == 200
+    assert (projet in response.context["object_list"]) is is_listed
 
 
 def test_view_has_correct_territoire_choices():

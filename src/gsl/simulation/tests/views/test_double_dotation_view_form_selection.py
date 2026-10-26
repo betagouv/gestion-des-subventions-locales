@@ -130,6 +130,39 @@ class TestModalForRefusing:
         _assert_uses_notify_later_modal(response)
         assert response.context["new_projet_status"] == ProjetStatus.REFUSED
 
+    def test_refuse_detr_ignores_dsil_accepted_on_another_campagne(
+        self, client_with_user_logged, double_enveloppe_projet
+    ):
+        detr_dotation = double_enveloppe_projet["detr_dotation"]
+        dsil_dotation = double_enveloppe_projet["dsil_dotation"]
+        projet = double_enveloppe_projet["projet"]
+
+        detr_enveloppe = DetrEnveloppeFactory(perimetre=projet.perimetre)
+        dsil_dotation.accept_without_ds_update(
+            montant=7_500,
+            enveloppe=DsilEnveloppeFactory(
+                perimetre=projet.perimetre, annee=detr_enveloppe.annee + 1
+            ),
+        )
+        dsil_dotation.save()
+
+        detr_simulation = SimulationFactory(enveloppe=detr_enveloppe)
+        detr_simulation_projet = SimulationProjetFactory(
+            enveloppe_projet=detr_dotation,
+            simulation=detr_simulation,
+            status=SimulationProjet.STATUS_PROCESSING,
+            montant=5_000,
+        )
+
+        url = reverse(
+            "gsl_simulation:simulation-projet-update-programmed-status",
+            args=[detr_simulation_projet.id, SimulationProjet.STATUS_REFUSED],
+        )
+        response = client_with_user_logged.get(url, headers={"HX-Request": "true"})
+
+        _assert_uses_notify_later_modal(response)
+        assert response.context["new_projet_status"] == ProjetStatus.REFUSED
+
     def test_refuse_detr_with_dsil_accepted(
         self, client_with_user_logged, double_enveloppe_projet
     ):

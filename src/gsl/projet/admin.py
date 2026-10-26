@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from gsl.core.admin import AllPermsForStaffUser
+from gsl.core.campagne import get_campagne
 from gsl.core.models import Arrondissement
 from gsl.core.templatetags.gsl_filters import percent
 from gsl.programmation.models import Enveloppe
@@ -23,7 +24,7 @@ class EnveloppeProjetInline(admin.TabularInline):
 
 
 class ProjetStatusFilter(admin.SimpleListFilter):
-    title = "Statut"
+    title = "Statut (campagne active)"
     parameter_name = "status"
 
     def lookups(self, request, model_admin):
@@ -31,7 +32,7 @@ class ProjetStatusFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset: ProjetQuerySet):
         if self.value():
-            return queryset.annotate_status().filter(_status=self.value())
+            return queryset.annotate_status(get_campagne()).filter(_status=self.value())
         return queryset
 
 
@@ -122,10 +123,10 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     def dotations(self, obj):
         return ", ".join(obj.dotations)
 
+    @admin.display(description="Statut (campagne active)")
     def get_status_display(self, obj: Projet):
-        return ProjetStatus(obj.status).label if obj.status else None
-
-    get_status_display.short_description = "Statut"
+        status = obj.status_for(get_campagne())
+        return ProjetStatus(status).label if status else None
 
     def dossier_departement(self, obj):
         return obj.dossier_ds.perimetre.departement.insee_code

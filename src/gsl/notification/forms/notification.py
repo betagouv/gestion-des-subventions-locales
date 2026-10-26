@@ -20,9 +20,10 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         model = Projet
         fields = ()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, campagne: int, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.status != ProjetStatus.ACCEPTED:
+        self.campagne = campagne
+        if self.instance.status_for(campagne) != ProjetStatus.ACCEPTED:
             self.fields["message"].required = True
 
     def clean(self):
@@ -35,5 +36,9 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         return cleaned_data
 
     def save(self, user):
-        self.instance.notify(user, motivation=self.cleaned_data.get("message", ""))
+        self.instance.notify(
+            user,
+            campagne=self.campagne,
+            motivation=self.cleaned_data.get("message", ""),
+        )
         return self.instance

@@ -41,58 +41,33 @@ class ProjetQuerySet(models.QuerySet):
 
         return self.for_perimetre(user.perimetre)
 
-    def annotate_status(self):
-        has_processing = Exists(
-            EnveloppeProjet.objects.filter(
-                projet=OuterRef("pk"), status=ProjetStatus.PROCESSING
-            )
+    def annotate_status(self, campagne: int):
+        enveloppe_projets = EnveloppeProjet.objects.filter(
+            projet=OuterRef("pk"), enveloppe__annee=campagne
         )
-
-        # Count dotations with specific programmation status
-        has_accepted = Exists(
-            EnveloppeProjet.objects.filter(
-                projet=OuterRef("pk"),
-                status=ProjetStatus.ACCEPTED,
-            )
-        )
-
-        has_dismissed = Exists(
-            EnveloppeProjet.objects.filter(
-                projet=OuterRef("pk"),
-                status=ProjetStatus.DISMISSED,
-            )
-        )
-
-        has_refused = Exists(
-            EnveloppeProjet.objects.filter(
-                projet=OuterRef("pk"),
-                status=ProjetStatus.REFUSED,
-            )
-        )
-
         return self.annotate(
             _status=Case(
                 # If not all dotations have programmation, return PROCESSING
                 When(
-                    has_processing,
+                    Exists(enveloppe_projets.filter(status=ProjetStatus.PROCESSING)),
                     then=Value(ProjetStatus.PROCESSING),
                 ),
                 # If any dotation is ACCEPTED, return ACCEPTED
                 When(
-                    has_accepted,
+                    Exists(enveloppe_projets.filter(status=ProjetStatus.ACCEPTED)),
                     then=Value(ProjetStatus.ACCEPTED),
                 ),
                 # If any dotation is DISMISSED, return DISMISSED
                 When(
-                    has_dismissed,
+                    Exists(enveloppe_projets.filter(status=ProjetStatus.DISMISSED)),
                     then=Value(ProjetStatus.DISMISSED),
                 ),
                 # If any dotation is REFUSED, return REFUSED
                 When(
-                    has_refused,
+                    Exists(enveloppe_projets.filter(status=ProjetStatus.REFUSED)),
                     then=Value(ProjetStatus.REFUSED),
                 ),
-                # Projects without any EnveloppeProjet have no status
+                # Projects without any EnveloppeProjet in the campagne have no status
                 default=Value(None),
             )
         )
@@ -360,13 +335,14 @@ class Projet(ProjetDNActionsMixin, BaseModel):
                 details=str(origine),
             )
 
-    @property
-    def status(self):
-        if hasattr(self, "_status"):
-            return self._status
-
+    def status_for(self, campagne: int) -> str | None:
+        """Derived from its enveloppe projets of the campagne only."""
         return projet_status_from_dotation_statuses(
-            list(d.status for d in self.enveloppeprojet_set.all())
+            [
+                enveloppe_projet.status
+                for enveloppe_projet in self.enveloppeprojet_set.all()
+                if enveloppe_projet.enveloppe.annee == campagne
+            ]
         )
 
     @property
