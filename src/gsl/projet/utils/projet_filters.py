@@ -119,12 +119,15 @@ def filter_dotation(queryset, _name, values):
 
     query = Q()
 
+    in_campagne = Q(enveloppeprojet__enveloppe__annee=get_campagne())
     queryset = queryset.annotate(
         detr_count=Count(
-            "enveloppeprojet", filter=Q(enveloppeprojet__enveloppe__dotation="DETR")
+            "enveloppeprojet",
+            filter=in_campagne & Q(enveloppeprojet__enveloppe__dotation="DETR"),
         ),
         dsil_count=Count(
-            "enveloppeprojet", filter=Q(enveloppeprojet__enveloppe__dotation="DSIL")
+            "enveloppeprojet",
+            filter=in_campagne & Q(enveloppeprojet__enveloppe__dotation="DSIL"),
         ),
     )
 
@@ -524,7 +527,9 @@ class ProjetFilters(CommonFiltersFields):
     )
 
     def filter_montant_retenu(self, queryset, _name, value):
-        dotation_qs = EnveloppeProjet.objects.filter(projet=OuterRef("pk"))
+        dotation_qs = EnveloppeProjet.objects.for_campagne(get_campagne()).filter(
+            projet=OuterRef("pk")
+        )
         if value.start is not None:
             dotation_qs = dotation_qs.filter(montant__gte=value.start)
         if value.stop is not None:
@@ -538,8 +543,10 @@ class ProjetFilters(CommonFiltersFields):
         # Unlike `status`, this matches a projet as soon as ONE of its
         # dotations has the selected notification status, rather than
         # reducing to a single aggregated value first.
-        dotation_qs = EnveloppeProjet.objects.annotate_notification_status().filter(
-            projet=OuterRef("pk"), _notification_status__in=values
+        dotation_qs = (
+            EnveloppeProjet.objects.for_campagne(get_campagne())
+            .annotate_notification_status()
+            .filter(projet=OuterRef("pk"), _notification_status__in=values)
         )
         return queryset.filter(Exists(dotation_qs))
 

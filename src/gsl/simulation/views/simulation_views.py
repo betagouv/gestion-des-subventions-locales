@@ -127,7 +127,7 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
     def get_context_data(self, **kwargs):
         simulation = self.object
         context = super().get_context_data(**kwargs)
-        aggregates = self.filterset.qs.totals()
+        aggregates = self.filterset.qs.totals(simulation.enveloppe.annee)
         aggregates["total_amount_granted"] = simulation.get_total_amount_granted(
             self.filterset.qs
         )

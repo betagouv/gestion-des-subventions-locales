@@ -149,19 +149,23 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
-    def totals(self):
-
+    def totals(self, campagne: int):
         if getattr(self, "_totals", None) is None:
-            self._totals = self.aggregate(
+            self._totals = {}
+        if campagne not in self._totals:
+            self._totals[campagne] = self.aggregate(
                 total_cost=Sum("dossier_ds__finance_cout_total"),
                 total_amount_asked=Sum("dossier_ds__demande_montant"),
                 total_amount_granted=Sum(
                     "enveloppeprojet__montant",
-                    filter=Q(enveloppeprojet__status=ProjetStatus.ACCEPTED),
+                    filter=Q(
+                        enveloppeprojet__status=ProjetStatus.ACCEPTED,
+                        enveloppeprojet__enveloppe__annee=campagne,
+                    ),
                 ),
             )
 
-        return self._totals
+        return self._totals[campagne]
 
     def active(self):
         return self.filter(dossier_ds__is_active=True)

@@ -23,9 +23,9 @@ from gsl.core.tests.factories import (
     RequestFactory,
 )
 from gsl.notification.tests.factories import ArreteFactory, LettreNotificationFactory
-from gsl.programmation.tests.factories import DetrEnveloppeFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
-from ..constants import ProjetStatus
+from ..constants import NotificationStatus, ProjetStatus
 from ..models import Projet
 from ..utils.projet_filters import ProjetFilters
 from ..views import (
@@ -1104,3 +1104,88 @@ def test_view_has_correct_territoire_choices():
         perimetre_departement_A,
         perimetre_arrondissement_A,
     )
+
+
+# Campagne scoping of the projet list ==================================================
+
+
+@pytest.fixture
+def projet_detr_en_cours_et_dsil_accepte_campagne_suivante():
+    """DETR processing on the default campagne, DSIL accepted on the next one."""
+    perimetre = PerimetreDepartementalFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    detr = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=default_campagne()),
+    )
+    dsil = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        montant=5_000,
+        enveloppe=DsilEnveloppeFactory(
+            perimetre=perimetre, annee=default_campagne() + 1
+        ),
+    )
+    return {"projet": projet, "detr": detr, "dsil": dsil, "perimetre": perimetre}
+
+
+def _get_projet_list(perimetre, campagne, data=None):
+    client = ClientWithLoggedUserFactory(CollegueFactory(perimetre=perimetre))
+    response = client.get(
+        reverse("projet:list", kwargs={"campagne": campagne}), data=data or {}
+    )
+    assert response.status_code == 200
+    return response
+
+
+@pytest.mark.parametrize(
+    "campagne_offset, data, is_listed",
+    (
+        (0, {"dotation": Dotation.DETR}, True),
+        (0, {"dotation": Dotation.DSIL}, False),
+        (1, {"dotation": Dotation.DETR}, False),
+        (1, {"dotation": Dotation.DSIL}, True),
+        (0, {"montant_retenu_min": 1_000}, False),
+        (1, {"montant_retenu_min": 1_000}, True),
+        (0, {"notification_status": NotificationStatus.TO_GENERATE}, False),
+        (1, {"notification_status": NotificationStatus.TO_GENERATE}, True),
+    ),
+)
+def test_projet_list_filters_only_consider_the_campagne(
+    projet_detr_en_cours_et_dsil_accepte_campagne_suivante,
+    campagne_offset,
+    data,
+    is_listed,
+):
+    fixture = projet_detr_en_cours_et_dsil_accepte_campagne_suivante
+    response = _get_projet_list(
+        fixture["perimetre"], default_campagne() + campagne_offset, data
+    )
+
+    assert (fixture["projet"] in response.context["object_list"]) is is_listed
+
+
+@pytest.mark.parametrize("campagne_offset, dotation", ((0, "detr"), (1, "dsil")))
+def test_projet_list_only_displays_enveloppe_projets_of_the_campagne(
+    projet_detr_en_cours_et_dsil_accepte_campagne_suivante, campagne_offset, dotation
+):
+    fixture = projet_detr_en_cours_et_dsil_accepte_campagne_suivante
+    response = _get_projet_list(
+        fixture["perimetre"], default_campagne() + campagne_offset
+    )
+
+    (projet,) = response.context["object_list"]
+    assert list(projet.enveloppeprojet_set.all()) == [fixture[dotation]]
+
+
+@pytest.mark.parametrize("campagne_offset, expected", ((0, None), (1, 5_000)))
+def test_projet_list_totals_only_consider_the_campagne(
+    projet_detr_en_cours_et_dsil_accepte_campagne_suivante, campagne_offset, expected
+):
+    fixture = projet_detr_en_cours_et_dsil_accepte_campagne_suivante
+    response = _get_projet_list(
+        fixture["perimetre"], default_campagne() + campagne_offset
+    )
+
+    assert response.context["aggregates"]["total_amount_granted"] == expected
