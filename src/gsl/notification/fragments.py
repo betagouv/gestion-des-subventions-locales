@@ -155,12 +155,7 @@ class BaseImportStepFragment(BaseProjetFragment):
 
     @classmethod
     def get_queryset(cls, request):
-        return (
-            Projet.objects.active()
-            .for_user(request.user)
-            .to_notify()
-            .with_at_least_one_treated_dotation()
-        )
+        return Projet.objects.active().for_user(request.user).not_notified()
 
     def get_context(self):
         return {
