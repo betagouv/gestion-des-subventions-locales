@@ -33,6 +33,7 @@ class Dotation(models.TextChoices):
 class AnnotationsDotation:
     assiette: Decimal | None
     montant: Decimal | None
+    ej: str
 
 
 class Demarche(BaseModel):
@@ -658,6 +659,7 @@ class Dossier(BaseModel):
         null=True,
         blank=True,
     )
+    annotations_ej_detr = models.CharField("DETR - N° engagement juridique", blank=True)
     # DSIL
     annotations_assiette_dsil = models.DecimalField(
         "DSIL - Montant des dépenses éligibles retenues (en euros)",
@@ -680,6 +682,7 @@ class Dossier(BaseModel):
         null=True,
         blank=True,
     )
+    annotations_ej_dsil = models.CharField("DSIL - N° engagement juridique", blank=True)
 
     _MAPPED_CHAMPS_FIELDS = (
         porteur_de_projet_nature,
@@ -747,9 +750,11 @@ class Dossier(BaseModel):
         annotations_assiette_detr,
         annotations_montant_accorde_detr,
         annotations_taux_detr,
+        annotations_ej_detr,
         annotations_assiette_dsil,
         annotations_montant_accorde_dsil,
         annotations_taux_dsil,
+        annotations_ej_dsil,
     )
     MAPPED_FIELDS = _MAPPED_ANNOTATIONS_FIELDS + _MAPPED_CHAMPS_FIELDS
 
@@ -843,11 +848,13 @@ class Dossier(BaseModel):
             return AnnotationsDotation(
                 assiette=self.annotations_assiette_detr,
                 montant=self.annotations_montant_accorde_detr,
+                ej=self.annotations_ej_detr,
             )
         if dotation == Dotation.DSIL:
             return AnnotationsDotation(
                 assiette=self.annotations_assiette_dsil,
                 montant=self.annotations_montant_accorde_dsil,
+                ej=self.annotations_ej_dsil,
             )
         raise ValueError(f"Dotation inconnue : {dotation}")
 

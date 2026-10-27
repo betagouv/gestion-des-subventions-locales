@@ -16,6 +16,7 @@ from django_fsm import FSMField, TransitionNotAllowed, transition
 
 from dn.sync.models import Dotation
 from dn.sync.services import DsService
+from gsl.chorus.models import SuiviFinancier
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.historique.models import ProjetAction
 
@@ -104,6 +105,21 @@ class EnveloppeProjetQuerySet(models.QuerySet):
             )
         )
 
+    def fill_empty_ej_from_chorus(self):
+        ej_by_dn_and_dotation = {
+            (row["dn"], row["dotation"]): row["ej"]
+            for row in SuiviFinancier.objects.single_ej_by_dn_and_dotation()
+        }
+        empty = self.filter(ej="").values_list(
+            "pk", "projet__dossier_ds__ds_number", "enveloppe__dotation"
+        )
+        to_update = [
+            EnveloppeProjet(pk=pk, ej=ej_by_dn_and_dotation[(dn, dotation)])
+            for pk, dn, dotation in empty
+            if (dn, dotation) in ej_by_dn_and_dotation
+        ]
+        self.bulk_update(to_update, ["ej"], batch_size=2000)
+
 
 class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySet)):
     def get_queryset(self):
@@ -134,6 +150,7 @@ class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySe
             enveloppe=ancien.enveloppe,
             assiette=ancien.assiette,
             detr_avis_commission=ancien.detr_avis_commission,
+            ej=ancien.ej,
         )
         ancien.simulationprojet_set.update(
             enveloppe_projet=nouveau, status=SimulationProjet.STATUS_PROCESSING
@@ -179,6 +196,7 @@ class EnveloppeProjet(BaseModel):
         "Date de programmation", blank=True, null=True
     )
     is_courant = models.BooleanField("Courant", default=True)
+    ej = models.CharField("Engagement juridique", max_length=20, blank=True)
 
     objects = EnveloppeProjetCourantManager()
     all_objects = EnveloppeProjetManager()
@@ -698,6 +716,13 @@ class EnveloppeProjet(BaseModel):
 
         self.assiette = assiette
         self.save()
+
+    def update_ej_from_dn(self) -> None:
+        ej = self.dossier_ds.annotations_for(self.dotation).ej.strip()
+        if not ej or ej == self.ej:
+            return
+        self.ej = ej
+        self.save(update_fields=["ej"])
 
 
 # Imported last: projet.py imports this module at load time.

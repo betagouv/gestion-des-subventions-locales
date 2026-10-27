@@ -247,8 +247,12 @@ def test_computer_mappings_are_created(demarche, demarche_data_without_dossier):
         FieldMapping.objects.filter(ds_field_type="DossierLinkChampDescriptor").count()
         == 4
     )
-    assert FieldMapping.objects.count() == 295
-    assert FieldMapping.objects.exclude(django_field="").count() == 257
+    assert (
+        FieldMapping.objects.filter(ds_field_type="FormattedChampDescriptor").count()
+        == 2
+    )
+    assert FieldMapping.objects.count() == 297
+    assert FieldMapping.objects.exclude(django_field="").count() == 259
 
     demande_categorie_detr_mappings = FieldMapping.objects.filter(
         django_field="demande_categorie_detr"
@@ -298,6 +302,22 @@ def test_save_field_mappings_maps_by_verbose_name_direct_match(demarche):
     # Assert: a computer mapping exists and is mapped to the Django field
     mapping = FieldMapping.objects.get(demarche=demarche, ds_field_id="FIELD_ID_ARR")
     assert mapping.django_field == "porteur_de_projet_nom"
+
+
+def test_save_field_mappings_maps_formatted_champ(demarche):
+    descriptors = [
+        {
+            "__typename": "FormattedChampDescriptor",
+            "id": "FIELD_ID_EJ",
+            "label": "DETR - N° engagement juridique",
+        }
+    ]
+    demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
+
+    save_field_mappings(demarche_data, demarche)
+
+    mapping = FieldMapping.objects.get(demarche=demarche, ds_field_id="FIELD_ID_EJ")
+    assert mapping.django_field == "annotations_ej_detr"
 
 
 def test_save_field_mappings_maps_updates_existing_mapping(

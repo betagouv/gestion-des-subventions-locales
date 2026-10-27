@@ -55,6 +55,7 @@ class EnveloppeProjetService:
         # (without using the cached enveloppeprojet_set)
         for enveloppe_projet in EnveloppeProjet.objects.filter(projet=projet):
             enveloppe_projet.update_assiette_from_dn()
+            enveloppe_projet.update_ej_from_dn()
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
 
     # private
