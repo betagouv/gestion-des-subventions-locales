@@ -47,7 +47,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
         return self.filter(status__in=ProjetStatus.FINAL)
 
     def actifs(self):
-        """Excludes the figés ones: notified, while their projet goes on with an
+        """Excludes the closed ones: notified, while their projet goes on with an
         enveloppe projet on a later campagne."""
         return self.exclude(
             Q(notified_at__isnull=False)

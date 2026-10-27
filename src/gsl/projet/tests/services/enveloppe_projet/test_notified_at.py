@@ -95,9 +95,9 @@ def test_a_dossier_back_in_instruction_keeps_the_date_on_the_superseded_one(
     assert courant.notified_at is None
 
 
-def test_a_dossier_in_instruction_unnotifies_the_actifs_but_not_the_figes(perimetre):
+def test_a_dossier_in_instruction_unnotifies_the_actifs_but_not_the_closed(perimetre):
     projet = _projet(perimetre, ds_state=Dossier.State.EN_INSTRUCTION)
-    fige = EnveloppeProjetFactory(
+    closed = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
@@ -112,7 +112,7 @@ def test_a_dossier_in_instruction_unnotifies_the_actifs_but_not_the_figes(perime
 
     synchroniser(projet)
 
-    fige.refresh_from_db()
+    closed.refresh_from_db()
     actif.refresh_from_db()
-    assert fige.notified_at == DATE_NOTIFICATION_PRECEDENTE
+    assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
     assert actif.notified_at is None
