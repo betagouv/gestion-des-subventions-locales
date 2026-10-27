@@ -150,10 +150,10 @@ def test_status_for_only_considers_the_campagne(
 # Actifs ===============================================================================
 
 
-def test_an_enveloppe_projet_notified_before_a_later_campagne_is_fige():
+def test_an_enveloppe_projet_notified_before_a_later_campagne_is_closed():
     projet = ProjetFactory()
     perimetre = projet.dossier_ds.perimetre
-    fige = EnveloppeProjetFactory(
+    closed = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
@@ -175,7 +175,7 @@ def test_an_enveloppe_projet_notified_before_a_later_campagne_is_fige():
         suivant,
     }
     assert set(projet.enveloppe_projets_actifs) == {non_notifie, suivant}
-    assert fige not in projet.enveloppe_projets_actifs
+    assert closed not in projet.enveloppe_projets_actifs
 
 
 def test_a_notified_enveloppe_projet_of_the_last_campagne_is_actif():
@@ -209,7 +209,7 @@ def test_a_non_courant_enveloppe_projet_is_not_actif():
     ]
 
 
-def test_a_non_courant_enveloppe_projet_on_a_later_campagne_does_not_fige():
+def test_a_non_courant_enveloppe_projet_on_a_later_campagne_does_not_close_it():
     projet = ProjetFactory()
     perimetre = projet.dossier_ds.perimetre
     notifie = EnveloppeProjetFactory(
