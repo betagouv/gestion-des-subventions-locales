@@ -293,6 +293,13 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return annee
 
     @property
+    def campagne_ouverte(self) -> int | None:
+        """The most recent campagne of its enveloppe projets."""
+        return max(
+            (ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()), default=None
+        )
+
+    @property
     def campagnes_de_bascule(self) -> list[int]:
         """The adjacent campagnes existing in Turgot, none if the projet spans
         several campagnes."""
@@ -501,7 +508,7 @@ _GENERATED_DOCUMENT_SELECT_RELATED = (
 )
 
 # Used for dotation column
-_UPLOADED_DOCUMENT_SELECT_RELATED = ("enveloppe_projet",)
+_UPLOADED_DOCUMENT_SELECT_RELATED = ("enveloppe_projet__enveloppe",)
 
 
 def projet_status_from_dotation_statuses(

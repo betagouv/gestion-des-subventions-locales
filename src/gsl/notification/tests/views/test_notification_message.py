@@ -166,15 +166,10 @@ def _merged_pdf():
 class TestForm:
     def test_message_is_optional(self, perimetre):
         projet = _accepted_projet(perimetre)
-        form = NotificationMessageForm(
-            data={"message": ""}, instance=projet, campagne=get_campagne()
-        )
+        form = NotificationMessageForm(data={"message": ""}, instance=projet)
         assert form.is_valid()
 
-    @pytest.mark.parametrize("campagne_offset, is_required", ((0, False), (1, True)))
-    def test_message_requirement_depends_on_the_status_of_the_campagne(
-        self, perimetre, campagne_offset, is_required
-    ):
+    def test_message_requirement_depends_on_the_campagne_ouverte(self, perimetre):
         projet = _accepted_projet(perimetre)
         EnveloppeProjetFactory(
             projet=projet,
@@ -183,18 +178,26 @@ class TestForm:
                 perimetre=perimetre, annee=get_campagne() + 1
             ),
         )
-        form = NotificationMessageForm(
-            data={"message": ""},
-            instance=projet,
-            campagne=get_campagne() + campagne_offset,
+        form = NotificationMessageForm(data={"message": ""}, instance=projet)
+        assert form.fields["message"].required is True
+
+    def test_a_signed_document_missing_on_a_past_campagne_does_not_block(
+        self, perimetre
+    ):
+        projet = _accepted_projet(perimetre, with_signed_document=False)
+        EnveloppeProjetFactory(
+            projet=projet,
+            status=ProjetStatus.REFUSED,
+            enveloppe=DsilEnveloppeFactory(
+                perimetre=perimetre, annee=get_campagne() + 1
+            ),
         )
-        assert form.fields["message"].required is is_required
+        form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
+        assert form.is_valid()
 
     def test_clean_blocks_when_a_signed_document_is_missing(self, perimetre):
         projet = _accepted_projet(perimetre, with_signed_document=False)
-        form = NotificationMessageForm(
-            data={"message": ""}, instance=projet, campagne=get_campagne()
-        )
+        form = NotificationMessageForm(data={"message": ""}, instance=projet)
         assert not form.is_valid()
         assert form.non_field_errors()
 
@@ -225,9 +228,7 @@ class TestForm:
                 return_value=_merged_pdf(),
             ),
         ):
-            form = NotificationMessageForm(
-                data={"message": "Bravo"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Bravo"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -263,9 +264,7 @@ class TestForm:
                 return_value=_merged_pdf(),
             ),
         ):
-            form = NotificationMessageForm(
-                data={"message": "Bravo"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Bravo"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -322,9 +321,7 @@ class TestForm:
                 return_value=_merged_pdf(),
             ),
         ):
-            form = NotificationMessageForm(
-                data={"message": "Bravo"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Bravo"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -362,9 +359,7 @@ class TestForm:
                 return_value=_merged_pdf(),
             ) as merge_mock,
         ):
-            form = NotificationMessageForm(
-                data={"message": ""}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": ""}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -378,17 +373,13 @@ class TestForm:
 
     def test_message_is_required_for_refused(self, perimetre):
         projet = _refused_projet(perimetre)
-        form = NotificationMessageForm(
-            data={"message": ""}, instance=projet, campagne=get_campagne()
-        )
+        form = NotificationMessageForm(data={"message": ""}, instance=projet)
         assert not form.is_valid()
         assert "message" in form.errors
 
     def test_message_is_required_for_dismissed(self, perimetre):
         projet = _dismissed_projet(perimetre)
-        form = NotificationMessageForm(
-            data={"message": ""}, instance=projet, campagne=get_campagne()
-        )
+        form = NotificationMessageForm(data={"message": ""}, instance=projet)
         assert not form.is_valid()
         assert "message" in form.errors
 
@@ -396,9 +387,7 @@ class TestForm:
         self, perimetre
     ):
         projet = _refused_projet(perimetre, with_signed_document=False)
-        form = NotificationMessageForm(
-            data={"message": "Motif"}, instance=projet, campagne=get_campagne()
-        )
+        form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
         assert form.is_valid()
 
     def test_save_calls_refuser_for_refused(self, perimetre, collegue):
@@ -421,9 +410,7 @@ class TestForm:
                 return_value=_merged_pdf(),
             ),
         ):
-            form = NotificationMessageForm(
-                data={"message": "Motif"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -452,9 +439,7 @@ class TestForm:
                 return_value=_merged_pdf(),
             ),
         ):
-            form = NotificationMessageForm(
-                data={"message": "Motif"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -476,9 +461,7 @@ class TestForm:
                 "gsl.projet.models.mixins.merge_documents_into_pdf"
             ) as merge_mock,
         ):
-            form = NotificationMessageForm(
-                data={"message": "Motif"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -508,9 +491,7 @@ class TestForm:
                 return_value=_merged_pdf(),
             ) as merge_mock,
         ):
-            form = NotificationMessageForm(
-                data={"message": "Motif"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 
@@ -565,9 +546,7 @@ class TestForm:
                 return_value=None,
             ) as refuser,
         ):
-            form = NotificationMessageForm(
-                data={"message": "Motif"}, instance=projet, campagne=get_campagne()
-            )
+            form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
             assert form.is_valid()
             form.save(user=collegue)
 

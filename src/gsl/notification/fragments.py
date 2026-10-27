@@ -9,7 +9,6 @@ from pikepdf import PdfError
 from pypdfium2 import PdfiumError
 
 from dn.sync.exceptions import DsServiceException
-from gsl.core.campagne import get_campagne
 from gsl.core.matomo import queue_matomo_event
 from gsl.core.matomo_constants import (
     MATOMO_ACTION_ENVOI_DN,
@@ -109,12 +108,11 @@ class NotificationMessageFragment(BaseProjetFragment):
             **super().get_context(),
             "is_instructor": self.object.dossier_ds.is_instructeur(self.request.user),
             "enveloppe_projets_without_signed_document": list(
-                self.object.enveloppeprojet_set.without_signed_document()
+                self.object.enveloppeprojet_set.for_campagne(
+                    self.object.campagne_ouverte
+                ).without_signed_document()
             ),
         }
-
-    def get_form(self, data=None):
-        return self.form_class(instance=self.object, data=data, campagne=get_campagne())
 
     def on_valid(self):
         try:
@@ -131,7 +129,7 @@ class NotificationMessageFragment(BaseProjetFragment):
             MATOMO_CATEGORY_NOTIFICATION,
             MATOMO_ACTION_ENVOI_DN,
             NOTIFICATION_RESULT_TO_MATOMO_ACTION[
-                self.object.status_for(self.form.campagne)
+                self.object.status_for(self.object.campagne_ouverte)
             ],
         )
         return self.render_valid()
