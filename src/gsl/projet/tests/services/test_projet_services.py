@@ -7,10 +7,12 @@ from dn.sync.tests.factories import (
     DossierFactory,
     NaturePorteurProjetFactory,
 )
+from gsl.core.campagne import default_campagne
 from gsl.core.tests.factories import (
     AdresseFactory,
     PerimetreArrondissementFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from ...constants import ProjetStatus
 from ...models import Projet
@@ -142,7 +144,7 @@ def other_projets():
 
 @pytest.mark.django_db
 def test_totals_cost(projets_with_finance_cout_total):
-    assert Projet.objects.all().totals()["total_cost"] == 40_000
+    assert Projet.objects.all().totals(default_campagne())["total_cost"] == 40_000
 
 
 @pytest.mark.django_db
@@ -152,7 +154,7 @@ def test_totals_cost_with_filtered_qs(
 ):
     projet_ids = [projet.id for projet in projets_with_finance_cout_total]
     qs = Projet.objects.filter(id__in=projet_ids)
-    assert qs.totals()["total_cost"] == 40_000
+    assert qs.totals(default_campagne())["total_cost"] == 40_000
 
 
 @pytest.mark.django_db
@@ -162,7 +164,33 @@ def test_totals_amount_granted():
     EnveloppeProjetFactory(status=ProjetStatus.REFUSED)
     EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
 
-    assert Projet.objects.all().totals()["total_amount_granted"] == 30_000
+    assert (
+        Projet.objects.all().totals(default_campagne())["total_amount_granted"]
+        == 30_000
+    )
+
+
+@pytest.mark.django_db
+def test_totals_amount_granted_only_counts_the_campagne():
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED, montant=10_000
+    )
+    EnveloppeProjetFactory(
+        projet=enveloppe_projet.projet,
+        status=ProjetStatus.ACCEPTED,
+        montant=20_000,
+        enveloppe=DetrEnveloppeFactory(
+            perimetre=enveloppe_projet.projet.perimetre,
+            annee=enveloppe_projet.enveloppe.annee + 1,
+        ),
+    )
+    qs = Projet.objects.all()
+
+    assert qs.totals(enveloppe_projet.enveloppe.annee)["total_amount_granted"] == 10_000
+    assert (
+        qs.totals(enveloppe_projet.enveloppe.annee + 1)["total_amount_granted"]
+        == 20_000
+    )
 
 
 @pytest.fixture
@@ -192,7 +220,7 @@ def test_totals_amount_asked(
 ):
     projet_ids = [projet.id for projet in projets_with_demande_montant]
     qs = Projet.objects.filter(id__in=projet_ids)
-    assert qs.totals()["total_amount_asked"] == 15_000 + 25_000
+    assert qs.totals(default_campagne())["total_amount_asked"] == 15_000 + 25_000
 
 
 @pytest.fixture

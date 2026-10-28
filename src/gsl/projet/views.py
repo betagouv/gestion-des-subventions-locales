@@ -57,7 +57,7 @@ from .forms import (
     ProjetNoteForm,
     ProjetRevertToProcessingForm,
 )
-from .models import Projet, ProjetNote
+from .models import EnveloppeProjet, Projet, ProjetNote
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
 from .utils.django_filters_custom_widget import CustomSelectWidget
 from .utils.projet_filters import (
@@ -532,12 +532,17 @@ class ProjetListViewFilters(ProjetFilters):
             "address__commune",
             "dossier_ds",
             "dossier_ds__ds_demandeur",
-        ).prefetch_related(
+        )
+        # Drops the manager's unfiltered `enveloppeprojet_set` prefetch.
+        qs = qs.prefetch_related(None).prefetch_related(
             "dossier_ds__perimetre",
             "dossier_ds__demande_categorie_detr",
             "dossier_ds__demande_categorie_dsil",
             "dossier_ds__porteur_de_projet_arrondissement",
-            "enveloppeprojet_set",
+            Prefetch(
+                "enveloppeprojet_set",
+                queryset=EnveloppeProjet.objects.for_campagne(campagne),
+            ),
             "dossier_ds__demande_cofinancements",
             "dossier_ds__projet_zonage",
             "dossier_ds__projet_contractualisation",
@@ -573,7 +578,7 @@ class ProjetListView(FilterSkiplinksMixin, FilterView, ListView):
             self.filterset.qs
         )  # utile pour ne pas avoir la pagination de context["object_list"]
         context["title"] = "Projets"
-        context["aggregates"] = qs_global.totals()
+        context["aggregates"] = qs_global.totals(get_campagne())
         context["enveloppes"] = self.request.user.perimetre.enveloppe_set.for_campagne(
             get_campagne()
         ).all()
