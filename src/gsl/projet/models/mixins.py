@@ -16,7 +16,13 @@ class ProjetDNActionsMixin:
     """
 
     def notify(self, user: Collegue, motivation: str = "") -> None:
-        documents = self.imported_documents
+        """Notifies the decision of its campagne ouverte only."""
+        campagne = self.campagne_ouverte
+        documents = [
+            document
+            for document in self.imported_documents
+            if document.enveloppe_projet.enveloppe.annee == campagne
+        ]
         justificatif_file = None
         if documents:
             justificatif_file = merge_documents_into_pdf(
@@ -33,7 +39,7 @@ class ProjetDNActionsMixin:
             ProjetStatus.ACCEPTED: ds_service.accepter,
             ProjetStatus.REFUSED: ds_service.refuser,
             ProjetStatus.DISMISSED: ds_service.classer_sans_suite,
-        }[self.status]
+        }[self.status_for(campagne)]
         with transaction.atomic():
             notify_in_ds(
                 self.dossier_ds,

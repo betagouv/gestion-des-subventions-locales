@@ -8,6 +8,7 @@ from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
 from dn.sync.models import Dossier, Dotation
+from gsl.core.campagne import get_campagne
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
@@ -814,7 +815,7 @@ def test_set_back_status_to_processing_without_ds_creates_a_new_courant_envelopp
     assert nouveau.pk != enveloppe_projet.pk
     assert list(projet.enveloppeprojet_set.all()) == [nouveau]
     assert EnveloppeProjet.all_objects.filter(projet=projet).count() == 2
-    assert projet.status == ProjetStatus.PROCESSING
+    assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
 
     nouveau.refresh_from_db()
     assert nouveau.is_courant

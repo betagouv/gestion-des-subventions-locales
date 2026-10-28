@@ -22,12 +22,19 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.status != ProjetStatus.ACCEPTED:
+        campagne = self.instance.campagne_ouverte
+        if self.instance.status_for(campagne) != ProjetStatus.ACCEPTED:
             self.fields["message"].required = True
 
     def clean(self):
         cleaned_data = super().clean()
-        if self.instance.enveloppeprojet_set.without_signed_document().exists():
+        if (
+            self.instance.enveloppeprojet_set.for_campagne(
+                self.instance.campagne_ouverte
+            )
+            .without_signed_document()
+            .exists()
+        ):
             raise forms.ValidationError(
                 "Impossible d'envoyer la notification : il manque des documents "
                 "signés obligatoires."

@@ -5,6 +5,7 @@ import pytest
 
 from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import DossierFactory
+from gsl.core.campagne import get_campagne
 from gsl.core.tests.factories import (
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
@@ -107,7 +108,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     )
     # Notified or not, projet should stay accepted
 
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
     # --
 
@@ -116,7 +117,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_construction_one(
     # --
 
     projet.refresh_from_db()
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
@@ -164,12 +165,12 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         montant=400,
     )
 
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
@@ -216,7 +217,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
         montant=400,
     )
 
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
     # --
 
@@ -225,7 +226,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     # --
 
     projet.refresh_from_db()
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
@@ -271,12 +272,12 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_accepted(
         status=SimulationProjet.STATUS_REFUSED,
         montant=0,
     )
-    assert projet.status == ProjetStatus.REFUSED
+    assert projet.status_for(detr_enveloppe.annee) == ProjetStatus.REFUSED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(detr_enveloppe.annee) == ProjetStatus.ACCEPTED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
@@ -318,12 +319,12 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
     )
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(detr_enveloppe.annee) == ProjetStatus.ACCEPTED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == ProjetStatus.REFUSED
+    assert projet.status_for(detr_enveloppe.annee) == ProjetStatus.REFUSED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1
@@ -368,12 +369,12 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
         status=SimulationProjet.STATUS_ACCEPTED,
         montant=500,
     )
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(detr_enveloppe.annee) == ProjetStatus.ACCEPTED
 
     task_create_or_update_projet_and_co_from_dossier(dossier.ds_number)
 
     projet.refresh_from_db()
-    assert projet.status == ProjetStatus.DISMISSED
+    assert projet.status_for(detr_enveloppe.annee) == ProjetStatus.DISMISSED
 
     enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
     assert enveloppe_projets.count() == 1

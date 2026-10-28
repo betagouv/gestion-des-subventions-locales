@@ -1,6 +1,7 @@
 import pytest
 
 from dn.sync.models import Dotation
+from gsl.core.campagne import get_campagne
 from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from ..constants import ProjetStatus
@@ -12,7 +13,7 @@ pytestmark = pytest.mark.django_db
 
 def test_projet_without_enveloppe_projet_has_no_status():
     projet = ProjetFactory()
-    assert projet.status is None
+    assert projet.status_for(get_campagne()) is None
 
 
 def test_update_projet_status_on_post_save():
@@ -26,18 +27,18 @@ def test_update_projet_status_on_post_save():
     )
 
     enveloppe_projet.save()
-    assert projet.status == ProjetStatus.DISMISSED
+    assert projet.status_for(get_campagne()) == ProjetStatus.DISMISSED
 
     enveloppe_projet.refuse(enveloppe=enveloppe)
     enveloppe_projet.save()
-    assert projet.status == ProjetStatus.REFUSED
+    assert projet.status_for(get_campagne()) == ProjetStatus.REFUSED
 
     enveloppe_projet = enveloppe_projet.set_back_status_to_processing_without_ds()
-    assert projet.status == ProjetStatus.PROCESSING
+    assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
 
     enveloppe_projet.accept_without_ds_update(montant=1_000, enveloppe=enveloppe)
     enveloppe_projet.save()
-    assert projet.status == ProjetStatus.ACCEPTED
+    assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
 
 
 def test_update_projet_status_on_post_delete():
@@ -50,7 +51,7 @@ def test_update_projet_status_on_post_delete():
     )
 
     accepted_enveloppe_projet.delete()
-    assert projet.status is ProjetStatus.REFUSED
+    assert projet.status_for(get_campagne()) is ProjetStatus.REFUSED
 
 
 @pytest.mark.parametrize(
@@ -102,4 +103,44 @@ def test_status_mixed_dotations(
             dotation=current_dotation,
         )
 
-    assert projet.status == expected_status
+    assert projet.status_for(get_campagne()) == expected_status
+
+
+# Status per campagne ==================================================================
+
+
+@pytest.fixture
+def projet_refuse_en_2026_et_accepte_en_2027():
+    projet = ProjetFactory()
+    perimetre = projet.dossier_ds.perimetre
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    return projet
+
+
+@pytest.mark.parametrize(
+    "campagne, expected_status",
+    (
+        (2026, ProjetStatus.REFUSED),
+        (2027, ProjetStatus.ACCEPTED),
+        (2025, None),
+    ),
+)
+def test_status_for_only_considers_the_campagne(
+    projet_refuse_en_2026_et_accepte_en_2027, campagne, expected_status
+):
+    projet = projet_refuse_en_2026_et_accepte_en_2027
+
+    assert projet.status_for(campagne) == expected_status
+    assert (
+        Projet.objects.annotate_status(campagne).get(pk=projet.pk)._status
+        == expected_status
+    )

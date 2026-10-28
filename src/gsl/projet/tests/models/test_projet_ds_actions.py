@@ -5,7 +5,11 @@ import pytest
 
 from dn.sync.models import Dossier, Dotation
 from gsl.core.tests.factories import CollegueFactory
-from gsl.notification.tests.factories import LettreEtArreteSignesFactory
+from gsl.notification.tests.factories import (
+    LettreEtArreteSignesFactory,
+    LettreRefusSigneeFactory,
+)
+from gsl.programmation.tests.factories import DetrEnveloppeFactory
 
 from ...constants import ProjetStatus
 from ..factories import EnveloppeProjetFactory, ProjetFactory
@@ -131,3 +135,46 @@ def _patch_ds_notify_methods():
             )
             for method in DS_NOTIFY_METHODS
         }
+
+
+# Campagne ouverte =====================================================================
+
+
+def _projet_accepte_puis_refuse_la_campagne_suivante():
+    projet = ProjetFactory(dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION)
+    perimetre = projet.dossier_ds.perimetre
+    accepte = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    refuse = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    return projet, accepte, refuse
+
+
+def test_campagne_ouverte_is_the_most_recent_campagne():
+    projet, *_ = _projet_accepte_puis_refuse_la_campagne_suivante()
+
+    assert projet.campagne_ouverte == 2027
+    assert ProjetFactory().campagne_ouverte is None
+
+
+def test_notify_only_notifies_the_campagne_ouverte():
+    projet, accepte, refuse = _projet_accepte_puis_refuse_la_campagne_suivante()
+    LettreEtArreteSignesFactory(enveloppe_projet=accepte)
+    lettre_refus = LettreRefusSigneeFactory(enveloppe_projet=refuse)
+    user = CollegueFactory()
+
+    with (
+        _patch_ds_notify_methods() as mocks,
+        mock.patch("gsl.projet.models.mixins.merge_documents_into_pdf") as merge_mock,
+    ):
+        projet.notify(user, motivation="Motif")
+
+    mocks["refuser"].assert_called_once()
+    mocks["accepter"].assert_not_called()
+    assert merge_mock.call_args.args[0] == [lettre_refus]

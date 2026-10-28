@@ -666,10 +666,15 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
     def get_object(self, queryset=None) -> SimulationProjet:
         obj = super().get_object(queryset)
+        campagne = obj.simulation.enveloppe.annee
         self.new_project_status = projet_status_from_dotation_statuses(
             (
                 self.kwargs["status"],
-                *(d.status for d in obj.enveloppe_projet.other_dotations),
+                *(
+                    d.status
+                    for d in obj.enveloppe_projet.other_dotations
+                    if d.enveloppe.annee == campagne
+                ),
             )
         )
         return obj
@@ -770,7 +775,9 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         messages.success(
             self.request,
             message,
-            extra_tags=self.object.projet.status,
+            extra_tags=self.object.projet.status_for(
+                self.object.simulation.enveloppe.annee
+            ),
         )
         queue_matomo_event(
             self.request,

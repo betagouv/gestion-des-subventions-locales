@@ -21,6 +21,7 @@ from dn.sync.tests.factories import (
     DossierDataFactory,
     DossierFactory,
 )
+from gsl.core.campagne import get_campagne
 from gsl.core.models import Collegue
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
@@ -166,6 +167,32 @@ class TestForm:
     def test_message_is_optional(self, perimetre):
         projet = _accepted_projet(perimetre)
         form = NotificationMessageForm(data={"message": ""}, instance=projet)
+        assert form.is_valid()
+
+    def test_message_requirement_depends_on_the_campagne_ouverte(self, perimetre):
+        projet = _accepted_projet(perimetre)
+        EnveloppeProjetFactory(
+            projet=projet,
+            status=ProjetStatus.REFUSED,
+            enveloppe=DsilEnveloppeFactory(
+                perimetre=perimetre, annee=get_campagne() + 1
+            ),
+        )
+        form = NotificationMessageForm(data={"message": ""}, instance=projet)
+        assert form.fields["message"].required is True
+
+    def test_a_signed_document_missing_on_a_past_campagne_does_not_block(
+        self, perimetre
+    ):
+        projet = _accepted_projet(perimetre, with_signed_document=False)
+        EnveloppeProjetFactory(
+            projet=projet,
+            status=ProjetStatus.REFUSED,
+            enveloppe=DsilEnveloppeFactory(
+                perimetre=perimetre, annee=get_campagne() + 1
+            ),
+        )
+        form = NotificationMessageForm(data={"message": "Motif"}, instance=projet)
         assert form.is_valid()
 
     def test_clean_blocks_when_a_signed_document_is_missing(self, perimetre):

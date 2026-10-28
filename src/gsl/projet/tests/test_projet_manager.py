@@ -295,15 +295,17 @@ def test_annotate_status_query_count():
         _create_enveloppe_projet(projet, Dotation.DETR, status)
 
     with CaptureQueriesContext(connection) as ctx:
-        statuses = {projet.status for projet in Projet.objects.annotate_status()}
+        statuses = {
+            projet._status
+            for projet in Projet.objects.annotate_status(date.today().year)
+        }
 
     assert statuses == {
         ProjetStatus.PROCESSING,
         ProjetStatus.ACCEPTED,
         ProjetStatus.REFUSED,
     }
-    # 1 query for the projets + 1 prefetch of enveloppeprojet_set (ProjetManager);
-    # projet.status reads the annotation, without any extra query
+    # 1 query for the projets + 1 prefetch of enveloppeprojet_set (ProjetManager)
     assert len(ctx.captured_queries) == 2
     # 1 EXISTS per status: processing, accepted, dismissed, refused
     assert ctx.captured_queries[0]["sql"].upper().count("EXISTS") == 4
