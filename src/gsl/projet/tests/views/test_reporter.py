@@ -374,3 +374,26 @@ def test_a_retour_en_instruction_after_the_report_only_reopens_the_campagne_suiv
         projet=projet, enveloppe__annee=CAMPAGNE + 1
     )
     assert courant.status == ProjetStatus.PROCESSING
+
+
+@patch("gsl.projet.forms.DsService.repasser_en_instruction")
+def test_the_simulation_of_the_campagne_suivante_shows_the_enveloppe_projet_reporte(
+    _mock, client, perimetre
+):
+    from gsl.simulation.tests.factories import SimulationFactory
+
+    projet = _notified_projet(perimetre, ProjetStatus.REFUSED)
+    simulation = SimulationFactory(
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=CAMPAGNE + 1)
+    )
+    _post(client, projet)
+
+    response = client.get(
+        reverse("gsl_simulation:simulation-detail", kwargs={"slug": simulation.slug})
+    )
+
+    assert response.status_code == 200
+    (row,) = response.context["page_obj"].object_list
+    (enveloppe_projet,) = row.enveloppe_projet
+    assert enveloppe_projet.enveloppe.annee == CAMPAGNE + 1
+    assert len(enveloppe_projet.simu) == 1

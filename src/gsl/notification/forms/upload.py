@@ -173,7 +173,11 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
     @cached_property
     def enveloppe_projet(self) -> EnveloppeProjet:
         _, dotation = self.cleaned_data["document"].split("-")
-        return EnveloppeProjet.objects.for_dotation(dotation).get(projet=self.projet)
+        return (
+            EnveloppeProjet.objects.actifs()
+            .for_dotation(dotation)
+            .get(projet=self.projet)
+        )
 
     @cached_property
     def document_class(self):
