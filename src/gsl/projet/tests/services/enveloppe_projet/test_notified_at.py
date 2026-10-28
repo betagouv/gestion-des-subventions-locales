@@ -116,3 +116,48 @@ def test_a_dossier_in_instruction_unnotifies_the_actifs_but_not_the_closed(perim
     actif.refresh_from_db()
     assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
     assert actif.notified_at is None
+
+
+def test_a_retour_en_instruction_supersedes_the_actifs_but_not_the_closed(perimetre):
+    projet = _projet(
+        perimetre,
+        ds_state=Dossier.State.EN_INSTRUCTION,
+        ds_date_traitement=DATE_NOTIFICATION_PRECEDENTE,
+        ds_date_passage_en_instruction=DATE_TRAITEMENT,
+    )
+    closed = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        notified_at=DATE_NOTIFICATION_PRECEDENTE,
+    )
+    actif = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
+        # Programmed before the retour en instruction, so DN wins.
+        date_programmation=DATE_NOTIFICATION_PRECEDENTE,
+        notified_at=DATE_NOTIFICATION_PRECEDENTE,
+    )
+
+    synchroniser(projet)
+
+    closed.refresh_from_db()
+    assert closed.is_courant is True
+    assert closed.status == ProjetStatus.REFUSED
+    assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
+
+    actif.refresh_from_db()
+    assert actif.is_courant is False
+    assert actif.status == ProjetStatus.REFUSED
+    assert actif.notified_at == DATE_NOTIFICATION_PRECEDENTE
+    assert (
+        EnveloppeProjet.all_objects.filter(enveloppe__annee=2027, projet=projet).count()
+        == 2
+    )
+
+    nouveau = EnveloppeProjet.objects.get(
+        enveloppe__annee=2027, projet=projet, is_courant=True
+    )
+    assert nouveau.status == ProjetStatus.PROCESSING
+    assert nouveau.notified_at is None
