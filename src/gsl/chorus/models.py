@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Count, Max
 
 from dn.sync.models import Dotation
 from gsl.core.models import BaseModel
@@ -24,6 +25,8 @@ TV_LABELS = {
     "84": "Réservation de paiements",
     "95": "Écritures de coûts secondaires (CO)",
 }
+
+TV_COMMANDE_ACHAT = "51"
 
 # Chorus "type montant" — budget movement on an EJ poste (column TypeMtant).
 TYPE_MONTANT_LABELS = {
@@ -65,6 +68,18 @@ LIGNE_IDENTITY_FIELDS = (
 )
 
 
+class SuiviFinancierQuerySet(models.QuerySet):
+    def single_ej_by_dn_and_dotation(self):
+        # Exclude are case where a given DN number has more than one EJ, we would not
+        # be able to choose the right one.
+        return (
+            self.filter(tv=TV_COMMANDE_ACHAT)
+            .values("dn", "dotation")
+            .annotate(nb_ej=Count("ej", distinct=True), ej=Max("ej"))
+            .filter(nb_ej=1)
+        )
+
+
 class SuiviFinancier(BaseModel):
     ej = models.CharField("EJ (n° pièce Chorus)", max_length=20, db_index=True)
     dn = models.IntegerField("Numéro DN", null=True, blank=True, db_index=True)
@@ -83,6 +98,8 @@ class SuiviFinancier(BaseModel):
     # Used for the composed id.
     poste = models.CharField("Poste", max_length=10, blank=True)
     compte_general = models.CharField("Compte général", max_length=20, blank=True)
+
+    objects = SuiviFinancierQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Suivi financier"

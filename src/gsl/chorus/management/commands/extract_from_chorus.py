@@ -9,6 +9,7 @@ from django.db import transaction
 from dn.sync.models import Dossier, Dotation
 
 from ...models import LIGNE_IDENTITY_FIELDS, SuiviFinancier
+from ...signals import suivi_financier_imported
 
 COLUMN_HEADERS = {
     "ej": "Nº pce réf",
@@ -167,6 +168,7 @@ class Command(BaseCommand):
                 batch = []
         if batch:
             SuiviFinancier.objects.bulk_create(batch, ignore_conflicts=True)
+        suivi_financier_imported.send(sender=SuiviFinancier)
 
         self.stdout.write(self.style.SUCCESS(f"{imported} nouvelle(s) ligne(s)."))
         self.stdout.write(f"{matched} rattachée(s) à un dossier connu (DN).")

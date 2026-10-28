@@ -277,16 +277,24 @@ def test_unknown_dotation_is_logged(caplog):
 @pytest.mark.parametrize(
     "dotation, expected",
     (
-        (Dotation.DETR, AnnotationsDotation(assiette=1_000, montant=100)),
-        (Dotation.DSIL, AnnotationsDotation(assiette=2_000, montant=200)),
+        (
+            Dotation.DETR,
+            AnnotationsDotation(assiette=1_000, montant=100, ej="2105000001"),
+        ),
+        (
+            Dotation.DSIL,
+            AnnotationsDotation(assiette=2_000, montant=200, ej="2105000002"),
+        ),
     ),
 )
 def test_annotations_for(dotation, expected):
     dossier = DossierFactory.build(
         annotations_assiette_detr=1_000,
         annotations_montant_accorde_detr=100,
+        annotations_ej_detr="2105000001",
         annotations_assiette_dsil=2_000,
         annotations_montant_accorde_dsil=200,
+        annotations_ej_dsil="2105000002",
     )
 
     assert dossier.annotations_for(dotation) == expected

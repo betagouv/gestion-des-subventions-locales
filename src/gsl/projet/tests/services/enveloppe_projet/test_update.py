@@ -563,6 +563,22 @@ def test_update_refused_leaves_the_superseded_enveloppe_projet_assiette_untouche
 
 @pytest.mark.django_db
 @freeze_time("2025-05-06")
+def test_update_refused_keeps_the_ej_on_the_new_courant_enveloppe_projet(perimetres):
+    arr_dijon, dep_21, *_ = perimetres
+    detr_enveloppe = DetrEnveloppeFactory(perimetre=dep_21, annee=2025)
+    projet = _synchronised_projet_en_instruction(arr_dijon, demande="DETR")
+    _force_status(projet, Dotation.DETR, ProjetStatus.ACCEPTED, detr_enveloppe)
+    projet.enveloppeprojet_set.for_dotation(Dotation.DETR).update(ej="2105003612")
+
+    _treat_on_dn(projet, Dossier.State.REFUSE)
+    synchroniser(projet)
+
+    nouvelle = projet.enveloppeprojet_set.for_dotation(Dotation.DETR).get()
+    assert nouvelle.ej == "2105003612"
+
+
+@pytest.mark.django_db
+@freeze_time("2025-05-06")
 @pytest.mark.parametrize(
     "initial_dsil_status, expected_dsil_status, expected_dsil_actions",
     (
@@ -859,6 +875,31 @@ def test_update_assiette_creates_action_when_assiette_changed():
     )
     assert actions.count() == 1
     assert actions.first().euro_field_value == 15_000
+
+
+# -- ej --
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "annotation, expected",
+    (
+        ("2105000002", "2105000002"),
+        (" 2105000002 ", "2105000002"),
+        ("", "2105000001"),
+    ),
+)
+def test_update_ej_from_dn_unless_empty(annotation, expected):
+    enveloppe_projet = EnveloppeProjetFactory(
+        dotation=Dotation.DETR,
+        ej="2105000001",
+        projet__dossier_ds__annotations_ej_detr=annotation,
+    )
+
+    synchroniser(enveloppe_projet.projet)
+
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.ej == expected
 
 
 def courant(enveloppe_projet: EnveloppeProjet) -> EnveloppeProjet:
