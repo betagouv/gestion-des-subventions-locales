@@ -32,7 +32,7 @@ from gsl.notification.qr.reattach import (
     replace_documents,
 )
 from gsl.projet.constants import ProjetStatus
-from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
+from gsl.projet.fragments import BaseProjetFragment, DnActionsFragment
 from gsl.projet.models import EnveloppeProjet, Projet
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class NotificationMessageFragment(BaseProjetFragment):
     route_params = "<int:pk>"
     template_name = "includes/_notification_message_form.html"
     form_class = NotificationMessageForm
-    oob_fragments = (NotifiedFragment, ProjetActionsFragment, GenerateDocumentsFragment)
+    oob_fragments = (NotifiedFragment, DnActionsFragment, GenerateDocumentsFragment)
 
     @classmethod
     def get_queryset(cls, request):

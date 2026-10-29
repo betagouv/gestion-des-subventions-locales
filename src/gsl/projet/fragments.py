@@ -17,9 +17,9 @@ class BaseProjetFragment(Fragment):
     context_object_name = "projet"
 
 
-class ProjetActionsFragment(BaseProjetFragment):
-    name = "projet_actions"
-    template_name = "includes/projet_detail/_projet_actions.html"
+class DnActionsFragment(BaseProjetFragment):
+    name = "dn_actions"
+    template_name = "includes/projet_detail/_dn_actions.html"
 
     def get_context(self):
         return {
