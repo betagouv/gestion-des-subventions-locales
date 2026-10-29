@@ -1,6 +1,4 @@
-<div id="dotation-status-cards"
-     hx-swap-oob="{{ hx_swap_oob }}"
-     class="fr-col-12 fr-col-xl-4">
+<div id="dotation-status-cards" hx-swap-oob="{{ hx_swap_oob }}">
     {% for enveloppe_projet in enveloppe_projets %}
         {% include "includes/projet_detail/_dotation_status_card.html" with enveloppe_projet=enveloppe_projet %}
     {% endfor %}
