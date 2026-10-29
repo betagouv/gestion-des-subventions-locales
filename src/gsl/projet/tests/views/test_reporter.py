@@ -16,6 +16,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
 )
 from gsl.historique.models import ProjetAction
+from gsl.notification.tests.factories import LettreRefusSigneeFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ...constants import NotificationStatus, ProjetStatus
@@ -307,3 +308,56 @@ def test_the_dn_sync_after_a_report_keeps_the_campagne_reportee_untouched(
 
 
 # After the report =====================================================================
+
+
+@patch("gsl.projet.forms.DsService.repasser_en_instruction")
+def test_the_projet_only_exposes_the_dotations_of_the_campagne_reportee(
+    _mock, client, perimetre
+):
+    projet = _notified_projet(perimetre, ProjetStatus.ACCEPTED, ProjetStatus.REFUSED)
+    _post(client, projet)
+    projet.refresh_from_db()
+
+    assert projet.dotations == [Dotation.DSIL]
+    assert projet.dotation_detr is None
+    assert projet.dotation_dsil.enveloppe.annee == CAMPAGNE + 1
+    assert projet.has_double_dotations is False
+
+
+@patch("gsl.projet.forms.DsService.repasser_en_instruction")
+def test_the_documents_of_the_campagne_reportee_are_not_sent_again(
+    _mock, client, perimetre
+):
+    projet = _notified_projet(perimetre, ProjetStatus.REFUSED)
+    (ancien,) = EnveloppeProjet.objects.filter(projet=projet)
+    LettreRefusSigneeFactory(enveloppe_projet=ancien)
+    assert len(projet.imported_documents) == 1
+
+    _post(client, projet)
+
+    assert projet.imported_documents == []
+
+
+@pytest.mark.parametrize(
+    "statuses, has_accepted",
+    (
+        ((ProjetStatus.REFUSED,), False),
+        ((ProjetStatus.ACCEPTED, ProjetStatus.REFUSED), True),
+    ),
+)
+@patch("gsl.projet.forms.DsService.repasser_en_instruction")
+def test_the_dotations_of_the_campagne_reportee_still_count_as_treated(
+    _mock, client, perimetre, statuses, has_accepted
+):
+    projet = _notified_projet(perimetre, *statuses)
+    _post(client, projet)
+    projet.refresh_from_db()
+    assert all(
+        ep.status == ProjetStatus.PROCESSING
+        for ep in projet.enveloppe_projets_in_most_recent_campagne
+    )
+
+    assert projet.has_treated_dotation is True
+    assert projet.can_display_notification_tab is True
+    assert projet.has_accepted_dotation is has_accepted
+    assert projet.can_display_suivi_financier_tab is has_accepted

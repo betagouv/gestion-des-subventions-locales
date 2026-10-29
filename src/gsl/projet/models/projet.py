@@ -177,7 +177,9 @@ class ProjetQuerySet(models.QuerySet):
             Exists(EnveloppeProjet.objects.filter(projet=OuterRef("pk")))
         ).exclude(
             Exists(
-                EnveloppeProjet.objects.filter(projet=OuterRef("pk")).filter(
+                EnveloppeProjet.objects.filter(projet=OuterRef("pk"))
+                .in_most_recent_campagne()
+                .filter(
                     Q(status=ProjetStatus.PROCESSING)
                     | Q(
                         status=ProjetStatus.ACCEPTED,
@@ -439,7 +441,10 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
-            self.enveloppeprojet_set.for_dotation(Dotation.DETR).exists()
+            any(
+                ep.dotation == Dotation.DETR
+                for ep in self.enveloppe_projets_in_most_recent_campagne
+            )
             and self.demande_montant_is_greater_than_min_montant_for_detr_commission
         )
 
@@ -448,24 +453,24 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return sorted(
             [
                 dotation.dotation
-                for dotation in self.enveloppeprojet_set.all()
+                for dotation in self.enveloppe_projets_in_most_recent_campagne
                 if dotation.dotation in [Dotation.DETR, Dotation.DSIL]
             ]
         )
 
     @property
     def has_double_dotations(self):
-        return self.enveloppeprojet_set.count() > 1
+        return len(self.enveloppe_projets_in_most_recent_campagne) > 1
 
     @property
     def dotation_detr(self):
-        for dp in self.enveloppeprojet_set.all():
+        for dp in self.enveloppe_projets_in_most_recent_campagne:
             if dp.dotation == Dotation.DETR:
                 return dp
 
     @property
     def dotation_dsil(self):
-        for dp in self.enveloppeprojet_set.all():
+        for dp in self.enveloppe_projets_in_most_recent_campagne:
             if dp.dotation == Dotation.DSIL:
                 return dp
 
@@ -478,7 +483,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         if self.has_been_notified:
             return False
 
-        enveloppe_projets = self.enveloppeprojet_set.all()
+        enveloppe_projets = self.enveloppe_projets_in_most_recent_campagne
         if not enveloppe_projets:
             return False
 
@@ -486,6 +491,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def has_treated_dotation(self) -> bool:
+        # Every campagne counts: the closed ones keep their history displayed.
         return any(dp.is_treated for dp in self.enveloppeprojet_set.all())
 
     @property
@@ -510,7 +516,8 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             (
                 dp.dotation
                 for dp in sorted(
-                    self.enveloppeprojet_set.all(), key=lambda dp: dp.dotation
+                    self.enveloppe_projets_in_most_recent_campagne,
+                    key=lambda dp: dp.dotation,
                 )
                 if dp.status == ProjetStatus.PROCESSING
             ),
@@ -521,7 +528,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     def all_dotations_have_processing_status(self) -> bool:
         return all(
             dp.status == ProjetStatus.PROCESSING
-            for dp in self.enveloppeprojet_set.all()
+            for dp in self.enveloppe_projets_in_most_recent_campagne
         )
 
     @property
@@ -530,7 +537,9 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             document
             for model in GENERATED_DOCUMENTS.values()
             for document in model.objects.filter(
-                enveloppe_projet__projet=self
+                enveloppe_projet__in=EnveloppeProjet.objects.filter(
+                    projet=self
+                ).in_most_recent_campagne()
             ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
@@ -547,7 +556,9 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             document
             for model in UPLOADED_DOCUMENTS.values()
             for document in model.objects.filter(
-                enveloppe_projet__projet=self
+                enveloppe_projet__in=EnveloppeProjet.objects.filter(
+                    projet=self
+                ).in_most_recent_campagne()
             ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
