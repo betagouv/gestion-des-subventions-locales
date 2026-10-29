@@ -41,7 +41,6 @@ from gsl.chorus.models import SuiviFinancier
 from gsl.chorus.utils import par_dotation
 from gsl.core.campagne import get_campagne
 from gsl.core.decorators import htmx_only
-from gsl.core.exceptions import Http404
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import (
     FilterSkiplinksMixin,
@@ -334,21 +333,13 @@ class ProjetReporterView(OpenHtmxModalMixin, UpdateView):
     pk_url_kwarg = "projet_id"
 
     def get_queryset(self):
-        return Projet.objects.for_user(self.request.user).filter(
-            notified_at__isnull=False
-        )
-
-    def get_object(self, queryset=None):
-        projet = super().get_object(queryset)
-        if not projet.can_be_reporte:
-            raise Http404(user_message="Ce projet ne peut pas être reporté.")
-        return projet
+        return Projet.objects.for_user(self.request.user).can_be_reported()
 
     def get_modal_id(self):
         return f"reporter-modal-{self.object.pk}"
 
     def form_valid(self, form):
-        campagne_suivante = self.object.campagne + 1
+        campagne_suivante = self.object.campagne_ouverte + 1
         try:
             form.save(user=self.request.user)
             messages.info(
