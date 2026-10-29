@@ -229,8 +229,12 @@ def _match_document(
     declared, pages, enveloppe_projets
 ) -> DocumentMatched | MatchFailed:
     try:
-        enveloppe_projet = enveloppe_projets.for_dotation(declared.dotation).get(
-            projet__dossier_ds__ds_number=declared.ds_number,
+        enveloppe_projet = (
+            enveloppe_projets.in_most_recent_campagne()
+            .for_dotation(declared.dotation)
+            .get(
+                projet__dossier_ds__ds_number=declared.ds_number,
+            )
         )
     except EnveloppeProjet.DoesNotExist:
         return MatchFailed(

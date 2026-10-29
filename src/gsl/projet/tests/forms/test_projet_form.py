@@ -502,3 +502,28 @@ def test_update_dotation_with_dn_error_cancel_update(
     assert (
         EnveloppeProjet.objects.filter(pk=processing_dotation_to_keep.pk).count() == 1
     )
+
+
+@patch.object(SimulationProjetManager, "reset_for_enveloppe_projet")
+@pytest.mark.django_db
+def test_an_added_dotation_goes_on_the_most_recent_campagne(_mock, user):
+    from datetime import UTC, datetime
+
+    from gsl.programmation.tests.factories import DetrEnveloppeFactory
+
+    # Deposited in October: its default campagne is the next year.
+    projet = ProjetFactory(dossier_ds__ds_date_depot=datetime(2025, 10, 15, tzinfo=UTC))
+    assert projet.dossier_ds.annee_de_campagne == 2026
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2025),
+    )
+
+    form = ProjetForm(
+        instance=projet, data={"dotations": [Dotation.DETR, Dotation.DSIL]}, user=user
+    )
+    form.update_dotation(projet, [Dotation.DETR, Dotation.DSIL], user)
+
+    assert sorted(
+        (ep.dotation, ep.enveloppe.annee) for ep in projet.enveloppeprojet_set.all()
+    ) == [(Dotation.DETR, 2025), (Dotation.DSIL, 2025)]
