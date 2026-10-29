@@ -147,21 +147,21 @@ def test_status_for_only_considers_the_campagne(
     )
 
 
-# Actifs ===============================================================================
+# Most recent campagne ================================================================
 
 
-def test_an_enveloppe_projet_notified_before_a_later_campagne_is_closed():
+def test_enveloppe_projets_of_an_older_campagne_are_left_out_notified_or_not():
     projet = ProjetFactory()
     perimetre = projet.dossier_ds.perimetre
-    closed = EnveloppeProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
         notified_at=timezone.now(),
     )
-    non_notifie = EnveloppeProjetFactory(
+    EnveloppeProjetFactory(
         projet=projet,
-        status=ProjetStatus.REFUSED,
+        status=ProjetStatus.PROCESSING,
         enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2026),
     )
     suivant = EnveloppeProjetFactory(
@@ -170,30 +170,30 @@ def test_an_enveloppe_projet_notified_before_a_later_campagne_is_closed():
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
     )
 
-    assert set(EnveloppeProjet.objects.filter(projet=projet).actifs()) == {
-        non_notifie,
-        suivant,
-    }
-    assert set(projet.enveloppe_projets_actifs) == {non_notifie, suivant}
-    assert closed not in projet.enveloppe_projets_actifs
+    assert list(
+        EnveloppeProjet.objects.filter(projet=projet).in_most_recent_campagne()
+    ) == [suivant]
+    assert projet.enveloppe_projets_in_most_recent_campagne == [suivant]
 
 
-def test_a_notified_enveloppe_projet_of_the_last_campagne_is_actif():
+def test_a_notified_enveloppe_projet_of_the_last_campagne_is_in_most_recent_campagne():
     enveloppe_projet = EnveloppeProjetFactory(
         status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
     )
 
-    assert list(EnveloppeProjet.objects.actifs()) == [enveloppe_projet]
-    assert enveloppe_projet.projet.enveloppe_projets_actifs == [enveloppe_projet]
+    assert list(EnveloppeProjet.objects.in_most_recent_campagne()) == [enveloppe_projet]
+    assert enveloppe_projet.projet.enveloppe_projets_in_most_recent_campagne == [
+        enveloppe_projet
+    ]
 
 
-def test_a_projet_without_enveloppe_projet_has_no_actifs():
+def test_a_projet_without_enveloppe_projet_has_none_in_most_recent_campagne():
     projet = ProjetFactory()
 
-    assert projet.enveloppe_projets_actifs == []
+    assert projet.enveloppe_projets_in_most_recent_campagne == []
 
 
-def test_a_non_courant_enveloppe_projet_is_not_actif():
+def test_a_non_courant_enveloppe_projet_is_not_in_most_recent_campagne():
     courant = EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
     EnveloppeProjetFactory(
         projet=courant.projet,
@@ -203,10 +203,10 @@ def test_a_non_courant_enveloppe_projet_is_not_actif():
         is_courant=False,
     )
 
-    assert courant.projet.enveloppe_projets_actifs == [courant]
-    assert list(EnveloppeProjet.objects.filter(projet=courant.projet).actifs()) == [
-        courant
-    ]
+    assert courant.projet.enveloppe_projets_in_most_recent_campagne == [courant]
+    assert list(
+        EnveloppeProjet.objects.filter(projet=courant.projet).in_most_recent_campagne()
+    ) == [courant]
 
 
 def test_a_non_courant_enveloppe_projet_on_a_later_campagne_does_not_close_it():
@@ -226,15 +226,19 @@ def test_a_non_courant_enveloppe_projet_on_a_later_campagne_does_not_close_it():
         is_courant=False,
     )
 
-    assert projet.enveloppe_projets_actifs == [notifie]
-    assert list(EnveloppeProjet.objects.filter(projet=projet).actifs()) == [notifie]
+    assert projet.enveloppe_projets_in_most_recent_campagne == [notifie]
+    assert list(
+        EnveloppeProjet.objects.filter(projet=projet).in_most_recent_campagne()
+    ) == [notifie]
 
 
-def test_enveloppe_projets_actifs_reads_the_prefetch(django_assert_num_queries):
+def test_enveloppe_projets_in_most_recent_campagne_reads_the_prefetch(
+    django_assert_num_queries,
+):
     enveloppe_projet = EnveloppeProjetFactory(
         status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
     )
     projet = Projet.objects.get(pk=enveloppe_projet.projet_id)
 
     with django_assert_num_queries(0):
-        assert projet.enveloppe_projets_actifs == [enveloppe_projet]
+        assert projet.enveloppe_projets_in_most_recent_campagne == [enveloppe_projet]

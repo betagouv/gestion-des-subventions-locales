@@ -95,7 +95,9 @@ def test_a_dossier_back_in_instruction_keeps_the_date_on_the_superseded_one(
     assert courant.notified_at is None
 
 
-def test_a_dossier_in_instruction_unnotifies_the_actifs_but_not_the_closed(perimetre):
+def test_a_dossier_in_instruction_unnotifies_the_most_recent_campagne_but_not_the_closed(
+    perimetre,
+):
     projet = _projet(perimetre, ds_state=Dossier.State.EN_INSTRUCTION)
     closed = EnveloppeProjetFactory(
         projet=projet,
@@ -103,7 +105,7 @@ def test_a_dossier_in_instruction_unnotifies_the_actifs_but_not_the_closed(perim
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
         notified_at=DATE_NOTIFICATION_PRECEDENTE,
     )
-    actif = EnveloppeProjetFactory(
+    recent = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
@@ -113,12 +115,14 @@ def test_a_dossier_in_instruction_unnotifies_the_actifs_but_not_the_closed(perim
     synchroniser(projet)
 
     closed.refresh_from_db()
-    actif.refresh_from_db()
+    recent.refresh_from_db()
     assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
-    assert actif.notified_at is None
+    assert recent.notified_at is None
 
 
-def test_a_retour_en_instruction_supersedes_the_actifs_but_not_the_closed(perimetre):
+def test_a_retour_en_instruction_supersedes_the_most_recent_campagne_but_not_the_closed(
+    perimetre,
+):
     projet = _projet(
         perimetre,
         ds_state=Dossier.State.EN_INSTRUCTION,
@@ -131,7 +135,7 @@ def test_a_retour_en_instruction_supersedes_the_actifs_but_not_the_closed(perime
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
         notified_at=DATE_NOTIFICATION_PRECEDENTE,
     )
-    actif = EnveloppeProjetFactory(
+    recent = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
@@ -147,10 +151,10 @@ def test_a_retour_en_instruction_supersedes_the_actifs_but_not_the_closed(perime
     assert closed.status == ProjetStatus.REFUSED
     assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
 
-    actif.refresh_from_db()
-    assert actif.is_courant is False
-    assert actif.status == ProjetStatus.REFUSED
-    assert actif.notified_at == DATE_NOTIFICATION_PRECEDENTE
+    recent.refresh_from_db()
+    assert recent.is_courant is False
+    assert recent.status == ProjetStatus.REFUSED
+    assert recent.notified_at == DATE_NOTIFICATION_PRECEDENTE
     assert (
         EnveloppeProjet.all_objects.filter(enveloppe__annee=2027, projet=projet).count()
         == 2
