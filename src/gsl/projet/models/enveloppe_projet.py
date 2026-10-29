@@ -46,12 +46,10 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def programmees(self):
         return self.filter(status__in=ProjetStatus.FINAL)
 
-    def actifs(self):
-        """Excludes the closed ones: notified, while their projet goes on with an
-        enveloppe projet on a later campagne."""
+    def in_most_recent_campagne(self):
+        """On the most recent campagne of their projet."""
         return self.exclude(
-            Q(notified_at__isnull=False)
-            & Exists(
+            Exists(
                 EnveloppeProjet.objects.filter(
                     projet=OuterRef("projet"),
                     enveloppe__annee__gt=OuterRef("enveloppe__annee"),
