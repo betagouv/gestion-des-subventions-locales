@@ -62,13 +62,23 @@
         <ul id="projet-actions"
             {% if oob %}hx-swap-oob="true"{% endif %}
             class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
+            {% if projet.can_be_reported %}
+                <li class="fr-mb-2w">
+                    <button type="button"
+                            class="fr-btn fr-btn--secondary"
+                            hx-get="{% url 'gsl_projet:reporter' projet_id=projet.id %}"
+                            hx-swap="outerHTML">
+                        Reporter le projet en {{ object.most_recent_campagne|add:1 }}
+                    </button>
+                </li>
+            {% endif %}
             {% if projet.has_been_notified %}
                 <li class="fr-mb-2w">
                     <button type="button"
                             class="fr-btn fr-btn--secondary"
                             hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"
                             hx-swap="outerHTML">
-                        Repasser en traitement
+                        Repasser en traitement{% if projet.can_be_reported %} en {{ object.most_recent_campagne }}{% endif %}
                     </button>
                 </li>
             {% endif %}
