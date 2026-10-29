@@ -78,11 +78,12 @@ class Mention:
             case MentionType.EURO:
                 return euro(value, 2) if value is not None else "N/A"
             case MentionType.EURO_LETTRES:
-                return (
-                    num2words(value, lang="fr", to="currency", currency="EUR")
-                    if value is not None
-                    else "N/A"
+                if value is None:
+                    return "N/A"
+                amount_in_words = num2words(
+                    value, lang="fr", to="currency", currency="EUR"
                 )
+                return amount_in_words.removesuffix(" et zéro centimes")
             case MentionType.PERCENT:
                 return percent(value, 2) if value is not None else "N/A"
             case MentionType.DATE:

@@ -1,5 +1,6 @@
 import datetime
 import io
+from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import pytest
@@ -172,6 +173,18 @@ def test_replace_mentions_in_html_strips_surrounding_whitespace():
     result = replace_mentions_in_html(html_content, enveloppe_projet)
 
     assert result == "<p>Monsieur le Maire, pour « Nouvelle plaque d'égoûts »</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mention_montant_lettres_omits_zero_centimes():
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED, montant=Decimal("250000")
+    )
+    html_content = '<p><span class="mention" data-id="montant-subvention-lettres">@Montant</span></p>'
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>deux cent cinquante mille euros</p>"
 
 
 @pytest.mark.django_db
