@@ -47,17 +47,12 @@ class EnveloppeProjetQuerySet(models.QuerySet):
         return self.filter(status__in=ProjetStatus.FINAL)
 
     def actifs(self):
-        """Excludes the closed ones: notified, while their projet goes on with an
-        enveloppe projet on a later campagne."""
-        return self.exclude(
-            Q(notified_at__isnull=False)
-            & Exists(
-                EnveloppeProjet.objects.filter(
-                    projet=OuterRef("projet"),
-                    enveloppe__annee__gt=OuterRef("enveloppe__annee"),
-                )
-            )
-        )
+        return self.exclude(_is_closed())
+
+    def closed(self):
+        """Notified, while their projet goes on with an enveloppe projet on a later
+        campagne: kept as is, as the history of their campagne."""
+        return self.filter(_is_closed())
 
     def without_signed_document(self):
         return self.programmees().filter(
@@ -134,6 +129,15 @@ class EnveloppeProjetQuerySet(models.QuerySet):
             if (dn, dotation) in ej_by_dn_and_dotation
         ]
         self.bulk_update(to_update, ["ej"], batch_size=2000)
+
+
+def _is_closed() -> Q:
+    return Q(notified_at__isnull=False) & Exists(
+        EnveloppeProjet.objects.filter(
+            projet=OuterRef("projet"),
+            enveloppe__annee__gt=OuterRef("enveloppe__annee"),
+        )
+    )
 
 
 class EnveloppeProjetManager(models.Manager.from_queryset(EnveloppeProjetQuerySet)):
@@ -364,6 +368,10 @@ class EnveloppeProjet(BaseModel):
     @property
     def is_notified(self) -> bool:
         return self.notified_at is not None
+
+    @property
+    def is_closed(self) -> bool:
+        return EnveloppeProjet.objects.closed().filter(pk=self.pk).exists()
 
     @property
     def is_programmee(self) -> bool:
@@ -638,6 +646,11 @@ class EnveloppeProjet(BaseModel):
             raise TransitionNotAllowed(
                 f"Can't set back to processing from state '{self.status}'"
             )
+        if self.is_closed:
+            raise TransitionNotAllowed(
+                "Can't set back to processing an enveloppe projet reporté on a later "
+                "campagne"
+            )
 
         nouveau = EnveloppeProjet.objects.supersede(self)
 
@@ -678,9 +691,11 @@ class EnveloppeProjet(BaseModel):
     def programmation_root_enveloppe(self) -> "Enveloppe":
         """A treatment coming from DN carries no campagne, so a dotation programmed
         from it lands on the year of its treatment date, not of its deposit."""
-        return self.projet.root_enveloppe(
-            self.dotation, self.dossier_ds.annee_de_traitement
-        )
+        annee = self.dossier_ds.annee_de_traitement
+        if EnveloppeProjet.objects.filter(projet=self.projet).closed().exists():
+            # Never back onto the campagne it was reporté from.
+            annee = max(annee, self.enveloppe.annee)
+        return self.projet.root_enveloppe(self.dotation, annee)
 
     def accept_from_dn(self) -> None:
         if self.dotation == Dotation.DETR:

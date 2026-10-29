@@ -16,8 +16,10 @@ class EnveloppeProjetService:
     @classmethod
     @transaction.atomic
     def create_or_update_enveloppe_projet_from_projet(cls, projet: Projet) -> None:
-        existing = {ep.dotation: ep for ep in projet.enveloppeprojet_set.all()}
+        # The closed ones belong to the campagne the projet was reporté from.
+        existing = {ep.dotation: ep for ep in projet.enveloppeprojet_set.actifs()}
         is_initialisation = not existing
+        campagne = cls._campagne_of_new_dotations(projet, existing.values())
         dotations = cls._expected_dotations(projet, set(existing))
 
         not_expected = existing.keys() - dotations
@@ -38,7 +40,7 @@ class EnveloppeProjetService:
         for dotation in to_create:
             existing[dotation] = EnveloppeProjet.objects.create_for(
                 projet,
-                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
+                projet.root_enveloppe(dotation, campagne),
             )
             if not is_initialisation:
                 ProjetAction.objects.create(
@@ -89,6 +91,13 @@ class EnveloppeProjetService:
         ):
             return set(dossier.dotations_demande)
         return existing
+
+    @classmethod
+    def _campagne_of_new_dotations(cls, projet: Projet, actifs) -> int:
+        """A reporté projet goes on on the campagne it was reporté to."""
+        if actifs and projet.enveloppeprojet_set.closed().exists():
+            return max(ep.enveloppe.annee for ep in actifs)
+        return projet.dossier_ds.annee_de_campagne
 
     @classmethod
     def _remove_dotation(cls, enveloppe_projet: EnveloppeProjet) -> None:
