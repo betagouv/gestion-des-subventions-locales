@@ -362,6 +362,47 @@ class Projet(ProjetDNActionsMixin, BaseModel):
                 details=str(origine),
             )
 
+    @property
+    def can_be_reporte(self) -> bool:
+        """A notified projet, of a single campagne, with a refused or dismissed
+        dotation to examine again on the next campagne."""
+        return (
+            self.has_been_notified
+            and self.campagne is not None
+            and self.campagne + 1 in CAMPAGNES
+            and any(
+                ep.status in ProjetStatus.NEGATIVE
+                for ep in self.enveloppeprojet_set.all()
+            )
+        )
+
+    @transaction.atomic
+    def reporter(self, actor: Collegue | None = None) -> None:
+        """Its refused or dismissed dotations go on, in processing, on the next
+        campagne; its enveloppe projets of the current one are kept as its history."""
+        from gsl.simulation.models import SimulationProjet
+
+        if not self.can_be_reporte:
+            raise ValidationError("Ce projet ne peut pas être reporté.")
+
+        origine = self.campagne
+        for enveloppe_projet in self.enveloppeprojet_set.all():
+            if enveloppe_projet.status not in ProjetStatus.NEGATIVE:
+                continue
+            nouveau = EnveloppeProjet.objects.create_for(
+                self, self.root_enveloppe(enveloppe_projet.dotation, origine + 1)
+            )
+            SimulationProjet.objects.reset_for_enveloppe_projet(nouveau)
+            ProjetAction.objects.create(
+                projet=self,
+                action_type=ProjetAction.TYPE_REPORT,
+                source=ProjetAction.SOURCE_TURGOT,
+                actor=actor,
+                dotation=nouveau.dotation,
+                enveloppe=nouveau.enveloppe,
+                details=str(origine),
+            )
+
     def status_for(self, campagne: int) -> str | None:
         """Derived from its enveloppe projets of the campagne only."""
         return projet_status_from_dotation_statuses(
