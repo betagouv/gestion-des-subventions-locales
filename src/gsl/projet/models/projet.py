@@ -93,6 +93,7 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    # TODO feat passage campagne : adapter cette méthode à la multi-campagnes ??
     def to_notify(self):
         return (
             self.not_notified()
@@ -112,6 +113,7 @@ class ProjetQuerySet(models.QuerySet):
     def not_notified(self):
         return self.filter(notified_at__isnull=True)
 
+    # TODO feat passage campagne : adapter cette méthode à la multi-campagnes ??
     def with_at_least_one_treated_dotation(self):
         return self.filter(
             Exists(
@@ -122,6 +124,7 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    # TODO feat passage campagne : adapter cette méthode à la multi-campagnes ??
     def with_at_least_one_accepted_dotation(self):
         return self.filter(
             Exists(
@@ -179,6 +182,7 @@ class ProjetQuerySet(models.QuerySet):
     def has_document_ready(self):
         """Projets dont toutes les dotations sont traitées, et dont chaque
         dotation acceptée a son document signé importé."""
+        # TODO notification en masse : ajouter un paramètre camapgne ?
         return self.filter(
             Exists(EnveloppeProjet.objects.filter(projet=OuterRef("pk")))
         ).exclude(
@@ -212,6 +216,7 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    # TODO feat passage campagne : adapter cette méthode à la multi-campagnes ??
     def accepted(self):
         return self.with_at_least_one_accepted_dotation().exclude(
             Exists(
@@ -444,6 +449,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             and demande_montant >= MIN_DEMANDE_MONTANT_FOR_AVIS_DETR
         )
 
+    # TODO feat passage campagne : vérifier si on veut faire ça que pour les enveloppe_projets_in_most_recent_campagne
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
@@ -464,22 +470,26 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             ]
         )
 
+    # TODO feat passage campagne : vérifier si on veut faire ça que pour les enveloppe_projets_in_most_recent_campagne
     @property
     def has_double_dotations(self):
         return len(self.enveloppe_projets_in_most_recent_campagne) > 1
 
+    # TODO feat passage campagne : vérifier si on veut faire ça que pour les enveloppe_projets_in_most_recent_campagne
     @property
     def dotation_detr(self):
         for dp in self.enveloppe_projets_in_most_recent_campagne:
             if dp.dotation == Dotation.DETR:
                 return dp
 
+    # TODO feat passage campagne : vérifier si on veut faire ça que pour les enveloppe_projets_in_most_recent_campagne
     @property
     def dotation_dsil(self):
         for dp in self.enveloppe_projets_in_most_recent_campagne:
             if dp.dotation == Dotation.DSIL:
                 return dp
 
+    # TODO feat passage campagne : adapter cette property à la multi-campagnes
     @property
     def has_been_notified(self) -> bool:
         return self.notified_at is not None
@@ -511,6 +521,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     def can_display_suivi_financier_tab(self) -> bool:
         return self.has_accepted_dotation
 
+    # TODO feat passage campagne : adapter cette property à la multi-campagnes ??
     @property
     def dotation_not_treated(self) -> Optional[Dotation]:
         # Python-side sort so we benefit from the enveloppeprojet_set
@@ -527,6 +538,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             None,
         )
 
+    # TODO feat passage campagne : adapter cette méthode à la multi-campagnes ??
     @property
     def all_dotations_have_processing_status(self) -> bool:
         return all(
@@ -534,6 +546,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             for dp in self.enveloppe_projets_in_most_recent_campagne
         )
 
+    # TODO feat passage campagne : adapter cette méthode à la multi-campagnes ??
     @property
     def generated_documents(self):
         documents = [
@@ -553,6 +566,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             ),
         )
 
+    # TODO feat passage campagne : adapter cette méthode à la multi-campagnes ??
     @property
     def imported_documents(self):
         documents = [
