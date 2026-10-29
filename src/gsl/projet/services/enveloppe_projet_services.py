@@ -98,7 +98,7 @@ class EnveloppeProjetService:
     @classmethod
     def _campagne_of_new_dotations(cls, projet: Projet, recents) -> int:
         """A reporté projet goes on on the campagne it was reporté to."""
-        if recents and projet.enveloppeprojet_set.closed().exists():
+        if recents and projet.enveloppeprojet_set.is_multi_campagnes():
             return max(ep.enveloppe.annee for ep in recents)
         return projet.dossier_ds.annee_de_campagne
 

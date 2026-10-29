@@ -242,3 +242,20 @@ def test_enveloppe_projets_in_most_recent_campagne_reads_the_prefetch(
 
     with django_assert_num_queries(0):
         assert projet.enveloppe_projets_in_most_recent_campagne == [enveloppe_projet]
+
+
+def test_is_multi_campagnes():
+    projet = ProjetFactory()
+    perimetre = projet.dossier_ds.perimetre
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.is_multi_campagnes() is False
+
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    assert enveloppe_projets.is_multi_campagnes() is True

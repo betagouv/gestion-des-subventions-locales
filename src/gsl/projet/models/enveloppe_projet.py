@@ -55,6 +55,11 @@ class EnveloppeProjetQuerySet(models.QuerySet):
         is, as the history of their campagne."""
         return self.filter(_is_closed())
 
+    def is_multi_campagnes(self) -> bool:
+        """Whether these enveloppe projets span several campagnes of their projet,
+        a reporté one for instance."""
+        return self.closed().exists()
+
     def without_signed_document(self):
         return self.programmees().filter(
             status=ProjetStatus.ACCEPTED,
@@ -695,7 +700,7 @@ class EnveloppeProjet(BaseModel):
         """A treatment coming from DN carries no campagne, so a dotation programmed
         from it lands on the year of its treatment date, not of its deposit."""
         annee = self.dossier_ds.annee_de_traitement
-        if EnveloppeProjet.objects.filter(projet=self.projet).closed().exists():
+        if EnveloppeProjet.objects.filter(projet=self.projet).is_multi_campagnes():
             # Never back onto the campagne it was reporté from.
             annee = max(annee, self.enveloppe.annee)
         return self.projet.root_enveloppe(self.dotation, annee)
