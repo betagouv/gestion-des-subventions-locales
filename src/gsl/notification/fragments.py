@@ -109,7 +109,7 @@ class NotificationMessageFragment(BaseProjetFragment):
             "is_instructor": self.object.dossier_ds.is_instructeur(self.request.user),
             "enveloppe_projets_without_signed_document": list(
                 self.object.enveloppeprojet_set.for_campagne(
-                    self.object.campagne_ouverte
+                    self.object.most_recent_campagne
                 ).without_signed_document()
             ),
         }
@@ -129,7 +129,7 @@ class NotificationMessageFragment(BaseProjetFragment):
             MATOMO_CATEGORY_NOTIFICATION,
             MATOMO_ACTION_ENVOI_DN,
             NOTIFICATION_RESULT_TO_MATOMO_ACTION[
-                self.object.status_for(self.object.campagne_ouverte)
+                self.object.status_for(self.object.most_recent_campagne)
             ],
         )
         return self.render_valid()
