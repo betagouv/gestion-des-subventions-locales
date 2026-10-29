@@ -22,6 +22,7 @@ class EnveloppeProjetService:
             for ep in projet.enveloppeprojet_set.in_most_recent_campagne()
         }
         is_initialisation = not existing
+        campagne = cls._campagne_of_new_dotations(projet, existing.values())
         dotations = cls._expected_dotations(projet, set(existing))
 
         not_expected = existing.keys() - dotations
@@ -42,7 +43,7 @@ class EnveloppeProjetService:
         for dotation in to_create:
             existing[dotation] = EnveloppeProjet.objects.create_for(
                 projet,
-                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
+                projet.root_enveloppe(dotation, campagne),
             )
             if not is_initialisation:
                 ProjetAction.objects.create(
@@ -95,6 +96,13 @@ class EnveloppeProjetService:
         ):
             return set(dossier.dotations_demande)
         return existing
+
+    @classmethod
+    def _campagne_of_new_dotations(cls, projet: Projet, recents) -> int:
+        """A reporté projet goes on on the campagne it was reporté to."""
+        if recents and projet.enveloppeprojet_set.is_multi_campagnes():
+            return max(ep.enveloppe.annee for ep in recents)
+        return projet.dossier_ds.annee_de_campagne
 
     @classmethod
     def _remove_dotation(cls, enveloppe_projet: EnveloppeProjet) -> None:

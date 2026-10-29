@@ -88,10 +88,11 @@ class ProjetForm(ModelForm, DsfrBaseForm):
         dotation_to_remove = set[Dotation](projet.dotations) - set(dotations)
         dotations_updated_in_app = new_dotations or dotation_to_remove
 
+        # A basculé or reporté projet is no more on the campagne of its deposit.
+        campagne = projet.most_recent_campagne or projet.dossier_ds.annee_de_campagne
         for dotation in new_dotations:
             enveloppe_projet = EnveloppeProjet.objects.create_for(
-                projet,
-                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
+                projet, projet.root_enveloppe(dotation, campagne)
             )
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
             ProjetAction.objects.create(
