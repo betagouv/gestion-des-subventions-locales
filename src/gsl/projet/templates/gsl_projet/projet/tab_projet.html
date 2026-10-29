@@ -57,7 +57,24 @@
             </div>
         </div>
     </div>
-    {% include "includes/projet_detail/_dotation_status_cards.html" %}
+    <div class="fr-col-12 fr-col-xl-4">
+        {% include "includes/projet_detail/_dotation_status_cards.html" %}
+        <ul id="projet-actions"
+            {% if oob %}hx-swap-oob="true"{% endif %}
+            class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
+            {% if projet.has_been_notified %}
+                <li class="fr-mb-2w">
+                    <button type="button"
+                            class="fr-btn fr-btn--secondary"
+                            hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"
+                            hx-swap="outerHTML">
+                        Repasser en traitement
+                    </button>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+
 
     {% if projet_form %}
         <form method="post"
