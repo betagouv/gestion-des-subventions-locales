@@ -189,6 +189,21 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    def can_be_reported(self):
+        """Projets whose actifs enveloppe projets have all been notified, not all
+        accepted, on a campagne followed by another one in Turgot."""
+        actifs = EnveloppeProjet.objects.filter(projet=OuterRef("pk")).actifs()
+        return self.filter(
+            Exists(actifs.filter(status__in=ProjetStatus.NEGATIVE))
+        ).exclude(
+            Exists(
+                actifs.filter(
+                    Q(notified_at__isnull=True)
+                    | ~Q(enveloppe__annee__in=_CAMPAGNES_REPORTABLES)
+                )
+            )
+        )
+
     def accepted(self):
         return self.with_at_least_one_accepted_dotation().exclude(
             Exists(
@@ -197,6 +212,9 @@ class ProjetQuerySet(models.QuerySet):
                 )
             )
         )
+
+
+_CAMPAGNES_REPORTABLES = [campagne - 1 for campagne in CAMPAGNES]
 
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
@@ -363,18 +381,14 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             )
 
     @property
-    def can_be_reporte(self) -> bool:
-        """A notified projet, of a single campagne, with a refused or dismissed
-        dotation to examine again on the next campagne."""
-        return (
-            self.has_been_notified
-            and self.campagne is not None
-            and self.campagne + 1 in CAMPAGNES
-            and any(
-                ep.status in ProjetStatus.NEGATIVE
-                for ep in self.enveloppeprojet_set.all()
-            )
-        )
+    def can_be_reported(self) -> bool:
+        """Python side twin of `ProjetQuerySet.can_be_reported`, to benefit from
+        the prefetch."""
+        actifs = self.enveloppe_projets_actifs
+        return all(
+            ep.is_notified and ep.enveloppe.annee in _CAMPAGNES_REPORTABLES
+            for ep in actifs
+        ) and any(ep.status in ProjetStatus.NEGATIVE for ep in actifs)
 
     @transaction.atomic
     def reporter(self, actor: Collegue | None = None) -> None:
@@ -382,11 +396,15 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         campagne; its enveloppe projets of the current one are kept as its history."""
         from gsl.simulation.models import SimulationProjet
 
-        if not self.can_be_reporte:
+        origine = self.campagne_ouverte
+        if origine == max(CAMPAGNES):
+            raise ValidationError(
+                f"La campagne {origine + 1} n'existe pas encore dans Turgot."
+            )
+        if not self.can_be_reported:
             raise ValidationError("Ce projet ne peut pas être reporté.")
 
-        origine = self.campagne
-        for enveloppe_projet in self.enveloppeprojet_set.all():
+        for enveloppe_projet in self.enveloppe_projets_actifs:
             if enveloppe_projet.status not in ProjetStatus.NEGATIVE:
                 continue
             nouveau = EnveloppeProjet.objects.create_for(

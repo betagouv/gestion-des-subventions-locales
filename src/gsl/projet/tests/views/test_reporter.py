@@ -9,7 +9,7 @@ from django.utils import timezone
 from dn.sync.exceptions import DsServiceException
 from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import DossierDataFactory, DossierFactory
-from gsl.core.campagne import default_campagne
+from gsl.core.campagne import CAMPAGNES, default_campagne
 from gsl.core.tests.factories import (
     ClientWithLoggedUserFactory,
     CollegueWithDSProfileFactory,
@@ -20,7 +20,7 @@ from gsl.notification.tests.factories import LettreRefusSigneeFactory
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ...constants import NotificationStatus, ProjetStatus
-from ...models import EnveloppeProjet
+from ...models import EnveloppeProjet, Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -76,7 +76,7 @@ def _post(client, projet):
     return client.post(_url(projet), {}, headers={"HX-Request": "true"})
 
 
-# can_be_reporte =======================================================================
+# can_be_reported =======================================================================
 
 
 @pytest.mark.parametrize(
@@ -91,20 +91,35 @@ def _post(client, projet):
     ),
 )
 def test_can_be_reporte_depends_on_the_statuses(perimetre, statuses, expected):
-    assert _notified_projet(perimetre, *statuses).can_be_reporte is expected
+    assert _can_be_reported(_notified_projet(perimetre, *statuses)) is expected
 
 
-def test_a_non_notified_projet_cannot_be_reporte(perimetre):
-    projet = _notified_projet(perimetre, ProjetStatus.REFUSED)
-    projet.notified_at = None
+def test_a_projet_with_a_non_notified_actif_cannot_be_reported(perimetre):
+    projet = _notified_projet(perimetre, ProjetStatus.REFUSED, ProjetStatus.REFUSED)
+    dsil = projet.dotation_dsil
+    dsil.notified_at = None
+    dsil.save()
 
-    assert projet.can_be_reporte is False
+    assert _can_be_reported(projet) is False
 
 
 def test_a_projet_cannot_be_reporte_beyond_the_last_campagne(perimetre):
     projet = _notified_projet(perimetre, ProjetStatus.REFUSED, annee=CAMPAGNE + 1)
 
-    assert projet.can_be_reporte is False
+    assert _can_be_reported(projet) is False
+
+
+def test_reporter_refuses_a_projet_on_the_last_campagne(perimetre):
+    from django.core.exceptions import ValidationError
+
+    derniere = max(CAMPAGNES)
+    projet = _notified_projet(perimetre, ProjetStatus.REFUSED, annee=derniere)
+
+    with pytest.raises(ValidationError, match=f"La campagne {derniere + 1} n'existe"):
+        projet.reporter()
+    assert not EnveloppeProjet.objects.filter(
+        projet=projet, enveloppe__annee=derniere + 1
+    ).exists()
 
 
 @patch("gsl.projet.forms.DsService.repasser_en_instruction")
@@ -113,7 +128,15 @@ def test_a_reporte_projet_cannot_be_reporte_again(_mock, client, perimetre):
     _post(client, projet)
     projet.refresh_from_db()
 
-    assert projet.can_be_reporte is False
+    assert _can_be_reported(projet) is False
+
+
+def _can_be_reported(projet):
+    """The queryset and its Python side twin must agree."""
+    projet = Projet.objects.get(pk=projet.pk)
+    in_queryset = Projet.objects.can_be_reported().filter(pk=projet.pk).exists()
+    assert projet.can_be_reported is in_queryset
+    return in_queryset
 
 
 # Modal ================================================================================
@@ -138,7 +161,9 @@ def test_get_modal_returns_404_when_the_projet_cannot_be_reporte(client, perimet
     assert response.status_code == 404
 
 
-def test_the_button_is_displayed_only_when_the_projet_can_be_reporte(client, perimetre):
+def test_the_button_is_displayed_only_when_the_projet_can_be_reported(
+    client, perimetre
+):
     reportable = _notified_projet(perimetre, ProjetStatus.REFUSED)
     non_reportable = _notified_projet(perimetre, ProjetStatus.ACCEPTED)
 
@@ -397,3 +422,27 @@ def test_the_simulation_of_the_campagne_suivante_shows_the_enveloppe_projet_repo
     (enveloppe_projet,) = row.enveloppe_projet
     assert enveloppe_projet.enveloppe.annee == CAMPAGNE + 1
     assert len(enveloppe_projet.simu) == 1
+
+
+@pytest.mark.parametrize(
+    "statuses, has_accepted",
+    (
+        ((ProjetStatus.REFUSED,), False),
+        ((ProjetStatus.ACCEPTED, ProjetStatus.REFUSED), True),
+    ),
+)
+@patch("gsl.projet.forms.DsService.repasser_en_instruction")
+def test_the_dotations_of_the_campagne_reportee_still_count_as_treated(
+    _mock, client, perimetre, statuses, has_accepted
+):
+    projet = _notified_projet(perimetre, *statuses)
+    _post(client, projet)
+    projet.refresh_from_db()
+    assert all(
+        ep.status == ProjetStatus.PROCESSING for ep in projet.enveloppe_projets_actifs
+    )
+
+    assert projet.has_treated_dotation is True
+    assert projet.can_display_notification_tab is True
+    assert projet.has_accepted_dotation is has_accepted
+    assert projet.can_display_suivi_financier_tab is has_accepted

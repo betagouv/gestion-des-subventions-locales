@@ -62,13 +62,13 @@
         <ul id="projet-actions"
             {% if oob %}hx-swap-oob="true"{% endif %}
             class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
-            {% if projet.can_be_reporte %}
+            {% if projet.can_be_reported %}
                 <li class="fr-mb-2w">
                     <button type="button"
                             class="fr-btn fr-btn--secondary"
                             hx-get="{% url 'gsl_projet:reporter' projet_id=projet.id %}"
                             hx-swap="outerHTML">
-                        Reporter le projet en {{ object.campagne|add:1 }}
+                        Reporter le projet en {{ object.campagne_ouverte|add:1 }}
                     </button>
                 </li>
             {% endif %}
@@ -78,7 +78,7 @@
                             class="fr-btn fr-btn--secondary"
                             hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"
                             hx-swap="outerHTML">
-                        Repasser en traitement{% if projet.can_be_reporte %} en {{ object.campagne }}{% endif %}
+                        Repasser en traitement{% if projet.can_be_reported %} en {{ object.campagne_ouverte }}{% endif %}
                     </button>
                 </li>
             {% endif %}
