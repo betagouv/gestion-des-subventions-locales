@@ -52,7 +52,7 @@
     <h1>{{ dossier.projet_intitule|lower|capfirst }}</h1>
     <div class="projet-header__status">
         {% for enveloppe_projet in enveloppe_projets %}
-            {% ui_status_badge type=enveloppe_projet.status dotation=enveloppe_projet.dotation %}
+            {% ui_status_badge type=enveloppe_projet.status dotation=enveloppe_projet.dotation annee=enveloppe_projet.enveloppe.annee %}
         {% endfor %}
         {% if projet.dossier_ds.demande_numero_demande_precedente %}
             {% ui_status_badge type="reported" %}
