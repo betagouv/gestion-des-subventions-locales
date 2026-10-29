@@ -169,7 +169,7 @@ class TestForm:
         form = NotificationMessageForm(data={"message": ""}, instance=projet)
         assert form.is_valid()
 
-    def test_message_requirement_depends_on_the_campagne_ouverte(self, perimetre):
+    def test_message_requirement_depends_on_the_most_recent_campagne(self, perimetre):
         projet = _accepted_projet(perimetre)
         EnveloppeProjetFactory(
             projet=projet,

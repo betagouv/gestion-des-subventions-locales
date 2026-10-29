@@ -339,7 +339,7 @@ class ProjetReporterView(OpenHtmxModalMixin, UpdateView):
         return f"reporter-modal-{self.object.pk}"
 
     def form_valid(self, form):
-        campagne_suivante = self.object.campagne_ouverte + 1
+        campagne_suivante = self.object.most_recent_campagne + 1
         try:
             form.save(user=self.request.user)
             messages.info(
