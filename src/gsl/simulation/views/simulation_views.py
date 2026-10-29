@@ -136,7 +136,7 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
             .filter(
                 simulation=simulation,
                 enveloppe_projet__projet__in=self.filterset.qs,
-                enveloppe_projet__projet__notified_at__isnull=True,
+                enveloppe_projet__notified_at__isnull=True,
             )
             .values_list("id", flat=True)
         )

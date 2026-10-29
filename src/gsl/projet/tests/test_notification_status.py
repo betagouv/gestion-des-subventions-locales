@@ -78,6 +78,8 @@ def test_notified_projet_dotation_is_notified_even_with_no_signed_document():
     enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     enveloppe_projet.projet.notified_at = datetime.now(UTC)
     enveloppe_projet.projet.save()
+    enveloppe_projet.notified_at = enveloppe_projet.projet.notified_at
+    enveloppe_projet.save()
 
     assert enveloppe_projet.notification_status == NotificationStatus.NOTIFIED
     _assert_property_matches_annotation(enveloppe_projet)

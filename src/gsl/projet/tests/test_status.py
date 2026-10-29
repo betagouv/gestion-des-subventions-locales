@@ -1,8 +1,9 @@
 import pytest
+from django.utils import timezone
 
 from dn.sync.models import Dotation
 from gsl.core.campagne import get_campagne
-from gsl.programmation.tests.factories import DetrEnveloppeFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ..constants import ProjetStatus
 from ..models import EnveloppeProjet, Projet
@@ -144,3 +145,96 @@ def test_status_for_only_considers_the_campagne(
         Projet.objects.annotate_status(campagne).get(pk=projet.pk)._status
         == expected_status
     )
+
+
+# Actifs ===============================================================================
+
+
+def test_an_enveloppe_projet_notified_before_a_later_campagne_is_closed():
+    projet = ProjetFactory()
+    perimetre = projet.dossier_ds.perimetre
+    closed = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        notified_at=timezone.now(),
+    )
+    non_notifie = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    suivant = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+
+    assert set(EnveloppeProjet.objects.filter(projet=projet).actifs()) == {
+        non_notifie,
+        suivant,
+    }
+    assert set(projet.enveloppe_projets_actifs) == {non_notifie, suivant}
+    assert closed not in projet.enveloppe_projets_actifs
+
+
+def test_a_notified_enveloppe_projet_of_the_last_campagne_is_actif():
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
+    )
+
+    assert list(EnveloppeProjet.objects.actifs()) == [enveloppe_projet]
+    assert enveloppe_projet.projet.enveloppe_projets_actifs == [enveloppe_projet]
+
+
+def test_a_projet_without_enveloppe_projet_has_no_actifs():
+    projet = ProjetFactory()
+
+    assert projet.enveloppe_projets_actifs == []
+
+
+def test_a_non_courant_enveloppe_projet_is_not_actif():
+    courant = EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
+    EnveloppeProjetFactory(
+        projet=courant.projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=courant.enveloppe,
+        notified_at=timezone.now(),
+        is_courant=False,
+    )
+
+    assert courant.projet.enveloppe_projets_actifs == [courant]
+    assert list(EnveloppeProjet.objects.filter(projet=courant.projet).actifs()) == [
+        courant
+    ]
+
+
+def test_a_non_courant_enveloppe_projet_on_a_later_campagne_does_not_close_it():
+    projet = ProjetFactory()
+    perimetre = projet.dossier_ds.perimetre
+    notifie = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        notified_at=timezone.now(),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+        notified_at=timezone.now(),
+        is_courant=False,
+    )
+
+    assert projet.enveloppe_projets_actifs == [notifie]
+    assert list(EnveloppeProjet.objects.filter(projet=projet).actifs()) == [notifie]
+
+
+def test_enveloppe_projets_actifs_reads_the_prefetch(django_assert_num_queries):
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
+    )
+    projet = Projet.objects.get(pk=enveloppe_projet.projet_id)
+
+    with django_assert_num_queries(0):
+        assert projet.enveloppe_projets_actifs == [enveloppe_projet]

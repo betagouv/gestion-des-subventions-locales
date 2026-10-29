@@ -156,6 +156,7 @@ def test_patch_assiette_notified_projet_returns_404(
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=perimetre_departemental,
         projet__notified_at=timezone.now(),
+        notified_at=timezone.now(),
     )
     response = client_with_user_logged.post(
         _assiette_url(dp), {"assiette": "50000"}, headers={"HX-Request": "true"}

@@ -32,7 +32,7 @@ from gsl.notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl.projet.constants import LETTRE, ProjetStatus
-from gsl.projet.models import Projet
+from gsl.projet.models import EnveloppeProjet, Projet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -508,6 +508,7 @@ def test_wizard_create_step_aborts_when_projets_became_ineligible(
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
     Projet.objects.all().update(notified_at=timezone.now())
+    EnveloppeProjet.objects.all().update(notified_at=timezone.now())
 
     response = _post_create_step_raw(client)
 
