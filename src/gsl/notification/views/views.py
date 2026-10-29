@@ -69,6 +69,7 @@ class SelectModeleView(FormView):
             EnveloppeProjet.objects.programmees()
             .active()
             .visible_to_user(request.user)
+            .in_most_recent_campagne()
             .for_dotation(kwargs["dotation"]),
             projet_id=kwargs["projet_id"],
         )
@@ -136,6 +137,7 @@ class ChangeDocumentView(UpdateView):
             EnveloppeProjet.objects.programmees()
             .active()
             .visible_to_user(self.request.user)
+            .in_most_recent_campagne()
             .for_dotation(self.kwargs["dotation"]),
             projet_id=self.kwargs["projet_id"],
         )

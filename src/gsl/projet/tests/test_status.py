@@ -147,19 +147,19 @@ def test_status_for_only_considers_the_campagne(
     )
 
 
-# Most recent campagne ================================================================
+# Actifs ===============================================================================
 
 
-def test_enveloppe_projets_of_an_older_campagne_are_left_out_notified_or_not():
+def test_enveloppe_projets_of_an_older_campagne_are_closed_notified_or_not():
     projet = ProjetFactory()
     perimetre = projet.dossier_ds.perimetre
-    EnveloppeProjetFactory(
+    notifie = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
         notified_at=timezone.now(),
     )
-    EnveloppeProjetFactory(
+    non_notifie = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.PROCESSING,
         enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2026),
@@ -169,11 +169,11 @@ def test_enveloppe_projets_of_an_older_campagne_are_left_out_notified_or_not():
         status=ProjetStatus.PROCESSING,
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
     )
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
 
-    assert list(
-        EnveloppeProjet.objects.filter(projet=projet).in_most_recent_campagne()
-    ) == [suivant]
+    assert list(enveloppe_projets.in_most_recent_campagne()) == [suivant]
     assert projet.enveloppe_projets_in_most_recent_campagne == [suivant]
+    assert set(enveloppe_projets.closed()) == {notifie, non_notifie}
 
 
 def test_a_notified_enveloppe_projet_of_the_last_campagne_is_in_most_recent_campagne():
@@ -242,3 +242,20 @@ def test_enveloppe_projets_in_most_recent_campagne_reads_the_prefetch(
 
     with django_assert_num_queries(0):
         assert projet.enveloppe_projets_in_most_recent_campagne == [enveloppe_projet]
+
+
+def test_is_multi_campagnes():
+    projet = ProjetFactory()
+    perimetre = projet.dossier_ds.perimetre
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert enveloppe_projets.is_multi_campagnes() is False
+
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    assert enveloppe_projets.is_multi_campagnes() is True
