@@ -16,8 +16,8 @@ class ProjetDNActionsMixin:
     """
 
     def notify(self, user: Collegue, motivation: str = "") -> None:
-        """Notifies the decision of its campagne ouverte only."""
-        campagne = self.campagne_ouverte
+        """Notifies the decision of its most recent campagne only."""
+        campagne = self.most_recent_campagne
         documents = [
             document
             for document in self.imported_documents

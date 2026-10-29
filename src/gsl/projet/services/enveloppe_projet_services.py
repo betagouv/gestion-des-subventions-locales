@@ -215,11 +215,13 @@ class EnveloppeProjetService:
 
     @classmethod
     def _update_notified_at(cls, projet: Projet) -> None:
-        """Mirrors the DN treatment on the programmed actifs enveloppe projets: the
+        """Mirrors the DN treatment on the programmed enveloppe projets of the most recent campagne: the
         closed ones keep the date of their own campagne."""
         dossier = projet.dossier_ds
         enveloppe_projets = (
-            EnveloppeProjet.objects.filter(projet=projet).actifs().programmees()
+            EnveloppeProjet.objects.filter(projet=projet)
+            .in_most_recent_campagne()
+            .programmees()
         )
         if dossier.is_treated:
             enveloppe_projets.filter(notified_at__isnull=True).update(
