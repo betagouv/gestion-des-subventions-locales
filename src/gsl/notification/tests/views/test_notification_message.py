@@ -599,7 +599,7 @@ class TestView:
         content = response.content.decode()
         assert 'id="notification-message-block"' in content
         assert 'id="notified-block"' in content
-        assert 'id="projet-actions"' in content
+        assert 'id="dn-actions"' in content
         assert 'id="generate-documents-block"' in content
         # Regression: the tab's other form fragment tags (generate_documents_form,
         # notification_message_form) share this same POST request. Without
