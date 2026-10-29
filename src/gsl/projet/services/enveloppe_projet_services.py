@@ -17,7 +17,10 @@ class EnveloppeProjetService:
     @transaction.atomic
     def create_or_update_enveloppe_projet_from_projet(cls, projet: Projet) -> None:
         # The closed ones belong to the campagne the projet was reporté from.
-        existing = {ep.dotation: ep for ep in projet.enveloppeprojet_set.actifs()}
+        existing = {
+            ep.dotation: ep
+            for ep in projet.enveloppeprojet_set.in_most_recent_campagne()
+        }
         is_initialisation = not existing
         campagne = cls._campagne_of_new_dotations(projet, existing.values())
         dotations = cls._expected_dotations(projet, set(existing))
@@ -93,10 +96,10 @@ class EnveloppeProjetService:
         return existing
 
     @classmethod
-    def _campagne_of_new_dotations(cls, projet: Projet, actifs) -> int:
+    def _campagne_of_new_dotations(cls, projet: Projet, recents) -> int:
         """A reporté projet goes on on the campagne it was reporté to."""
-        if actifs and projet.enveloppeprojet_set.closed().exists():
-            return max(ep.enveloppe.annee for ep in actifs)
+        if recents and projet.enveloppeprojet_set.closed().exists():
+            return max(ep.enveloppe.annee for ep in recents)
         return projet.dossier_ds.annee_de_campagne
 
     @classmethod
@@ -224,11 +227,13 @@ class EnveloppeProjetService:
 
     @classmethod
     def _update_notified_at(cls, projet: Projet) -> None:
-        """Mirrors the DN treatment on the programmed actifs enveloppe projets: the
+        """Mirrors the DN treatment on the programmed enveloppe projets of the most recent campagne: the
         closed ones keep the date of their own campagne."""
         dossier = projet.dossier_ds
         enveloppe_projets = (
-            EnveloppeProjet.objects.filter(projet=projet).actifs().programmees()
+            EnveloppeProjet.objects.filter(projet=projet)
+            .in_most_recent_campagne()
+            .programmees()
         )
         if dossier.is_treated:
             enveloppe_projets.filter(notified_at__isnull=True).update(

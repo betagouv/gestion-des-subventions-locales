@@ -174,7 +174,7 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
     def enveloppe_projet(self) -> EnveloppeProjet:
         _, dotation = self.cleaned_data["document"].split("-")
         return (
-            EnveloppeProjet.objects.actifs()
+            EnveloppeProjet.objects.in_most_recent_campagne()
             .for_dotation(dotation)
             .get(projet=self.projet)
         )

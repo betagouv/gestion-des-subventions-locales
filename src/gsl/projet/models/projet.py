@@ -178,7 +178,7 @@ class ProjetQuerySet(models.QuerySet):
         ).exclude(
             Exists(
                 EnveloppeProjet.objects.filter(projet=OuterRef("pk"))
-                .actifs()
+                .in_most_recent_campagne()
                 .filter(
                     Q(status=ProjetStatus.PROCESSING)
                     | Q(
@@ -190,14 +190,16 @@ class ProjetQuerySet(models.QuerySet):
         )
 
     def can_be_reported(self):
-        """Projets whose actifs enveloppe projets have all been notified, not all
-        accepted, on a campagne followed by another one in Turgot."""
-        actifs = EnveloppeProjet.objects.filter(projet=OuterRef("pk")).actifs()
+        """Projets whose enveloppe projets of the most recent campagne have all been
+        notified, not all accepted, on a campagne followed by another one in Turgot."""
+        recents = EnveloppeProjet.objects.filter(
+            projet=OuterRef("pk")
+        ).in_most_recent_campagne()
         return self.filter(
-            Exists(actifs.filter(status__in=ProjetStatus.NEGATIVE))
+            Exists(recents.filter(status__in=ProjetStatus.NEGATIVE))
         ).exclude(
             Exists(
-                actifs.filter(
+                recents.filter(
                     Q(notified_at__isnull=True)
                     | ~Q(enveloppe__annee__in=_CAMPAGNES_REPORTABLES)
                 )
@@ -308,17 +310,14 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return Enveloppe.objects.root_for(dotation, self.perimetre, annee)
 
     @property
-    def enveloppe_projets_actifs(self) -> list[EnveloppeProjet]:
-        """Python side twin of `EnveloppeProjetQuerySet.actifs`, to benefit from
-        the prefetch."""
-        enveloppe_projets = self.enveloppeprojet_set.all()
-        derniere_campagne = max(
-            (ep.enveloppe.annee for ep in enveloppe_projets), default=None
-        )
+    def enveloppe_projets_in_most_recent_campagne(self) -> list[EnveloppeProjet]:
+        """Python side twin of `EnveloppeProjetQuerySet.in_most_recent_campagne`,
+        to benefit from the prefetch."""
+        campagne = self.campagne_ouverte
         return [
             ep
-            for ep in enveloppe_projets
-            if not (ep.is_notified and ep.enveloppe.annee < derniere_campagne)
+            for ep in self.enveloppeprojet_set.all()
+            if ep.enveloppe.annee == campagne
         ]
 
     @property
@@ -384,11 +383,11 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     def can_be_reported(self) -> bool:
         """Python side twin of `ProjetQuerySet.can_be_reported`, to benefit from
         the prefetch."""
-        actifs = self.enveloppe_projets_actifs
+        recents = self.enveloppe_projets_in_most_recent_campagne
         return all(
             ep.is_notified and ep.enveloppe.annee in _CAMPAGNES_REPORTABLES
-            for ep in actifs
-        ) and any(ep.status in ProjetStatus.NEGATIVE for ep in actifs)
+            for ep in recents
+        ) and any(ep.status in ProjetStatus.NEGATIVE for ep in recents)
 
     @transaction.atomic
     def reporter(self, actor: Collegue | None = None) -> None:
@@ -404,7 +403,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         if not self.can_be_reported:
             raise ValidationError("Ce projet ne peut pas être reporté.")
 
-        for enveloppe_projet in self.enveloppe_projets_actifs:
+        for enveloppe_projet in self.enveloppe_projets_in_most_recent_campagne:
             if enveloppe_projet.status not in ProjetStatus.NEGATIVE:
                 continue
             nouveau = EnveloppeProjet.objects.create_for(
@@ -442,7 +441,10 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def can_have_a_commission_detr_avis(self) -> bool:
         return (
-            any(ep.dotation == Dotation.DETR for ep in self.enveloppe_projets_actifs)
+            any(
+                ep.dotation == Dotation.DETR
+                for ep in self.enveloppe_projets_in_most_recent_campagne
+            )
             and self.demande_montant_is_greater_than_min_montant_for_detr_commission
         )
 
@@ -451,24 +453,24 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return sorted(
             [
                 dotation.dotation
-                for dotation in self.enveloppe_projets_actifs
+                for dotation in self.enveloppe_projets_in_most_recent_campagne
                 if dotation.dotation in [Dotation.DETR, Dotation.DSIL]
             ]
         )
 
     @property
     def has_double_dotations(self):
-        return len(self.enveloppe_projets_actifs) > 1
+        return len(self.enveloppe_projets_in_most_recent_campagne) > 1
 
     @property
     def dotation_detr(self):
-        for dp in self.enveloppe_projets_actifs:
+        for dp in self.enveloppe_projets_in_most_recent_campagne:
             if dp.dotation == Dotation.DETR:
                 return dp
 
     @property
     def dotation_dsil(self):
-        for dp in self.enveloppe_projets_actifs:
+        for dp in self.enveloppe_projets_in_most_recent_campagne:
             if dp.dotation == Dotation.DSIL:
                 return dp
 
@@ -481,7 +483,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         if self.has_been_notified:
             return False
 
-        enveloppe_projets = self.enveloppe_projets_actifs
+        enveloppe_projets = self.enveloppe_projets_in_most_recent_campagne
         if not enveloppe_projets:
             return False
 
@@ -514,7 +516,8 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             (
                 dp.dotation
                 for dp in sorted(
-                    self.enveloppe_projets_actifs, key=lambda dp: dp.dotation
+                    self.enveloppe_projets_in_most_recent_campagne,
+                    key=lambda dp: dp.dotation,
                 )
                 if dp.status == ProjetStatus.PROCESSING
             ),
@@ -524,7 +527,8 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def all_dotations_have_processing_status(self) -> bool:
         return all(
-            dp.status == ProjetStatus.PROCESSING for dp in self.enveloppe_projets_actifs
+            dp.status == ProjetStatus.PROCESSING
+            for dp in self.enveloppe_projets_in_most_recent_campagne
         )
 
     @property
@@ -535,7 +539,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             for document in model.objects.filter(
                 enveloppe_projet__in=EnveloppeProjet.objects.filter(
                     projet=self
-                ).actifs()
+                ).in_most_recent_campagne()
             ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(
@@ -554,7 +558,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             for document in model.objects.filter(
                 enveloppe_projet__in=EnveloppeProjet.objects.filter(
                     projet=self
-                ).actifs()
+                ).in_most_recent_campagne()
             ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
         ]
         return sorted(

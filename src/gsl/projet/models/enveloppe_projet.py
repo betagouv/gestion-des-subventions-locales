@@ -46,12 +46,13 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def programmees(self):
         return self.filter(status__in=ProjetStatus.FINAL)
 
-    def actifs(self):
+    def in_most_recent_campagne(self):
+        """On the most recent campagne of their projet."""
         return self.exclude(_is_closed())
 
     def closed(self):
-        """Notified, while their projet goes on with an enveloppe projet on a later
-        campagne: kept as is, as the history of their campagne."""
+        """On a campagne older than the most recent one of their projet: kept as
+        is, as the history of their campagne."""
         return self.filter(_is_closed())
 
     def without_signed_document(self):
@@ -132,10 +133,12 @@ class EnveloppeProjetQuerySet(models.QuerySet):
 
 
 def _is_closed() -> Q:
-    return Q(notified_at__isnull=False) & Exists(
-        EnveloppeProjet.objects.filter(
-            projet=OuterRef("projet"),
-            enveloppe__annee__gt=OuterRef("enveloppe__annee"),
+    return Q(
+        Exists(
+            EnveloppeProjet.objects.filter(
+                projet=OuterRef("projet"),
+                enveloppe__annee__gt=OuterRef("enveloppe__annee"),
+            )
         )
     )
 
