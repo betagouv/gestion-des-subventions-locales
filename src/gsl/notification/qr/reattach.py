@@ -230,7 +230,7 @@ def _match_document(
 ) -> DocumentMatched | MatchFailed:
     try:
         enveloppe_projet = (
-            enveloppe_projets.actifs()
+            enveloppe_projets.in_most_recent_campagne()
             .for_dotation(declared.dotation)
             .get(
                 projet__dossier_ds__ds_number=declared.ds_number,

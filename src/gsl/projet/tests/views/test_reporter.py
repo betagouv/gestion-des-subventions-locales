@@ -94,7 +94,7 @@ def test_can_be_reporte_depends_on_the_statuses(perimetre, statuses, expected):
     assert _can_be_reported(_notified_projet(perimetre, *statuses)) is expected
 
 
-def test_a_projet_with_a_non_notified_actif_cannot_be_reported(perimetre):
+def test_a_projet_with_a_non_notified_enveloppe_projet_cannot_be_reported(perimetre):
     projet = _notified_projet(perimetre, ProjetStatus.REFUSED, ProjetStatus.REFUSED)
     dsil = projet.dotation_dsil
     dsil.notified_at = None
@@ -439,7 +439,8 @@ def test_the_dotations_of_the_campagne_reportee_still_count_as_treated(
     _post(client, projet)
     projet.refresh_from_db()
     assert all(
-        ep.status == ProjetStatus.PROCESSING for ep in projet.enveloppe_projets_actifs
+        ep.status == ProjetStatus.PROCESSING
+        for ep in projet.enveloppe_projets_in_most_recent_campagne
     )
 
     assert projet.has_treated_dotation is True
