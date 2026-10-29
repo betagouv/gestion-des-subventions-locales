@@ -695,6 +695,7 @@ class EnveloppeProjet(BaseModel):
 
     ## -------------------------- Following DN --------------------------
 
+    # TODO feat passage campagne : vérifier si on veut bien prendre l'année max
     @property
     def programmation_root_enveloppe(self) -> "Enveloppe":
         """A treatment coming from DN carries no campagne, so a dotation programmed
