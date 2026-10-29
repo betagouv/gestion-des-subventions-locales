@@ -489,12 +489,13 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def has_treated_dotation(self) -> bool:
-        return any(dp.is_treated for dp in self.enveloppe_projets_actifs)
+        # Every campagne counts: the closed ones keep their history displayed.
+        return any(dp.is_treated for dp in self.enveloppeprojet_set.all())
 
     @property
     def has_accepted_dotation(self) -> bool:
         return any(
-            dp.status == ProjetStatus.ACCEPTED for dp in self.enveloppe_projets_actifs
+            dp.status == ProjetStatus.ACCEPTED for dp in self.enveloppeprojet_set.all()
         )
 
     @property
