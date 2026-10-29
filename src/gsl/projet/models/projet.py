@@ -187,6 +187,23 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
+    def can_be_reported(self):
+        """Projets whose enveloppe projets of the most recent campagne have all been
+        notified, not all accepted, on a campagne followed by another one in Turgot."""
+        recents = EnveloppeProjet.objects.filter(
+            projet=OuterRef("pk")
+        ).in_most_recent_campagne()
+        return self.filter(
+            Exists(recents.filter(status__in=ProjetStatus.NEGATIVE))
+        ).exclude(
+            Exists(
+                recents.filter(
+                    Q(notified_at__isnull=True)
+                    | ~Q(enveloppe__annee__in=_CAMPAGNES_REPORTABLES)
+                )
+            )
+        )
+
     def accepted(self):
         return self.with_at_least_one_accepted_dotation().exclude(
             Exists(
@@ -195,6 +212,9 @@ class ProjetQuerySet(models.QuerySet):
                 )
             )
         )
+
+
+_CAMPAGNES_REPORTABLES = [campagne - 1 for campagne in CAMPAGNES]
 
 
 class ProjetManager(models.Manager.from_queryset(ProjetQuerySet)):
@@ -354,6 +374,47 @@ class Projet(ProjetDNActionsMixin, BaseModel):
                 actor=actor,
                 dotation=enveloppe_projet.dotation,
                 enveloppe=enveloppe_projet.enveloppe,
+                details=str(origine),
+            )
+
+    @property
+    def can_be_reported(self) -> bool:
+        """Python side twin of `ProjetQuerySet.can_be_reported`, to benefit from
+        the prefetch."""
+        recents = self.enveloppe_projets_in_most_recent_campagne
+        return all(
+            ep.is_notified and ep.enveloppe.annee in _CAMPAGNES_REPORTABLES
+            for ep in recents
+        ) and any(ep.status in ProjetStatus.NEGATIVE for ep in recents)
+
+    @transaction.atomic
+    def reporter(self, actor: Collegue | None = None) -> None:
+        """Its refused or dismissed dotations go on, in processing, on the next
+        campagne; its enveloppe projets of the current one are kept as its history."""
+        from gsl.simulation.models import SimulationProjet
+
+        origine = self.most_recent_campagne
+        if origine == max(CAMPAGNES):
+            raise ValidationError(
+                f"La campagne {origine + 1} n'existe pas encore dans Turgot."
+            )
+        if not self.can_be_reported:
+            raise ValidationError("Ce projet ne peut pas être reporté.")
+
+        for enveloppe_projet in self.enveloppe_projets_in_most_recent_campagne:
+            if enveloppe_projet.status not in ProjetStatus.NEGATIVE:
+                continue
+            nouveau = EnveloppeProjet.objects.create_for(
+                self, self.root_enveloppe(enveloppe_projet.dotation, origine + 1)
+            )
+            SimulationProjet.objects.reset_for_enveloppe_projet(nouveau)
+            ProjetAction.objects.create(
+                projet=self,
+                action_type=ProjetAction.TYPE_REPORT,
+                source=ProjetAction.SOURCE_TURGOT,
+                actor=actor,
+                dotation=nouveau.dotation,
+                enveloppe=nouveau.enveloppe,
                 details=str(origine),
             )
 
