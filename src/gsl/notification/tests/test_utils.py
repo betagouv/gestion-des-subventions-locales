@@ -158,6 +158,23 @@ def test_replace_mentions_in_html_uses_address_two_lines():
 
 
 @pytest.mark.django_db
+def test_replace_mentions_in_html_strips_surrounding_whitespace():
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__projet_intitule="  Nouvelle plaque d'égoûts ",
+        projet__dossier_ds__porteur_de_projet_fonction="Maire ",
+    )
+    html_content = (
+        '<p>Monsieur le <span class="mention" data-id="porteur-fonction">@Fonction</span>, '
+        'pour « <span class="mention" data-id="projet-intitule">@Intitulé</span> »</p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>Monsieur le Maire, pour « Nouvelle plaque d'égoûts »</p>"
+
+
+@pytest.mark.django_db
 def test_replace_mention_date_arrete_uses_current_date(enveloppe_projet):
     html_content = '<span class="mention" data-type="mention" data-id="date-arrete" data-label="Date d\'édition de l\'arrêté" data-mention-suggestion-char="@">@Date d\'édition de l\'arrêté</span>'
     expected_date = timezone.now().strftime("%d/%m/%Y")

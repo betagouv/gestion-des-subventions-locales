@@ -68,6 +68,9 @@ class Mention:
     type: MentionType = MentionType.STRING
 
     def get_value(self, enveloppe_projet: EnveloppeProjet) -> str:
+        return self._format_value(enveloppe_projet).strip()
+
+    def _format_value(self, enveloppe_projet: EnveloppeProjet) -> str:
         if self.type == MentionType.DATE_NOW:
             return timezone.now().strftime("%d/%m/%Y")
         value = get_nested_attribute(enveloppe_projet, self.attribute)
