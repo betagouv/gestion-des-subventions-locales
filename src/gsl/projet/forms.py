@@ -418,6 +418,18 @@ class ProjetRevertToProcessingForm(forms.ModelForm):
         fields = ()
 
 
+class ProjetReporterForm(forms.ModelForm):
+    @transaction.atomic
+    def save(self, user, commit=True):
+        self.instance.reporter(actor=user)
+        DsService().repasser_en_instruction(self.instance.dossier_ds, user)
+        return self.instance
+
+    class Meta:
+        model = Projet
+        fields = ()
+
+
 class ProjetCommentForm(ModelForm, DsfrBaseForm):
     comment_number = forms.ChoiceField(
         choices=(
