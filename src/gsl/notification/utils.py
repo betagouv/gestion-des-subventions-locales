@@ -132,6 +132,8 @@ MENTIONS = [
     Mention(
         "taux-subvention", "Taux de subvention", "taux_retenu", MentionType.PERCENT
     ),
+    Mention("numero-ej", "Numéro d'engagement juridique (EJ)", "ej"),
+    Mention("campagne", "Campagne", "enveloppe.annee"),
     Mention(
         "date-commencement",
         "Date de commencement",
