@@ -1,5 +1,6 @@
 import datetime
 import io
+from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import pytest
@@ -155,6 +156,35 @@ def test_replace_mentions_in_html_uses_address_two_lines():
     result = replace_mentions_in_html(html_content, enveloppe_projet)
 
     assert result == "<p>1 rue de la Paix<br/>75001 Paris</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mentions_in_html_strips_surrounding_whitespace():
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__projet_intitule="  Nouvelle plaque d'égoûts ",
+        projet__dossier_ds__porteur_de_projet_fonction="Maire ",
+    )
+    html_content = (
+        '<p>Monsieur le <span class="mention" data-id="porteur-fonction">@Fonction</span>, '
+        'pour « <span class="mention" data-id="projet-intitule">@Intitulé</span> »</p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>Monsieur le Maire, pour « Nouvelle plaque d'égoûts »</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mention_montant_lettres_omits_zero_centimes():
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED, montant=Decimal("250000")
+    )
+    html_content = '<p><span class="mention" data-id="montant-subvention-lettres">@Montant</span></p>'
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>deux cent cinquante mille euros</p>"
 
 
 @pytest.mark.django_db
