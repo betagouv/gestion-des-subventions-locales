@@ -1,6 +1,8 @@
+from django import forms
 from django.contrib import admin
 from django.db.models import Count
 from import_export.admin import ImportExportMixin
+from import_export.forms import ConfirmImportForm, ImportForm
 
 from gsl.core.admin import AllPermsForStaffUser
 from gsl.core.templatetags.gsl_filters import euro
@@ -9,9 +11,26 @@ from .models import Enveloppe
 from .resources import EnveloppeDETRResource, EnveloppeDSILResource
 
 
+class EnveloppeImportForm(ImportForm):
+    enveloppes_officielles = forms.BooleanField(
+        label="Enveloppes officielles",
+        help_text="Les enveloppes importées seront marquées comme validées DGCL.",
+        required=False,
+    )
+
+
+class EnveloppeConfirmImportForm(ConfirmImportForm):
+    enveloppes_officielles = forms.BooleanField(
+        required=False, widget=forms.HiddenInput()
+    )
+
+
 @admin.register(Enveloppe)
 class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     resource_classes = (EnveloppeDETRResource, EnveloppeDSILResource)
+    import_form_class = EnveloppeImportForm
+    confirm_form_class = EnveloppeConfirmImportForm
+    actions = ("valider_dgcl", "invalider_dgcl")
     list_display = (
         "pk",
         "dotation",
@@ -22,8 +41,10 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
         "formatted_amount",
         "simulations_count",
         "parent",
+        "validee_dgcl",
     )
     list_filter = (
+        "validee_dgcl",
         "dotation",
         "annee",
         "perimetre__region__name",
@@ -87,3 +108,30 @@ class EnveloppeAdmin(AllPermsForStaffUser, ImportExportMixin, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.annotate(simulations_count=Count("simulation"))
+
+    def get_confirm_form_initial(self, request, import_form):
+        initial = super().get_confirm_form_initial(request, import_form)
+        if import_form is not None:
+            initial["enveloppes_officielles"] = import_form.cleaned_data[
+                "enveloppes_officielles"
+            ]
+        return initial
+
+    def get_import_resource_kwargs(self, request, **kwargs):
+        resource_kwargs = super().get_import_resource_kwargs(request, **kwargs)
+        form = kwargs.get("form")
+        if form is not None and hasattr(form, "cleaned_data"):
+            resource_kwargs["enveloppes_officielles"] = form.cleaned_data.get(
+                "enveloppes_officielles", False
+            )
+        return resource_kwargs
+
+    @admin.action(description="✅ Valider DGCL les enveloppes sélectionnées")
+    def valider_dgcl(self, request, queryset):
+        count = queryset.update(validee_dgcl=True)
+        self.message_user(request, f"{count} enveloppe(s) validée(s) DGCL.")
+
+    @admin.action(description="🚫 Invalider DGCL les enveloppes sélectionnées")
+    def invalider_dgcl(self, request, queryset):
+        count = queryset.update(validee_dgcl=False)
+        self.message_user(request, f"{count} enveloppe(s) invalidée(s) DGCL.")
