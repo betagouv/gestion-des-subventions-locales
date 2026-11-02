@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -18,6 +19,7 @@ from gsl.core.tests.factories import (
 )
 
 from ...constants import ProjetStatus
+from ...models import EnveloppeProjet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -42,6 +44,7 @@ def _ds_repasser_en_instruction_response(*, date_traitement: str) -> dict:
             "dossierRepasserEnInstruction": {
                 "dossier": {
                     "dateDerniereModification": date_traitement,
+                    "datePassageEnInstruction": date_traitement,
                     "state": "en_instruction",
                     "traitements": [
                         {
@@ -150,23 +153,6 @@ def test_post_calls_ds_repasser_en_instruction(mock_repasser, client, notified_p
     mock_repasser.assert_called_once()
 
 
-@patch("gsl.projet.forms.DsService.repasser_en_instruction")
-def test_post_preserves_enveloppe_projet_status(mock_repasser, client, notified_projet):
-    enveloppe_projet = notified_projet.enveloppeprojet_set.first()
-    client.post(_url(notified_projet), {}, headers={"HX-Request": "true"})
-    enveloppe_projet.refresh_from_db()
-    assert enveloppe_projet.status == ProjetStatus.ACCEPTED
-
-
-@patch("gsl.projet.forms.DsService.repasser_en_instruction")
-def test_post_preserves_programmation(mock_repasser, client, notified_projet):
-    enveloppe_projet = notified_projet.enveloppeprojet_set.first()
-    assert enveloppe_projet.is_programmee
-    client.post(_url(notified_projet), {}, headers={"HX-Request": "true"})
-    enveloppe_projet.refresh_from_db()
-    assert enveloppe_projet.is_programmee
-
-
 def test_get_returns_404_for_non_notified_projet(client, non_notified_projet):
     response = client.get(_url(non_notified_projet), headers={"HX-Request": "true"})
     assert response.status_code == 404
@@ -183,6 +169,109 @@ def test_get_returns_404_for_out_of_perimeter_projet():
     client = ClientWithLoggedUserFactory(other_collegue)
     response = client.get(_url(projet), headers={"HX-Request": "true"})
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "statuses, ds_state",
+    (
+        # Simple dotation
+        ({Dotation.DETR: ProjetStatus.ACCEPTED}, Dossier.State.ACCEPTE),
+        ({Dotation.DSIL: ProjetStatus.ACCEPTED}, Dossier.State.ACCEPTE),
+        ({Dotation.DETR: ProjetStatus.REFUSED}, Dossier.State.REFUSE),
+        ({Dotation.DSIL: ProjetStatus.DISMISSED}, Dossier.State.SANS_SUITE),
+        # Double dotation
+        (
+            {
+                Dotation.DETR: ProjetStatus.ACCEPTED,
+                Dotation.DSIL: ProjetStatus.ACCEPTED,
+            },
+            Dossier.State.ACCEPTE,
+        ),
+        (
+            {Dotation.DETR: ProjetStatus.ACCEPTED, Dotation.DSIL: ProjetStatus.REFUSED},
+            Dossier.State.ACCEPTE,
+        ),
+        (
+            {
+                Dotation.DETR: ProjetStatus.DISMISSED,
+                Dotation.DSIL: ProjetStatus.ACCEPTED,
+            },
+            Dossier.State.ACCEPTE,
+        ),
+        (
+            {Dotation.DETR: ProjetStatus.REFUSED, Dotation.DSIL: ProjetStatus.REFUSED},
+            Dossier.State.REFUSE,
+        ),
+        (
+            {
+                Dotation.DETR: ProjetStatus.REFUSED,
+                Dotation.DSIL: ProjetStatus.DISMISSED,
+            },
+            Dossier.State.SANS_SUITE,
+        ),
+        (
+            {
+                Dotation.DETR: ProjetStatus.DISMISSED,
+                Dotation.DSIL: ProjetStatus.DISMISSED,
+            },
+            Dossier.State.SANS_SUITE,
+        ),
+    ),
+)
+def test_post_sets_every_enveloppe_projet_back_to_processing(
+    client, collegue, statuses, ds_state
+):
+    """Real end-to-end: only the DN network call is faked, with the payload
+    actually requested by the `dossierRepasserEnInstruction` mutation."""
+    projet = _notified_projet_with_dn_history(collegue, statuses, ds_state)
+
+    with patch(
+        "dn.sync.ds_client.DsMutator.dossier_repasser_en_instruction",
+        return_value=_ds_repasser_en_instruction_response(
+            date_traitement=timezone.now().isoformat()
+        ),
+    ):
+        client.post(_url(projet), {}, headers={"HX-Request": "true"})
+
+    enveloppe_projets = EnveloppeProjet.objects.filter(projet=projet)
+    assert {ep.dotation: ep.status for ep in enveloppe_projets} == {
+        dotation: ProjetStatus.PROCESSING for dotation in statuses
+    }
+    assert not any(ep.is_programmee for ep in enveloppe_projets)
+
+
+def _notified_projet_with_dn_history(collegue, statuses, ds_state):
+    """A projet notified on DN: passed en instruction, then programmed in
+    Turgot, then treated (notified) on DN."""
+    now = timezone.now()
+    date_passage_en_instruction = now - timedelta(days=10)
+    date_programmation = now - timedelta(days=5)
+    date_traitement = now - timedelta(days=2)
+
+    raw_data = _full_ds_dossier_data()
+    raw_data["state"] = ds_state
+    raw_data["datePassageEnInstruction"] = date_passage_en_instruction.isoformat()
+    raw_data["dateTraitement"] = date_traitement.isoformat()
+
+    dossier = DossierFactory(
+        perimetre=collegue.perimetre,
+        porteur_de_projet_arrondissement=None,
+        porteur_de_projet_departement=collegue.perimetre.departement,
+        ds_state=ds_state,
+        ds_date_passage_en_instruction=date_passage_en_instruction,
+        ds_date_traitement=date_traitement,
+    )
+    DossierDataFactory(dossier=dossier, raw_data=raw_data)
+    projet = ProjetFactory(dossier_ds=dossier, notified_at=date_traitement)
+    for dotation, status in statuses.items():
+        EnveloppeProjetFactory(
+            projet=projet,
+            status=status,
+            dotation=dotation,
+            assiette=10_000,
+            date_programmation=date_programmation,
+        )
+    return projet
 
 
 @patch("gsl.projet.forms.DsService.repasser_en_instruction")

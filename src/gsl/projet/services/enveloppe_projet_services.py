@@ -189,19 +189,8 @@ class EnveloppeProjetService:
     def _reopen_after_passage_en_instruction(
         cls, enveloppe_projets: list[EnveloppeProjet]
     ) -> None:
-        statuses = [enveloppe_projet.status for enveloppe_projet in enveloppe_projets]
-        one_accepted_and_one_refused_or_dismissed = (
-            statuses.count(ProjetStatus.ACCEPTED) == 1
-            and sum(status in ProjetStatus.NEGATIVE for status in statuses) == 1
-        )
-        reopened_statuses = (
-            [ProjetStatus.ACCEPTED]
-            if one_accepted_and_one_refused_or_dismissed
-            else ProjetStatus.FINAL
-        )
-
         for ep in enveloppe_projets:
-            if ep.status not in reopened_statuses:
+            if ep.status not in ProjetStatus.FINAL:
                 continue
             # Programmed in Turgot after DN reopened the instruction: so Turgot status
             # wins, nothing to undo.
