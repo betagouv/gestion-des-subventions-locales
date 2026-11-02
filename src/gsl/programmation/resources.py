@@ -1,6 +1,6 @@
 from import_export import resources
 from import_export.fields import Field
-from import_export.widgets import ForeignKeyWidget
+from import_export.widgets import BooleanWidget, ForeignKeyWidget
 
 from dn.sync.models import Dotation
 from gsl.core.models import Departement, Perimetre, Region
@@ -16,14 +16,24 @@ class EnveloppeDETRResource(resources.ModelResource):
         widget=ForeignKeyWidget(Perimetre),
     )
     enveloppe_id = Field(attribute="id")
+    validee_dgcl = Field(attribute="validee_dgcl", widget=BooleanWidget())
+
+    def __init__(self, enveloppes_officielles=False, **kwargs):
+        super().__init__(**kwargs)
+        self.enveloppes_officielles = enveloppes_officielles
 
     def before_import(self, dataset, **kwargs):
         # mimic a 'dynamic field'
         dataset.headers.append("enveloppe_id")
         dataset.headers.append("dotation")
+        dataset.headers.append("validee_dgcl")
         super().before_import(dataset, **kwargs)
 
     def before_import_row(self, row, **kwargs):
+        row["validee_dgcl"] = self.enveloppes_officielles
+        self._set_perimetre_and_enveloppe_id(row)
+
+    def _set_perimetre_and_enveloppe_id(self, row):
         row["enveloppe_id"] = None
         row["dotation"] = Dotation.DETR
         provided_departement_number = row["perimetre"]
@@ -47,11 +57,18 @@ class EnveloppeDETRResource(resources.ModelResource):
     class Meta:
         model = Enveloppe
         import_id_fields = ("enveloppe_id",)
-        fields = ("enveloppe_id", "montant", "annee", "perimetre", "dotation")
+        fields = (
+            "enveloppe_id",
+            "montant",
+            "annee",
+            "perimetre",
+            "dotation",
+            "validee_dgcl",
+        )
 
 
 class EnveloppeDSILResource(EnveloppeDETRResource):
-    def before_import_row(self, row, **kwargs):
+    def _set_perimetre_and_enveloppe_id(self, row):
         row["enveloppe_id"] = None
         row["dotation"] = Dotation.DSIL
         provided_region_number = row["perimetre"]

@@ -105,6 +105,11 @@ class Enveloppe(BaseModel):
         on_delete=models.PROTECT,
         blank=True,
     )
+    validee_dgcl = models.BooleanField(
+        "Validée DGCL",
+        default=False,
+        help_text="Le montant de l'enveloppe est officiel (sinon, il est provisoire).",
+    )
 
     objects = EnveloppeManager()
 
