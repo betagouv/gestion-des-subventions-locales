@@ -52,6 +52,14 @@ class TestCollectiviteFicoView:
         assert "data-collectivite-menu-communes-value" not in html
         assert "<fico-fiche" not in html
 
+    def test_menu_is_a_labelled_autocomplete(self, staff_client):
+        response = staff_client.get(reverse("suivi_financier:collectivite-fico"))
+
+        html = response.content.decode()
+        assert '<label class="fr-label" for="siren">Collectivité</label>' in html
+        assert 'data-controller="collectivite-menu autocomplete"' in html
+        assert "ui/components/autocomplete.css" in html
+
     def test_menu_queries_the_region(self):
         perimetre = PerimetreRegionalFactory(region=RegionFactory(insee_code="44"))
 
