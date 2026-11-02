@@ -6,15 +6,25 @@ const byName = new Intl.Collator('fr').compare
 // Declared on a <select>: fills it with the communes and intercommunalités of
 // the agent's perimetre, from geo.api.gouv.fr. geo.api does not know
 // arrondissements, so an arrondissement perimetre passes its communes' INSEE
-// codes in `communes`.
+// codes in `communes`. The select is rendered disabled, with a loading
+// placeholder, until both lists are loaded.
 export class CollectiviteMenu extends Controller {
   static values = { query: String, communes: Array, selected: String }
 
   async connect () {
-    const [communes, epcis] = await Promise.all([
-      this._fetch('communes', 'nom,siren,codeEpci'),
-      this._fetch('epcis', 'nom,code')
-    ])
+    try {
+      const [communes, epcis] = await Promise.all([
+        this._fetch('communes', 'nom,siren,codeEpci'),
+        this._fetch('epcis', 'nom,code')
+      ])
+      this._fill(communes, epcis)
+    } finally {
+      this.element.options[0].text = 'Choisir une collectivité'
+      this.element.disabled = false
+    }
+  }
+
+  _fill (communes, epcis) {
     const kept = this.hasCommunesValue
       ? communes.filter(commune => this.communesValue.includes(commune.code))
       : communes

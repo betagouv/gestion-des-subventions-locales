@@ -17,9 +17,15 @@
                         <select class="fr-select"
                                 id="siren"
                                 name="siren"
-                                {% if perimetre %}data-controller="collectivite-menu" data-collectivite-menu-query-value="{{ geo_api_query }}" data-collectivite-menu-selected-value="{{ siren|default:'' }}"{% endif %}
+                                {% if perimetre %}disabled data-controller="collectivite-menu" data-collectivite-menu-query-value="{{ geo_api_query }}" data-collectivite-menu-selected-value="{{ siren|default:'' }}"{% endif %}
                                 {% if arrondissement_communes %}data-collectivite-menu-communes-value="{{ arrondissement_communes }}"{% endif %}>
-                            <option value="" disabled selected>Choisir une collectivité</option>
+                            <option value="" disabled selected>
+                                {% if perimetre %}
+                                    Chargement des collectivités…
+                                {% else %}
+                                    Choisir une collectivité
+                                {% endif %}
+                            </option>
                         </select>
                     </div>
                     <div class="fr-col-auto">
