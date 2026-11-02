@@ -8,7 +8,7 @@ from django.core.management.base import CommandError
 
 from dn.sync.tests.factories import DossierFactory
 
-from ..management.commands.extract_from_chorus import (
+from ..importer import (
     COLUMN_HEADERS,
     extract_dn_number,
     parse_date,

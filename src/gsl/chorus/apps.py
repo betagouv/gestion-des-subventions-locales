@@ -5,4 +5,4 @@ class GslChorusConfig(AppConfig):
     name = "gsl.chorus"
     label = "gsl_chorus"
 
-    verbose_name = "Chorus"
+    verbose_name = "8. Chorus"
