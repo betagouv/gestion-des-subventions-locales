@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
 
+from dn.proxy.models import ProxyRequestLog
 from dn.proxy.tests.factories import ProxyTokenFactory
 from dn.sync.tests.factories import (
     DemarcheFactory,
@@ -1111,6 +1112,18 @@ class GraphqlProxyViewTest(TestCase):
         self.assertTrue(record.request_id)
         self.assertIsInstance(record.elapsed_ms, int)
 
+        stored = ProxyRequestLog.objects.get()
+        self.assertEqual(stored.request_id, record.request_id)
+        self.assertEqual(stored.proxy_token, self.token)
+        self.assertEqual(stored.demarche_number, self.demarche.ds_number)
+        self.assertEqual(stored.operation_name, "getDemarche")
+        self.assertEqual(stored.root_field, "demarche")
+        self.assertEqual(stored.outcome, ProxyRequestLog.Outcome.OK)
+        self.assertEqual(stored.elapsed_ms, record.elapsed_ms)
+        self.assertEqual(stored.dn_errors_count, 0)
+        self.assertEqual(stored.dn_results_count, 3)
+        self.assertEqual(stored.filtered_out_count, 1)
+
     @patch("dn.proxy.views.requests.post")
     def test_request_log_counts_all_demarche_connections(self, mock_post):
         mock_post.return_value.status_code = 200
@@ -1227,6 +1240,10 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(record.ds_errors_count, len(upstream_errors))
         self.assertEqual(record.filtered_out_count, 0)
 
+        stored = ProxyRequestLog.objects.get()
+        self.assertEqual(stored.outcome, ProxyRequestLog.Outcome.VERBATIM_FORWARD)
+        self.assertEqual(stored.dn_errors_count, 1)
+
     @patch("dn.proxy.views.requests.post")
     def test_request_log_on_scope_error(self, mock_post):
         mock_post.return_value.status_code = 200
@@ -1254,6 +1271,10 @@ class GraphqlProxyViewTest(TestCase):
         self.assertEqual(record.ds_results_count, 2)
         self.assertEqual(record.filtered_out_count, record.ds_results_count)
 
+        stored = ProxyRequestLog.objects.get()
+        self.assertEqual(stored.outcome, ProxyRequestLog.Outcome.SCOPE_ERROR)
+        self.assertEqual(stored.filtered_out_count, 2)
+
     @patch("dn.proxy.views.requests.post")
     def test_request_log_on_introspection_omits_dossier_counts(self, mock_post):
         introspection_payload = {"data": {"__schema": {"types": [{"name": "Query"}]}}}
@@ -1275,6 +1296,11 @@ class GraphqlProxyViewTest(TestCase):
         self.assertFalse(hasattr(record, "ds_results_count"))
         self.assertFalse(hasattr(record, "filtered_out_count"))
 
+        stored = ProxyRequestLog.objects.get()
+        self.assertEqual(stored.root_field, "__introspection__")
+        self.assertIsNone(stored.dn_results_count)
+        self.assertIsNone(stored.filtered_out_count)
+
     def test_no_request_log_on_pre_ds_rejection(self):
         with self.assertLogs("dn.proxy.views", level="INFO") as cm:
             # assertLogs requires at least one record at the given level; emit
@@ -1286,6 +1312,35 @@ class GraphqlProxyViewTest(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self._request_log_records(cm.records), [])
+        self.assertFalse(ProxyRequestLog.objects.exists())
+
+    @patch("dn.proxy.views.requests.post")
+    def test_request_log_stored_without_operation_name(self, mock_post):
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "data": {"demarche": {"number": self.demarche.ds_number}}
+        }
+
+        response = self._post(
+            {
+                "query": "{ demarche { number } }",
+                "variables": {"demarcheNumber": self.demarche.ds_number},
+            }
+        )
+        _read_stream(response)
+
+        self.assertEqual(ProxyRequestLog.objects.get().operation_name, "")
+
+    @patch("dn.proxy.views.requests.post")
+    def test_no_request_log_stored_on_ds_error(self, mock_post):
+        import requests as req
+
+        mock_post.side_effect = req.exceptions.Timeout()
+
+        _read_stream(self._post(self._get_demarche_payload()))
+
+        self.assertFalse(ProxyRequestLog.objects.exists())
 
 
 @override_settings(DS_API_TOKEN="test-ds-token", DS_API_URL="https://ds.test/graphql")
