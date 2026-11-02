@@ -257,6 +257,9 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
     def process_result(self, result, request):
         response = super().process_result(result, request)
         self._notify_admins_of_import(result, request)
+        imported_ids = [r.object_id for r in result.rows if r.object_id]
+        if imported_ids:
+            self._associate_ds_profiles(request, imported_ids)
         return response
 
     def _notify_admins_of_import(self, result, request):
@@ -333,7 +336,11 @@ class CollegueAdmin(AllPermsForStaffUser, ImportMixin, UserAdmin, admin.ModelAdm
 
     @admin.action(description="🔃 Association des profils DN aux utilisateurs")
     def associate_ds_profile_to_users(self, request, queryset):
-        user_ids = list(queryset.values_list("id", flat=True))
+        self._associate_ds_profiles(
+            request, list(queryset.values_list("id", flat=True))
+        )
+
+    def _associate_ds_profiles(self, request, user_ids):
         before = dict(
             Collegue.objects.filter(pk__in=user_ids).values_list("pk", "ds_profile_id")
         )

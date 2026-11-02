@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from dn.sync.tests.factories import ProfileFactory
 from gsl.core.admin_alerts import notify_admins
-from gsl.core.models import Departement
+from gsl.core.models import Collegue, Departement
 from gsl.core.tests.factories import (
     CollegueFactory,
     DepartementFactory,
@@ -205,6 +205,55 @@ class TestCollegueAdminAlerts:
         assert "1 mis à jour" in recap[0].subject
         assert "new@ain.gouv.fr" in body
         assert "existing@ain.gouv.fr" in body
+
+    def test_import_users_associates_ds_profiles(
+        self, otp_verified_client, superuser, admin_alert_recipients
+    ):
+        region = RegionFactory(insee_code="84", name="Auvergne-Rhône-Alpes")
+        dept = DepartementFactory(insee_code="01", name="AIN", region=region)
+        PerimetreDepartementalFactory(
+            departement=dept, region=region, arrondissement=None
+        )
+        profile = ProfileFactory(ds_email="new@ain.gouv.fr")
+        csv_content = (
+            "email,departement_code,arrondissement_code,first_name,last_name\n"
+            "new@ain.gouv.fr,01,,Jean,Dupont\n"
+            "noprofile@ain.gouv.fr,01,,Marie,Durand\n"
+        )
+        client = otp_verified_client(superuser)
+        mail.outbox = []
+
+        upload = SimpleUploadedFile(
+            "users.csv", csv_content.encode("utf-8"), content_type="text/csv"
+        )
+        response = client.post(
+            reverse("admin:gsl_core_collegue_import"),
+            {"format": "0", "import_file": upload},
+        )
+        content = response.content.decode("utf-8")
+        confirm_data = {
+            "import_file_name": re.search(
+                r'name="import_file_name" value="([^"]+)"', content
+            ).group(1),
+            "format": "0",
+        }
+        original_file_name_match = re.search(
+            r'name="original_file_name" value="([^"]+)"', content
+        )
+        if original_file_name_match:
+            confirm_data["original_file_name"] = original_file_name_match.group(1)
+        response = client.post(
+            reverse("admin:gsl_core_collegue_process_import"), confirm_data
+        )
+        assert response.status_code == 302
+
+        new_user = Collegue.objects.get(email="new@ain.gouv.fr")
+        assert new_user.ds_profile_id == profile.pk
+        assert Collegue.objects.get(email="noprofile@ain.gouv.fr").ds_profile is None
+
+        recap = [m for m in mail.outbox if "Association DN groupée" in m.subject]
+        assert len(recap) == 1, [m.subject for m in mail.outbox]
+        assert "new@ain.gouv.fr" in recap[0].body
 
     def test_associate_ds_profile_bulk_action_sends_recap(
         self, otp_verified_client, superuser, admin_alert_recipients
