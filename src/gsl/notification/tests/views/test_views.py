@@ -110,6 +110,19 @@ def test_get_documents_with_correct_perimetre_and_without_arrete(
     assert response.templates[0].name == "gsl_notification/tab_notifications.html"
 
 
+def test_get_documents_without_treated_enveloppe_projet(
+    perimetre, correct_perimetre_client_with_user_logged
+):
+    enveloppe_projet = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.PROCESSING
+    )
+    url = reverse(
+        "notification:documents", kwargs={"projet_id": enveloppe_projet.projet_id}
+    )
+    response = correct_perimetre_client_with_user_logged.get(url)
+    assert response.status_code == 200
+
+
 def test_get_documents_renders_the_table_of_existing_documents(
     enveloppe_projet, correct_perimetre_client_with_user_logged
 ):
