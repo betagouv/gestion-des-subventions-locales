@@ -6,6 +6,7 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from pikepdf import Pdf
 
 from gsl.core.tests.factories import (
@@ -31,7 +32,11 @@ from gsl.projet.constants import (
     LETTRE_ET_ARRETE_SIGNES,
     ProjetStatus,
 )
-from gsl.projet.tests.factories import EnveloppeProjetFactory
+from gsl.projet.tests.factories import (
+    DetrProjetFactory,
+    DsilProjetFactory,
+    EnveloppeProjetFactory,
+)
 
 LETTRE_REFUS_SIGNEE = LettreRefusSignee.document_type
 
@@ -193,6 +198,44 @@ def test_analyze_requires_a_file(
     assert response.context["form"].errors["file"] == [
         "Sélectionnez un document à importer."
     ]
+
+
+def test_import_is_open_while_another_dotation_is_processing(
+    perimetre, correct_perimetre_client_with_user_logged
+):
+    detr = DetrProjetFactory(
+        projet__dossier_ds__perimetre=perimetre, status=ProjetStatus.REFUSED
+    )
+    DsilProjetFactory(projet=detr.projet, status=ProjetStatus.PROCESSING)
+    projet = detr.projet
+
+    response = correct_perimetre_client_with_user_logged.get(
+        _analyze_url(projet), headers=HTMX
+    )
+    assert response.status_code == 200
+
+    response = correct_perimetre_client_with_user_logged.post(
+        _attach_url(projet),
+        {"key": _parked_pdf(), "document": f"{LETTRE_REFUS_SIGNEE}-{detr.dotation}"},
+        headers=HTMX,
+    )
+    assert response.status_code == 200
+    assert LettreRefusSignee.objects.filter(enveloppe_projet=detr).exists()
+
+
+@pytest.mark.parametrize("url", (_analyze_url, _attach_url))
+def test_import_on_a_notified_projet_is_404(
+    enveloppe_projet, correct_perimetre_client_with_user_logged, url
+):
+    projet = enveloppe_projet.projet
+    projet.notified_at = timezone.now()
+    projet.save()
+
+    response = correct_perimetre_client_with_user_logged.post(
+        url(projet), {"file": _pdf()}, headers=HTMX
+    )
+
+    assert response.status_code == 404
 
 
 def test_analyze_out_of_perimetre_is_404(

@@ -94,17 +94,23 @@ class ProjetQuerySet(models.QuerySet):
         )
 
     def to_notify(self):
-        return self.annotate(
-            dotations_count=Count("enveloppeprojet"),
-            programmation_count=Count(
-                "enveloppeprojet",
-                filter=Q(enveloppeprojet__status__in=ProjetStatus.FINAL),
-            ),
-        ).filter(
-            dotations_count__gt=0,
-            dotations_count=F("programmation_count"),
-            notified_at__isnull=True,
+        return (
+            self.not_notified()
+            .annotate(
+                dotations_count=Count("enveloppeprojet"),
+                programmation_count=Count(
+                    "enveloppeprojet",
+                    filter=Q(enveloppeprojet__status__in=ProjetStatus.FINAL),
+                ),
+            )
+            .filter(
+                dotations_count__gt=0,
+                dotations_count=F("programmation_count"),
+            )
         )
+
+    def not_notified(self):
+        return self.filter(notified_at__isnull=True)
 
     def with_at_least_one_treated_dotation(self):
         return self.filter(
