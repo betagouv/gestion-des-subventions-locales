@@ -200,3 +200,31 @@ def test_simulation_detail_fixed_row_shows_montant_previsionnel(client, perimetr
     assert soup.select_one("#filter-montant_retenu") is None
     assert soup.select_one("#filter-montant_previsionnel") is not None
     assert _tag_with(soup, "Recherche « baz »") is not None
+
+
+def test_simulation_dismissing_last_tag_resets_saved_filters(client, perimetre):
+    """Dismissing the last tag must clear the filters saved on the simulation,
+    instead of landing on a filter-less URL that restores them."""
+    enveloppe = DetrEnveloppeFactory(perimetre=perimetre)
+    simulation = SimulationFactory(enveloppe=enveloppe)
+    url = reverse("simulation:simulation-detail", kwargs={"slug": simulation.slug})
+
+    # Empty values are sent by the form for every untouched field.
+    response = client.get(url, data={"search": "baz", "porteur": "", "page": "1"})
+    tag = _tag_with(_soup(response), "Recherche « baz »")
+    assert tag["href"] == "?reset_filters=1"
+
+    response = client.get(url + tag["href"], follow=True)
+    assert response.status_code == 200
+    assert _active_tags(_soup(response)) == []
+    simulation.refresh_from_db()
+    assert simulation.filters is None
+
+
+def test_dismissing_tag_drops_page_and_empty_values(client, perimetre):
+    response = client.get(
+        reverse("projet:list", kwargs={"campagne": default_campagne()}),
+        data={"search": "foo", "porteur": "", "order": "cout", "page": "1"},
+    )
+    tag = _tag_with(_soup(response), "Recherche « foo »")
+    assert tag["href"] == "?order=cout"
