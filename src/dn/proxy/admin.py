@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin, messages
 
-from dn.proxy.models import ProxyToken
+from dn.proxy.models import ProxyRequestLog, ProxyToken
 
 _MAX_EMAILS_IN_LABEL = 5
 
@@ -85,3 +85,26 @@ class ProxyTokenAdmin(admin.ModelAdmin):
                 request,
                 f"Clé API générée (à copier maintenant, elle ne sera plus affichée) : {plaintext}",
             )
+
+
+@admin.register(ProxyRequestLog)
+class ProxyRequestLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "proxy_token",
+        "operation_name",
+        "outcome",
+        "elapsed_ms",
+        "dn_results_count",
+        "filtered_out_count",
+    )
+    list_filter = ("outcome", "root_field", "proxy_token")
+    search_fields = ("request_id",)
+    date_hierarchy = "created_at"
+    list_select_related = ("proxy_token",)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

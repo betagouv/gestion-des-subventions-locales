@@ -64,3 +64,42 @@ class ProxyToken(BaseModel):
             self.key_hash = self.hash_key(plaintext)
             self._plaintext_key = plaintext
         super().save(*args, **kwargs)
+
+
+class ProxyRequestLog(models.Model):
+    """One row per GraphQL request forwarded to DN, read by Metabase."""
+
+    class Outcome(models.TextChoices):
+        OK = "ok", "Succès"
+        SCOPE_ERROR = "scope_error", "Hors périmètre"
+        VERBATIM_FORWARD = "verbatim_forward", "Erreur DN transmise"
+
+    created_at = models.DateTimeField("Date", auto_now_add=True, db_index=True)
+    request_id = models.CharField("ID de requête", max_length=32, unique=True)
+    proxy_token = models.ForeignKey(
+        ProxyToken,
+        verbose_name="Token proxy",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="request_logs",
+    )
+    demarche_number = models.IntegerField("Numéro de démarche")
+    operation_name = models.CharField("Opération", max_length=255, blank=True)
+    root_field = models.CharField("Champ racine", max_length=64)
+    outcome = models.CharField("Résultat", max_length=32, choices=Outcome.choices)
+    elapsed_ms = models.PositiveIntegerField("Durée DN (ms)")
+    dn_errors_count = models.PositiveIntegerField("Erreurs DN")
+    dn_results_count = models.PositiveIntegerField(
+        "Dossiers renvoyés par DN", null=True, blank=True
+    )
+    filtered_out_count = models.PositiveIntegerField(
+        "Dossiers filtrés", null=True, blank=True
+    )
+
+    class Meta:
+        verbose_name = "Requête proxy DN"
+        verbose_name_plural = "Requêtes proxy DN"
+        indexes = [models.Index(fields=["outcome", "created_at"])]
+
+    def __str__(self):
+        return self.request_id

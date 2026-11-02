@@ -14,7 +14,7 @@ from graphql.language.ast import FieldNode, OperationDefinitionNode
 from dn.proxy.exceptions import DNError, ProxyError
 from dn.proxy.filters import filter_response
 from dn.proxy.locks import acquire_token_lock, release_token_lock
-from dn.proxy.models import ProxyToken
+from dn.proxy.models import ProxyRequestLog, ProxyToken
 from dn.proxy.query_guard import validate_demarche_selections
 
 logger = logging.getLogger(__name__)
@@ -386,6 +386,18 @@ def _stream_ds_response(
                 extra["ds_results_count"] = original
                 extra["filtered_out_count"] = original - post
             logger.info("DS proxy: request", extra=extra)
+            ProxyRequestLog.objects.create(
+                request_id=request_id,
+                proxy_token=proxy_token,
+                demarche_number=extra["demarche_number"],
+                operation_name=operation_name or "",
+                root_field=root_field,
+                outcome=outcome,
+                elapsed_ms=elapsed_ms,
+                dn_errors_count=extra["ds_errors_count"],
+                dn_results_count=extra.get("ds_results_count"),
+                filtered_out_count=extra.get("filtered_out_count"),
+            )
 
         # If DS itself reported errors and returned no scopable data, forward
         # the upstream response verbatim so the caller can see the real error.
