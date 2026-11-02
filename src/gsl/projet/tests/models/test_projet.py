@@ -12,7 +12,7 @@ from gsl.notification.tests.factories import (
 )
 
 from ...constants import ProjetStatus
-from ...models import Projet
+from ...models import EnveloppeProjet, Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -321,6 +321,19 @@ def test_can_display_notification_tab_with_multiple_dotations(
         projet=projet, dotation=Dotation.DSIL, status=second_dotation_status
     )
     assert projet.can_display_notification_tab is expected_can_display_notification_tab
+
+
+def test_can_display_notification_tab_when_treated_enveloppe_projet_was_superseded():
+    """A superseded enveloppe projet keeps its final status: the projet has already
+    been treated, so the notification tab stays displayed."""
+    projet = ProjetFactory()
+    ancien = EnveloppeProjetFactory(
+        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
+    )
+    EnveloppeProjet.objects.supersede(ancien)
+
+    assert projet.dotation_not_treated == Dotation.DETR
+    assert projet.can_display_notification_tab is True
 
 
 def test_dotation_not_treated_without_dotations():

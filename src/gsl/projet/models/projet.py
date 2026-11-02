@@ -419,10 +419,6 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return all(dp.is_treated for dp in enveloppe_projets)
 
     @property
-    def has_treated_dotation(self) -> bool:
-        return any(dp.is_treated for dp in self.enveloppeprojet_set.all())
-
-    @property
     def has_accepted_dotation(self) -> bool:
         return any(
             dp.status == ProjetStatus.ACCEPTED for dp in self.enveloppeprojet_set.all()
@@ -430,7 +426,9 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def can_display_notification_tab(self) -> bool:
-        return self.has_treated_dotation
+        """Includes superseded (non courant) enveloppe projets, which keep their
+        final status as history."""
+        return EnveloppeProjet.all_objects.filter(projet=self).programmees().exists()
 
     @property
     def can_display_suivi_financier_tab(self) -> bool:

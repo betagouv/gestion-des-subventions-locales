@@ -38,13 +38,6 @@ from gsl.utils.csp import csp_update
 class NotificationDocumentsView(BaseProjetDetailView):
     template_name = "gsl_notification/tab_notifications.html"
 
-    def get_queryset(self):
-        return (
-            Projet.objects.active()
-            .for_user(self.request.user)
-            .with_at_least_one_treated_dotation()
-        )
-
     def get_context_data(self, **kwargs):
         return super().get_context_data(
             **{"generated_documents": self.object.generated_documents}
