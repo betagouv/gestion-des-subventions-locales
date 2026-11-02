@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div>
+            {{ form.non_field_errors }}
+            {% for field in form %}
+                <fieldset class="module aligned">
+                    <div class="form-row">
+                        {{ field.errors }}
+                        <div>
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <p class="help">{{ field.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+        <div class="submit-row">
+            <a href="{% url 'admin:gsl_chorus_suivifinancier_changelist' %}"
+               class="button cancel-link">Annuler</a>
+            <input type="submit" value="Importer le fichier" class="default">
+        </div>
+    </form>
+{% endblock content %}
