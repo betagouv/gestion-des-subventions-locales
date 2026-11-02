@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any
 
 from django import template
+from django.http import QueryDict
 from django.template.defaultfilters import floatformat
 from django.utils.safestring import mark_safe
 
@@ -260,17 +261,25 @@ def active_filter_tag(field):
 
 @register.simple_tag(takes_context=True)
 def remove_filter_qs(context, field):
-    """href that drops only this field's GET key(s) (incl. _min/_max suffixes)."""
+    """href that drops only this field's GET key(s) (incl. _min/_max suffixes).
+
+    The page and empty values are dropped too. When no param is left,
+    `reset_filters` is sent: an empty query string would either reload the
+    current URL or restore the filters saved on a simulation."""
     suffixes = getattr(field.field.widget, "suffixes", None)
     if suffixes:
         keys = [f"{field.name}_{suffix}" for suffix in suffixes]
     else:
         keys = [field.name]
-    qd = context["request"].GET.copy()
-    for key in keys:
-        qd.pop(key, None)
+    qd = QueryDict(mutable=True)
+    for key, values in context["request"].GET.lists():
+        if key in keys or key == "page":
+            continue
+        for value in values:
+            if value != "":
+                qd.appendlist(key, value)
     encoded = qd.urlencode()
-    return f"?{encoded}" if encoded else ""
+    return f"?{encoded}" if encoded else "?reset_filters=1"
 
 
 _DISPOSITIF_SHORT = {"dsil exceptionnelle": "DSIL EXC.", "fonds vert": "FV"}
