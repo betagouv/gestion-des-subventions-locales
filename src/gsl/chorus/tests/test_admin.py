@@ -12,6 +12,7 @@ from gsl.core.tests.factories import (
 
 from ..forms import IMPORT_PREFIX
 from ..models import SuiviFinancier
+from ..tasks import import_chorus_file_task
 from .test_extract_from_chorus import DETR_LINE, write_chorus_xlsx
 
 IMPORT_URL = reverse("admin:gsl_chorus_suivifinancier_import_chorus")
@@ -98,3 +99,17 @@ def test_non_staff_cannot_import(tmp_path):
     assert response.status_code == 302
     assert "login" in response.url
     assert not SuiviFinancier.objects.exists()
+
+
+@pytest.mark.django_db
+def test_task_returns_import_summary(tmp_path):
+    duplicate = dict(DETR_LINE)
+    no_montant = {**DETR_LINE, "ej": "2105000009", "montant": ""}
+    path = write_chorus_xlsx(
+        tmp_path / "chorus.xlsx", [DETR_LINE, duplicate, no_montant]
+    )
+    key = default_storage.save(f"{IMPORT_PREFIX}/test/chorus.xlsx", upload(path))
+
+    result = import_chorus_file_task.delay(key).get()
+
+    assert result == {"imported": 1, "matched": 0, "duplicate": 1, "skipped": 1}
