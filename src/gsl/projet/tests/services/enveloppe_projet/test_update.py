@@ -666,7 +666,7 @@ def test_update_back_to_instruction(perimetres, status_1, status_2):
     "refused_or_dismissed", (ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
 )
 @pytest.mark.django_db
-def test_update_back_to_instruction_with_one_accepted_and_one_dismissed(
+def test_update_back_to_instruction_with_one_accepted_and_one_refused_or_dismissed(
     perimetres,
     refused_or_dismissed,
 ):
@@ -681,8 +681,8 @@ def test_update_back_to_instruction_with_one_accepted_and_one_dismissed(
         dossier_ds__perimetre=arr_dijon,
     )
 
-    # Create one accepted and one dismissed enveloppe projet, both programmed
-    # before the passage en instruction.
+    # Create one accepted and one refused or dismissed enveloppe projet, both
+    # programmed before the passage en instruction.
     detr_dp = EnveloppeProjetFactory(
         projet=projet,
         dotation=Dotation.DETR,
@@ -702,8 +702,7 @@ def test_update_back_to_instruction_with_one_accepted_and_one_dismissed(
     assert detr_dp.status == ProjetStatus.PROCESSING
 
     dsil_dp = courant(dsil_dp)
-    # The dismissed one should remain dismissed (not updated)
-    assert dsil_dp.status == refused_or_dismissed
+    assert dsil_dp.status == ProjetStatus.PROCESSING
 
 
 @pytest.mark.parametrize(
@@ -807,12 +806,12 @@ def test_update_back_to_instruction_with_one_accepted_and_programmation_after_da
 
     # --
 
-    detr_dp.refresh_from_db()
+    detr_dp = courant(detr_dp)
     assert detr_dp.status == ProjetStatus.ACCEPTED, (
         "The accepted enveloppe projet should remain accepted because it was programmed after the date of passage en instruction"
     )
-    dsil_dp.refresh_from_db()
-    assert dsil_dp.status == second_status
+    dsil_dp = courant(dsil_dp)
+    assert dsil_dp.status == ProjetStatus.PROCESSING
 
 
 # -- assiette history --

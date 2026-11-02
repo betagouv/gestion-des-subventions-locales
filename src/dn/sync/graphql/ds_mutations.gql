@@ -18,6 +18,7 @@ mutation dossierRepasserEnInstruction(
     dossier {
       id
       dateDerniereModification
+      datePassageEnInstruction
       state
       traitements {
         id
