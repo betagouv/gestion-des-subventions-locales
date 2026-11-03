@@ -552,6 +552,22 @@ def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
     ]
 
 
+def test_documents_leave_out_the_superseded_enveloppe_projets():
+    ancien = EnveloppeProjetFactory(
+        dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
+    )
+    ArreteFactory(enveloppe_projet=ancien)
+    LettreEtArreteSignesFactory(enveloppe_projet=ancien)
+    # Back in processing: the former one keeps its documents as history.
+    nouveau = ancien.set_back_status_to_processing_without_ds()
+    arrete = ArreteFactory(enveloppe_projet=nouveau)
+    lettre_et_arrete_signes = LettreEtArreteSignesFactory(enveloppe_projet=nouveau)
+
+    projet = Projet.objects.get(pk=ancien.projet_id)
+    assert projet.generated_documents == [arrete]
+    assert projet.imported_documents == [lettre_et_arrete_signes]
+
+
 @pytest.mark.django_db
 def test_imported_documents_includes_signed_refusal_letter():
     projet = ProjetFactory()
