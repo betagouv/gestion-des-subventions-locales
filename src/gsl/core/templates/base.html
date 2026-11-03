@@ -50,6 +50,7 @@
                     "tiptap": "{% static 'vendor/tiptap.js' %}",
                     "tiptapEditor": "{% static 'ui/controllers/tiptapEditor.js' %}",
                     "modal": "{% static 'ui/controllers/modal.js' %}",
+                    "autocomplete": "{% static 'ui/controllers/autocomplete.js' %}",
                     "documentImport": "{% static 'ui/controllers/document_import_controller.js' %}",
                     "fileDropzone": "{% static 'ui/controllers/file_dropzone_controller.js' %}",
                     "doubleDotation": "{% static 'js/controllers/doubleDotation.js' %}",
@@ -130,6 +131,7 @@
         <script src="{% static "js/sticky_table_headers.js" %}" defer></script>
         <script type="module" nonce="{{ csp_nonce }}">
             import { Application } from "stimulus"
+            import { Autocomplete } from "autocomplete"
             import { AutoDismiss } from "autoDismiss"
             import { BindAmountFields } from "bindAmountFields"
             import { CancelPollOnModalClose } from "cancelPollOnModalClose"
@@ -179,6 +181,7 @@
             Stimulus.register("auto-dismiss", AutoDismiss)
             Stimulus.register("htmx-error", HtmxError)
             Stimulus.register("collectivite-menu", CollectiviteMenu)
+            Stimulus.register("autocomplete", Autocomplete)
         </script>
 
         {% block extra_js %}

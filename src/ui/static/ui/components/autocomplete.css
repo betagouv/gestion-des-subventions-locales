@@ -1,0 +1,73 @@
+/* Wins over DSFR's `.fr-select { display: block }`, which defeats `hidden`. */
+.gsl-autocomplete__select {
+  display: none;
+}
+
+.gsl-autocomplete {
+  position: relative;
+}
+
+/* Room for the clear button, left of the select chevron. */
+.gsl-autocomplete .fr-select {
+  padding-right: 4.5rem;
+}
+
+.gsl-autocomplete__clear {
+  position: absolute;
+  top: 50%;
+  right: 2.5rem;
+  transform: translateY(-50%);
+}
+
+/* Wins over DSFR's `.fr-btn { display: inline-flex }`, which defeats `hidden`. */
+.gsl-autocomplete__clear[hidden] {
+  display: none;
+}
+
+.gsl-autocomplete__listbox {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 1000;
+  max-height: 20rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  background-color: var(--background-default-grey);
+  box-shadow: var(--raised-shadow);
+}
+
+.gsl-autocomplete__listbox ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gsl-autocomplete__listbox li {
+  padding-bottom: 0;
+}
+
+.gsl-autocomplete__group-label {
+  display: block;
+  padding: 0.75rem 1rem 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-mention-grey);
+}
+
+.gsl-autocomplete__listbox .gsl-autocomplete__option {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.gsl-autocomplete__option:hover,
+.gsl-autocomplete__option[aria-selected="true"] {
+  background-color: var(--background-action-low-blue-france);
+}
+
+.gsl-autocomplete__listbox .gsl-autocomplete__empty {
+  padding: 0.5rem 1rem;
+  color: var(--text-mention-grey);
+}

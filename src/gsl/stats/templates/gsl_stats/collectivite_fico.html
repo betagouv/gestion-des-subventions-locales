@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_css %}
     {{ block.super }}
+    <link rel="stylesheet" href="{% static 'ui/components/autocomplete.css' %}">
     {% if fico_url %}<link rel="stylesheet" href="{{ fico_url }}/assets/fico.css">{% endif %}
 {% endblock extra_css %}
 
@@ -14,10 +16,11 @@
             <form method="get" class="fr-col-12 fr-col-md-8">
                 <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
                     <div class="fr-col fr-select-group fr-mb-0">
+                        <label class="fr-label" for="siren">Collectivité</label>
                         <select class="fr-select"
                                 id="siren"
                                 name="siren"
-                                {% if perimetre %}disabled data-controller="collectivite-menu" data-collectivite-menu-query-value="{{ geo_api_query }}" data-collectivite-menu-selected-value="{{ siren|default:'' }}"{% endif %}
+                                {% if perimetre %}disabled data-controller="collectivite-menu autocomplete" data-collectivite-menu-query-value="{{ geo_api_query }}" data-collectivite-menu-selected-value="{{ siren|default:'' }}"{% endif %}
                                 {% if arrondissement_communes %}data-collectivite-menu-communes-value="{{ arrondissement_communes }}"{% endif %}>
                             <option value="" disabled selected>
                                 {% if perimetre %}
