@@ -95,7 +95,7 @@ def test_a_dossier_back_in_instruction_keeps_the_date_on_the_superseded_one(
     assert courant.notified_at is None
 
 
-def test_a_dossier_in_instruction_unnotifies_the_most_recent_campagne_but_not_the_closed(
+def test_a_dossier_in_instruction_does_not_notify_the_one_programmed_in_turgot(
     perimetre,
 ):
     projet = _projet(perimetre, ds_state=Dossier.State.EN_INSTRUCTION)
@@ -105,11 +105,11 @@ def test_a_dossier_in_instruction_unnotifies_the_most_recent_campagne_but_not_th
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
         notified_at=DATE_NOTIFICATION_PRECEDENTE,
     )
+    # Programmed in Turgot, but not notified yet on DN.
     recent = EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
-        notified_at=DATE_NOTIFICATION_PRECEDENTE,
     )
 
     synchroniser(projet)
@@ -117,6 +117,7 @@ def test_a_dossier_in_instruction_unnotifies_the_most_recent_campagne_but_not_th
     closed.refresh_from_db()
     recent.refresh_from_db()
     assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
+    assert recent.status == ProjetStatus.REFUSED
     assert recent.notified_at is None
 
 
@@ -133,6 +134,9 @@ def test_a_retour_en_instruction_supersedes_the_most_recent_campagne_but_not_the
         projet=projet,
         status=ProjetStatus.REFUSED,
         enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        # Programmed before the retour en instruction too: only its campagne
+        # protects it.
+        date_programmation=DATE_NOTIFICATION_PRECEDENTE,
         notified_at=DATE_NOTIFICATION_PRECEDENTE,
     )
     recent = EnveloppeProjetFactory(
@@ -165,3 +169,103 @@ def test_a_retour_en_instruction_supersedes_the_most_recent_campagne_but_not_the
     )
     assert nouveau.status == ProjetStatus.PROCESSING
     assert nouveau.notified_at is None
+
+
+def test_a_retour_en_instruction_leaves_the_closed_one_of_the_same_dotation(
+    perimetre,
+):
+    projet = _projet(
+        perimetre,
+        ds_state=Dossier.State.EN_INSTRUCTION,
+        ds_date_traitement=DATE_NOTIFICATION_PRECEDENTE,
+        ds_date_passage_en_instruction=DATE_TRAITEMENT,
+    )
+    # Created last, the closed one is the last read: it must not win the dotation.
+    recent = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+        date_programmation=DATE_NOTIFICATION_PRECEDENTE,
+        notified_at=DATE_NOTIFICATION_PRECEDENTE,
+    )
+    closed = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        date_programmation=DATE_NOTIFICATION_PRECEDENTE,
+        notified_at=DATE_NOTIFICATION_PRECEDENTE,
+    )
+
+    synchroniser(projet)
+
+    closed.refresh_from_db()
+    assert closed.is_courant is True
+    assert closed.status == ProjetStatus.REFUSED
+    assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
+
+    recent.refresh_from_db()
+    assert recent.is_courant is False
+    assert recent.notified_at == DATE_NOTIFICATION_PRECEDENTE
+    nouveau = EnveloppeProjet.objects.get(enveloppe__annee=2027, projet=projet)
+    assert nouveau.status == ProjetStatus.PROCESSING
+
+
+def test_a_refused_dossier_leaves_the_closed_one_of_the_same_dotation(perimetre):
+    # Treated during the 2027 campagne, so programmed on its enveloppe.
+    date_traitement = datetime(2027, 3, 15, tzinfo=UTC)
+    projet = _projet(
+        perimetre, ds_state=Dossier.State.REFUSE, ds_date_traitement=date_traitement
+    )
+    # Created last, the closed one is the last read: it must not win the dotation.
+    recent = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    closed = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        notified_at=DATE_NOTIFICATION_PRECEDENTE,
+    )
+
+    synchroniser(projet)
+
+    closed.refresh_from_db()
+    assert closed.status == ProjetStatus.ACCEPTED
+    assert closed.notified_at == DATE_NOTIFICATION_PRECEDENTE
+
+    recent.refresh_from_db()
+    assert recent.status == ProjetStatus.REFUSED
+    assert recent.notified_at == date_traitement
+
+
+def test_the_dn_annotations_leave_the_closed_one_of_the_same_dotation(perimetre):
+    projet = _projet(
+        perimetre,
+        ds_state=Dossier.State.EN_INSTRUCTION,
+        annotations_assiette_detr=50_000,
+        annotations_ej_detr="EJ-2027",
+    )
+    closed = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        assiette=10_000,
+        ej="EJ-2026",
+    )
+    recent = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+
+    synchroniser(projet)
+
+    closed.refresh_from_db()
+    assert closed.assiette == 10_000
+    assert closed.ej == "EJ-2026"
+
+    recent.refresh_from_db()
+    assert recent.assiette == 50_000
+    assert recent.ej == "EJ-2027"
