@@ -12,6 +12,7 @@ from gsl.notification.models import DocumentImportJob, UploadedDocument
 from gsl.notification.tests.factories import (
     LettreEtArreteSignesFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 
@@ -120,6 +121,55 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
     )
     assert document.file.read() == b"dummy content"
     assert not default_storage.exists(key)
+
+
+@pytest.mark.django_db
+def test_attach_form_only_offers_documents_of_the_most_recent_campagne():
+    projet = ProjetFactory()
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre, annee=2027),
+    )
+
+    form = ManualDocumentAttachForm(projet=projet)
+
+    assert dict(form.fields["document"].choices) == {
+        f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}-DSIL": "Lettre et arrêté signés DSIL",
+        f"{UploadedDocument.Type.ANNEXE}-DSIL": "Annexe DSIL",
+    }
+
+
+@pytest.mark.django_db
+def test_attach_form_saves_the_document_on_the_most_recent_campagne():
+    projet = ProjetFactory()
+    recent = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2027),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2026),
+    )
+
+    form = ManualDocumentAttachForm(
+        projet=projet,
+        data={
+            "document": f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}-DETR",
+            "key": _parked_pdf(),
+        },
+    )
+    assert form.is_valid(), form.errors
+    document = form.save(CollegueFactory())
+
+    assert document.enveloppe_projet == recent
 
 
 @pytest.mark.django_db

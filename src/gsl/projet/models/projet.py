@@ -470,15 +470,19 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def generated_documents(self):
+        """Of its enveloppe projets of the most recent campagne only."""
         documents = GeneratedDocument.objects.filter(
-            enveloppe_projet__projet=self
+            enveloppe_projet__projet=self,
+            enveloppe_projet__enveloppe__annee=self.most_recent_campagne,
         ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
         return sorted(documents, key=_document_display_order)
 
     @property
     def imported_documents(self):
+        """Of its enveloppe projets of the most recent campagne only."""
         documents = UploadedDocument.objects.filter(
-            enveloppe_projet__projet=self
+            enveloppe_projet__projet=self,
+            enveloppe_projet__enveloppe__annee=self.most_recent_campagne,
         ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
         return sorted(documents, key=_document_display_order)
 
