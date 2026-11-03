@@ -73,6 +73,8 @@ def enveloppe_projet():
         projet__comment_1="<p>Commentaire <strong>important</strong></p>",
         montant=2_000.50,
         assiette=20_000,
+        ej="2105006797",
+        enveloppe__annee=2026,
     )
 
 
@@ -100,6 +102,8 @@ def enveloppe_projet():
             "1 rue de la Paix<br/>75001 Paris",
         ),
         ("commentaire-1", "Commentaire 1", "Commentaire important"),
+        ("numero-ej", "Numéro d'engagement juridique (EJ)", "2105006797"),
+        ("campagne", "Campagne", "2026"),
         (
             "montant-subvention-lettres",
             "Montant accordé (toutes lettres)",
