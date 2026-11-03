@@ -356,6 +356,10 @@ class EnveloppeProjet(BaseModel):
         return self.enveloppe.dotation
 
     @property
+    def annee(self) -> Dotation:
+        return self.enveloppe.annee
+
+    @property
     def dossier_ds(self):
         return self.projet.dossier_ds
 

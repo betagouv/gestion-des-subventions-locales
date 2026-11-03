@@ -384,9 +384,9 @@
                             ({{ dossier.taux_demande|percent:3 }} du coût total)
                         </p>
                     </div>
-                    {% for dp in enveloppe_projets %}
-                        {% if dp.status == "processing" and not projet.has_been_notified %}
-                            {% render_fragment "gsl_projet:assiette_dotation_form" dp %}
+                    {% for ep in enveloppe_projets %}
+                        {% if ep.status == "processing" and not projet.has_been_notified %}
+                            {% render_fragment "gsl_projet:assiette_dotation_form" ep %}
                         {% else %}
                             {% include "includes/projet_detail/_enveloppe_projet_readonly_block.html" %}
                         {% endif %}
