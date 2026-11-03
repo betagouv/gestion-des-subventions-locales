@@ -55,6 +55,7 @@ from .forms import (
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
+    ProjetReporterForm,
     ProjetRevertToProcessingForm,
 )
 from .models import EnveloppeProjet, Projet, ProjetNote
@@ -316,6 +317,34 @@ class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
             messages.info(
                 self.request,
                 "Le projet est bien repassé en traitement sur Démarche Numérique.",
+            )
+        except DsServiceException as e:
+            messages.error(self.request, str(e))
+        return HttpResponseClientRedirect(
+            self.request.headers.get("HX-Current-URL", self.request.path)
+        )
+
+
+@method_decorator(htmx_only, name="dispatch")
+class ProjetReporterView(OpenHtmxModalMixin, UpdateView):
+    model = Projet
+    form_class = ProjetReporterForm
+    template_name = "htmx/reporter_modal.html"
+    pk_url_kwarg = "projet_id"
+
+    def get_queryset(self):
+        return Projet.objects.for_user(self.request.user).can_be_reported()
+
+    def get_modal_id(self):
+        return f"reporter-modal-{self.object.pk}"
+
+    def form_valid(self, form):
+        campagne_suivante = self.object.most_recent_campagne + 1
+        try:
+            form.save(user=self.request.user)
+            messages.info(
+                self.request,
+                f"Le projet a été reporté sur la campagne {campagne_suivante}.",
             )
         except DsServiceException as e:
             messages.error(self.request, str(e))

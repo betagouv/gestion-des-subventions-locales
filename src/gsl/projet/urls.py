@@ -69,6 +69,11 @@ urlpatterns = [
         views.ProjetRevertToProcessingView.as_view(),
         name="revert-to-processing",
     ),
+    path(
+        "voir/<int:projet_id>/reporter/",
+        views.ProjetReporterView.as_view(),
+        name="reporter",
+    ),
     path("liste/<int:campagne>", views.ProjetListView.as_view(), name="list"),
     path(
         "liste/annotations-manquantes",
