@@ -16,7 +16,11 @@ class EnveloppeProjetService:
     @classmethod
     @transaction.atomic
     def create_or_update_enveloppe_projet_from_projet(cls, projet: Projet) -> None:
-        existing = {ep.dotation: ep for ep in projet.enveloppeprojet_set.all()}
+        # The closed campagnes are left as they were: DN only drives the most recent.
+        existing = {
+            ep.dotation: ep
+            for ep in projet.enveloppeprojet_set.in_most_recent_campagne()
+        }
         is_initialisation = not existing
         dotations = cls._expected_dotations(projet, set(existing))
 
@@ -53,7 +57,9 @@ class EnveloppeProjetService:
 
         # We changed the courant EnveloppeProjets, make sure to fetch the latest
         # (without using the cached enveloppeprojet_set)
-        for enveloppe_projet in EnveloppeProjet.objects.filter(projet=projet):
+        for enveloppe_projet in EnveloppeProjet.objects.filter(
+            projet=projet
+        ).in_most_recent_campagne():
             enveloppe_projet.update_assiette_from_dn()
             enveloppe_projet.update_ej_from_dn()
             SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
@@ -204,20 +210,20 @@ class EnveloppeProjetService:
 
     @classmethod
     def _update_notified_at(cls, projet: Projet) -> None:
-        """Mirrors the DN treatment on the programmed enveloppe projets of the most recent campagne: the
-        closed ones keep the date of their own campagne."""
+        """Notifies the programmed enveloppe projets of the most recent campagne at the
+        DN treatment date: the closed ones keep the date of their own campagne."""
         dossier = projet.dossier_ds
+        if not dossier.is_treated:
+            return
+
         enveloppe_projets = (
             EnveloppeProjet.objects.filter(projet=projet)
             .in_most_recent_campagne()
             .programmees()
         )
-        if dossier.is_treated:
-            enveloppe_projets.filter(notified_at__isnull=True).update(
-                notified_at=dossier.ds_date_traitement
-            )
-        else:
-            enveloppe_projets.update(notified_at=None)
+        enveloppe_projets.filter(notified_at__isnull=True).update(
+            notified_at=dossier.ds_date_traitement
+        )
 
     ## -------------------------- Transitions --------------------------
 
