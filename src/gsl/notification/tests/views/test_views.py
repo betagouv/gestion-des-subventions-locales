@@ -289,6 +289,41 @@ def test_post_documents_after_notification_returns_404(
     ).exists()
 
 
+@pytest.mark.parametrize(
+    "recent_status, expected_status_code",
+    ((ProjetStatus.PROCESSING, 404), (ProjetStatus.ACCEPTED, 200)),
+)
+def test_post_documents_needs_a_treated_dotation_in_the_most_recent_campagne(
+    recent_status, expected_status_code
+):
+    perimetre = PerimetreDepartementalFactory()
+    closed = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=closed.projet,
+        status=recent_status,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    client = ClientWithLoggedUserFactory(CollegueFactory(perimetre=perimetre))
+    url = reverse(
+        "fragment:gsl_notification:generate_documents", kwargs={"pk": closed.projet_id}
+    )
+
+    response = client.post(
+        url,
+        {
+            f"skip_arrete_{Dotation.DSIL}": "on",
+            f"skip_lettre_{Dotation.DSIL}": "on",
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == expected_status_code
+
+
 def test_post_documents_invalid_rerenders_block_with_errors(
     accepted_detr_enveloppe_projet,
     perimetre,
