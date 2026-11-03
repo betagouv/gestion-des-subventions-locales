@@ -109,7 +109,7 @@ class SimulationTableCellEditMixin(UpdateView):
             SimulationProjet.objects.active()
             .filter(
                 simulation=self.object.simulation,
-                enveloppe_projet__projet__notified_at__isnull=True,
+                enveloppe_projet__notified_at__isnull=True,
             )
             .values_list("id", flat=True)
         )
@@ -271,7 +271,7 @@ class SimulationProjetStatusUpdateView(OpenHtmxModalMixin, UpdateView):
         return (
             SimulationProjet.objects.active()
             .in_user_perimeter(self.request.user)
-            .filter(enveloppe_projet__projet__notified_at__isnull=True)
+            .filter(enveloppe_projet__notified_at__isnull=True)
         )
 
     def get_form_kwargs(self):
@@ -501,7 +501,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
                 )
             )
 
-        if any(sp.enveloppe_projet.projet.has_been_notified for sp in all_projets):
+        if any(sp.enveloppe_projet.is_notified for sp in all_projets):
             raise Http404(
                 user_message=(
                     "Un ou plusieurs des projets sélectionnés a déjà été notifié "
@@ -731,7 +731,7 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
             SimulationProjet.objects.active()
             .in_user_perimeter(self.request.user)
             # On exclut les simulations-projet liés à une programmation-projet déjà notifiée.
-            .exclude(enveloppe_projet__projet__notified_at__isnull=False)
+            .exclude(enveloppe_projet__notified_at__isnull=False)
             .select_related(
                 "simulation",
                 "simulation__enveloppe",

@@ -107,4 +107,4 @@ class AssietteDotationFragment(EnveloppeProjetFormFragment):
 
     @classmethod
     def get_queryset(cls, request):
-        return super().get_queryset(request).filter(projet__notified_at__isnull=True)
+        return super().get_queryset(request).filter(notified_at__isnull=True)

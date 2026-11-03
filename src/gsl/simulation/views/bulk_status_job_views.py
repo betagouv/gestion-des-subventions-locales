@@ -138,7 +138,7 @@ class BulkStatusJobProgressView(DetailView):
         context["selectable_ids_list"] = [
             sp.id
             for sp in simulation_projets_to_refresh
-            if not sp.enveloppe_projet.projet.has_been_notified
+            if not sp.enveloppe_projet.is_notified
         ]
         context["columns"] = SIMULATION_TABLE_COLUMNS
         context["dotations"] = Dotation.values

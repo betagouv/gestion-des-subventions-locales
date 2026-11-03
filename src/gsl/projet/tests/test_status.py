@@ -1,8 +1,9 @@
 import pytest
+from django.utils import timezone
 
 from dn.sync.models import Dotation
 from gsl.core.campagne import get_campagne
-from gsl.programmation.tests.factories import DetrEnveloppeFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ..constants import ProjetStatus
 from ..models import EnveloppeProjet, Projet
@@ -144,3 +145,100 @@ def test_status_for_only_considers_the_campagne(
         Projet.objects.annotate_status(campagne).get(pk=projet.pk)._status
         == expected_status
     )
+
+
+# Most recent campagne ================================================================
+
+
+def test_enveloppe_projets_of_an_older_campagne_are_left_out_notified_or_not():
+    projet = ProjetFactory()
+    perimetre = projet.dossier_ds.perimetre
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        notified_at=timezone.now(),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    suivant = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+
+    assert list(
+        EnveloppeProjet.objects.filter(projet=projet).in_most_recent_campagne()
+    ) == [suivant]
+    assert projet.enveloppe_projets_in_most_recent_campagne == [suivant]
+
+
+def test_a_notified_enveloppe_projet_of_the_last_campagne_is_in_most_recent_campagne():
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
+    )
+
+    assert list(EnveloppeProjet.objects.in_most_recent_campagne()) == [enveloppe_projet]
+    assert enveloppe_projet.projet.enveloppe_projets_in_most_recent_campagne == [
+        enveloppe_projet
+    ]
+
+
+def test_a_projet_without_enveloppe_projet_has_none_in_most_recent_campagne():
+    projet = ProjetFactory()
+
+    assert projet.enveloppe_projets_in_most_recent_campagne == []
+
+
+def test_a_non_courant_enveloppe_projet_is_not_in_most_recent_campagne():
+    courant = EnveloppeProjetFactory(status=ProjetStatus.PROCESSING)
+    EnveloppeProjetFactory(
+        projet=courant.projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=courant.enveloppe,
+        notified_at=timezone.now(),
+        is_courant=False,
+    )
+
+    assert courant.projet.enveloppe_projets_in_most_recent_campagne == [courant]
+    assert list(
+        EnveloppeProjet.objects.filter(projet=courant.projet).in_most_recent_campagne()
+    ) == [courant]
+
+
+def test_a_non_courant_enveloppe_projet_on_a_later_campagne_does_not_close_it():
+    projet = ProjetFactory()
+    perimetre = projet.dossier_ds.perimetre
+    notifie = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+        notified_at=timezone.now(),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+        notified_at=timezone.now(),
+        is_courant=False,
+    )
+
+    assert projet.enveloppe_projets_in_most_recent_campagne == [notifie]
+    assert list(
+        EnveloppeProjet.objects.filter(projet=projet).in_most_recent_campagne()
+    ) == [notifie]
+
+
+def test_enveloppe_projets_in_most_recent_campagne_reads_the_prefetch(
+    django_assert_num_queries,
+):
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
+    )
+    projet = Projet.objects.get(pk=enveloppe_projet.projet_id)
+
+    with django_assert_num_queries(0):
+        assert projet.enveloppe_projets_in_most_recent_campagne == [enveloppe_projet]

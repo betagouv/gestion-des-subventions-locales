@@ -22,7 +22,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        campagne = self.instance.campagne_ouverte
+        campagne = self.instance.most_recent_campagne
         if self.instance.status_for(campagne) != ProjetStatus.ACCEPTED:
             self.fields["message"].required = True
 
@@ -30,7 +30,7 @@ class NotificationMessageForm(DsfrBaseForm, forms.ModelForm):
         cleaned_data = super().clean()
         if (
             self.instance.enveloppeprojet_set.for_campagne(
-                self.instance.campagne_ouverte
+                self.instance.most_recent_campagne
             )
             .without_signed_document()
             .exists()
