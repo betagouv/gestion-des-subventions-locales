@@ -185,6 +185,47 @@ def test_get_documents_only_shows_the_most_recent_campagne(projet_on_two_campagn
     assert f'name="skip_arrete_{closed.dotation}"' not in content
 
 
+def test_get_documents_without_programmed_dotation_in_the_most_recent_campagne():
+    perimetre = PerimetreDepartementalFactory()
+    closed = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=closed.projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    client = ClientWithLoggedUserFactory(CollegueFactory(perimetre=perimetre))
+
+    response = client.get(
+        reverse("notification:documents", kwargs={"projet_id": closed.projet_id})
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Aucune dotation n’est programmée sur la campagne 2027" in content
+    assert 'name="hide_qr_code"' not in content
+    assert 'aria-controls="upload-document-modal"' not in content
+
+
+def test_get_documents_with_programmed_dotation_in_the_most_recent_campagne(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    response = correct_perimetre_client_with_user_logged.get(
+        reverse(
+            "notification:documents", kwargs={"projet_id": enveloppe_projet.projet_id}
+        )
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Aucune dotation n’est programmée" not in content
+    assert 'name="hide_qr_code"' in content
+    assert 'aria-controls="upload-document-modal"' in content
+
+
 def test_get_documents_without_back_param_uses_projet_list(
     enveloppe_projet, correct_perimetre_client_with_user_logged
 ):

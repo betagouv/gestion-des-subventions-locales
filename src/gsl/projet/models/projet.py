@@ -305,6 +305,13 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         ]
 
     @property
+    def has_programmed_dotation_in_most_recent_campagne(self) -> bool:
+        """Python side twin of `ProjetQuerySet.with_at_least_one_treated_dotation`."""
+        return any(
+            ep.is_programmee for ep in self.enveloppe_projets_in_most_recent_campagne
+        )
+
+    @property
     def campagne(self) -> int | None:
         """The campagne of its enveloppe projets, none if they span several."""
         annees = {ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()}

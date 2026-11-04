@@ -1,68 +1,74 @@
 {% load ui_tags %}
 <div id="generate-documents-block"
      {% if oob %}hx-swap-oob="true"{% endif %}>
-    <form method="post"
-          data-controller="form-utils"
-          data-action="form-utils#disableButtons"
-          hx-post="{% url 'fragment:gsl_notification:generate_documents' projet.pk %}"
-          hx-target="#generate-documents-block"
-          hx-swap="outerHTML">
-        {% csrf_token %}
+    {% if not projet.has_programmed_dotation_in_most_recent_campagne %}
+        <p class="fr-text-default--info">
+            Aucune dotation n’est programmée sur la campagne {{ projet.most_recent_campagne }}&nbsp;: il n’y a pas de document à générer.
+        </p>
+    {% else %}
+        <form method="post"
+              data-controller="form-utils"
+              data-action="form-utils#disableButtons"
+              hx-post="{% url 'fragment:gsl_notification:generate_documents' projet.pk %}"
+              hx-target="#generate-documents-block"
+              hx-swap="outerHTML">
+            {% csrf_token %}
 
-        {% ui_form_errors form=form %}
+            {% ui_form_errors form=form %}
 
-        <div class="fr-grid-row fr-grid-row--gutters">
-            {% for dotation, dotation_data in form.dotation_fields.items %}
-                <div class="fr-col-12 fr-col-md-6">
-                    <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
-                        <h4 class="fr-callout__title">{{ dotation }}</h4>
-                        {% ui_status_badge type=dotation_data.enveloppe_projet.status dotation=dotation %}
-                        {% ui_status_badge type=dotation_data.enveloppe_projet.notification_status %}
+            <div class="fr-grid-row fr-grid-row--gutters">
+                {% for dotation, dotation_data in form.dotation_fields.items %}
+                    <div class="fr-col-12 fr-col-md-6">
+                        <div class="fr-callout fr-background-alt--blue-france callout-without-left-border fr-p-4w fr-mb-3w">
+                            <h4 class="fr-callout__title">{{ dotation }}</h4>
+                            {% ui_status_badge type=dotation_data.enveloppe_projet.status dotation=dotation %}
+                            {% ui_status_badge type=dotation_data.enveloppe_projet.notification_status %}
 
-                        {% for modele_type, fields in dotation_data.fields.items %}
-                            <div class="fr-callout__text fr-mt-4w"
-                                 data-controller="skip-document-toggle">
-                                {% if fields.has_modele %}
-                                    {{ fields.modele.as_field_group }}
-                                {% else %}
-                                    <p class="fr-text-default--warning fr-mb-1w">Aucun {{ fields.modele_class.verbose_name|lower }} disponible.</p>
-                                    <p class="fr-mb-2w">
-                                        <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
-                                           class="fr-link fr-icon-add-line fr-link--icon-left">
-                                            Créer un {{ fields.modele_class.verbose_name|lower }}
-                                        </a>
-                                    </p>
-                                {% endif %}
-                                {{ fields.skip.as_field_group }}
-                            </div>
-                        {% endfor %}
+                            {% for modele_type, fields in dotation_data.fields.items %}
+                                <div class="fr-callout__text fr-mt-4w"
+                                     data-controller="skip-document-toggle">
+                                    {% if fields.has_modele %}
+                                        {{ fields.modele.as_field_group }}
+                                    {% else %}
+                                        <p class="fr-text-default--warning fr-mb-1w">Aucun {{ fields.modele_class.verbose_name|lower }} disponible.</p>
+                                        <p class="fr-mb-2w">
+                                            <a href="{% url 'gsl_notification:modele-creer-choix-du-type' dotation %}"
+                                               class="fr-link fr-icon-add-line fr-link--icon-left">
+                                                Créer un {{ fields.modele_class.verbose_name|lower }}
+                                            </a>
+                                        </p>
+                                    {% endif %}
+                                    {{ fields.skip.as_field_group }}
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-            {% endfor %}
-        </div>
-
-        {{ form.hide_qr_code.as_field_group }}
-
-        {% if projet.has_been_notified %}
-            <div class="fr-mt-3w">
-                {% comment %}Nécessaire pour qu'à la navigation clavier, on puisse être focus sur le boutton disabled et donc qu'on puisse lire le tooltip{% endcomment %}
-                <span tabindex="0" aria-describedby="tooltip-generate-documents-disabled">
-                    <button type="submit"
-                            class="fr-btn fr-icon-file-text-line fr-btn--icon-left"
-                            disabled>
-                        Générer les documents
-                    </button>
-                </span>
+                {% endfor %}
             </div>
-            <span class="fr-tooltip fr-placement"
-                  id="tooltip-generate-documents-disabled"
-                  role="tooltip"
-                  aria-hidden="true">Le projet a déjà été notifié, vous ne pouvez plus générer de documents</span>
-        {% else %}
-            <button type="submit"
-                    class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left">
-                Générer les documents
-            </button>
-        {% endif %}
-    </form>
+
+            {{ form.hide_qr_code.as_field_group }}
+
+            {% if projet.has_been_notified %}
+                <div class="fr-mt-3w">
+                    {% comment %}Nécessaire pour qu'à la navigation clavier, on puisse être focus sur le boutton disabled et donc qu'on puisse lire le tooltip{% endcomment %}
+                    <span tabindex="0" aria-describedby="tooltip-generate-documents-disabled">
+                        <button type="submit"
+                                class="fr-btn fr-icon-file-text-line fr-btn--icon-left"
+                                disabled>
+                            Générer les documents
+                        </button>
+                    </span>
+                </div>
+                <span class="fr-tooltip fr-placement"
+                      id="tooltip-generate-documents-disabled"
+                      role="tooltip"
+                      aria-hidden="true">Le projet a déjà été notifié, vous ne pouvez plus générer de documents</span>
+            {% else %}
+                <button type="submit"
+                        class="fr-btn fr-mt-3w fr-icon-file-text-line fr-btn--icon-left">
+                    Générer les documents
+                </button>
+            {% endif %}
+        </form>
+    {% endif %}
 </div>
