@@ -1,4 +1,5 @@
 import json
+from itertools import groupby
 
 from django.contrib import messages
 from django.db.models import (
@@ -147,7 +148,9 @@ class ProjetSimulationsView(BaseProjetDetailView):
         )
 
         dotation_filter = self.request.GET.get("dotation", "")
-        filtered_qs = all_qs.order_by("-simulation__created_at")
+        filtered_qs = all_qs.order_by(
+            "-simulation__enveloppe__annee", "-simulation__created_at"
+        )
         if dotation_filter in ("DETR", "DSIL"):
             filtered_qs = filtered_qs.filter(
                 enveloppe_projet__enveloppe__dotation=dotation_filter
@@ -162,7 +165,14 @@ class ProjetSimulationsView(BaseProjetDetailView):
                     form.fields[field].widget.attrs["form"] = form_id
             simulation_projets_with_forms.append((sp, form, form_id))
 
-        context["simulation_projets_with_forms"] = simulation_projets_with_forms
+        # Most recent campagne first
+        context["simulation_projets_with_forms_by_campagne"] = [
+            (annee, list(items))
+            for annee, items in groupby(
+                simulation_projets_with_forms,
+                key=lambda item: item[0].simulation.enveloppe.annee,
+            )
+        ]
         context["dotation_filter"] = dotation_filter
         return context
 
