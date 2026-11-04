@@ -470,40 +470,31 @@ class Projet(ProjetDNActionsMixin, BaseModel):
     @property
     def generated_documents(self):
         """Of its courant enveloppe projets of the most recent campagne only."""
-        documents = [
-            document
-            for model in GENERATED_DOCUMENTS.values()
-            for document in model.objects.filter(
-                enveloppe_projet__projet=self,
-                enveloppe_projet__is_courant=True,
-                enveloppe_projet__enveloppe__annee=self.most_recent_campagne,
-            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
-        ]
-        return sorted(
-            documents,
-            key=lambda d: (
-                Dotation.values.index(d.enveloppe_projet.dotation),
-                list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
-            ),
+        return self._documents_in_most_recent_campagne(
+            GENERATED_DOCUMENTS, _GENERATED_DOCUMENT_SELECT_RELATED
         )
 
     @property
     def imported_documents(self):
         """Of its courant enveloppe projets of the most recent campagne only."""
+        return self._documents_in_most_recent_campagne(
+            UPLOADED_DOCUMENTS, _UPLOADED_DOCUMENT_SELECT_RELATED
+        )
+
+    def _documents_in_most_recent_campagne(self, models_by_type, select_related):
+        """Sorted by dotation, then by document type."""
         documents = [
             document
-            for model in UPLOADED_DOCUMENTS.values()
-            for document in model.objects.filter(
-                enveloppe_projet__projet=self,
-                enveloppe_projet__is_courant=True,
-                enveloppe_projet__enveloppe__annee=self.most_recent_campagne,
-            ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
+            for model in models_by_type.values()
+            for document in model.objects.filter(enveloppe_projet__projet=self)
+            .in_most_recent_campagne()
+            .select_related(*select_related)
         ]
         return sorted(
             documents,
             key=lambda d: (
                 Dotation.values.index(d.enveloppe_projet.dotation),
-                list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
+                list(models_by_type.keys()).index(d.document_type),
             ),
         )
 
