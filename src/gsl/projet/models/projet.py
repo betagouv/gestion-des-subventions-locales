@@ -410,6 +410,12 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return self.enveloppeprojet_set.count() > 1
 
     @property
+    def has_multiple_dotation(self) -> bool:
+        """Several dotations among its courant enveloppe projets, all campagnes
+        together."""
+        return len({ep.dotation for ep in self.enveloppeprojet_set.all()}) > 1
+
+    @property
     def dotation_detr(self):
         for dp in self.enveloppeprojet_set.all():
             if dp.dotation == Dotation.DETR:

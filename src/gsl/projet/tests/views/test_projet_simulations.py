@@ -39,6 +39,8 @@ def test_simulations_are_grouped_by_campagne_most_recent_first():
         < content.index('id="simulations-campagne-2026"')
         < content.index("Simulation de 2026")
     )
+    # DETR on both campagnes is a single dotation: no dotation filter.
+    assert 'name="dotation-filter"' not in content
 
 
 def test_no_simulation():
