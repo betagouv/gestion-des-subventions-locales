@@ -174,7 +174,7 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         _, dotation = self.cleaned_data["document"].split("-")
         return (
             EnveloppeProjet.objects.for_dotation(dotation)
-            .for_campagne(self.projet.most_recent_campagne)
+            .in_most_recent_campagne()
             .get(projet=self.projet)
         )
 
@@ -203,7 +203,7 @@ def uploadable_document_choices(projet) -> list[tuple[str, str]]:
     """
     choices = []
     enveloppe_projets = (
-        projet.enveloppeprojet_set.for_campagne(projet.most_recent_campagne)
+        projet.enveloppeprojet_set.in_most_recent_campagne()
         .programmees()
         .order_by("enveloppe__dotation")
     )
