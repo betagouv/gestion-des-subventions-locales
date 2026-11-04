@@ -10,6 +10,7 @@ from gsl.notification.tests.factories import (
     LettreNotificationFactory,
     LettreRefusSigneeFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ...constants import ProjetStatus
 from ...models import EnveloppeProjet, Projet
@@ -64,6 +65,29 @@ def test_has_double_dotations():
 
     EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL)
     assert projet.has_double_dotations is True
+
+
+def test_has_multiple_dotation():
+    projet = ProjetFactory()
+    perimetre = projet.perimetre
+    assert projet.has_multiple_dotation is False
+
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    assert projet.has_multiple_dotation is False
+
+    dsil = DsilEnveloppeFactory(perimetre=perimetre, annee=2027)
+    EnveloppeProjetFactory(projet=projet, enveloppe=dsil, is_courant=False)
+    assert projet.has_multiple_dotation is False
+
+    EnveloppeProjetFactory(projet=projet, enveloppe=dsil)
+    assert projet.has_multiple_dotation is True
 
 
 def test_dotation_detr():
