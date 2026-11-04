@@ -608,6 +608,9 @@ class TestView:
         assert "fr-error-text" not in content
         projet.refresh_from_db()
         assert projet.notified_at is not None
+        # The "3 - Notifier" block swaps its form for the sent confirmation.
+        assert "Message de notification envoyé" in content
+        assert 'name="message"' not in content
         # The "4 - Notifications" block lists this notification's details.
         assert "Bravo" in content
 
