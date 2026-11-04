@@ -123,6 +123,8 @@ class NotificationMessageFragment(BaseProjetFragment):
                 f"Une erreur est survenue lors de l'envoi de la notification. {e}",
             )
             return self.on_invalid()
+        # The DN sync saved notified_at on another instance of the projet.
+        self.object.refresh_from_db()
 
         queue_matomo_event(
             self.request,
