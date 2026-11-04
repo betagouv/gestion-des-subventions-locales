@@ -176,6 +176,20 @@ def test_enveloppe_projets_of_an_older_campagne_are_left_out_notified_or_not():
     assert projet.enveloppe_projets_in_most_recent_campagne == [suivant]
 
 
+def test_the_most_recent_campagne_is_computed_per_projet():
+    en_2026 = EnveloppeProjetFactory(
+        status=ProjetStatus.PROCESSING, enveloppe=DetrEnveloppeFactory(annee=2026)
+    )
+    en_2027 = EnveloppeProjetFactory(
+        status=ProjetStatus.PROCESSING, enveloppe=DetrEnveloppeFactory(annee=2027)
+    )
+
+    assert set(EnveloppeProjet.objects.in_most_recent_campagne()) == {
+        en_2026,
+        en_2027,
+    }
+
+
 def test_a_notified_enveloppe_projet_of_the_last_campagne_is_in_most_recent_campagne():
     enveloppe_projet = EnveloppeProjetFactory(
         status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
