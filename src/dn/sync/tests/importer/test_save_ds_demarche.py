@@ -320,6 +320,33 @@ def test_save_field_mappings_maps_formatted_champ(demarche):
     assert mapping.django_field == "annotations_ej_detr"
 
 
+@pytest.mark.parametrize(
+    "ds_type, label, expected_django_field",
+    (
+        (
+            "TextareaChampDescriptor",
+            "Description du projet",
+            "projet_description",
+        ),
+        (
+            "YesNoChampDescriptor",
+            "Votre projet comprend-il de la rénovation énergétique des bâtiments ?",
+            "projet_renovation_energetique",
+        ),
+    ),
+)
+def test_save_field_mappings_maps_projet_description_and_renovation_energetique(
+    demarche, ds_type, label, expected_django_field
+):
+    descriptors = [{"__typename": ds_type, "id": "FIELD_ID", "label": label}]
+    demarche_data = _minimal_demarche_data_with_descriptors(descriptors)
+
+    save_field_mappings(demarche_data, demarche)
+
+    mapping = FieldMapping.objects.get(demarche=demarche, ds_field_id="FIELD_ID")
+    assert mapping.django_field == expected_django_field
+
+
 def test_save_field_mappings_maps_updates_existing_mapping(
     demarche,
 ):
