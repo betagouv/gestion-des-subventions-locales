@@ -7,6 +7,8 @@ from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import (
     Case,
+    Exists,
+    OuterRef,
     Q,
     Value,
     When,
@@ -44,6 +46,17 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def programmees(self):
         return self.filter(status__in=ProjetStatus.FINAL)
 
+    def in_most_recent_campagne(self):
+        """On the most recent campagne of their projet."""
+        return self.exclude(
+            Exists(
+                EnveloppeProjet.objects.filter(
+                    projet=OuterRef("projet"),
+                    enveloppe__annee__gt=OuterRef("enveloppe__annee"),
+                )
+            )
+        )
+
     def without_signed_document(self):
         return self.programmees().filter(
             status=ProjetStatus.ACCEPTED,
@@ -67,13 +80,13 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def can_generate_accepted_documents(self):
         return self.programmees().filter(
             status=ProjetStatus.ACCEPTED,
-            projet__notified_at__isnull=True,
+            notified_at__isnull=True,
         )
 
     def can_generate_refus_documents(self):
         return self.programmees().filter(
             status__in=ProjetStatus.NEGATIVE,
-            projet__notified_at__isnull=True,
+            notified_at__isnull=True,
         )
 
     def annotate_notification_status(self):
@@ -81,7 +94,7 @@ class EnveloppeProjetQuerySet(models.QuerySet):
             _notification_status=Case(
                 When(status=ProjetStatus.PROCESSING, then=Value(None)),
                 When(
-                    projet__notified_at__isnull=False,
+                    notified_at__isnull=False,
                     then=Value(NotificationStatus.NOTIFIED),
                 ),
                 When(
@@ -196,6 +209,7 @@ class EnveloppeProjet(BaseModel):
         "Date de programmation", blank=True, null=True
     )
     is_courant = models.BooleanField("Courant", default=True)
+    notified_at = models.DateTimeField("Date de notification", null=True, blank=True)
     ej = models.CharField("Engagement juridique", max_length=20, blank=True)
 
     objects = EnveloppeProjetCourantManager()
@@ -342,8 +356,16 @@ class EnveloppeProjet(BaseModel):
         return self.enveloppe.dotation
 
     @property
+    def annee(self) -> Dotation:
+        return self.enveloppe.annee
+
+    @property
     def dossier_ds(self):
         return self.projet.dossier_ds
+
+    @property
+    def is_notified(self) -> bool:
+        return self.notified_at is not None
 
     @property
     def is_programmee(self) -> bool:

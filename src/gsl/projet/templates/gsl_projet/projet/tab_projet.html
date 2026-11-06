@@ -57,7 +57,24 @@
             </div>
         </div>
     </div>
-    {% include "includes/projet_detail/_dotation_status_cards.html" %}
+    <div class="fr-col-12 fr-col-xl-4">
+        {% include "includes/projet_detail/_dotation_status_cards.html" %}
+        <ul id="projet-actions"
+            {% if oob %}hx-swap-oob="true"{% endif %}
+            class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
+            {% if projet.has_been_notified %}
+                <li class="fr-mb-2w">
+                    <button type="button"
+                            class="fr-btn fr-btn--secondary"
+                            hx-get="{% url 'gsl_projet:revert-to-processing' projet_id=projet.id %}"
+                            hx-swap="outerHTML">
+                        Repasser en traitement
+                    </button>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+
 
     {% if projet_form %}
         <form method="post"
@@ -367,9 +384,9 @@
                             ({{ dossier.taux_demande|percent:3 }} du coût total)
                         </p>
                     </div>
-                    {% for dp in enveloppe_projets %}
-                        {% if dp.status == "processing" and not projet.has_been_notified %}
-                            {% render_fragment "gsl_projet:assiette_dotation_form" dp %}
+                    {% for ep in enveloppe_projets %}
+                        {% if ep.status == "processing" and not projet.has_been_notified %}
+                            {% render_fragment "gsl_projet:assiette_dotation_form" ep %}
                         {% else %}
                             {% include "includes/projet_detail/_enveloppe_projet_readonly_block.html" %}
                         {% endif %}

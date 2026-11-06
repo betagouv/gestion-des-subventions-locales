@@ -17,9 +17,9 @@ class BaseProjetFragment(Fragment):
     context_object_name = "projet"
 
 
-class ProjetActionsFragment(BaseProjetFragment):
-    name = "projet_actions"
-    template_name = "includes/projet_detail/_projet_actions.html"
+class DnActionsFragment(BaseProjetFragment):
+    name = "dn_actions"
+    template_name = "includes/projet_detail/_dn_actions.html"
 
     def get_context(self):
         return {
@@ -107,4 +107,4 @@ class AssietteDotationFragment(EnveloppeProjetFormFragment):
 
     @classmethod
     def get_queryset(cls, request):
-        return super().get_queryset(request).filter(projet__notified_at__isnull=True)
+        return super().get_queryset(request).filter(notified_at__isnull=True)

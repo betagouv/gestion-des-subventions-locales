@@ -131,7 +131,7 @@ class Simulation(BaseModel):
             SimulationProjet.objects.active()
             .filter(
                 simulation=self,
-                enveloppe_projet__projet__notified_at__isnull=False,
+                enveloppe_projet__notified_at__isnull=False,
             )
             .count()
         )

@@ -1,5 +1,5 @@
 {% load gsl_filters %}
-{% if projet.has_been_notified %}
+{% if simu.enveloppe_projet.is_notified %}
     {{ projet.dotations|join:" et " }}
 {% else %}
     <form id="simulation-projet-dotation-form-{{ simu.id }}"

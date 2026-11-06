@@ -12,7 +12,6 @@ from dsfr.forms import DsfrBaseForm
 from gsl.notification.models import UPLOADED_DOCUMENTS, DocumentImportJob
 from gsl.notification.tasks import run_document_import_job
 from gsl.notification.validators import document_file_validator
-from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet
 
 
@@ -173,7 +172,11 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
     @cached_property
     def enveloppe_projet(self) -> EnveloppeProjet:
         _, dotation = self.cleaned_data["document"].split("-")
-        return EnveloppeProjet.objects.for_dotation(dotation).get(projet=self.projet)
+        return (
+            EnveloppeProjet.objects.for_dotation(dotation)
+            .in_most_recent_campagne()
+            .get(projet=self.projet)
+        )
 
     @cached_property
     def document_class(self):
@@ -194,13 +197,16 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
 
 def uploadable_document_choices(projet) -> list[tuple[str, str]]:
     """`(f"{document_type}-{dotation}", label)` for every document importable
-    on `projet`. A document already imported keeps its label but gets an empty
-    value, which `RadioSelect` renders as a disabled option.
+    on `projet`, in its most recent campagne. A document already imported keeps
+    its label but gets an empty value, which `RadioSelect` renders as a disabled
+    option.
     """
     choices = []
-    enveloppe_projets = projet.enveloppeprojet_set.filter(
-        status__in=ProjetStatus.FINAL
-    ).order_by("enveloppe__dotation")
+    enveloppe_projets = (
+        projet.enveloppeprojet_set.in_most_recent_campagne()
+        .programmees()
+        .order_by("enveloppe__dotation")
+    )
     for enveloppe_projet in enveloppe_projets:
         dotation = enveloppe_projet.dotation
         for model in UPLOADED_DOCUMENTS.values():
