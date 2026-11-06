@@ -240,7 +240,16 @@ class DossierConverter:
         ):
             injectable_value = None
 
+        if isinstance(injectable_value, str) and isinstance(
+            django_field_object, models.BooleanField
+        ):
+            injectable_value = self._convert_oui_non_to_boolean(injectable_value)
+
         dossier.__setattr__(django_field_object.name, injectable_value)
+
+    def _convert_oui_non_to_boolean(self, value: str) -> bool | None:
+        # DropDownList "Oui"/"Non" champs come as strings from DN
+        return {"oui": True, "non": False, "": None}[value.strip().lower()]
 
     def _inject_into_manytomany_field(
         self, dossier, django_field_object, injectable_value

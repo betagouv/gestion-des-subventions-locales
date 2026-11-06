@@ -329,7 +329,7 @@ def test_save_field_mappings_maps_formatted_champ(demarche):
             "projet_description",
         ),
         (
-            "YesNoChampDescriptor",
+            "DropDownListChampDescriptor",
             "Votre projet comprend-il de la rénovation énergétique des bâtiments ?",
             "projet_renovation_energetique",
         ),
