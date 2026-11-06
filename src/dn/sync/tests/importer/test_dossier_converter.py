@@ -898,3 +898,35 @@ def test_cofinancements_avec_montants_empty_m2m(
     result = dossier.cofinancements_avec_montants
 
     assert result == []
+
+
+# --- convert_one_field with a "Oui"/"Non" DropDownList mapped to a BooleanField ---
+
+
+@pytest.mark.parametrize(
+    "string_value, expected",
+    (("Oui", True), ("Non", False), ("", None)),
+)
+def test_convert_oui_non_dropdown_into_boolean_field(
+    dossier_converter, dossier, string_value, expected
+):
+    ds_field_data = {
+        "__typename": "TextChamp",
+        "label": "Votre projet comprend-il de la rénovation énergétique des bâtiments ?",
+        "stringValue": string_value,
+    }
+    field = Dossier._meta.get_field("projet_renovation_energetique")
+
+    dossier_converter.convert_one_field(ds_field_data, field)
+    dossier.save()
+
+    dossier.refresh_from_db()
+    assert dossier.projet_renovation_energetique is expected
+
+
+def test_inject_boolean_value_into_boolean_field_is_unchanged(
+    dossier_converter, dossier
+):
+    field = Dossier._meta.get_field("projet_travaux")
+    dossier_converter.inject_into_field(dossier, field, True, "Travaux")
+    assert dossier.projet_travaux is True
