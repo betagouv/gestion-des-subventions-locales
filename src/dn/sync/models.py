@@ -412,6 +412,7 @@ class Dossier(BaseModel):
     )
     # ---
     projet_intitule = models.CharField("Intitulé du projet", blank=True)
+    projet_description = models.TextField("Description du projet", blank=True)
     projet_adresse = models.ForeignKey(
         Adresse,
         on_delete=models.PROTECT,
@@ -425,6 +426,10 @@ class Dossier(BaseModel):
     )
     projet_travaux = models.BooleanField(
         "Le projet d'investissement comprend-il des travaux ?", null=True
+    )
+    projet_renovation_energetique = models.BooleanField(
+        "Votre projet comprend-il de la rénovation énergétique des bâtiments ?",
+        null=True,
     )
     projet_zonage = models.ManyToManyField(
         "gsl_demarches_simplifiees.ProjetZonage",
@@ -696,9 +701,11 @@ class Dossier(BaseModel):
         maitrise_douvrage_deleguee,
         maitrise_douvrage_siret,
         projet_intitule,
+        projet_description,
         projet_adresse,
         projet_immo,
         projet_travaux,
+        projet_renovation_energetique,
         projet_zonage,
         projet_zonage_autre,
         projet_contractualisation,

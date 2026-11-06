@@ -378,3 +378,37 @@ def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
     )
     assert assiette_url not in content
     assert "Montant des dépenses éligibles retenues :" in content
+
+
+def test_projet_detail_displays_description_and_renovation_energetique():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(
+        dossier_ds__perimetre=perimetre,
+        dossier_ds__projet_description="Première ligne\nDeuxième ligne",
+        dossier_ds__projet_renovation_energetique=True,
+    )
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    content = response.content.decode()
+    assert "Description du projet :" in content
+    assert "Première ligne<br>Deuxième ligne" in content
+    assert re.search(
+        r"Comprend de la rénovation énergétique de bâtiment\s*:\s*Oui", content
+    )
+
+
+def test_projet_detail_displays_placeholders_when_description_and_renovation_are_empty():
+    perimetre = PerimetreArrondissementFactory()
+    user = CollegueFactory(perimetre=perimetre)
+    projet = ProjetFactory(
+        dossier_ds__perimetre=perimetre,
+        dossier_ds__projet_description="",
+        dossier_ds__projet_renovation_energetique=None,
+    )
+    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
+    content = response.content.decode()
+    assert re.search(r"Description du projet :</b>\s*</p>\s*<p>—</p>", content)
+    assert re.search(
+        r"Comprend de la rénovation énergétique de bâtiment\s*:\s*Non renseigné",
+        content,
+    )
