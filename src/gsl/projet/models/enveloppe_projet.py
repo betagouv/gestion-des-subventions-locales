@@ -372,15 +372,20 @@ class EnveloppeProjet(BaseModel):
         return self.status in ProjetStatus.FINAL
 
     @property
-    def other_dotations(self) -> List["EnveloppeProjet"]:
-        return list(d for d in self.projet.enveloppeprojet_set.all() if d.pk != self.pk)
+    def other_dotations_in_the_same_campagne(self) -> List["EnveloppeProjet"]:
+        # Python side filtering so we benefit from prefetching
+        return [
+            d
+            for d in self.projet.enveloppeprojet_set.all()
+            if d.pk != self.pk and d.enveloppe.annee == self.enveloppe.annee
+        ]
 
     @property
     def other_accepted_dotations(self) -> List[Dotation]:
         return [
             d.dotation
-            for d in self.other_dotations
-            if d.status == ProjetStatus.ACCEPTED
+            for d in self.projet.enveloppeprojet_set.all()
+            if d.pk != self.pk and d.status == ProjetStatus.ACCEPTED
         ]
 
     @property

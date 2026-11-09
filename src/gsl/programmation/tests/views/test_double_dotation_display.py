@@ -23,7 +23,6 @@ from gsl.projet.tests.factories import (
     DsilProjetFactory,
     ProjetFactory,
 )
-from gsl.simulation.tests.factories import SimulationFactory, SimulationProjetFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -106,16 +105,13 @@ class TestDoubleDotationDisplayOnDetrProgrammation:
     def test_detr_programming_page_shows_dsil_amount(
         self, client_logged_in, detr_envelope, dsil_envelope, double_enveloppe_projet
     ):
-        """DSIL amount should be displayed in the other dotation row"""
+        """DSIL programmed amount should be displayed in the other dotation row"""
         projet, detr_dotation, dsil_dotation = double_enveloppe_projet
 
         detr_dotation.accept_without_ds_update(montant=5000, enveloppe=detr_envelope)
         detr_dotation.save()
-        SimulationProjetFactory(
-            enveloppe_projet=dsil_dotation,
-            simulation=SimulationFactory(enveloppe=dsil_envelope),
-            montant=3000,  # DSIL amount
-        )
+        dsil_dotation.accept_without_ds_update(montant=3000, enveloppe=dsil_envelope)
+        dsil_dotation.save()
 
         url = reverse(
             "programmation:programmation-projet-list-dotation",

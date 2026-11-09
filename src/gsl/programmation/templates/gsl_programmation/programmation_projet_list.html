@@ -222,7 +222,7 @@
                             <tbody id="projet-list">
                                 {% for enveloppe_projet in enveloppe_projets %}
                                     {% with projet=enveloppe_projet.projet %}
-                                        <tr {% if enveloppe_projet.other_dotations|length > 0 %} class="gsl-projet-table__row--double-dotation"{% endif %}>
+                                        <tr {% if enveloppe_projet.other_dotations_in_the_same_campagne|length > 0 %} class="gsl-projet-table__row--double-dotation"{% endif %}>
                                             <td class="gsl-projet-table__sticky-left-1">
                                                 <div class="fr-checkbox-group fr-checkbox-group--sm">
                                                     <input id="checkbox-{{ enveloppe_projet.id }}"
