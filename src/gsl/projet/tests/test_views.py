@@ -1179,6 +1179,22 @@ def test_projet_list_only_displays_enveloppe_projets_of_the_campagne(
     assert list(projet.enveloppeprojet_set.all()) == [fixture[dotation]]
 
 
+@pytest.mark.parametrize("campagne_offset, is_highlighted", ((0, False), (1, True)))
+def test_projet_list_highlights_montant_retenu_only_when_granted_on_the_campagne(
+    projet_detr_en_cours_et_dsil_accepte_campagne_suivante,
+    campagne_offset,
+    is_highlighted,
+):
+    fixture = projet_detr_en_cours_et_dsil_accepte_campagne_suivante
+    response = _get_projet_list(
+        fixture["perimetre"], default_campagne() + campagne_offset
+    )
+
+    assert (
+        "gsl-projet-table__montant-retenu" in response.content.decode()
+    ) is is_highlighted
+
+
 @pytest.mark.parametrize("campagne_offset, expected", ((0, None), (1, 5_000)))
 def test_projet_list_totals_only_consider_the_campagne(
     projet_detr_en_cours_et_dsil_accepte_campagne_suivante, campagne_offset, expected
