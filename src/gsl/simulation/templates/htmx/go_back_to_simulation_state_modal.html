@@ -22,7 +22,7 @@
 {% block content %}
     <h1 class="fr-modal__title">
         <span class="fr-icon-draft-fill fr-icon--lg" aria-hidden="true"></span>
-        {% if object.enveloppe_projet.other_dotations|length == 0 %}
+        {% if object.enveloppe_projet.other_dotations_in_the_same_campagne|length == 0 %}
             Revenir au statut «&nbsp;{{ new_simulation_status|status_to_adjective }}&nbsp;»
         {% else %}
             Remettre la demande de financement {{ object.enveloppe_projet.dotation }}
