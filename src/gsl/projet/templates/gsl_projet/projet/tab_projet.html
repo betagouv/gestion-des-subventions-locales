@@ -147,6 +147,10 @@
                         {# <li><b>Délibération du conseil municipal ou de l’organe délibérant de l’EPCI :</b> todo </li>#}
                         {# <li><b>Document de présentation du projet :</b> </li>#}
                     </ul>
+                    <p class="fr-mb-0">
+                        <b>Description du projet :</b>
+                    </p>
+                    <p>{{ dossier.projet_description|linebreaksbr|default:"—" }}</p>
                     <h3 id="presentation_dates">Dates</h3>
                     <ul>
                         <li>Début des travaux : {{ dossier.date_debut|default:"—" }}</li>
@@ -166,6 +170,10 @@
                             : {{ dossier.projet_immo|yesno:"Oui,Non,Non renseigné" }}
                         </li>
                         <li>Travaux au sein du projet : {{ dossier.projet_travaux|yesno:"Oui,Non,Non renseigné" }}</li>
+                        <li>
+                            Comprend de la rénovation énergétique de bâtiment
+                            : {{ dossier.projet_renovation_energetique|yesno:"Oui,Non,Non renseigné" }}
+                        </li>
                     </ul>
                     <h4 id="presentation_details_proj_zonage_et_contrats">
                         <span class="fr-icon-france-fill fr-mr-2v" aria-hidden="true"></span>
