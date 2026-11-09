@@ -666,14 +666,12 @@ class ProgrammationStatusUpdateView(OpenHtmxModalMixin, UpdateView):
 
     def get_object(self, queryset=None) -> SimulationProjet:
         obj = super().get_object(queryset)
-        campagne = obj.simulation.enveloppe.annee
         self.new_project_status = projet_status_from_dotation_statuses(
             (
                 self.kwargs["status"],
                 *(
                     d.status
-                    for d in obj.enveloppe_projet.other_dotations
-                    if d.enveloppe.annee == campagne
+                    for d in obj.enveloppe_projet.other_dotations_in_the_same_campagne
                 ),
             )
         )

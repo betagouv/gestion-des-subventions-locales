@@ -244,6 +244,29 @@ def test_error_raised_if_assiette_is_greater_than_cout_total(
 
 
 @pytest.mark.django_db
+def test_other_dotations_in_the_same_campagne_excludes_other_campagnes():
+    perimetre = PerimetreArrondissementFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    campagne = get_campagne()
+    detr = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=campagne),
+    )
+    dsil = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=campagne),
+    )
+    dsil_next_campagne = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=campagne + 1),
+    )
+
+    assert detr.other_dotations_in_the_same_campagne == [dsil]
+    assert dsil.other_dotations_in_the_same_campagne == [detr]
+    assert dsil_next_campagne.other_dotations_in_the_same_campagne == []
+
+
+@pytest.mark.django_db
 def test_get_other_accepted_dotations_with_one_processing_dotation():
     detr_dp = EnveloppeProjetFactory(dotation=Dotation.DETR)
 
