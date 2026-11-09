@@ -98,14 +98,12 @@ def _get_other_dotation_assiette(context):
 
 def _get_other_dotation_montant_retenu(context):
     ep = context["other_dotation"]
-    simu = ep.last_updated_simulation_projet
-    return euro_value(simu.montant, 2) if simu else "—"
+    return euro_value(ep.montant, 2) if ep else "—"
 
 
 def _get_other_dotation_taux(context):
     ep = context["other_dotation"]
-    simu = ep.last_updated_simulation_projet
-    return percent_value(simu.taux, 2) if simu else "—"
+    return percent_value(ep.taux_retenu, 2) if ep else "—"
 
 
 def _get_other_dotation_documents(context):
@@ -118,12 +116,11 @@ def _get_other_dotation_documents(context):
 
 def _get_other_dotation_statut(context):
     ep = context["other_dotation"]
-    simu = ep.last_updated_simulation_projet
-    if not simu:
+    if not ep:
         return ""
     return format_html(
         '<div class="gsl-projet-table__status">{}</div>',
-        _wrap_emoji(simu.get_status_display()),
+        _wrap_emoji(ep.get_status_display()),
     )
 
 

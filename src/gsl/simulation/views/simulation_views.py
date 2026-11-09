@@ -187,9 +187,9 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
                 "dossier_ds__projet_contractualisation",
                 Prefetch(
                     "enveloppeprojet_set",
-                    queryset=EnveloppeProjet.objects.active().for_dotation(
-                        self.object.enveloppe.dotation
-                    ),
+                    queryset=EnveloppeProjet.objects.active()
+                    .for_dotation(self.object.enveloppe.dotation)
+                    .for_campagne(self.object.enveloppe.annee),
                     to_attr="enveloppe_projet",
                 ),
                 Prefetch(
