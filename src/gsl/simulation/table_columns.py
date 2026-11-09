@@ -80,8 +80,8 @@ COLUMN_COUT_TOTAL = Column(
 def _get_montant_sollicite(context):
     projet = context.get("projet")
     montant = projet.dossier_ds.demande_montant if projet else None
-    dp = context.get("enveloppe_projet")
-    taux = dp.taux_de_subvention_sollicite if dp else None
+    ep = context.get("enveloppe_projet")
+    taux = ep.taux_de_subvention_sollicite if ep else None
     return format_html("{}<br>{}", euro_value(montant, 2), percent(taux, 2))
 
 
@@ -96,29 +96,29 @@ COLUMN_MONTANT_SOLLICITE = Column(
 
 
 def _get_other_dotation_assiette(context):
-    dp = context["other_dotation"]
-    return euro_value(dp.assiette, 2)
+    ep = context["other_dotation"]
+    return euro_value(ep.assiette, 2)
 
 
 def _get_simu_other_dotation_montant(context):
-    dp = context["other_dotation"]
-    simu = dp.last_updated_simulation_projet
+    ep = context["other_dotation"]
+    simu = ep.last_updated_simulation_projet
     if not simu:
         return "—"
     return format_html("<b>{}</b>", euro_value(simu.montant, 2))
 
 
 def _get_simu_other_dotation_taux(context):
-    dp = context["other_dotation"]
-    simu = dp.last_updated_simulation_projet
+    ep = context["other_dotation"]
+    simu = ep.last_updated_simulation_projet
     if not simu:
         return "—"
     return format_html("<b>{}</b>", percent_value(simu.taux, 2))
 
 
 def _get_simu_other_dotation_statut(context):
-    dp = context["other_dotation"]
-    simu = dp.last_updated_simulation_projet
+    ep = context["other_dotation"]
+    simu = ep.last_updated_simulation_projet
     if not simu:
         return ""
     return format_html(
@@ -128,12 +128,12 @@ def _get_simu_other_dotation_statut(context):
 
 
 def _get_simu_other_dotation_notification_statut(context):
-    dp = context["other_dotation"]
-    if not dp.notification_status:
+    ep = context["other_dotation"]
+    if not ep.notification_status:
         return "/"
     return render_to_string(
         "ui/components/status_badge.html",
-        ui_status_badge(type=dp.notification_status, **{"class": "fr-badge--sm"}),
+        ui_status_badge(type=ep.notification_status, **{"class": "fr-badge--sm"}),
     )
 
 
