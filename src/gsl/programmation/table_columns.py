@@ -70,9 +70,9 @@ COLUMN_COUT_TOTAL = Column(
 
 
 def _get_montant_taux_demandes(context):
-    dp = context.get("enveloppe_projet")
-    montant = dp.projet.dossier_ds.demande_montant if dp else None
-    taux = dp.taux_de_subvention_sollicite if dp else None
+    ep = context.get("enveloppe_projet")
+    montant = ep.projet.dossier_ds.demande_montant if ep else None
+    taux = ep.taux_de_subvention_sollicite if ep else None
     return format_html("{}<br>{}", euro_value(montant), percent(taux, 2))
 
 
@@ -86,25 +86,25 @@ COLUMN_MONTANT_TAUX_DEMANDES = Column(
 
 
 def _get_montant_retenu(context):
-    dp = context.get("enveloppe_projet")
-    montant = dp.montant if dp else None
+    ep = context.get("enveloppe_projet")
+    montant = ep.montant if ep else None
     return euro_value(montant)
 
 
 def _get_other_dotation_assiette(context):
-    dp = context["other_dotation"]
-    return euro_value(dp.assiette, 2)
+    ep = context["other_dotation"]
+    return euro_value(ep.assiette, 2)
 
 
 def _get_other_dotation_montant_retenu(context):
-    dp = context["other_dotation"]
-    simu = dp.last_updated_simulation_projet
+    ep = context["other_dotation"]
+    simu = ep.last_updated_simulation_projet
     return euro_value(simu.montant, 2) if simu else "—"
 
 
 def _get_other_dotation_taux(context):
-    dp = context["other_dotation"]
-    simu = dp.last_updated_simulation_projet
+    ep = context["other_dotation"]
+    simu = ep.last_updated_simulation_projet
     return percent_value(simu.taux, 2) if simu else "—"
 
 
@@ -117,8 +117,8 @@ def _get_other_dotation_documents(context):
 
 
 def _get_other_dotation_statut(context):
-    dp = context["other_dotation"]
-    simu = dp.last_updated_simulation_projet
+    ep = context["other_dotation"]
+    simu = ep.last_updated_simulation_projet
     if not simu:
         return ""
     return format_html(
