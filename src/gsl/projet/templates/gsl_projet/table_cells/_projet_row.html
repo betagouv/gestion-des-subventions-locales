@@ -16,7 +16,7 @@
                         {% elif column.key in sans_pieces_skip_keys and is_sans_pieces and not has_dispositif %}
                             <td class="{{ column.td_classes }}"></td>
                         {% elif column.per_dotation %}
-                            <td class="{{ column.td_classes }}{% if column.key != 'categorie' %} gsl-projet-table__cell--dotation{% endif %}{% if column.key == 'montant_retenu' and projet.montant_retenu is not None %} gsl-projet-table__montant-retenu{% endif %}{% if column.key == 'statut' %} gsl-nowrap{% endif %}">
+                            <td class="{{ column.td_classes }}{% if column.key != 'categorie' %} gsl-projet-table__cell--dotation{% endif %}{% if column.key == 'montant_retenu' and projet.montant_retenu_total is not None %} gsl-projet-table__montant-retenu{% endif %}{% if column.key == 'statut' %} gsl-nowrap{% endif %}">
                                 {% for enveloppe_projet in enveloppe_projets %}
                                     <div>{% include column.resolved_template_name %}</div>
                                 {% endfor %}
