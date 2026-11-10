@@ -51,10 +51,13 @@
                 </div>
             </div>
         {% endif %}
-        {% if simulation_projets_with_forms_by_campagne %}
-            {% for annee, simulation_projets_with_forms in simulation_projets_with_forms_by_campagne %}
-                <section aria-labelledby="simulations-campagne-{{ annee }}">
-                    <h2 id="simulations-campagne-{{ annee }}" class="fr-h4 fr-mb-3w">Campagne {{ annee }}</h2>
+        {% if simulation_projets_with_forms_by_enveloppe_projet %}
+            {% for bloc_enveloppe_projet, simulation_projets_with_forms in simulation_projets_with_forms_by_enveloppe_projet %}
+                <section aria-labelledby="simulations-enveloppe-projet-{{ bloc_enveloppe_projet.pk }}">
+                    <h2 id="simulations-enveloppe-projet-{{ bloc_enveloppe_projet.pk }}"
+                        class="fr-h4 fr-mb-3w">
+                        {{ bloc_enveloppe_projet.dotation }} - Campagne {{ bloc_enveloppe_projet.annee }}
+                    </h2>
                     <div class="fr-grid-row fr-grid-row--gutters">
                         {% for simu, simulation_projet_form, form_id in simulation_projets_with_forms %}
                             {% with enveloppe_projet=simu.enveloppe_projet dossier=simu.dossier %}
