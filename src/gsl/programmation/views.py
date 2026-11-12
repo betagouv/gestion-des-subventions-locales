@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
-from django.db.models import ProtectedError
+from django.db.models import Prefetch, ProtectedError
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -50,7 +50,10 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
                 "uploaded_documents",
                 "enveloppe",
                 "enveloppe__perimetre",
-                "projet__enveloppeprojet_set",
+                Prefetch(
+                    "projet__enveloppeprojet_set",
+                    queryset=EnveloppeProjet.objects.annotate_notification_status(),
+                ),
                 "projet__enveloppeprojet_set__simulationprojet_set",
                 "projet__enveloppeprojet_set__generated_documents",
                 "projet__enveloppeprojet_set__uploaded_documents",
