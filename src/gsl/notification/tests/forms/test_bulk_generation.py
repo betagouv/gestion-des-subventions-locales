@@ -30,7 +30,6 @@ def test_generate_documents_step3_form_exposes_with_qr_code():
     field = GenerateDocumentsFormatForm(
         user=user,
         dotation=Dotation.DETR,
-        request=None,
         document_type=ARRETE,
     ).fields["with_qr_code"]
     assert field.required is False
@@ -45,7 +44,6 @@ def test_generate_documents_step3_form_valid_without_qr_field_submitted():
         data={"export_format": EXPORT_FORMAT_ONE_PDF_ALL},
         user=user,
         dotation=Dotation.DETR,
-        request=None,
         document_type=ARRETE,
     )
     assert form.is_valid(), form.errors
@@ -69,7 +67,6 @@ def _save_documents(enveloppe_projets, modele) -> int:
     form = GenerateDocumentsCreateForm(
         user=CollegueFactory(),
         dotation=Dotation.DETR,
-        request=None,
         enveloppe_projets=EnveloppeProjet.objects.filter(
             pk__in=[dp.pk for dp in enveloppe_projets]
         ),

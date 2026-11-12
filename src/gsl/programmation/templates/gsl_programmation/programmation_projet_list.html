@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static dsfr_tags gsl_filters custom_pluralize %}
+{% load static dsfr_tags gsl_filters custom_pluralize programmation_tags %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static "css/messages.css" %}">
@@ -21,13 +21,7 @@
     {% include "includes/_enveloppe_summary.html" with hide_actions=True %}
     {% include "includes/_projet_list_filters.html" %}
 
-    <div id="programmation-table-wrapper"
-         data-controller="checkbox-selection"
-         data-checkbox-selection-empty-means-all-value="true"
-         data-checkbox-selection-user-id-value="{{ request.user.pk }}">
-        {{ selectable_ids_list|json_script:"checkbox-selection-selectable-ids" }}
-        {{ can_generate_accepted_documents_ids|json_script:"checkbox-selection-accepted-ids" }}
-        {{ can_generate_refus_documents_ids|json_script:"checkbox-selection-refus-ids" }}
+    <div id="programmation-table-wrapper" data-controller="bulk-selection">
         <dialog class="fr-modal"
                 id="generate-multiple-modal"
                 aria-labelledby="generate-multiple-modal-title"
@@ -86,22 +80,13 @@
         </dialog>
         <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
             <span>
-                {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|custom_pluralize }}
+                {{ enveloppe_projets|length }} projet{{ enveloppe_projets|length|custom_pluralize }}
                 <span class="fr-text-mention--grey fr-ml-2w"
-                      data-checkbox-selection-target="counterWrapper">
-                    <span data-checkbox-selection-target="counter">0</span> projets sélectionnés
+                      data-bulk-selection-target="counterWrapper">
+                    <span data-bulk-selection-target="counter">0</span> projets sélectionnés
                 </span>
             </span>
             <ul class="fr-btns-group fr-btns-group--inline-lg fr-btns-group--right fr-btns-group--icon-right">
-                <li class="fr-mb-2v">
-                    <button type="button"
-                            class="fr-btn fr-btn--tertiary"
-                            data-action="click->checkbox-selection#toggleSelectAll"
-                            data-checkbox-selection-target="selectAllButton"
-                            {% if not page_obj.paginator.count %} disabled {% endif %}>
-                        Sélectionner tous les {{ page_obj.paginator.count }} projets
-                    </button>
-                </li>
                 <li class="fr-mb-2v">
                     <div class="fr-nav fr-translate">
                         <div class="fr-nav__item">
@@ -109,7 +94,7 @@
                                     class="fr-btn fr-btn--secondary fr-btn--icon-right fr-icon-arrow-down-s-line"
                                     aria-controls="programmation-bulk-actions-menu"
                                     aria-expanded="false"
-                                    data-checkbox-selection-target="actionButton"
+                                    data-bulk-selection-target="menuButton"
                                     disabled>
                                 Actions groupées
                             </button>
@@ -119,15 +104,14 @@
                                         <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
                                               hx-target="#generate-multiple-modal-step"
                                               hx-swap="outerHTML"
-                                              hx-indicator=".modal-wizard-body">
+                                              hx-indicator=".modal-wizard-body"
+                                              data-bulk-selection-target="action"
+                                              data-action-name="generate_accepted">
                                             {% csrf_token %}
                                             <input type="hidden"
                                                    name="generate_accepted_documents_wizard_{{ dotation }}-current_step"
                                                    value="launch">
-                                            <input type="hidden"
-                                                   name="launch-ids"
-                                                   value=""
-                                                   data-checkbox-selection-target="idsInput">
+                                            <input type="hidden" name="launch-ids" value="">
                                             {% comment %}
                                             Without data-fr-opened, DSFR reads an aria-controls button as a
                                             closer and the click conceals instead of opening. It doesn't
@@ -137,9 +121,8 @@
                                                     class="fr-nav__link fr-btn--icon-left fr-icon-mail-add-line"
                                                     aria-controls="generate-multiple-modal"
                                                     data-fr-opened="false"
-                                                    disabled
-                                                    data-checkbox-selection-target="acceptedActionButton">
-                                                Générer <span data-checkbox-selection-target="acceptedCounter">0</span> arrêtés et lettres d'acceptation
+                                                    disabled>
+                                                Générer <span data-bulk-count>0</span> arrêtés et lettres d'acceptation
                                             </button>
                                         </form>
                                     </li>
@@ -147,22 +130,20 @@
                                         <form hx-post="{% url "gsl_notification:generate-refus-documents-modal" dotation %}"
                                               hx-target="#generate-refus-modal-step"
                                               hx-swap="outerHTML"
-                                              hx-indicator=".modal-wizard-body">
+                                              hx-indicator=".modal-wizard-body"
+                                              data-bulk-selection-target="action"
+                                              data-action-name="generate_refus">
                                             {% csrf_token %}
                                             <input type="hidden"
                                                    name="generate_lettre_refus_wizard_{{ dotation }}-current_step"
                                                    value="launch">
-                                            <input type="hidden"
-                                                   name="launch-ids"
-                                                   value=""
-                                                   data-checkbox-selection-target="idsInput">
+                                            <input type="hidden" name="launch-ids" value="">
                                             <button type="submit"
                                                     class="fr-nav__link fr-btn--icon-left fr-icon-mail-add-line"
                                                     aria-controls="generate-refus-modal"
                                                     data-fr-opened="false"
-                                                    disabled
-                                                    data-checkbox-selection-target="refusActionButton">
-                                                Générer <span data-checkbox-selection-target="refusCounter">0</span> lettres de refus ou de classement sans suite
+                                                    disabled>
+                                                Générer <span data-bulk-count>0</span> lettres de refus ou de classement sans suite
                                             </button>
                                         </form>
                                     </li>
@@ -199,8 +180,8 @@
                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                                             <input id="checkbox-header"
                                                    type="checkbox"
-                                                   data-checkbox-selection-target="pageCheckbox"
-                                                   data-action="change->checkbox-selection#togglePageSelection">
+                                                   data-bulk-selection-target="allCheckbox"
+                                                   data-action="change->bulk-selection#toggleAll">
                                             <label class="fr-label" for="checkbox-header">
                                                 <span class="fr-sr-only fr-hint-text">Sélectionner tous les projets</span>
                                             </label>
@@ -228,8 +209,9 @@
                                                     <input id="checkbox-{{ enveloppe_projet.id }}"
                                                            type="checkbox"
                                                            value="{{ enveloppe_projet.id }}"
-                                                           data-checkbox-selection-target="rowCheckbox"
-                                                           data-action="change->checkbox-selection#toggleRow">
+                                                           data-actions="{{ enveloppe_projet|bulk_actions }}"
+                                                           data-bulk-selection-target="rowCheckbox"
+                                                           data-action="change->bulk-selection#refresh">
                                                     <label class="fr-label gsl-projet-table__checkbox-label"
                                                            for="checkbox-{{ enveloppe_projet.id }}">
                                                         <span class="fr-sr-only fr-hint-text">Cocher le projet N°{{ enveloppe_projet.projet.dossier_ds.ds_number }}</span>
@@ -255,11 +237,6 @@
                     </div>
                 </div>
             </div>
-            {% if is_paginated %}
-                <div class="fr-table__footer">
-                    <div class="fr-table__footer--middle">{% dsfr_pagination page_obj %}</div>
-                </div>
-            {% endif %}
         </div>
     </div>
 {% endblock content %}

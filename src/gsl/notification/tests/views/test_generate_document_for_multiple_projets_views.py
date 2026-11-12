@@ -658,17 +658,15 @@ def test_wizard_create_step_remplacer_when_all_covered_replaces_all(
     assert body[:2] == b"PK"
 
 
-def test_wizard_create_step_conserver_full_coverage_with_empty_ids_reaches_success(
+def test_wizard_create_step_conserver_full_coverage_reaches_success(
     client, enveloppe_projets, detr_lettre_modele
 ):
-    """When the user selects all projets, the trigger form posts ids="" and the
-    launch form's fallback resolves projets from the filterset. The wizard must
-    still reach the create step's success when CONSERVER is chosen and every projet is
-    already covered."""
+    """The wizard must still reach the create step's success when CONSERVER is
+    chosen and every projet is already covered."""
     for dp in enveloppe_projets:
         LettreNotificationFactory(enveloppe_projet=dp)
 
-    _post_launch(client, ids="")
+    _post_launch(client, ids=",".join(str(dp.id) for dp in enveloppe_projets))
     client.post(
         _wizard_url(),
         _wizard_step_data("type_selection", {"document_type": LETTRE}),

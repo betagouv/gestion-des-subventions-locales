@@ -13,9 +13,8 @@ from gsl.notification.models import (
     ModeleDocument,
 )
 from gsl.notification.utils import get_modele_perimetres, replace_mentions_in_html
-from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
 from gsl.projet.constants import ARRETE, LETTRE, LETTRE_REFUS
-from gsl.projet.models import EnveloppeProjet, EnveloppeProjetQuerySet
+from gsl.projet.models import EnveloppeProjet
 
 ARRETE_ET_LETTRE = ExportJob.DOCUMENT_TYPE_ARRETE_ET_LETTRE
 
@@ -60,10 +59,9 @@ DOCUMENT_TYPE_DISPLAY_ORDER = (LETTRE, ARRETE, LETTRE_REFUS)
 class BaseGenerateDocumentsForm(DsfrBaseForm, forms.Form):
     """Carries the context shared by every step of a generation wizard."""
 
-    def __init__(self, *args, user, dotation, request, **kwargs):
+    def __init__(self, *args, user, dotation, **kwargs):
         self.user = user
         self.dotation = dotation
-        self.request = request
         super().__init__(*args, **kwargs)
 
 
@@ -84,12 +82,11 @@ class DocumentTypeFormMixin:
 
 class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     """
-    Validates the trigger button POST: the run applies either to the projets
-    explicitly checked in the list, or to every projet matching the filters
-    currently applied to it.
-
-    Subclasses restrict them to the projets they can generate documents for.
+    Validates the trigger button POST: the run applies to the projets checked
+    in the list whose decision calls for the subclass's `document`.
     """
+
+    document: str
 
     ids = EnveloppeProjetMultipleChoiceField(
         queryset=EnveloppeProjet.objects.none(),
@@ -106,33 +103,36 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
             .select_related("projet")
         )
 
-    def clean_ids(self):
-        checked = self.cleaned_data.get("ids") or []
-        if checked:
-            queryset = EnveloppeProjet.objects.filter(pk__in=[dp.pk for dp in checked])
-        else:
-            queryset = ProgrammationFilters(
-                data=self.request.GET, request=self.request
-            ).qs
-        ids = self.eligible_enveloppe_projets(queryset)
-        if not ids:
-            raise forms.ValidationError("Aucun projet à notifier.", code="no_projects")
-        return ids
+    @classmethod
+    def applies_to(cls, enveloppe_projet) -> bool:
+        return (
+            not enveloppe_projet.projet.has_been_notified
+            and cls.document in enveloppe_projet.decision_documents
+        )
 
-    def eligible_enveloppe_projets(
-        self, queryset: EnveloppeProjetQuerySet
-    ) -> EnveloppeProjetQuerySet:
-        raise NotImplementedError
+    def clean_ids(self):
+        eligible_ids = [
+            enveloppe_projet.pk
+            for enveloppe_projet in self.cleaned_data.get("ids") or []
+            if self.applies_to(enveloppe_projet)
+        ]
+        if not eligible_ids:
+            raise forms.ValidationError("Aucun projet à notifier.", code="no_projects")
+        return EnveloppeProjet.objects.filter(pk__in=eligible_ids)
 
 
 class GenerateAcceptedDocumentsLaunchForm(BaseGenerateDocumentsLaunchForm):
-    def eligible_enveloppe_projets(self, queryset):
-        return queryset.can_generate_accepted_documents()
+    document = ARRETE
 
 
 class GenerateRefusLettersLaunchForm(BaseGenerateDocumentsLaunchForm):
-    def eligible_enveloppe_projets(self, queryset):
-        return queryset.can_generate_refus_documents()
+    document = LETTRE_REFUS
+
+
+BULK_ACTIONS = {
+    "generate_accepted": GenerateAcceptedDocumentsLaunchForm,
+    "generate_refus": GenerateRefusLettersLaunchForm,
+}
 
 
 class GenerateDocumentsTypeSelectionForm(BaseGenerateDocumentsForm):

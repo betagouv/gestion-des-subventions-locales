@@ -32,7 +32,6 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
     filterset_class = ProgrammationFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
     context_object_name = "enveloppe_projets"
-    paginate_by = 25
     ordering = ["-date_programmation"]
 
     def get_queryset(self):
@@ -120,19 +119,6 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
                 "enveloppes": [enveloppe] if enveloppe else [],
                 "dotation": self.dotation,
                 "title": title,
-                "selectable_ids_list": list(
-                    self.object_list.values_list("id", flat=True)
-                ),
-                "can_generate_accepted_documents_ids": list(
-                    self.object_list.can_generate_accepted_documents().values_list(
-                        "id", flat=True
-                    )
-                ),
-                "can_generate_refus_documents_ids": list(
-                    self.object_list.can_generate_refus_documents().values_list(
-                        "id", flat=True
-                    )
-                ),
                 "current_order": self.request.GET.get("order", ""),
                 "columns": PROGRAMMATION_TABLE_COLUMNS,
             }
