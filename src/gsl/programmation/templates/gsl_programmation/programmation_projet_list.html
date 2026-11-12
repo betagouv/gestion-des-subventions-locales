@@ -111,7 +111,7 @@
                                             <input type="hidden"
                                                    name="generate_accepted_documents_wizard_{{ dotation }}-current_step"
                                                    value="launch">
-                                            <input type="hidden" name="launch-ids" value="">
+                                            <input type="hidden" name="launch-ids" value="" data-bulk-ids>
                                             {% comment %}
                                             Without data-fr-opened, DSFR reads an aria-controls button as a
                                             closer and the click conceals instead of opening. It doesn't
@@ -137,7 +137,7 @@
                                             <input type="hidden"
                                                    name="generate_lettre_refus_wizard_{{ dotation }}-current_step"
                                                    value="launch">
-                                            <input type="hidden" name="launch-ids" value="">
+                                            <input type="hidden" name="launch-ids" value="" data-bulk-ids>
                                             <button type="submit"
                                                     class="fr-nav__link fr-btn--icon-left fr-icon-mail-add-line"
                                                     aria-controls="generate-refus-modal"

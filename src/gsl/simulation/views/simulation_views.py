@@ -74,7 +74,6 @@ class SimulationListView(ListView):
 class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
     filterset_class = SimulationProjetFilters
     template_name = "gsl_simulation/simulation_detail.html"
-    paginate_by = 25
 
     PARAMS_NOT_FILTERS = {"page", "reset_filters"}
 
@@ -131,20 +130,9 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
         aggregates["total_amount_granted"] = simulation.get_total_amount_granted(
             self.filterset.qs
         )
-        selectable_ids_list = list(
-            SimulationProjet.objects.active()
-            .filter(
-                simulation=simulation,
-                enveloppe_projet__projet__in=self.filterset.qs,
-                enveloppe_projet__projet__notified_at__isnull=True,
-            )
-            .values_list("id", flat=True)
-        )
         context.update(
             {
                 "simulation": simulation,
-                "selectable_ids_list": selectable_ids_list,
-                "selectable_count": len(selectable_ids_list),
                 "bulk_status_choices": [
                     status for status, _ in SimulationProjet.STATUS_CHOICES
                 ],

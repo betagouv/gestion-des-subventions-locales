@@ -4,11 +4,13 @@ export class BulkSelection extends Controller {
   static targets = ['allCheckbox', 'rowCheckbox', 'counter', 'counterWrapper', 'menuButton', 'action']
 
   connect () {
-    const storedIds = sessionStorage.getItem(this.storageKey)?.split(',') ?? []
-    for (const checkbox of this.rowCheckboxTargets) {
-      checkbox.checked = storedIds.includes(checkbox.value)
-    }
     this.refresh()
+  }
+
+  // Also called for rows re-rendered out of band, which must keep their selection.
+  rowCheckboxTargetConnected (checkbox) {
+    const storedIds = sessionStorage.getItem(this.storageKey)?.split(',') ?? []
+    checkbox.checked = storedIds.includes(checkbox.value)
   }
 
   get storageKey () {
@@ -42,8 +44,9 @@ export class BulkSelection extends Controller {
       const ids = checked
         .filter((checkbox) => checkbox.dataset.actions.split(' ').includes(action.dataset.actionName))
         .map((checkbox) => checkbox.value)
-      action.querySelector('[name=launch-ids]').value = ids.join(',')
-      action.querySelector('[data-bulk-count]').textContent = ids.length
+      action.querySelector('[data-bulk-ids]').value = ids.join(',')
+      const count = action.querySelector('[data-bulk-count]')
+      if (count) count.textContent = ids.length
       action.querySelector('[type=submit]').disabled = !ids.length
     }
   }
