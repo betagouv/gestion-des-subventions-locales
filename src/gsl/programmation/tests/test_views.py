@@ -1,6 +1,9 @@
+import re
+
 import pytest
 from django.test import Client
 from django.urls import reverse
+from django.utils import timezone
 
 from dn.sync.models import Dotation
 from gsl.core.campagne import default_campagne
@@ -110,6 +113,37 @@ class TestProgrammationProjetListViewWithDotation:
         assert "enveloppe_projets" in response.context
         assert response.context["enveloppe_projets"].count() == 1
         assert response.context["enveloppe_projets"].first() == dsil_enveloppe_projet
+
+    def test_list_view_rows_carry_their_bulk_actions(self, user_with_perimetre):
+        """Each row checkbox carries the bulk actions that apply to it, which the
+        bulk actions menu counts; a notified projet carries none."""
+        detr_enveloppe = DetrEnveloppeFactory(perimetre=user_with_perimetre.perimetre)
+        common = {
+            "projet__dossier_ds__perimetre": user_with_perimetre.perimetre,
+            "dotation": Dotation.DETR,
+            "enveloppe": detr_enveloppe,
+        }
+        accepted = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, **common)
+        refused = EnveloppeProjetFactory(status=ProjetStatus.REFUSED, **common)
+        notified = EnveloppeProjetFactory(
+            status=ProjetStatus.ACCEPTED, projet__notified_at=timezone.now(), **common
+        )
+        client = ClientWithLoggedUserFactory(user=user_with_perimetre)
+        url = reverse(
+            "gsl_programmation:programmation-projet-list-dotation",
+            kwargs={"dotation": "DETR", "campagne": default_campagne()},
+        )
+        content = client.get(url).content.decode()
+
+        def actions(enveloppe_projet):
+            checkbox = re.search(
+                rf'<input id="checkbox-{enveloppe_projet.id}"[^>]*>', content
+            ).group(0)
+            return re.search(r'data-actions="([^"]*)"', checkbox).group(1)
+
+        assert actions(accepted) == "generate_accepted"
+        assert actions(refused) == "generate_refus"
+        assert actions(notified) == ""
 
     def test_list_view_renders_import_documents_button(
         self, user_with_perimetre, detr_enveloppe_projet

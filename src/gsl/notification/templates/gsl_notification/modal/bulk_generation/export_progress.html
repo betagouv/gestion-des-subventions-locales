@@ -5,7 +5,7 @@
     hx-trigger="every 2s"
     hx-swap="outerHTML"
     hx-target="this"
-    data-action="documents-generated->checkbox-selection#clearSelection"
+    data-action="documents-generated->bulk-selection#clearSelection"
 {% endblock step_div_attrs %}
 {% block stepper %}
     {% dsfr_stepper current_step_id=total_steps total_steps=total_steps current_step_title="Téléchargement" %}
