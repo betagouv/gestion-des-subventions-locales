@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
-from django.db.models import ProtectedError
+from django.db.models import Prefetch, ProtectedError
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -49,14 +49,21 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
                 "arrete",
                 "lettrenotification",
                 "lettre_et_arrete_signes",
+                "lettrerefus",
+                "lettre_refus_signee",
                 "enveloppe",
                 "annexes",
                 "enveloppe__perimetre",
-                "projet__enveloppeprojet_set",
+                Prefetch(
+                    "projet__enveloppeprojet_set",
+                    queryset=EnveloppeProjet.objects.annotate_notification_status(),
+                ),
                 "projet__enveloppeprojet_set__simulationprojet_set",
                 "projet__enveloppeprojet_set__arrete",
                 "projet__enveloppeprojet_set__lettrenotification",
                 "projet__enveloppeprojet_set__lettre_et_arrete_signes",
+                "projet__enveloppeprojet_set__lettrerefus",
+                "projet__enveloppeprojet_set__lettre_refus_signee",
                 "projet__enveloppeprojet_set__enveloppe",
                 "projet__enveloppeprojet_set__annexes",
                 "projet__dossier_ds__demande_categorie_dsil",
