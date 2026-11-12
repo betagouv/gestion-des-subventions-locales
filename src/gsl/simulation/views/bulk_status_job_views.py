@@ -135,11 +135,6 @@ class BulkStatusJobProgressView(DetailView):
         context["modal_id"] = BULK_STATUS_MODAL_ID
         simulation_projets_to_refresh = self._get_simulation_projets_to_refresh()
         context["simulation_projets_to_refresh"] = simulation_projets_to_refresh
-        context["selectable_ids_list"] = [
-            sp.id
-            for sp in simulation_projets_to_refresh
-            if not sp.enveloppe_projet.projet.has_been_notified
-        ]
         context["columns"] = SIMULATION_TABLE_COLUMNS
         context["dotations"] = Dotation.values
         return context

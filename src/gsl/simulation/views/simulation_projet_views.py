@@ -105,15 +105,6 @@ class SimulationTableCellEditMixin(UpdateView):
         total_amount_granted = self.object.simulation.get_total_amount_granted(
             self._get_projets_queryset_with_filters()
         )
-        selectable_ids_list = list(
-            SimulationProjet.objects.active()
-            .filter(
-                simulation=self.object.simulation,
-                enveloppe_projet__projet__notified_at__isnull=True,
-            )
-            .values_list("id", flat=True)
-        )
-
         context = {
             "simu": self.object,
             "enveloppe_projet": self.object.enveloppe_projet,
@@ -122,7 +113,6 @@ class SimulationTableCellEditMixin(UpdateView):
             "total_amount_granted": total_amount_granted,
             "columns": SIMULATION_TABLE_COLUMNS,
             "dotations": Dotation.values,
-            "selectable_ids_list": selectable_ids_list,
         }
         # We only update the enveloppe summary line when the project is accepted,
         # as it's the only case when the enveloppe amount can be changed
@@ -464,6 +454,10 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
     modal_id = BULK_STATUS_MODAL_ID
     http_method_names = ["post"]
 
+    @staticmethod
+    def applies_to(simulation_projet) -> bool:
+        return not simulation_projet.enveloppe_projet.projet.has_been_notified
+
     def post(self, request, *args, **kwargs):
         target_status = kwargs["status"]
         if target_status not in dict(SimulationProjet.STATUS_CHOICES):
@@ -501,7 +495,7 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
                 )
             )
 
-        if any(sp.enveloppe_projet.projet.has_been_notified for sp in all_projets):
+        if not all(self.applies_to(sp) for sp in all_projets):
             raise Http404(
                 user_message=(
                     "Un ou plusieurs des projets sélectionnés a déjà été notifié "
@@ -627,6 +621,9 @@ class BulkSimulationProjetStatusUpdateView(OpenHtmxModalMixin, TemplateView):
     def _render_simple_modal(self, template_name):
         self.template_name = template_name
         return self.render_to_response(self.get_context_data())
+
+
+BULK_ACTIONS = {"change_status": BulkSimulationProjetStatusUpdateView}
 
 
 @method_decorator(htmx_only, name="dispatch")

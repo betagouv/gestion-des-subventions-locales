@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 
 import pytest
 from django.test import Client
@@ -271,6 +272,8 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         assert "simulation-projet-dotation-form" not in content
         # Should show dotation as text
         assert "DETR" in content
+        # Should NOT be selectable for bulk actions
+        assert f'id="bulk-status-checkbox-{simu.id}"' not in content
 
     def test_non_notified_project_shows_forms(self, client_logged_in, detr_envelope):
         """
@@ -297,6 +300,11 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         assert "simulation-projet-dotation-form" in content
         # Should have the montant edit button
         assert f"edit-montant/{simu.id}/" in content
+        # Should be selectable for the bulk status change
+        assert re.search(
+            rf'id="bulk-status-checkbox-{simu.id}"[^>]*data-actions="change_status"',
+            content,
+        )
 
 
 class TestExportColumnsVisibility:
