@@ -2,13 +2,13 @@ from django import forms
 from django.db import transaction
 from dsfr.forms import DsfrBaseForm
 
-from gsl.notification.models import MODELES
+from gsl.notification.models import GeneratedDocument, ModeleDocument
 from gsl.notification.utils import (
     get_modele_perimetres,
     log_generated_document_action,
     replace_mentions_in_html,
 )
-from gsl.projet.constants import ARRETE, LETTRE, LETTRE_REFUS, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 
 
 class GenerateDotationsDocumentsForm(DsfrBaseForm):
@@ -38,19 +38,19 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
         )
 
         self.dotation_fields = {
-            dp.dotation: {
-                "enveloppe_projet": dp,
-                "fields": DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS[dp.status](
-                    self, dp
+            ep.dotation: {
+                "enveloppe_projet": ep,
+                "fields": DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS[ep.status](
+                    self, ep
                 ).build(),
             }
-            for dp in self.treated_enveloppe_projets
+            for ep in self.treated_enveloppe_projets
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        for dp in self.treated_enveloppe_projets:
-            for fields in self.dotation_fields[dp.dotation]["fields"].values():
+        for ep in self.treated_enveloppe_projets:
+            for fields in self.dotation_fields[ep.dotation]["fields"].values():
                 modele_name = fields["modele"].name
                 skip_name = fields["skip"].name
                 if not cleaned_data.get(skip_name) and not cleaned_data.get(
@@ -58,7 +58,7 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
                 ):
                     self.add_error(
                         modele_name,
-                        f"Sélectionnez un modèle ou cochez la case pour ne pas générer {fields['modele_class'].article_name}.",
+                        f"Sélectionnez un modèle ou cochez la case pour ne pas générer {fields['document_type'].article_name}.",
                     )
         return cleaned_data
 
@@ -66,26 +66,25 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
     def save(self):
         with_qr_code = not self.cleaned_data["hide_qr_code"]
         documents = []
-        for dp in self.treated_enveloppe_projets:
-            for fields in self.dotation_fields[dp.dotation]["fields"].values():
+        for ep in self.treated_enveloppe_projets:
+            for fields in self.dotation_fields[ep.dotation]["fields"].values():
                 if not self.cleaned_data[fields["skip"].name]:
                     documents.append(
                         self._generate_document(
-                            fields["modele_class"],
-                            dp,
+                            ep,
                             self.cleaned_data[fields["modele"].name],
                             with_qr_code,
                         )
                     )
         return documents
 
-    def _generate_document(self, modele_class, enveloppe_projet, modele, with_qr_code):
-        document_class = modele_class.generated_document_class
-        is_creating = not hasattr(enveloppe_projet, modele_class.type)
-        if not is_creating:
-            getattr(enveloppe_projet, modele_class.type).delete()
+    def _generate_document(self, enveloppe_projet, modele, with_qr_code):
+        existing = enveloppe_projet.generated_document(modele.type)
+        if existing:
+            existing.delete()
 
-        document = document_class(
+        document = GeneratedDocument(
+            type=modele.type,
             enveloppe_projet=enveloppe_projet,
             modele=modele,
             created_by=self.user,
@@ -94,7 +93,7 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
         )
         document.save()
         log_generated_document_action(
-            self.user, enveloppe_projet, document_class, is_creating
+            self.user, enveloppe_projet, document, is_creating=existing is None
         )
         return document
 
@@ -107,7 +106,7 @@ class DotationDocumentFields:
     template consumption.
     """
 
-    modeles = []
+    document_types: tuple[GeneratedDocument.Type, ...] = ()
 
     def __init__(self, form: GenerateDotationsDocumentsForm, enveloppe_projet):
         self.form = form
@@ -121,48 +120,44 @@ class DotationDocumentFields:
         if not perimetres:  # if user regional and DETR => no field in widget !
             return {}
 
-        for modele_class in self.modeles:
-            modele_fields = {}
-            modele_bound_field = self._add_modele_field(
-                modele_class,
-                perimetres,
-            )
+        for document_type in self.document_types:
+            modele_bound_field = self._add_modele_field(document_type, perimetres)
             has_modele_document = modele_bound_field.field.queryset.exists()
             skip_bound_field = self._add_skip_field(
-                modele_class,
+                document_type,
                 disabled=not has_modele_document,
             )
-
-            modele_fields["modele"] = modele_bound_field
-            modele_fields["has_modele"] = has_modele_document
-            modele_fields["skip"] = skip_bound_field
-            modele_fields["modele_class"] = modele_class
-            widget_fields[modele_class.type] = modele_fields
+            widget_fields[document_type] = {
+                "modele": modele_bound_field,
+                "has_modele": has_modele_document,
+                "skip": skip_bound_field,
+                "document_type": document_type,
+            }
 
         return widget_fields
 
-    def _add_modele_field(self, modele_class, perimetres):
-        name = f"modele_{modele_class.type}_{self.dotation}"
-        existing_document = getattr(self.enveloppe_projet, modele_class.type, None)
+    def _add_modele_field(self, document_type, perimetres):
+        name = f"modele_{document_type}_{self.dotation}"
+        existing_document = self.enveloppe_projet.generated_document(document_type)
         self.form.fields[name] = forms.ModelChoiceField(
-            queryset=modele_class.objects.filter(
-                dotation=self.dotation, perimetre__in=perimetres
+            queryset=ModeleDocument.objects.filter(
+                type=document_type, dotation=self.dotation, perimetre__in=perimetres
             ),
             required=False,
             empty_label="Sélectionner un modèle",
-            label=modele_class.verbose_name().capitalize(),
+            label=document_type.modele_verbose_name.capitalize(),
             initial=existing_document.modele if existing_document else None,
             widget=forms.Select(attrs={"data-skip-document-toggle-target": "select"}),
         )
         return self.form[name]
 
-    def _add_skip_field(self, modele_class, disabled: bool):
+    def _add_skip_field(self, document_type, disabled: bool):
         # disabled=True both forces cleaned_data to the initial value (True),
         # ignoring whatever is posted, and renders the checkbox non-interactive.
-        name = f"skip_{modele_class.type}_{self.dotation}"
+        name = f"skip_{document_type}_{self.dotation}"
         self.form.fields[name] = forms.BooleanField(
             required=False,
-            label=f"Ne pas générer {modele_class.article_name}",
+            label=f"Ne pas générer {document_type.article_name}",
             initial=disabled,
             disabled=disabled,
             widget=forms.CheckboxInput(
@@ -176,11 +171,11 @@ class DotationDocumentFields:
 
 
 class AcceptedDotationDocumentFields(DotationDocumentFields):
-    modeles = [MODELES[modele] for modele in [ARRETE, LETTRE]]
+    document_types = (GeneratedDocument.Type.ARRETE, GeneratedDocument.Type.LETTRE)
 
 
 class RefusedOrDismissedDotationDocumentFields(DotationDocumentFields):
-    modeles = [MODELES[LETTRE_REFUS]]
+    document_types = (GeneratedDocument.Type.LETTRE_REFUS,)
 
 
 DOTATION_STATUS_TO_DOCUMENT_FIELDS_CLASS = {

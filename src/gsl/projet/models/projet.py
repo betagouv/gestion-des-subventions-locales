@@ -18,10 +18,7 @@ from dn.sync.models import Dossier, Dotation
 from gsl.core.campagne import CAMPAGNES
 from gsl.core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl.historique.models import ProjetAction
-from gsl.notification.models import (
-    GENERATED_DOCUMENTS,
-    UPLOADED_DOCUMENTS,
-)
+from gsl.notification.models import GeneratedDocument, UploadedDocument
 from gsl.programmation.models import Enveloppe
 
 from ..constants import MIN_DEMANDE_MONTANT_FOR_AVIS_DETR, ProjetStatus
@@ -185,9 +182,11 @@ class ProjetQuerySet(models.QuerySet):
             Exists(
                 EnveloppeProjet.objects.filter(projet=OuterRef("pk")).filter(
                     Q(status=ProjetStatus.PROCESSING)
-                    | Q(
-                        status=ProjetStatus.ACCEPTED,
-                        lettre_et_arrete_signes__isnull=True,
+                    | (
+                        Q(status=ProjetStatus.ACCEPTED)
+                        & ~Q(
+                            uploaded_documents__type=UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
+                        )
                     )
                 )
             )
@@ -458,37 +457,17 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def generated_documents(self):
-        documents = [
-            document
-            for model in GENERATED_DOCUMENTS.values()
-            for document in model.objects.filter(
-                enveloppe_projet__projet=self
-            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
-        ]
-        return sorted(
-            documents,
-            key=lambda d: (
-                Dotation.values.index(d.enveloppe_projet.dotation),
-                list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
-            ),
-        )
+        documents = GeneratedDocument.objects.filter(
+            enveloppe_projet__projet=self
+        ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
+        return sorted(documents, key=_document_display_order)
 
     @property
     def imported_documents(self):
-        documents = [
-            document
-            for model in UPLOADED_DOCUMENTS.values()
-            for document in model.objects.filter(
-                enveloppe_projet__projet=self
-            ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
-        ]
-        return sorted(
-            documents,
-            key=lambda d: (
-                Dotation.values.index(d.enveloppe_projet.dotation),
-                list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
-            ),
-        )
+        documents = UploadedDocument.objects.filter(
+            enveloppe_projet__projet=self
+        ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
+        return sorted(documents, key=_document_display_order)
 
     @property
     def areas_and_contracts_provided_by_instructor(self) -> List[str]:
@@ -517,6 +496,13 @@ _GENERATED_DOCUMENT_SELECT_RELATED = (
 
 # Used for dotation column
 _UPLOADED_DOCUMENT_SELECT_RELATED = ("enveloppe_projet__enveloppe",)
+
+
+def _document_display_order(document):
+    return (
+        Dotation.values.index(document.enveloppe_projet.dotation),
+        list(type(document).Type).index(document.type),
+    )
 
 
 def projet_status_from_dotation_statuses(

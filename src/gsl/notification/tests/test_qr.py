@@ -6,7 +6,7 @@ import pytest
 from PIL import Image
 
 from dn.sync.models import Dotation
-from gsl.notification.models import GENERATED_DOCUMENTS
+from gsl.notification.models import GeneratedDocument
 from gsl.notification.qr.codec import (
     QrPayload,
     build_payload,
@@ -14,15 +14,17 @@ from gsl.notification.qr.codec import (
     generate_qr_png_data_uri,
     parse_payload,
 )
-from gsl.projet.constants import ARRETE, LETTRE
 
 
 def test_build_payload_format():
-    assert build_payload(123456, Dotation.DETR, ARRETE, 1) == "GSL1:123456:D:A:1"
+    assert (
+        build_payload(123456, Dotation.DETR, GeneratedDocument.Type.ARRETE, 1)
+        == "GSL1:123456:D:A:1"
+    )
 
 
 @pytest.mark.parametrize("dotation", [Dotation.DETR, Dotation.DSIL])
-@pytest.mark.parametrize("document_type", GENERATED_DOCUMENTS)
+@pytest.mark.parametrize("document_type", GeneratedDocument.Type)
 def test_build_and_parse_roundtrip(dotation, document_type):
     payload = build_payload(987654, dotation, document_type, 3)
     assert parse_payload(payload) == QrPayload(
@@ -35,7 +37,7 @@ def test_build_and_parse_roundtrip(dotation, document_type):
 
 def test_build_payload_rejects_bad_dotation():
     with pytest.raises(ValueError):
-        build_payload(1, "ZZZZ", ARRETE, 1)
+        build_payload(1, "ZZZZ", GeneratedDocument.Type.ARRETE, 1)
 
 
 def test_build_payload_rejects_bad_document_type():
@@ -45,7 +47,7 @@ def test_build_payload_rejects_bad_document_type():
 
 def test_build_payload_rejects_bad_page():
     with pytest.raises(ValueError):
-        build_payload(1, Dotation.DETR, ARRETE, 0)
+        build_payload(1, Dotation.DETR, GeneratedDocument.Type.ARRETE, 0)
 
 
 @pytest.mark.parametrize(
@@ -67,7 +69,7 @@ def test_parse_payload_tolerates_whitespace():
     assert parse_payload("  GSL1:42:S:L:2  \n") == QrPayload(
         ds_number=42,
         dotation=Dotation.DSIL,
-        document_type=LETTRE,
+        document_type=GeneratedDocument.Type.LETTRE,
         page=2,
     )
 
@@ -133,7 +135,7 @@ def test_qr_roundtrip_through_generated_pdf():
         assert payloads[0] == QrPayload(
             ds_number=7654321,
             dotation=enveloppe_projet.dotation,
-            document_type=document.document_type,
+            document_type=document.type,
             page=page_idx,
         )
 

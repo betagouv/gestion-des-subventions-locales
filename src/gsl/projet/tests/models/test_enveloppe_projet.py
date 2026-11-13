@@ -15,6 +15,7 @@ from gsl.core.tests.factories import (
     PerimetreRegionalFactory,
 )
 from gsl.historique.models import ProjetAction
+from gsl.notification.models import GeneratedDocument
 from gsl.notification.tests.factories import (
     AnnexeFactory,
     ArreteFactory,
@@ -834,12 +835,11 @@ def test_set_back_status_to_processing_without_ds_leaves_documents_on_the_former
 
     nouveau = enveloppe_projet.set_back_status_to_processing_without_ds()
 
-    enveloppe_projet.refresh_from_db()
-    assert hasattr(enveloppe_projet, "arrete")
-    assert hasattr(enveloppe_projet, "lettrenotification")
-    nouveau.refresh_from_db()
-    assert not hasattr(nouveau, "arrete")
-    assert not hasattr(nouveau, "lettrenotification")
+    assert {doc.type for doc in enveloppe_projet.generated_documents.all()} == {
+        GeneratedDocument.Type.ARRETE,
+        GeneratedDocument.Type.LETTRE,
+    }
+    assert not nouveau.generated_documents.exists()
 
 
 @pytest.mark.parametrize(("status"), [ProjetStatus.PROCESSING])
@@ -1038,6 +1038,38 @@ def test_documents_summary_lettre_refus_signee_hides_lettre_refus_generee():
     LettreRefusFactory(enveloppe_projet=enveloppe_projet)
 
     assert enveloppe_projet.documents_summary == ["1 lettre de refus signée"]
+
+
+def test_documents_summary_lists_signed_document_before_annexes():
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
+    AnnexeFactory.create_batch(2, enveloppe_projet=enveloppe_projet)
+    LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+
+    assert enveloppe_projet.documents_summary == [
+        "1 lettre et arrêté signés",
+        "2 annexes",
+    ]
+
+
+def test_documents_summary_lettre_generee_alone():
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
+    LettreNotificationFactory(enveloppe_projet=enveloppe_projet)
+
+    assert enveloppe_projet.documents_summary == ["1 lettre"]
+
+
+def test_documents_summary_reads_prefetched_documents(django_assert_num_queries):
+    enveloppe_projet = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
+    ArreteFactory(enveloppe_projet=enveloppe_projet)
+    AnnexeFactory(enveloppe_projet=enveloppe_projet)
+    prefetched = EnveloppeProjet.objects.prefetch_related(
+        "generated_documents", "uploaded_documents"
+    ).get(pk=enveloppe_projet.pk)
+
+    with django_assert_num_queries(0):
+        summary = prefetched.documents_summary
+
+    assert summary == ["1 arrêté", "1 annexe"]
 
 
 # -- programmation --

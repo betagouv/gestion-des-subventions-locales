@@ -11,20 +11,13 @@ from django.db.models import F
 from django.utils import timezone
 
 from gsl.notification.models import (
-    UPLOADED_DOCUMENTS,
-    Annexe,
     DocumentImportJob,
-    LettreEtArreteSignes,
-    LettreRefusSignee,
-    ModeleArrete,
-    ModeleLettreNotification,
+    ModeleDocument,
+    UploadedDocument,
 )
 from gsl.projet.models import EnveloppeProjet
 
 logger = logging.getLogger(__name__)
-
-UPLOADED_DOCUMENT_MODELS = (LettreEtArreteSignes, Annexe, LettreRefusSignee)
-LOGO_SCANNED_MODELS = (ModeleArrete, ModeleLettreNotification)
 
 
 @shared_task
@@ -137,11 +130,7 @@ def scan_all_uploaded_documents():
     scanned = 0
     infected = 0
 
-    models_and_fields = [
-        (model_class, "file") for model_class in UPLOADED_DOCUMENTS.values()
-    ] + [(Model, "logo") for Model in LOGO_SCANNED_MODELS]
-
-    for Model, field_name in models_and_fields:
+    for Model, field_name in ((UploadedDocument, "file"), (ModeleDocument, "logo")):
         for instance in Model.objects.all().iterator():
             try:
                 file_field = getattr(instance, field_name)

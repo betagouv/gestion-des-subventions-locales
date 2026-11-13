@@ -447,7 +447,7 @@ def _render_document_as_pdf(document: GeneratedDocument, qr_css_rules) -> bytes:
     html = render_to_string(
         "gsl_notification/pdf/document.html",
         {
-            "doc_title": document.verbose_name(),
+            "doc_title": document.verbose_name,
             "logo": get_logo_base64(document.modele.logo.url),
             "alt_logo": document.modele.logo_alt_text,
             "top_right_text": document.modele.top_right_text.strip(),
@@ -471,11 +471,9 @@ def _build_qr_css_rules(document: GeneratedDocument, page_count: int) -> str:
     """Return CSS with one ``@page :nth(K)`` rule per page, each carrying its QR."""
     ds_number = document.enveloppe_projet.dossier_ds.ds_number
     dotation = document.enveloppe_projet.dotation
-    document_type = document.document_type
-
     rules = []
     for page in range(1, page_count + 1):
-        payload = build_payload(ds_number, dotation, document_type, page)
+        payload = build_payload(ds_number, dotation, document.type, page)
         data_uri = generate_qr_png_data_uri(payload)
         rules.append(
             f"@page :nth({page}) {{ @bottom-left {{ content: url('{data_uri}'); }} }}"
@@ -483,20 +481,19 @@ def _build_qr_css_rules(document: GeneratedDocument, page_count: int) -> str:
     return "\n".join(rules)
 
 
-def log_generated_document_action(user, enveloppe_projet, document_class, is_creating):
+def log_generated_document_action(user, enveloppe_projet, document, is_creating):
     action_type = (
         ProjetAction.TYPE_DOC_GENERATED
         if is_creating
         else ProjetAction.TYPE_DOC_MODIFIED
     )
-    doc_label = document_class.verbose_name()
     ProjetAction.objects.create(
         projet=enveloppe_projet.projet,
         action_type=action_type,
         actor=user,
         source=ProjetAction.SOURCE_TURGOT,
         dotation=enveloppe_projet.dotation,
-        document_name=doc_label,
+        document_name=document.verbose_name,
     )
 
 

@@ -5,18 +5,15 @@ from django.views.decorators.http import require_GET
 
 from gsl.core.exceptions import Http404
 from gsl.core.s3 import get_s3_object
-from gsl.notification.models import UPLOADED_DOCUMENTS
+from gsl.notification.models import UploadedDocument
 from gsl.projet.models import Projet
 
 
 @require_GET
-def download_uploaded_document(request, document_type, document_id, download=True):
-    doc_class = UPLOADED_DOCUMENTS.get(document_type)
-    if doc_class is None:
-        raise Http404(user_message="Le type de document sélectionné n'existe pas.")
+def download_uploaded_document(request, document_id, download=True):
     doc = get_object_or_404(
-        doc_class.objects.filter(
-            enveloppe_projet__projet__in=Projet.objects.active().for_user(request.user)
+        UploadedDocument.objects.filter(
+            enveloppe_projet__projet__in=Projet.objects.active().for_user(request.user),
         ),
         id=document_id,
     )
@@ -44,5 +41,5 @@ def download_uploaded_document(request, document_type, document_id, download=Tru
 
 
 @require_GET
-def view_uploaded_document(request, document_type, document_id):
-    return download_uploaded_document(request, document_type, document_id, False)
+def view_uploaded_document(request, document_id):
+    return download_uploaded_document(request, document_id, False)
