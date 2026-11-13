@@ -567,4 +567,4 @@ def test_get_projet_queryset_calls_prefetch(req, simulation, create_simulation_p
         queryset = _get_filtered_projets(req, simulation, filter_params)
 
         assert queryset.exists()
-        assert mock_prefetch.call_count == 2
+        assert mock_prefetch.call_count == 3

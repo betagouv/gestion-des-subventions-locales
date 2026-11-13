@@ -244,7 +244,6 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
             {
                 "user": self.request.user,
                 "dotation": self.kwargs["dotation"],
-                "request": self.request,
             }
         )
         return kwargs

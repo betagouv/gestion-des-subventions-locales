@@ -36,7 +36,7 @@
     {% include "includes/_enveloppe_summary.html" with hide_actions=True %}
     {% include "includes/_projet_list_filters.html" %}
 
-    <div id="simulation-table-wrapper" data-controller="checkbox-selection">
+    <div id="simulation-table-wrapper" data-controller="bulk-selection">
         {% include "includes/_simulation_bulk_actions_toolbar.html" %}
         <div class="fr-table fr-table--multiline fr-table--sm fr-table--no-caption gsl-projet-table">
             <div class="fr-table__wrapper">
@@ -50,10 +50,10 @@
                                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                                             <input id="bulk-status-page-checkbox"
                                                    type="checkbox"
-                                                   data-checkbox-selection-target="pageCheckbox"
-                                                   data-action="change->checkbox-selection#togglePageSelection">
+                                                   data-bulk-selection-target="allCheckbox"
+                                                   data-action="change->bulk-selection#toggleAll">
                                             <label class="fr-label" for="bulk-status-page-checkbox">
-                                                <span class="fr-sr-only">Sélectionner tous les projets de la page</span>
+                                                <span class="fr-sr-only">Sélectionner tous les projets</span>
                                             </label>
                                         </div>
                                     </th>
@@ -71,7 +71,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for projet in page_obj.object_list %}
+                                {% for projet in object_list %}
                                     {% with projet.enveloppe_projet.0 as enveloppe_projet %}
                                         {% with enveloppe_projet.simu.0 as simu %}
                                             {% include "includes/_simulation_detail_row.html" with simu=simu projet=projet enveloppe_projet=enveloppe_projet %}
@@ -86,9 +86,6 @@
                         </table>
                     </div>
                 </div>
-            </div>
-            <div class="fr-table__footer">
-                <div class="fr-table__footer--middle">{% dsfr_pagination page_obj %}</div>
             </div>
         </div>
 

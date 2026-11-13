@@ -21,6 +21,9 @@ from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.historique.models import ProjetAction
 
 from ..constants import (
+    ARRETE,
+    LETTRE,
+    LETTRE_REFUS,
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
     NotificationStatus,
     ProjetStatus,
@@ -63,18 +66,6 @@ class EnveloppeProjetQuerySet(models.QuerySet):
 
     def to_notify(self):
         return self.filter(projet__in=Projet.objects.to_notify())
-
-    def can_generate_accepted_documents(self):
-        return self.programmees().filter(
-            status=ProjetStatus.ACCEPTED,
-            projet__notified_at__isnull=True,
-        )
-
-    def can_generate_refus_documents(self):
-        return self.programmees().filter(
-            status__in=ProjetStatus.NEGATIVE,
-            projet__notified_at__isnull=True,
-        )
 
     def annotate_notification_status(self):
         return self.annotate(
@@ -436,6 +427,14 @@ class EnveloppeProjet(BaseModel):
     @property
     def refus(self):
         return self.lettrerefus
+
+    @property
+    def decision_documents(self) -> frozenset[str]:
+        if self.status == ProjetStatus.ACCEPTED:
+            return frozenset({ARRETE, LETTRE})
+        if self.status in ProjetStatus.NEGATIVE:
+            return frozenset({LETTRE_REFUS})
+        return frozenset()
 
     @cached_property
     def documents_summary(self):

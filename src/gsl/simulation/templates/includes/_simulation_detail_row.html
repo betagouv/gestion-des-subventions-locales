@@ -1,17 +1,18 @@
-{% load gsl_filters %}
+{% load gsl_filters simulation_filters %}
 
-{% with row_url=simu.get_absolute_url %}
+{% with row_url=simu.get_absolute_url actions=simu|bulk_actions %}
     <tr id="simulation-{{ simu.pk }}"
         hx-swap-oob="true"
         {% if enveloppe_projet.other_dotations|length > 0 %}class="gsl-projet-table__row--double-dotation"{% endif %}>
         <td class="gsl-projet-table__cell--checkbox">
-            {% if simu.id in selectable_ids_list %}
+            {% if actions %}
                 <div class="fr-checkbox-group fr-checkbox-group--sm">
                     <input id="bulk-status-checkbox-{{ simu.pk }}"
                            type="checkbox"
                            value="{{ simu.pk }}"
-                           data-checkbox-selection-target="rowCheckbox"
-                           data-action="change->checkbox-selection#toggleRow">
+                           data-actions="{{ actions }}"
+                           data-bulk-selection-target="rowCheckbox"
+                           data-action="change->bulk-selection#refresh">
                     <label class="fr-label" for="bulk-status-checkbox-{{ simu.pk }}">
                         <span class="fr-sr-only">Sélectionner le projet N°{{ projet.dossier_ds.ds_number }}</span>
                     </label>
