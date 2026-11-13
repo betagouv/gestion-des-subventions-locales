@@ -15,11 +15,7 @@ from gsl.core.tests.factories import (
     PerimetreFactory,
 )
 from gsl.historique.models import ProjetAction
-from gsl.notification.models import (
-    DocumentImportJob,
-    LettreEtArreteSignes,
-    LettreRefusSignee,
-)
+from gsl.notification.models import DocumentImportJob, UploadedDocument
 from gsl.notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,
@@ -27,18 +23,16 @@ from gsl.notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl.notification.utils import generate_pdf_for_generated_document
-from gsl.projet.constants import (
-    ANNEXE,
-    LETTRE_ET_ARRETE_SIGNES,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
     EnveloppeProjetFactory,
 )
 
-LETTRE_REFUS_SIGNEE = LettreRefusSignee.document_type
+LETTRE_ET_ARRETE_SIGNES = UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
+LETTRE_REFUS_SIGNEE = UploadedDocument.Type.LETTRE_REFUS_SIGNEE
+ANNEXE = UploadedDocument.Type.ANNEXE
 
 pytestmark = pytest.mark.django_db
 
@@ -159,7 +153,7 @@ def test_analyze_without_qr_code_asks_for_the_document_type(
     # Nothing has been chosen yet, so the step must not open on an error.
     assert not form.is_bound
     assert not form.errors
-    assert not enveloppe_projet.annexes.exists()
+    assert not enveloppe_projet.uploaded_documents.filter(type=ANNEXE).exists()
 
     key = response.context["key"]
     assert key.startswith(DocumentImportJob.TEMP_S3_PREFIX)
@@ -220,7 +214,7 @@ def test_import_is_open_while_another_dotation_is_processing(
         headers=HTMX,
     )
     assert response.status_code == 200
-    assert LettreRefusSignee.objects.filter(enveloppe_projet=detr).exists()
+    assert detr.uploaded_documents.filter(type=LETTRE_REFUS_SIGNEE).exists()
 
 
 @pytest.mark.parametrize("url", (_analyze_url, _attach_url))
@@ -313,7 +307,9 @@ def test_analyze_attaches_the_document_read_from_its_qr_code(
         response.templates[0].name
         == "gsl_notification/modal/projet_import/summary_step.html"
     )
-    assert enveloppe_projet.lettre_et_arrete_signes is not None
+    assert enveloppe_projet.uploaded_documents.filter(
+        type=LETTRE_ET_ARRETE_SIGNES
+    ).exists()
     assert ProjetAction.objects.filter(
         projet=projet, action_type=ProjetAction.TYPE_DOC_UPLOADED
     ).exists()
@@ -351,11 +347,11 @@ def test_analyze_refuses_a_scan_belonging_to_another_projet(
 
     assert response.status_code == 200
     assert "9999999" in response.context["form"].errors["file"][0]
-    assert not LettreEtArreteSignes.objects.filter(
-        enveloppe_projet=target_enveloppe_projet
+    assert not UploadedDocument.objects.filter(
+        type=LETTRE_ET_ARRETE_SIGNES, enveloppe_projet=target_enveloppe_projet
     ).exists()
-    assert not LettreEtArreteSignes.objects.filter(
-        enveloppe_projet=other_enveloppe_projet
+    assert not UploadedDocument.objects.filter(
+        type=LETTRE_ET_ARRETE_SIGNES, enveloppe_projet=other_enveloppe_projet
     ).exists()
 
 
@@ -395,11 +391,11 @@ def test_analyze_attaches_what_belongs_here_and_reports_the_rest(
         response.templates[0].name
         == "gsl_notification/modal/projet_import/summary_step.html"
     )
-    assert LettreEtArreteSignes.objects.filter(
-        enveloppe_projet=target_enveloppe_projet
+    assert UploadedDocument.objects.filter(
+        type=LETTRE_ET_ARRETE_SIGNES, enveloppe_projet=target_enveloppe_projet
     ).exists()
-    assert not LettreEtArreteSignes.objects.filter(
-        enveloppe_projet=other_enveloppe_projet
+    assert not UploadedDocument.objects.filter(
+        type=LETTRE_ET_ARRETE_SIGNES, enveloppe_projet=other_enveloppe_projet
     ).exists()
 
     report = response.context["report"]
@@ -433,11 +429,7 @@ def test_attach_imports_the_document(
     # it replaces the step the form posted from rather than nesting inside it.
     assert 'id="upload-document-modal-step"' in response.content.decode()
 
-    if doc_type == LETTRE_ET_ARRETE_SIGNES:
-        document = enveloppe_projet.lettre_et_arrete_signes
-    else:
-        assert enveloppe_projet.annexes.count() == 1
-        document = enveloppe_projet.annexes.first()
+    document = enveloppe_projet.uploaded_documents.get(type=doc_type)
 
     assert document.file.name.startswith(
         f"{doc_type}/enveloppe_projet_{enveloppe_projet.id}/test"
@@ -503,7 +495,7 @@ def test_attach_refuses_a_type_the_dotation_status_forbids(
 
     assert response.status_code == 200
     assert "document" in response.context["form"].errors
-    assert not LettreEtArreteSignes.objects.exists()
+    assert not UploadedDocument.objects.filter(type=LETTRE_ET_ARRETE_SIGNES).exists()
     # The agent fixes his choice on the document he already uploaded.
     assert f'name="key" value="{key}"' in response.content.decode()
 
@@ -522,7 +514,7 @@ def test_attach_imports_a_lettre_refus_signee(
     )
 
     assert response.status_code == 200
-    assert enveloppe_projet.lettre_refus_signee is not None
+    assert enveloppe_projet.uploaded_documents.filter(type=LETTRE_REFUS_SIGNEE).exists()
 
 
 def test_attach_out_of_perimetre_is_404(
@@ -549,9 +541,9 @@ def test_uploaded_document_download_url_with_correct_perimetre_and_without_arret
 ):
     url = reverse(
         "notification:uploaded-document-download",
-        kwargs={"document_type": doc_type, "document_id": 1000},
+        kwargs={"document_id": 1000},
     )
-    assert url == f"/notification/document-televerse/{doc_type}/1000/download/"
+    assert url == "/notification/document-televerse/1000/download/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -566,7 +558,7 @@ def test_uploaded_document_download_url_with_correct_perimetre_and_with_arrete(
 ):
     doc = factory(enveloppe_projet=enveloppe_projet)
     url = doc.get_download_url()
-    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
+    assert url == f"/notification/document-televerse/{doc.id}/download/"
 
     # Mock boto3.client().get_object
     with patch("boto3.client") as mock_boto_client:
@@ -592,7 +584,7 @@ def test_uploaded_document_download_url_without_correct_perimetre_and_without_ar
 ):
     doc = factory()
     url = doc.get_download_url()
-    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/download/"
+    assert url == f"/notification/document-televerse/{doc.id}/download/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -606,9 +598,9 @@ def test_uploaded_document_view_url_with_correct_perimetre_and_without_arrete(
 ):
     url = reverse(
         "notification:uploaded-document-view",
-        kwargs={"document_type": doc_type, "document_id": 1000},
+        kwargs={"document_id": 1000},
     )
-    assert url == f"/notification/document-televerse/{doc_type}/1000/view/"
+    assert url == "/notification/document-televerse/1000/view/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -622,6 +614,6 @@ def test_uploaded_document_view_url_without_correct_perimetre_and_without_arrete
 ):
     doc = factory()
     url = doc.get_view_url()
-    assert url == f"/notification/document-televerse/{doc_type}/{doc.id}/view/"
+    assert url == f"/notification/document-televerse/{doc.id}/view/"
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404

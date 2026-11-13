@@ -16,12 +16,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
-from gsl.notification.models import (
-    Annexe,
-    Arrete,
-    LettreEtArreteSignes,
-    LettreNotification,
-)
+from gsl.notification.models import GeneratedDocument, UploadedDocument
 from gsl.notification.tests.factories import (
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
@@ -282,17 +277,17 @@ class TestMergeDocumentsIntoPdf:
 
     @pytest.fixture
     def mock_annexe(self):
-        """Create a mock Annexe (UploadedDocument)."""
-        annexe = Mock(spec=Annexe)
-        annexe.__class__ = Annexe
+        annexe = Mock(spec=UploadedDocument)
+        annexe.__class__ = UploadedDocument
+        annexe.type = UploadedDocument.Type.ANNEXE
         annexe.file.name = "test_annexe.pdf"
         return annexe
 
     @pytest.fixture
     def mock_arrete_signe(self):
-        """Create a mock LettreEtArreteSignes (UploadedDocument)."""
-        arrete_signe = Mock(spec=LettreEtArreteSignes)
-        arrete_signe.__class__ = LettreEtArreteSignes
+        arrete_signe = Mock(spec=UploadedDocument)
+        arrete_signe.__class__ = UploadedDocument
+        arrete_signe.type = UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
         arrete_signe.file.name = "test_arrete_signe.pdf"
         return arrete_signe
 
@@ -452,13 +447,15 @@ class TestMergeGeneratedDocumentsIntoPdf:
 
     @pytest.fixture
     def mock_arrete(self):
-        arrete = Mock(spec=Arrete)
+        arrete = Mock(spec=GeneratedDocument)
+        arrete.type = GeneratedDocument.Type.ARRETE
         arrete.with_qr_code = True
         return arrete
 
     @pytest.fixture
     def mock_lettre(self):
-        lettre = Mock(spec=LettreNotification)
+        lettre = Mock(spec=GeneratedDocument)
+        lettre.type = GeneratedDocument.Type.LETTRE
         lettre.with_qr_code = False
         return lettre
 

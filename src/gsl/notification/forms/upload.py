@@ -9,7 +9,7 @@ from django.core.files.storage import default_storage
 from django.utils.text import get_valid_filename
 from dsfr.forms import DsfrBaseForm
 
-from gsl.notification.models import UPLOADED_DOCUMENTS, DocumentImportJob
+from gsl.notification.models import DocumentImportJob, UploadedDocument
 from gsl.notification.tasks import run_document_import_job
 from gsl.notification.validators import document_file_validator
 from gsl.projet.constants import ProjetStatus
@@ -176,14 +176,15 @@ class ManualDocumentAttachForm(DsfrBaseForm, forms.Form):
         return EnveloppeProjet.objects.for_dotation(dotation).get(projet=self.projet)
 
     @cached_property
-    def document_class(self):
+    def document_type(self) -> str:
         document_type, _ = self.cleaned_data["document"].split("-")
-        return UPLOADED_DOCUMENTS[document_type]
+        return document_type
 
     def save(self, user):
         key = self.cleaned_data["key"]
         with default_storage.open(key) as parked:
-            document = self.document_class.objects.create(
+            document = UploadedDocument.objects.create(
+                type=self.document_type,
                 enveloppe_projet=self.enveloppe_projet,
                 created_by=user,
                 file=File(parked, name=os.path.basename(key)),
@@ -201,16 +202,23 @@ def uploadable_document_choices(projet) -> list[tuple[str, str]]:
     enveloppe_projets = projet.enveloppeprojet_set.filter(
         status__in=ProjetStatus.FINAL
     ).order_by("enveloppe__dotation")
+    enveloppe_projets = enveloppe_projets.prefetch_related("uploaded_documents")
     for enveloppe_projet in enveloppe_projets:
         dotation = enveloppe_projet.dotation
-        for model in UPLOADED_DOCUMENTS.values():
-            if enveloppe_projet.status not in model.required_enveloppe_projet_statuses:
+        uploaded_types = {doc.type for doc in enveloppe_projet.uploaded_documents.all()}
+        for document_type in UploadedDocument.Type:
+            if (
+                enveloppe_projet.status
+                not in document_type.required_enveloppe_projet_statuses
+            ):
                 continue
-            can_upload = model.can_upload(enveloppe_projet)
+            can_upload = (
+                document_type.allow_multiple or document_type not in uploaded_types
+            )
             choices.append(
                 (
-                    (f"{model.document_type}-{dotation}" if can_upload else ""),
-                    f"{model.verbose_name()} {dotation.upper()}",
+                    (f"{document_type}-{dotation}" if can_upload else ""),
+                    f"{document_type.label} {dotation.upper()}",
                 )
             )
     return choices

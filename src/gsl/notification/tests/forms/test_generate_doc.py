@@ -6,20 +6,13 @@ from django.test import override_settings
 from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory, PerimetreRegionalFactory
 from gsl.notification.forms.generate_doc import GenerateDotationsDocumentsForm
-from gsl.notification.models import (
-    Arrete,
-    LettreNotification,
-)
+from gsl.notification.models import GeneratedDocument
 from gsl.notification.tests.factories import (
     ArreteFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import (
-    ARRETE,
-    LETTRE,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 
 # GenerateDotationsDocumentsForm -------------------------------------
@@ -61,7 +54,10 @@ def test_generate_accepted_dotations_documents_form_has_no_detr_field_for_region
     form = GenerateDotationsDocumentsForm(data, projet=projet, user=user)
 
     assert form.dotation_fields[Dotation.DETR]["fields"] == {}
-    assert set(form.dotation_fields[Dotation.DSIL]["fields"]) == {ARRETE, LETTRE}
+    assert set(form.dotation_fields[Dotation.DSIL]["fields"]) == {
+        GeneratedDocument.Type.ARRETE,
+        GeneratedDocument.Type.LETTRE,
+    }
     assert f"modele_arrete_{Dotation.DETR}" not in form.fields
     assert form.is_valid(), form.errors
 
@@ -90,8 +86,8 @@ def test_generate_accepted_dotations_documents_form_forces_skip_when_no_modele()
     form = GenerateDotationsDocumentsForm({}, projet=projet, user=user)
 
     fields = form.dotation_fields[Dotation.DETR]["fields"]
-    assert fields[ARRETE]["has_modele"] is False
-    assert fields[LETTRE]["has_modele"] is False
+    assert fields[GeneratedDocument.Type.ARRETE]["has_modele"] is False
+    assert fields[GeneratedDocument.Type.LETTRE]["has_modele"] is False
     assert form.fields[f"skip_arrete_{Dotation.DETR}"].disabled
     assert form.fields[f"skip_lettre_{Dotation.DETR}"].disabled
 
@@ -136,10 +132,11 @@ def test_generate_accepted_dotations_documents_form_creates_documents():
     documents = form.save()
 
     assert len(documents) == 2
-    enveloppe_projet.refresh_from_db()
-    assert enveloppe_projet.arrete.modele == modele_arrete
-    assert enveloppe_projet.arrete.created_by == user
-    assert enveloppe_projet.lettrenotification.modele == modele_lettre
+    arrete = enveloppe_projet.generated_document(GeneratedDocument.Type.ARRETE)
+    lettre = enveloppe_projet.generated_document(GeneratedDocument.Type.LETTRE)
+    assert arrete.modele == modele_arrete
+    assert arrete.created_by == user
+    assert lettre.modele == modele_lettre
 
 
 @pytest.mark.django_db
@@ -159,10 +156,9 @@ def test_generate_accepted_dotations_documents_form_skip_prevents_creation():
     assert form.is_valid(), form.errors
     form.save()
 
-    assert Arrete.objects.filter(enveloppe_projet=enveloppe_projet).exists()
-    assert not LettreNotification.objects.filter(
-        enveloppe_projet=enveloppe_projet
-    ).exists()
+    assert {doc.type for doc in enveloppe_projet.generated_documents.all()} == {
+        GeneratedDocument.Type.ARRETE
+    }
 
 
 @pytest.mark.django_db
@@ -185,10 +181,12 @@ def test_generate_accepted_dotations_documents_form_overwrites_existing_document
     assert form.is_valid(), form.errors
     form.save()
 
-    assert Arrete.objects.filter(enveloppe_projet=enveloppe_projet).count() == 1
-    enveloppe_projet.refresh_from_db()
-    assert enveloppe_projet.arrete.pk != existing.pk
-    assert enveloppe_projet.arrete.modele == new_modele
+    arretes = enveloppe_projet.generated_documents.filter(
+        type=GeneratedDocument.Type.ARRETE
+    )
+    assert arretes.count() == 1
+    assert arretes.get().pk != existing.pk
+    assert arretes.get().modele == new_modele
 
 
 @pytest.mark.django_db

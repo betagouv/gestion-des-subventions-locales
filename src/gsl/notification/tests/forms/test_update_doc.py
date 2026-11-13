@@ -2,7 +2,8 @@ import pytest
 
 from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory
-from gsl.notification.forms.update_doc import ArreteForm, LettreNotificationForm
+from gsl.notification.forms.update_doc import GeneratedDocumentForm
+from gsl.notification.models import GeneratedDocument
 from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
@@ -14,18 +15,15 @@ from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 
 @pytest.mark.parametrize(
-    "form_class, modele_factory",
-    (
-        (ArreteForm, ModeleArreteFactory),
-        (LettreNotificationForm, ModeleLettreNotificationFactory),
-    ),
+    "modele_factory",
+    (ModeleArreteFactory, ModeleLettreNotificationFactory),
 )
 @pytest.mark.parametrize(
     "dotation",
     (Dotation.DETR, Dotation.DSIL),
 )
 @pytest.mark.django_db
-def test_arrete_form_valid(form_class, modele_factory, dotation):
+def test_generated_document_form_valid(modele_factory, dotation):
     collegue = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
         dotation=dotation, status=ProjetStatus.ACCEPTED
@@ -37,20 +35,13 @@ def test_arrete_form_valid(form_class, modele_factory, dotation):
         "enveloppe_projet": enveloppe_projet.id,
         "modele": modele.id,
     }
-    form = form_class(data)
+    form = GeneratedDocumentForm(data, instance=GeneratedDocument(type=modele.type))
     assert form.is_valid()
 
 
-@pytest.mark.parametrize(
-    "form_class",
-    (
-        ArreteForm,
-        LettreNotificationForm,
-    ),
-)
 @pytest.mark.django_db
-def test_arrete_form_invalid_missing_fields(form_class):
-    form = form_class({})
+def test_generated_document_form_invalid_missing_fields():
+    form = GeneratedDocumentForm({})
     assert not form.is_valid()
     assert "content" in form.errors
     assert "created_by" in form.errors

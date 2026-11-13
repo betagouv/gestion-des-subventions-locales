@@ -2,23 +2,17 @@ from django import forms
 from django.utils.html import format_html
 from dsfr.forms import DsfrBaseForm
 
-from gsl.notification.models import (
-    Arrete,
-    LettreNotification,
-    LettreRefus,
-    ModeleArrete,
-)
-from gsl.projet.constants import ARRETE, LETTRE, LETTRE_REFUS
+from gsl.notification.models import GeneratedDocument, ModeleDocument
 
 
-class ArreteForm(forms.ModelForm, DsfrBaseForm):
+class GeneratedDocumentForm(forms.ModelForm, DsfrBaseForm):
     content = forms.CharField(
         required=True,
         widget=forms.HiddenInput(),
     )
 
     class Meta:
-        model = Arrete
+        model = GeneratedDocument
         fields = (
             "content",
             "created_by",
@@ -26,23 +20,6 @@ class ArreteForm(forms.ModelForm, DsfrBaseForm):
             "modele",
             "with_qr_code",
         )
-
-
-class LettreNotificationForm(ArreteForm):
-    class Meta(ArreteForm.Meta):
-        model = LettreNotification
-
-
-class LettreRefusForm(ArreteForm):
-    class Meta(ArreteForm.Meta):
-        model = LettreRefus
-
-
-GENERATED_DOCUMENT_TO_FORM = {
-    LETTRE: LettreNotificationForm,
-    ARRETE: ArreteForm,
-    LETTRE_REFUS: LettreRefusForm,
-}
 
 
 class ModeleChoiceField(forms.ModelChoiceField):
@@ -54,7 +31,7 @@ class ModeleChoiceField(forms.ModelChoiceField):
 
 class ChoixModeleForm(DsfrBaseForm):
     modele = ModeleChoiceField(
-        queryset=ModeleArrete.objects.none(),
+        queryset=ModeleDocument.objects.none(),
         widget=forms.RadioSelect,
         empty_label=None,
         label="Modèle",

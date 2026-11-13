@@ -8,18 +8,11 @@ from gsl.notification.forms.upload import (
     ManualDocumentAttachForm,
     UploadedDocumentAnalyzeForm,
 )
-from gsl.notification.models import (
-    DocumentImportJob,
-    LettreEtArreteSignes,
-)
+from gsl.notification.models import DocumentImportJob, UploadedDocument
 from gsl.notification.tests.factories import (
     LettreEtArreteSignesFactory,
 )
-from gsl.projet.constants import (
-    ANNEXE,
-    LETTRE_ET_ARRETE_SIGNES,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory, ProjetFactory
 
 # Import modal forms
@@ -95,8 +88,8 @@ def test_attach_form_only_offers_documents_importable_on_the_projet():
     form = ManualDocumentAttachForm(projet=projet)
 
     assert dict(form.fields["document"].choices) == {
-        f"{LETTRE_ET_ARRETE_SIGNES}-DETR": "Lettre et arrêté signés DETR",
-        f"{ANNEXE}-DETR": "Annexe DETR",
+        f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}-DETR": "Lettre et arrêté signés DETR",
+        f"{UploadedDocument.Type.ANNEXE}-DETR": "Annexe DETR",
     }
 
 
@@ -111,16 +104,19 @@ def test_attach_form_saves_the_document_on_the_chosen_dotation():
     key = _parked_pdf()
     form = ManualDocumentAttachForm(
         projet=projet,
-        data={"document": f"{LETTRE_ET_ARRETE_SIGNES}-DETR", "key": key},
+        data={
+            "document": f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}-DETR",
+            "key": key,
+        },
     )
     assert form.is_valid(), form.errors
     document = form.save(user)
 
-    assert isinstance(document, LettreEtArreteSignes)
+    assert document.type == UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
     assert document.enveloppe_projet == enveloppe_projet
     assert document.created_by == user
     assert document.file.name.startswith(
-        f"{LETTRE_ET_ARRETE_SIGNES}/enveloppe_projet_{enveloppe_projet.id}/"
+        f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}/enveloppe_projet_{enveloppe_projet.id}/"
     )
     assert document.file.read() == b"dummy content"
     assert not default_storage.exists(key)
@@ -138,7 +134,10 @@ def test_attach_form_refuses_a_document_already_imported():
 
     form = ManualDocumentAttachForm(
         projet=projet,
-        data={"document": f"{LETTRE_ET_ARRETE_SIGNES}-DETR", "key": _parked_pdf()},
+        data={
+            "document": f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}-DETR",
+            "key": _parked_pdf(),
+        },
     )
 
     assert not form.is_valid()
@@ -155,8 +154,8 @@ def test_attach_form_refuses_a_key_outside_the_temporary_prefix():
     form = ManualDocumentAttachForm(
         projet=projet,
         data={
-            "document": f"{LETTRE_ET_ARRETE_SIGNES}-DETR",
-            "key": f"{LETTRE_ET_ARRETE_SIGNES}/programmation_projet_1/secret.pdf",
+            "document": f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}-DETR",
+            "key": f"{UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES}/programmation_projet_1/secret.pdf",
         },
     )
 

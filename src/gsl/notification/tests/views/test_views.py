@@ -18,7 +18,7 @@ from gsl.core.tests.factories import (
     PerimetreFactory,
     PerimetreRegionalFactory,
 )
-from gsl.notification.models import Arrete, LettreNotification
+from gsl.notification.models import GeneratedDocument
 from gsl.notification.tests.factories import (
     ArreteFactory,
     LettreEtArreteSignesFactory,
@@ -26,12 +26,11 @@ from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import (
-    ARRETE,
-    LETTRE,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
+
+ARRETE = GeneratedDocument.Type.ARRETE
+LETTRE = GeneratedDocument.Type.LETTRE
 
 ## FIXTURES
 
@@ -208,8 +207,10 @@ def test_post_documents_creates_generated_documents_and_refreshes(
 
     assert response.status_code == 200
     assert response.headers.get("HX-Refresh") == "true"
-    assert Arrete.objects.filter(enveloppe_projet=enveloppe_projet).exists()
-    assert LettreNotification.objects.filter(enveloppe_projet=enveloppe_projet).exists()
+    assert {doc.type for doc in enveloppe_projet.generated_documents.all()} == {
+        ARRETE,
+        LETTRE,
+    }
 
 
 def test_post_documents_after_notification_returns_404(
@@ -242,10 +243,7 @@ def test_post_documents_after_notification_returns_404(
     )
 
     assert response.status_code == 404
-    assert not Arrete.objects.filter(enveloppe_projet=enveloppe_projet).exists()
-    assert not LettreNotification.objects.filter(
-        enveloppe_projet=enveloppe_projet
-    ).exists()
+    assert not enveloppe_projet.generated_documents.exists()
 
 
 def test_post_documents_invalid_rerenders_block_with_errors(
@@ -270,7 +268,7 @@ def test_post_documents_invalid_rerenders_block_with_errors(
     assert response.status_code == 200
     assert response.templates[0].name == "includes/_generate_documents_form.html"
     assert f"modele_arrete_{Dotation.DETR}" in response.context["form"].errors
-    assert not Arrete.objects.filter(enveloppe_projet=enveloppe_projet).exists()
+    assert not enveloppe_projet.generated_documents.filter(type=ARRETE).exists()
 
 
 #### select-modele -----------------------------------
@@ -403,7 +401,7 @@ def test_modify_arrete_url_with_not_correct_perimetre(
             content="<p>Contenu de l’arrêté</p>",
         )
     else:
-        assert not hasattr(enveloppe_projet, "arrete")
+        assert not enveloppe_projet.generated_documents.exists()
     projet = enveloppe_projet.projet
     dotation = enveloppe_projet.dotation
     url = reverse(
@@ -601,7 +599,7 @@ def test_modify_arrete_url_with_document_and_with_wrong_modele_id(
 def test_change_document_view_valid_but_with_wrong_perimetre(
     enveloppe_projet, different_perimetre_client_with_user_logged, document_type
 ):
-    assert not hasattr(enveloppe_projet, "arrete")
+    assert not enveloppe_projet.generated_documents.exists()
     projet = enveloppe_projet.projet
     dotation = enveloppe_projet.dotation
     url = reverse(
@@ -619,7 +617,7 @@ def test_change_document_view_valid_but_with_wrong_perimetre(
     }
     response = different_perimetre_client_with_user_logged.post(url, data)
     assert response.status_code == 404
-    assert not hasattr(enveloppe_projet, document_type)
+    assert not enveloppe_projet.generated_documents.filter(type=document_type).exists()
 
 
 @freeze_time("2025-08-11")
@@ -749,9 +747,9 @@ def test_document_download_url_with_correct_perimetre(
     doc = factory(enveloppe_projet=enveloppe_projet)
     url = reverse(
         "notification:document-download",
-        kwargs={"document_type": document_type, "document_id": doc.id},
+        kwargs={"document_id": doc.id},
     )
-    assert url == f"/notification/document/{document_type}/{doc.id}/download/"
+    assert url == f"/notification/document/{doc.id}/download/"
     with patch("gsl.notification.utils.get_logo_base64", return_value="mocked_base64"):
         response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
@@ -795,7 +793,7 @@ def test_document_download_includes_qr_by_default_and_respects_stored_choice(
     def download(doc):
         url = reverse(
             "notification:document-download",
-            kwargs={"document_type": document_type, "document_id": doc.id},
+            kwargs={"document_id": doc.id},
         )
         return correct_perimetre_client_with_user_logged.get(url)
 
@@ -818,9 +816,9 @@ def test_document_download_url_with_correct_perimetre_and_without_document(
 ):
     url = reverse(
         "notification:document-download",
-        kwargs={"document_type": document_type, "document_id": 1000},
+        kwargs={"document_id": 1000},
     )
-    assert url == f"/notification/document/{document_type}/1000/download/"
+    assert url == "/notification/document/1000/download/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -841,7 +839,7 @@ def test_document_download_url_with_wrong_perimetre(
     document = factory(enveloppe_projet=enveloppe_projet)
     url = reverse(
         "notification:document-download",
-        kwargs={"document_type": document_type, "document_id": document.id},
+        kwargs={"document_id": document.id},
     )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
@@ -909,9 +907,9 @@ def test_document_view_url_with_correct_perimetre(
     document = factory(enveloppe_projet=enveloppe_projet)
     url = reverse(
         "notification:document-view",
-        kwargs={"document_type": document_type, "document_id": document.id},
+        kwargs={"document_id": document.id},
     )
-    assert url == f"/notification/document/{document_type}/{document.id}/view/"
+    assert url == f"/notification/document/{document.id}/view/"
     with patch("gsl.notification.utils.get_logo_base64", return_value="mocked_base64"):
         response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 200
@@ -925,9 +923,9 @@ def test_document_view_url_with_correct_perimetre_and_without_document(
 ):
     url = reverse(
         "notification:document-view",
-        kwargs={"document_type": document_type, "document_id": 1000},
+        kwargs={"document_id": 1000},
     )
-    assert url == f"/notification/document/{document_type}/1000/view/"
+    assert url == "/notification/document/1000/view/"
     response = correct_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
 
@@ -948,7 +946,7 @@ def test_document_view_url_with_wrong_perimetre(
     document = factory(enveloppe_projet=enveloppe_projet)
     url = reverse(
         "notification:document-view",
-        kwargs={"document_type": document_type, "document_id": document.id},
+        kwargs={"document_id": document.id},
     )
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
@@ -973,11 +971,8 @@ def test_delete_document_with_correct_perimetre(
     document = factory(enveloppe_projet=enveloppe_projet)
     url = reverse(
         "gsl_notification:delete-document",
-        kwargs={"document_type": document_type, "document_id": document.id},
+        kwargs={"document_id": document.id},
     )
-
-    attr = ARRETE if document_type == ARRETE else "lettre"
-    assert hasattr(enveloppe_projet, attr)
 
     response = correct_perimetre_client_with_user_logged.post(url)
 
@@ -987,9 +982,7 @@ def test_delete_document_with_correct_perimetre(
     )
     assert response.status_code == 302
     assert response.url == expected_redirect_url
-
-    enveloppe_projet.refresh_from_db()
-    assert not hasattr(enveloppe_projet, attr)
+    assert not GeneratedDocument.objects.filter(pk=document.pk).exists()
 
 
 @pytest.mark.parametrize(
@@ -1008,7 +1001,7 @@ def test_delete_document_with_incorrect_perimetre(
     doc = factory(enveloppe_projet=enveloppe_projet)
     url = reverse(
         "gsl_notification:delete-document",
-        kwargs={"document_type": document_type, "document_id": doc.id},
+        kwargs={"document_id": doc.id},
     )
 
     response = different_perimetre_client_with_user_logged.post(url)
@@ -1031,7 +1024,7 @@ def test_delete_document_with_get_method_not_allowed(
     doc = factory(enveloppe_projet=enveloppe_projet)
     url = reverse(
         "gsl_notification:delete-document",
-        kwargs={"document_type": document_type, "document_id": doc.id},
+        kwargs={"document_id": doc.id},
     )
 
     response = correct_perimetre_client_with_user_logged.get(url)
@@ -1044,7 +1037,7 @@ def test_delete_nonexistent_document(
 ):
     url = reverse(
         "gsl_notification:delete-document",
-        kwargs={"document_type": document_type, "document_id": 99999},
+        kwargs={"document_id": 99999},
     )
     response = correct_perimetre_client_with_user_logged.post(url)
     assert response.status_code == 404

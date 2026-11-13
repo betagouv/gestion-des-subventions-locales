@@ -1,4 +1,5 @@
 from functools import cached_property
+from operator import attrgetter
 
 from django import forms
 from django.db import transaction
@@ -6,15 +7,9 @@ from django.template.defaultfilters import pluralize
 from dsfr.forms import DsfrBaseForm
 
 from gsl.historique.models import ProjetAction
-from gsl.notification.models import (
-    GENERATED_DOCUMENTS,
-    MODELES,
-    ExportJob,
-    ModeleDocument,
-)
+from gsl.notification.models import ExportJob, GeneratedDocument, ModeleDocument
 from gsl.notification.utils import get_modele_perimetres, replace_mentions_in_html
 from gsl.programmation.utils.programmation_projet_filters import ProgrammationFilters
-from gsl.projet.constants import ARRETE, LETTRE, LETTRE_REFUS
 from gsl.projet.models import EnveloppeProjet, EnveloppeProjetQuerySet
 
 ARRETE_ET_LETTRE = ExportJob.DOCUMENT_TYPE_ARRETE_ET_LETTRE
@@ -45,16 +40,16 @@ class EnveloppeProjetMultipleChoiceField(forms.ModelMultipleChoiceField):
         return super().clean(value)
 
 
-SELECTED_TYPES_BY_CHOICE: dict[str, frozenset[str]] = {
-    ARRETE: frozenset({ARRETE}),
-    LETTRE: frozenset({LETTRE}),
-    ARRETE_ET_LETTRE: frozenset({ARRETE, LETTRE}),
-    LETTRE_REFUS: frozenset({LETTRE_REFUS}),
+SELECTED_TYPES_BY_CHOICE: dict[str, frozenset[GeneratedDocument.Type]] = {
+    GeneratedDocument.Type.ARRETE: frozenset({GeneratedDocument.Type.ARRETE}),
+    GeneratedDocument.Type.LETTRE: frozenset({GeneratedDocument.Type.LETTRE}),
+    ARRETE_ET_LETTRE: frozenset(
+        {GeneratedDocument.Type.ARRETE, GeneratedDocument.Type.LETTRE}
+    ),
+    GeneratedDocument.Type.LETTRE_REFUS: frozenset(
+        {GeneratedDocument.Type.LETTRE_REFUS}
+    ),
 }
-
-# Canonical display order, used everywhere several document types are listed
-# together: lettres before arrêtés before refus.
-DOCUMENT_TYPE_DISPLAY_ORDER = (LETTRE, ARRETE, LETTRE_REFUS)
 
 
 class BaseGenerateDocumentsForm(DsfrBaseForm, forms.Form):
@@ -78,8 +73,10 @@ class DocumentTypeFormMixin:
         self.document_type = document_type
 
     @cached_property
-    def selected_types(self) -> frozenset[str]:
-        return SELECTED_TYPES_BY_CHOICE[self.document_type]
+    def selected_types(self) -> list[GeneratedDocument.Type]:
+        return sorted(
+            SELECTED_TYPES_BY_CHOICE[self.document_type], key=attrgetter("rank")
+        )
 
 
 class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
@@ -109,7 +106,7 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
     def clean_ids(self):
         checked = self.cleaned_data.get("ids") or []
         if checked:
-            queryset = EnveloppeProjet.objects.filter(pk__in=[dp.pk for dp in checked])
+            queryset = EnveloppeProjet.objects.filter(pk__in=[ep.pk for ep in checked])
         else:
             queryset = ProgrammationFilters(
                 data=self.request.GET, request=self.request
@@ -137,8 +134,8 @@ class GenerateRefusLettersLaunchForm(BaseGenerateDocumentsLaunchForm):
 
 class GenerateDocumentsTypeSelectionForm(BaseGenerateDocumentsForm):
     DOCUMENT_TYPE_CHOICES = [
-        (ARRETE, "Les arrêtés"),
-        (LETTRE, "Les lettres de notification"),
+        (GeneratedDocument.Type.ARRETE, "Les arrêtés"),
+        (GeneratedDocument.Type.LETTRE, "Les lettres de notification"),
         (ARRETE_ET_LETTRE, "Les deux"),
     ]
 
@@ -165,9 +162,8 @@ class GenerateDocumentsModeleSelectionForm(
         self.enveloppe_projets = enveloppe_projets
 
         self.modele_entries = [
-            ModeleSelectionEntry(self, t)
-            for t in DOCUMENT_TYPE_DISPLAY_ORDER
-            if t in self.selected_types
+            ModeleSelectionEntry(self, document_type)
+            for document_type in self.selected_types
         ]
 
         # Conserver/Remplacer first: its "…ci-dessous" wording refers to the
@@ -191,9 +187,8 @@ class GenerateDocumentsModeleSelectionForm(
     @cached_property
     def _selected_nouns(self) -> list[str]:
         return [
-            GENERATED_DOCUMENTS[t]._meta.verbose_name_plural.lower()
-            for t in DOCUMENT_TYPE_DISPLAY_ORDER
-            if t in self.selected_types
+            document_type.verbose_name_plural.lower()
+            for document_type in self.selected_types
         ]
 
     @property
@@ -205,15 +200,16 @@ class GenerateDocumentsModeleSelectionForm(
     def _conserver_label(self) -> str:
         nouns = " et ".join(f"les {n}" for n in self._selected_nouns)
         # Feminine agreement only when "lettres" is the sole type.
-        fem = ARRETE not in self.selected_types
+        fem = GeneratedDocument.Type.ARRETE not in self.selected_types
         return f"Conserver {nouns} existant{pluralize(fem, 'es,s')}"
 
     @property
     def _remplacer_label(self) -> str:
         nouns = " et ".join(f"les {n}" for n in self._selected_nouns)
-        fem = ARRETE not in self.selected_types
+        fem = GeneratedDocument.Type.ARRETE not in self.selected_types
         # "toutes/tous" agrees with the first noun ("lettres" when present).
-        quantifier = f"tou{pluralize(LETTRE in self.selected_types, 'tes,s')}"
+        has_lettre = GeneratedDocument.Type.LETTRE in self.selected_types
+        quantifier = f"tou{pluralize(has_lettre, 'tes,s')}"
         return (
             f"Remplacer {quantifier} {nouns} par "
             f"{pluralize(fem, 'celles,ceux')} "
@@ -245,7 +241,11 @@ class ModeleSelectionEntry:
     existing_X_count trio per type.
     """
 
-    def __init__(self, form: GenerateDocumentsModeleSelectionForm, document_type: str):
+    def __init__(
+        self,
+        form: GenerateDocumentsModeleSelectionForm,
+        document_type: GeneratedDocument.Type,
+    ):
         self.form = form
         self.document_type = document_type
         self.field_name = f"modele_{document_type}_id"
@@ -253,15 +253,17 @@ class ModeleSelectionEntry:
     @cached_property
     def modeles(self):
         perimetres = get_modele_perimetres(self.form.dotation, self.form.user.perimetre)
-        return MODELES[self.document_type].objects.filter(
-            dotation=self.form.dotation, perimetre__in=perimetres
+        return ModeleDocument.objects.filter(
+            type=self.document_type,
+            dotation=self.form.dotation,
+            perimetre__in=perimetres,
         )
 
     @cached_property
     def existing_count(self) -> int:
-        generated_document_class = MODELES[self.document_type].generated_document_class
-        return generated_document_class.objects.filter(
-            enveloppe_projet__in=self.form.enveloppe_projets
+        return GeneratedDocument.objects.filter(
+            type=self.document_type,
+            enveloppe_projet__in=self.form.enveloppe_projets,
         ).count()
 
     @cached_property
@@ -279,14 +281,12 @@ class ModeleSelectionEntry:
 
     @property
     def already_has_noun(self) -> str:
-        document_class = GENERATED_DOCUMENTS[self.document_type]
-        article = "une" if document_class.is_feminine else "un"
-        short_name = GENERATED_DOCUMENTS[self.document_type].short_name
-        return f"{article} {short_name.lower()}"
+        article = "une" if self.document_type.is_feminine else "un"
+        return f"{article} {self.document_type.short_name.lower()}"
 
     @property
     def modele_verbose_name(self) -> str:
-        return MODELES[self.document_type].verbose_name()
+        return self.document_type.modele_verbose_name
 
 
 class GenerateDocumentsFormatForm(DocumentTypeFormMixin, BaseGenerateDocumentsForm):
@@ -347,7 +347,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
         self.enveloppe_projets = enveloppe_projets
         self._pending_doc_actions = []
 
-    def _log_doc_action(self, enveloppe_projet, document_class):
+    def _log_doc_action(self, enveloppe_projet, document_type):
         self._pending_doc_actions.append(
             ProjetAction(
                 projet=enveloppe_projet.projet,
@@ -355,7 +355,7 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
                 actor=self.user,
                 source=ProjetAction.SOURCE_TURGOT,
                 dotation=enveloppe_projet.dotation,
-                document_name=document_class._meta.verbose_name.lower(),
+                document_name=document_type.label.lower(),
                 form_id=f"{type(self).__module__}.{type(self).__qualname__}",
             )
         )
@@ -380,15 +380,13 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
     )
 
     def _create_documents_of_type(self, modele, overwrite_strategy):
-        document_class = modele.generated_document_class
+        existing = GeneratedDocument.objects.filter(type=modele.type)
 
         if (
             overwrite_strategy
             == GenerateDocumentsModeleSelectionForm.STRATEGY_REMPLACER
         ):
-            document_class.objects.filter(
-                enveloppe_projet__in=self.enveloppe_projets
-            ).delete()
+            existing.filter(enveloppe_projet__in=self.enveloppe_projets).delete()
             to_create = self.enveloppe_projets.select_related(
                 *self.ENVELOPPE_PROJETS_SELECT_RELATED
             )
@@ -396,15 +394,16 @@ class GenerateDocumentsCreateForm(BaseGenerateDocumentsForm):
             to_create = (
                 EnveloppeProjet.objects.active()
                 .filter(pk__in=self.enveloppe_projets)
-                .exclude(pk__in=document_class.objects.values("enveloppe_projet_id"))
+                .exclude(pk__in=existing.values("enveloppe_projet_id"))
                 .select_related(*self.ENVELOPPE_PROJETS_SELECT_RELATED)
             )
 
         for enveloppe_projet in to_create:
-            document_class(
+            GeneratedDocument(
+                type=modele.type,
                 enveloppe_projet=enveloppe_projet,
                 modele=modele,
                 created_by=self.user,
                 content=replace_mentions_in_html(modele.content, enveloppe_projet),
             ).save()
-            self._log_doc_action(enveloppe_projet, document_class)
+            self._log_doc_action(enveloppe_projet, modele.kind)

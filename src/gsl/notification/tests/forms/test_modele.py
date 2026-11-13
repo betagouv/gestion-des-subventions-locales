@@ -2,21 +2,12 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from gsl.notification.forms.modele import ModeleDocumentStepTwoForm
-from gsl.notification.models import (
-    ModeleArrete,
-)
 
 # Test modele arrêté step 2 (form upload)
 
 
-class ModeleArreteStepTwoForm(ModeleDocumentStepTwoForm):
-    class Meta:
-        model = ModeleArrete
-        fields = ModeleDocumentStepTwoForm.Meta.fields
-
-
 def test_modele_arrete_step_2_valid_form_upload():
-    form = ModeleArreteStepTwoForm(
+    form = ModeleDocumentStepTwoForm(
         files={
             "logo": SimpleUploadedFile("test.png", b"youpi", content_type="image/png")
         },
@@ -29,7 +20,7 @@ def test_modele_arrete_step_2_valid_form_upload():
 
 
 def test_modele_arrete_step_2_rejects_invalid_content_type():
-    form = ModeleArreteStepTwoForm(
+    form = ModeleDocumentStepTwoForm(
         files={
             "logo": SimpleUploadedFile(
                 "test.png", b"shady", content_type="application/pdf"
@@ -44,7 +35,7 @@ def test_modele_arrete_step_2_rejects_invalid_content_type():
 
 
 def test_modele_arrete_step_2_rejects_invalid_extension():
-    form = ModeleArreteStepTwoForm(
+    form = ModeleDocumentStepTwoForm(
         files={
             "logo": SimpleUploadedFile("test.pdf", b"shady", content_type="image/png")
         },
@@ -60,7 +51,7 @@ def test_modele_arrete_step_2_rejects_invalid_extension():
     "file_size, is_valid", [(20 * 1024 * 1024, True), (21 * 1024 * 1024, False)]
 )
 def test_modele_arrete_step_2_rejects_too_large_files(file_size, is_valid):
-    form = ModeleArreteStepTwoForm(
+    form = ModeleDocumentStepTwoForm(
         files={
             "logo": SimpleUploadedFile(
                 "test.png", b"a" * file_size, content_type="image/png"

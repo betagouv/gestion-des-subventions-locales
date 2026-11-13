@@ -20,21 +20,16 @@ from django.db.models import QuerySet
 from pikepdf import Pdf
 
 from gsl.core.models import Collegue
-from gsl.notification.models import UPLOADED_DOCUMENTS, UploadedDocument
-from gsl.projet.constants import ARRETE, LETTRE
+from gsl.notification.models import GeneratedDocument, UploadedDocument
 from gsl.projet.models import EnveloppeProjet
 
 from .codec import iter_decoded_pages
 from .mask import mask_qr_on_last_page
 
-DOCUMENT_TYPE_ORDER = {LETTRE: 0, ARRETE: 1}
-
-# Built by asking each UploadedDocument subclass which QR document types it is
-# the target of, through `reattach_source_document_types` (see models.py).
-_TARGET_MODEL_BY_DOCUMENT_TYPE: dict[str, type[UploadedDocument]] = {
-    document_type: model
-    for model in UPLOADED_DOCUMENTS.values()
-    for document_type in model.reattach_source_document_types
+_TARGET_TYPE_BY_DOCUMENT_TYPE: dict[str, UploadedDocument.Type] = {
+    source_type: target_type
+    for target_type in UploadedDocument.Type
+    for source_type in target_type.reattach_source_document_types
 }
 
 
@@ -53,13 +48,13 @@ class DeclaredDocument:
     """The document a scanned page says it belongs to, before any lookup.
 
     Pages sharing one become a single stored document, which is why the target
-    model is part of it: an arrêté page and a lettre page of the same projet
+    type is part of it: an arrêté page and a lettre page of the same projet
     merge, a lettre de refus page of that same projet does not.
     """
 
     ds_number: int
     dotation: str
-    target_model: type[UploadedDocument]
+    target_type: UploadedDocument.Type
 
 
 @dataclass(frozen=True)
@@ -159,11 +154,11 @@ def extract_documents(
 
         for scan_index, hit in enumerate(iter_decoded_pages(pdf_bytes)):
             if hit is not None:
-                target_model = _TARGET_MODEL_BY_DOCUMENT_TYPE[hit.payload.document_type]
+                target_type = _TARGET_TYPE_BY_DOCUMENT_TYPE[hit.payload.document_type]
                 declared = DeclaredDocument(
                     ds_number=hit.payload.ds_number,
                     dotation=hit.payload.dotation,
-                    target_model=target_model,
+                    target_type=target_type,
                 )
                 scanned_pages_by_document[declared].append(
                     ScannedPage(
@@ -181,7 +176,7 @@ def extract_documents(
 
     for declared, pages in scanned_pages_by_document.items():
         pages.sort(
-            key=lambda p: (DOCUMENT_TYPE_ORDER.get(p.doc_type, 99), p.claimed_page)
+            key=lambda p: (GeneratedDocument.Type(p.doc_type).rank, p.claimed_page)
         )
         yield _match_document(declared, pages, enveloppe_projets)
 
@@ -208,7 +203,7 @@ def replace_documents(
         for document in documents:
             uploaded = _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code)
             stored = _replace_uploaded_document(
-                document.declared.target_model,
+                document.declared.target_type,
                 document.enveloppe_projet_id,
                 uploaded,
                 user,
@@ -252,15 +247,16 @@ def _match_document(
     )
 
 
-def _replace_uploaded_document(target_model, enveloppe_projet_id, uploaded, user):
+def _replace_uploaded_document(target_type, enveloppe_projet_id, uploaded, user):
     with transaction.atomic():
-        existing = target_model.objects.filter(
-            enveloppe_projet_id=enveloppe_projet_id
+        existing = UploadedDocument.objects.filter(
+            type=target_type, enveloppe_projet_id=enveloppe_projet_id
         ).first()
         if existing is not None:
             existing.delete()  # post_delete signal removes its stored file
 
-        doc = target_model(
+        doc = UploadedDocument(
+            type=target_type,
             enveloppe_projet_id=enveloppe_projet_id,
             created_by=user,
             file=uploaded,
@@ -285,7 +281,7 @@ def _assemble_pages(srcs, pdf_bytes_list, document, remove_qr_code=True):
     buf = io.BytesIO()
     out.save(buf)
     buf.seek(0)
-    prefix = declared.target_model.reattach_filename_prefix()
+    prefix = declared.target_type.replace("_", "-")
     return SimpleUploadedFile(
         name=f"{prefix}-{declared.ds_number}-{declared.dotation}.pdf",
         content=buf.read(),

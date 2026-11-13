@@ -30,7 +30,7 @@ from gsl.notification.forms.modele import (
     ModeleDocumentStepTwoForm,
     ModeleDocumentStepZeroForm,
 )
-from gsl.notification.models import MODELES, ModeleDocument
+from gsl.notification.models import GeneratedDocument, ModeleDocument
 from gsl.notification.utils import (
     MENTIONS,
     duplicate_field_file,
@@ -43,15 +43,12 @@ class ModeleListView(ListView):
     template_name = "gsl_notification/modele/list.html"
 
     def get_queryset(self):
-        return sorted(
-            (
-                modele
-                for klass in MODELES.values()
-                for modele in klass.objects.filter(
-                    dotation=self.dotation, perimetre__in=self.perimetres
-                ).defer("content", "top_right_text")
-            ),
-            key=lambda modele: modele.created_at,
+        return (
+            ModeleDocument.objects.filter(
+                dotation=self.dotation, perimetre__in=self.perimetres
+            )
+            .defer("content", "top_right_text")
+            .order_by("created_at")
         )
 
     def dispatch(self, request, dotation, *args, **kwargs):
@@ -76,29 +73,20 @@ class ModeleListView(ListView):
                         "id": obj.id,
                         "name": obj.name,
                         "description": obj.description,
-                        "type_label": obj.type_label,
-                        "type": obj.type,
+                        "type_label": obj.get_type_display(),
                         "delete_title": obj.delete_title,
                         "delete_question": obj.delete_question,
                         "actions": [
                             {
                                 "label": "Modifier le modèle",
                                 "href": reverse(
-                                    "gsl_notification:modele-modifier",
-                                    kwargs={
-                                        "modele_type": obj.type,
-                                        "modele_id": obj.id,
-                                    },
+                                    "gsl_notification:modele-modifier", args=[obj.id]
                                 ),
                             },
                             {
                                 "label": "Dupliquer le modèle",
                                 "href": reverse(
-                                    "gsl_notification:modele-dupliquer",
-                                    kwargs={
-                                        "modele_type": obj.type,
-                                        "modele_id": obj.id,
-                                    },
+                                    "gsl_notification:modele-dupliquer", args=[obj.id]
                                 ),
                                 "class": "fr-btn--secondary",
                             },
@@ -172,13 +160,15 @@ class CreateModelDocumentWizard(SessionWizardView):
         if dotation not in Dotation.values:
             raise Http404(user_message="Dotation inconnue")
         self.dotation = dotation
-        self.modele_type = modele_type
-        self._class = MODELES[self.modele_type]
+        self.modele_type = GeneratedDocument.Type(modele_type)
 
         perimetre = request.user.perimetre
         if instanciate_new_modele:
-            self.instance = self._class(
-                dotation=dotation, perimetre=perimetre, created_by=request.user
+            self.instance = ModeleDocument(
+                type=self.modele_type,
+                dotation=dotation,
+                perimetre=perimetre,
+                created_by=request.user,
             )
         response = super().dispatch(request, *args, **kwargs)
         return response
@@ -218,7 +208,7 @@ class CreateModelDocumentWizard(SessionWizardView):
     def _set_success_message(self, instance, verbe="créé", extra_tags="success"):
         messages.success(
             self.request,
-            f'Le {instance.verbose_name()} "{instance.name}" a bien été {verbe}.',
+            f'Le {instance.verbose_name} "{instance.name}" a bien été {verbe}.',
             extra_tags=extra_tags,
         )
 
@@ -272,7 +262,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         context.update(
             {
                 "type": self.modele_type,
-                "modele_verbose_name": self._class.verbose_name(),
+                "modele_verbose_name": self.modele_type.modele_verbose_name,
                 "dotation": self.dotation,
                 "current_tab": self.dotation,
                 "title": self._get_form_title(),
@@ -282,7 +272,7 @@ class CreateModelDocumentWizard(SessionWizardView):
         step_titles = {
             "0": "Titre du modèle",
             "1": "En-tête du modèle",
-            "2": f"Contenu du {self._class.verbose_name()} pour le publipostage",
+            "2": f"Contenu du {self.modele_type.modele_verbose_name} pour le publipostage",
         }
 
         context.update(
@@ -300,7 +290,10 @@ class CreateModelDocumentWizard(SessionWizardView):
         return f"gsl_notification/modele/modele_form_step_{self.steps.current}.html"
 
     def _get_form_title(self):
-        return f"Création d’un nouveau {self._class.verbose_name()} {self.dotation}"
+        return (
+            f"Création d’un nouveau {self.modele_type.modele_verbose_name} "
+            f"{self.dotation}"
+        )
 
 
 class UpdateModele(CreateModelDocumentWizard):
@@ -308,17 +301,12 @@ class UpdateModele(CreateModelDocumentWizard):
     def dispatch(
         self,
         request,
-        modele_type,
         modele_id,
         instanciate_new_modele=False,
         *args,
         **kwargs,
     ):
-        self._class = MODELES[modele_type]
-        self.instance = get_object_or_404(
-            self._class,
-            id=modele_id,
-        )
+        self.instance = get_object_or_404(ModeleDocument, id=modele_id)
         dotation = self.instance.dotation
         self.possible_modele_perimetres = get_modele_perimetres(
             dotation, request.user.perimetre
@@ -339,7 +327,7 @@ class UpdateModele(CreateModelDocumentWizard):
 
     def _handle_logo(self, instance, logo):
         if not isinstance(logo, files.FieldFile):
-            old_instance = self._class.objects.get(pk=instance.pk)
+            old_instance = ModeleDocument.objects.get(pk=instance.pk)
             old_file = old_instance.logo
             old_file.delete(save=False)
 
@@ -349,10 +337,9 @@ class UpdateModele(CreateModelDocumentWizard):
 
 class DuplicateModele(UpdateModele):
     @method_decorator(csp_update({"style-src": [CSP.SELF, CSP.UNSAFE_INLINE]}))
-    def dispatch(self, request, modele_type, modele_id, *args, **kwargs):
+    def dispatch(self, request, modele_id, *args, **kwargs):
         response = super().dispatch(
             request,
-            modele_type,
             modele_id,
             instanciate_new_modele=True,
             *args,
@@ -375,16 +362,16 @@ class DeleteModeleView(DeleteView):
     pk_url_kwarg = "modele_id"
 
     def get_queryset(self):
-        _class = MODELES[self.kwargs["modele_type"]]
+        modeles = ModeleDocument.objects.all()
         user = self.request.user
         if user.is_staff:
-            return _class.objects.all()
+            return modeles
 
         q = Q()
         for dotation in Dotation.values:
             perimetres = get_modele_perimetres(dotation, user.perimetre)
             q |= Q(dotation=dotation, perimetre__in=perimetres)
-        return _class.objects.filter(q)
+        return modeles.filter(q)
 
     def get_success_url(self):
         return reverse(
@@ -402,7 +389,7 @@ class DeleteModeleView(DeleteView):
 
         messages.info(
             self.request,
-            f"Le {self.object.verbose_name().lower()} “{name}” a été supprimé.",
+            f"Le {self.object.verbose_name.lower()} “{name}” a été supprimé.",
             extra_tags="delete_modele_arrete",
         )
         return response
@@ -419,10 +406,10 @@ def get_generic_modele(request, dotation):
 
 def _add_error_message(request, protected_objects):
     count = len(protected_objects)
-    instance = list(protected_objects)[0]
+    document_type = list(protected_objects)[0].kind
+    noun = document_type.label if count == 1 else document_type.verbose_name_plural
     message = (
-        "Le modèle n'a pas été supprimé car il est utilisé "
-        f"par {count} {instance.verbose_name(count).lower()}."
+        f"Le modèle n'a pas été supprimé car il est utilisé par {count} {noun.lower()}."
     )
 
     messages.error(
