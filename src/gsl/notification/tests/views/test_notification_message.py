@@ -31,6 +31,7 @@ from gsl.core.tests.factories import (
 from gsl.historique.models import ProjetAction
 from gsl.historique.tests.factories import ProjetActionFactory
 from gsl.notification.forms.notification import NotificationMessageForm
+from gsl.notification.models import UploadedDocument
 from gsl.notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,
@@ -348,6 +349,9 @@ class TestForm:
             perimetre, projet, Dotation.DSIL, with_signed_document=True
         )
         dsil_annexe = AnnexeFactory(enveloppe_projet=dsil_enveloppe_projet)
+        signed = UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
+        detr_signed = detr_enveloppe_projet.uploaded_documents.get(type=signed)
+        dsil_signed = dsil_enveloppe_projet.uploaded_documents.get(type=signed)
 
         with (
             mock.patch(
@@ -365,9 +369,9 @@ class TestForm:
 
         merged_documents = merge_mock.call_args.args[0]
         assert merged_documents == [
-            detr_enveloppe_projet.lettre_et_arrete_signes,
+            detr_signed,
             detr_annexe,
-            dsil_enveloppe_projet.lettre_et_arrete_signes,
+            dsil_signed,
             dsil_annexe,
         ]
 
@@ -496,7 +500,10 @@ class TestForm:
             form.save(user=collegue)
 
         merged_documents = merge_mock.call_args.args[0]
-        assert merged_documents == [enveloppe_projet.lettre_refus_signee, annexe]
+        lettre_refus_signee = enveloppe_projet.uploaded_documents.get(
+            type=UploadedDocument.Type.LETTRE_REFUS_SIGNEE
+        )
+        assert merged_documents == [lettre_refus_signee, annexe]
 
     def test_notification_filename_single_document_uses_its_own_name(self, perimetre):
         projet = _refused_projet(perimetre, with_signed_document=True)

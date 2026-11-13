@@ -70,6 +70,5 @@ class Migration(migrations.Migration):
                 "verbose_name": "Lettre de notification signée",
                 "verbose_name_plural": "Lettres de notification signées",
             },
-            bases=(gsl.notification.models.VerboseNameMixin, models.Model),
         ),
     ]

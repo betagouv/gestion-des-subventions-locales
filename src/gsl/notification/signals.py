@@ -4,10 +4,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 
-from gsl.notification.models import (
-    MODELES,
-    UPLOADED_DOCUMENTS,
-)
+from gsl.notification.models import ModeleDocument, UploadedDocument
 
 
 def delete_file_after_instance_deletion(sender, instance, *args, **kwargs):
@@ -29,9 +26,8 @@ def trigger_antivirus_scan(sender, instance, created, **kwargs):
         )
 
 
-for _model in UPLOADED_DOCUMENTS.values():
-    post_delete.connect(delete_file_after_instance_deletion, sender=_model)
-    post_save.connect(trigger_antivirus_scan, sender=_model)
+post_delete.connect(delete_file_after_instance_deletion, sender=UploadedDocument)
+post_save.connect(trigger_antivirus_scan, sender=UploadedDocument)
 
 
 def trigger_logo_antivirus_scan(sender, instance, created, update_fields, **kwargs):
@@ -58,6 +54,5 @@ def delete_logo_file_after_instance_deletion(sender, instance, *args, **kwargs):
         pass
 
 
-for _modele in MODELES.values():
-    post_save.connect(trigger_logo_antivirus_scan, sender=_modele)
-    post_delete.connect(delete_logo_file_after_instance_deletion, sender=_modele)
+post_save.connect(trigger_logo_antivirus_scan, sender=ModeleDocument)
+post_delete.connect(delete_logo_file_after_instance_deletion, sender=ModeleDocument)

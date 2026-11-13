@@ -7,7 +7,7 @@ from django.test import override_settings
 
 from dn.sync.models import Dotation
 from gsl.core.tests.factories import CollegueFactory, PerimetreDepartementalFactory
-from gsl.notification.models import ModeleArrete
+from gsl.notification.models import GeneratedDocument, ModeleDocument
 from gsl.notification.tests.factories import (
     AnnexeFactory,
     ArreteFactory,
@@ -19,11 +19,7 @@ from gsl.notification.tests.factories import (
     ModeleLettreNotificationFactory,
     ModeleLettreRefusFactory,
 )
-from gsl.projet.constants import (
-    ARRETE,
-    LETTRE,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 
@@ -31,9 +27,9 @@ from gsl.projet.tests.factories import EnveloppeProjetFactory
 @pytest.mark.parametrize(
     "type, modele_factory, factory",
     (
-        (ARRETE, ModeleArreteFactory, ArreteFactory),
+        (GeneratedDocument.Type.ARRETE, ModeleArreteFactory, ArreteFactory),
         (
-            LETTRE,
+            GeneratedDocument.Type.LETTRE,
             ModeleLettreNotificationFactory,
             LettreNotificationFactory,
         ),
@@ -52,7 +48,7 @@ def generated_document_properties(type, modele_factory, factory):
         modele=modele,
     )
 
-    if type == ARRETE:
+    if type == GeneratedDocument.Type.ARRETE:
         assert str(arrete) == f"Arrêté #{arrete.id}"
     else:
         assert str(arrete) == f"Lettre de notification #{arrete.id}"
@@ -165,7 +161,7 @@ def test_generated_document_save_with_different_content_sizes(
     mock_get_logo_base64, modele_factory, factory
 ):
     """Test that size calculation works correctly with different content sizes"""
-    # Create separate enveloppe projets since Arrete/LettreNotification have OneToOneField
+    # Create separate enveloppe projets since one holds a single document per type
     enveloppe_projet1 = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     enveloppe_projet2 = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED)
     modele = modele_factory()
@@ -370,9 +366,9 @@ def test_two_models_have_different_logos():
         "created_by": CollegueFactory(),
     }
 
-    first_modele = ModeleArrete(**form_data)
+    first_modele = ModeleDocument(type=GeneratedDocument.Type.ARRETE, **form_data)
     first_modele.save()
-    second_modele = ModeleArrete(**form_data)
+    second_modele = ModeleDocument(type=GeneratedDocument.Type.ARRETE, **form_data)
     second_modele.save()
 
     assert first_modele.id != second_modele.id

@@ -20,15 +20,12 @@ from gsl.notification.forms.bulk_generation import (
     EXPORT_FORMAT_ONE_PDF_PER_DOC,
     GenerateDocumentsModeleSelectionForm,
 )
-from gsl.notification.models import ExportJob, LettreRefus
+from gsl.notification.models import ExportJob, GeneratedDocument
 from gsl.notification.tests.factories import (
     LettreRefusFactory,
     ModeleLettreRefusFactory,
 )
-from gsl.projet.constants import (
-    LETTRE_REFUS,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -179,7 +176,7 @@ def test_launch_skips_type_selection_and_sets_document_type_lettre_refus(
     response = _post_launch(client, ids=ids)
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "modele_selection.html"
-    assert response.context["form"].document_type == LETTRE_REFUS
+    assert response.context["form"].document_type == GeneratedDocument.Type.LETTRE_REFUS
 
 
 def test_launch_no_projects_renders_error_body(client):
@@ -378,8 +375,9 @@ def test_wizard_step_create_creates_documents_and_returns_success(
     assert len(list(response.context["refreshed_enveloppe_projets"])) == 3
     for dp in enveloppe_projets:
         dp.refresh_from_db()
-        assert dp.lettrerefus.modele == detr_refus_modele
-        assert dp.lettrerefus.created_by == client.user
+        refus = dp.generated_document(GeneratedDocument.Type.LETTRE_REFUS)
+        assert refus.modele == detr_refus_modele
+        assert refus.created_by == client.user
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (3 docs)
@@ -399,7 +397,8 @@ def test_wizard_step_create_replaces_existing_doc(
     )
     _post_step_create(client)
     dp.refresh_from_db()
-    assert dp.lettrerefus.id != old_refus.id
+    refus = dp.generated_document(GeneratedDocument.Type.LETTRE_REFUS)
+    assert refus.id != old_refus.id
 
 
 def test_wizard_step_modele_conserver_when_all_covered_advances_to_step_format(
@@ -425,7 +424,7 @@ def test_wizard_step_modele_conserver_when_all_covered_advances_to_step_format(
     form = response.context["form"]
     assert "overwrite_strategy" not in form.errors
     # No new lettre created yet: only the original 3 fixtures remain.
-    assert LettreRefus.objects.count() == 3
+    assert GeneratedDocument.objects.count() == 3
 
 
 def test_wizard_step_create_conserver_creates_only_missing_documents(
@@ -445,10 +444,12 @@ def test_wizard_step_create_conserver_creates_only_missing_documents(
     assert TEMPLATE_BASE + "success.html" in _template_names(response)
 
     with_existing.refresh_from_db()
-    assert with_existing.lettrerefus.id == old_refus.id
+    refus = with_existing.generated_document(GeneratedDocument.Type.LETTRE_REFUS)
+    assert refus.id == old_refus.id
     for dp in without:
         dp.refresh_from_db()
-        assert dp.lettrerefus.modele == detr_refus_modele
+        refus = dp.generated_document(GeneratedDocument.Type.LETTRE_REFUS)
+        assert refus.modele == detr_refus_modele
 
 
 def test_wizard_step_create_remplacer_when_all_covered_replaces_all(
@@ -469,8 +470,9 @@ def test_wizard_step_create_remplacer_when_all_covered_replaces_all(
     assert TEMPLATE_BASE + "success.html" in _template_names(response)
     for dp, old_id in zip(enveloppe_projets, old_ids, strict=True):
         dp.refresh_from_db()
-        assert dp.lettrerefus.id != old_id
-        assert dp.lettrerefus.modele == detr_refus_modele
+        refus = dp.generated_document(GeneratedDocument.Type.LETTRE_REFUS)
+        assert refus.id != old_id
+        assert refus.modele == detr_refus_modele
 
 
 def test_export_job_attr_names_and_document_type(
@@ -481,8 +483,8 @@ def test_export_job_attr_names_and_document_type(
     )
     _post_step_create(client)
     job = ExportJob.objects.latest("created_at")
-    assert job.attr_names == [LETTRE_REFUS]
-    assert job.document_type == LETTRE_REFUS
+    assert job.attr_names == [GeneratedDocument.Type.LETTRE_REFUS]
+    assert job.document_type == GeneratedDocument.Type.LETTRE_REFUS
 
 
 ## Export-format coverage

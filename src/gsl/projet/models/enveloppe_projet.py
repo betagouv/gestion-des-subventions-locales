@@ -1,4 +1,5 @@
 import logging
+from collections import Counter
 from functools import cached_property
 from typing import TYPE_CHECKING, List, Optional
 
@@ -7,10 +8,13 @@ from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import (
     Case,
+    Exists,
+    OuterRef,
     Q,
     Value,
     When,
 )
+from django.template.defaultfilters import pluralize
 from django.utils import timezone
 from django_fsm import FSMField, TransitionNotAllowed, transition
 
@@ -19,6 +23,7 @@ from dn.sync.services import DsService
 from gsl.chorus.models import SuiviFinancier
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.historique.models import ProjetAction
+from gsl.notification.models import GeneratedDocument, UploadedDocument
 
 from ..constants import (
     MIN_DEMANDE_MONTANT_FOR_AVIS_DETR,
@@ -34,6 +39,10 @@ if TYPE_CHECKING:
     from gsl.simulation.models import SimulationProjet
 
 
+def _has_document(model, *types):
+    return Exists(model.objects.filter(enveloppe_projet=OuterRef("pk"), type__in=types))
+
+
 class EnveloppeProjetQuerySet(models.QuerySet):
     def for_dotation(self, dotation: Dotation):
         return self.filter(enveloppe__dotation=dotation)
@@ -45,9 +54,12 @@ class EnveloppeProjetQuerySet(models.QuerySet):
         return self.filter(status__in=ProjetStatus.FINAL)
 
     def without_signed_document(self):
-        return self.programmees().filter(
-            status=ProjetStatus.ACCEPTED,
-            lettre_et_arrete_signes__isnull=True,
+        return (
+            self.programmees()
+            .filter(status=ProjetStatus.ACCEPTED)
+            .exclude(
+                uploaded_documents__type=UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
+            )
         )
 
     def active(self):
@@ -85,19 +97,24 @@ class EnveloppeProjetQuerySet(models.QuerySet):
                     then=Value(NotificationStatus.NOTIFIED),
                 ),
                 When(
-                    Q(lettre_et_arrete_signes__isnull=False)
-                    | Q(lettre_refus_signee__isnull=False),
+                    _has_document(
+                        UploadedDocument,
+                        UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES,
+                        UploadedDocument.Type.LETTRE_REFUS_SIGNEE,
+                    ),
                     then=Value(NotificationStatus.TO_NOTIFY),
                 ),
                 When(
+                    _has_document(GeneratedDocument, GeneratedDocument.Type.ARRETE)
+                    & _has_document(GeneratedDocument, GeneratedDocument.Type.LETTRE),
                     status=ProjetStatus.ACCEPTED,
-                    arrete__isnull=False,
-                    lettrenotification__isnull=False,
                     then=Value(NotificationStatus.TO_SIGN),
                 ),
                 When(
+                    _has_document(
+                        GeneratedDocument, GeneratedDocument.Type.LETTRE_REFUS
+                    ),
                     status__in=ProjetStatus.NEGATIVE,
-                    lettrerefus__isnull=False,
                     then=Value(NotificationStatus.TO_SIGN),
                 ),
                 default=Value(NotificationStatus.TO_GENERATE),
@@ -427,38 +444,30 @@ class EnveloppeProjet(BaseModel):
     def is_treated(self) -> bool:
         return self.is_programmee
 
-    @property
-    def lettre(self):
-        """Bridge between the LETTRE document_type and the related_name, so
-        `getattr(enveloppe_projet, document_type)` resolves for every type."""
-        return self.lettrenotification
-
-    @property
-    def refus(self):
-        return self.lettrerefus
+    def generated_document(self, type: str) -> GeneratedDocument | None:
+        return self.generated_documents.filter(type=type).first()
 
     @cached_property
     def documents_summary(self):
-        summary = list()
+        uploaded = Counter(doc.kind for doc in self.uploaded_documents.all())
+        superseded = {
+            source
+            for kind in uploaded
+            for source in kind.reattach_source_document_types
+        }
+        generated = [
+            doc.kind
+            for doc in self.generated_documents.all()
+            if doc.kind not in superseded
+        ]
 
-        if hasattr(self, "lettre_et_arrete_signes"):
-            summary.append("1 lettre et arrêté signés")
-        else:
-            if hasattr(self, "arrete"):
-                summary.append("1 arrêté")
-            if hasattr(self, "lettrenotification"):
-                summary.append("1 lettre")
-
-        if hasattr(self, "lettre_refus_signee"):
-            summary.append("1 lettre de refus signée")
-        elif hasattr(self, "lettrerefus"):
-            summary.append("1 lettre de refus")
-
-        annexes_count = len(self.annexes.all())
-        if annexes_count != 0:
-            plural = "s" if annexes_count > 1 else ""
-            summary.append(f"{annexes_count} annexe{plural}")
-
+        summary = [
+            f"1 {kind.short_name.lower()}"
+            for kind in sorted(generated, key=list(GeneratedDocument.Type).index)
+        ]
+        for kind in sorted(uploaded, key=list(UploadedDocument.Type).index):
+            count = uploaded[kind]
+            summary.append(f"{count} {kind.label.lower()}{pluralize(count)}")
         return summary
 
     @transition(field=status, source="*", target=ProjetStatus.ACCEPTED)

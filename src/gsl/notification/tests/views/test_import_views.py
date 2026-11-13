@@ -12,7 +12,7 @@ from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreFactory,
 )
-from gsl.notification.models import DocumentImportJob, LettreEtArreteSignes
+from gsl.notification.models import DocumentImportJob, UploadedDocument
 from gsl.notification.tests.factories import (
     LettreNotificationFactory,
     ModeleLettreNotificationFactory,
@@ -235,7 +235,10 @@ def test_start_view_e2e_attaches_signed_document(client, user, perimetre):
     # Temp object cleaned up after processing.
     fake_s3.delete_object.assert_called_once()
 
-    attached = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
+    attached = UploadedDocument.objects.get(
+        type=UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES,
+        enveloppe_projet=enveloppe_projet,
+    )
     assert f"enveloppe_projet_{enveloppe_projet.id}/" in attached.file.name
 
 
@@ -245,7 +248,7 @@ def test_start_view_merges_pages_of_same_project_across_files(client, user, peri
 
     # Two files of the *same* import that both carry pages for the same project
     # (e.g. an arrêté file + a lettre file) must merge into a single combined
-    # LettreEtArreteSignes, not have the second file replace the first.
+    # lettre et arrêté signés, not have the second file replace the first.
     enveloppe_projet, pdf_bytes = _build_pdf_for_enveloppe_projet(
         ds_number=2223334, perimetre=perimetre, content_blocks=1000
     )
@@ -274,7 +277,10 @@ def test_start_view_merges_pages_of_same_project_across_files(client, user, peri
     assert job.result["errors"] == []
 
     # One combined document holding every page from both files.
-    docs = LettreEtArreteSignes.objects.filter(enveloppe_projet=enveloppe_projet)
+    docs = UploadedDocument.objects.filter(
+        type=UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES,
+        enveloppe_projet=enveloppe_projet,
+    )
     assert docs.count() == 1
     with docs.get().file.open("rb") as fh:
         assert len(Pdf.open(io.BytesIO(fh.read())).pages) == total_pages
@@ -304,7 +310,7 @@ def test_start_view_does_not_attach_out_of_perimetre(client, user):
     assert job.status == DocumentImportJob.STATUS_DONE
     assert job.result["documents_attached"] == 0
     assert any(e["type"] == "group_failed" for e in job.result["errors"])
-    assert not LettreEtArreteSignes.objects.filter(
+    assert not UploadedDocument.objects.filter(
         enveloppe_projet=enveloppe_projet
     ).exists()
 

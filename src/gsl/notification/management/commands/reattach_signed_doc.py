@@ -18,8 +18,8 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 
 from gsl.core.models import Collegue
+from gsl.notification.models import GeneratedDocument
 from gsl.notification.qr.reattach import (
-    DOCUMENT_TYPE_ORDER,
     DecodeStarted,
     DocumentAttached,
     MatchFailed,
@@ -135,13 +135,13 @@ def _format_attached(document) -> str:
     breakdown = ", ".join(
         f"{doc_type}: pages {_format_page_range(pages_by_doc_type[doc_type])}"
         for doc_type in sorted(
-            pages_by_doc_type, key=lambda t: DOCUMENT_TYPE_ORDER.get(t, 99)
+            pages_by_doc_type, key=lambda t: GeneratedDocument.Type(t).rank
         )
     )
     declared = document.declared
     return (
         f"ds={declared.ds_number} dotation={declared.dotation} "
-        f"[{declared.target_model.document_type}] → "
+        f"[{declared.target_type}] → "
         f"EnveloppeProjet #{document.enveloppe_projet_id} ({breakdown})"
     )
 

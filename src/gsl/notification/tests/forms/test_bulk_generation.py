@@ -10,14 +10,12 @@ from gsl.notification.forms.bulk_generation import (
     GenerateDocumentsFormatForm,
     GenerateDocumentsModeleSelectionForm,
 )
+from gsl.notification.models import GeneratedDocument
 from gsl.notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl.notification.utils import MENTIONS
-from gsl.projet.constants import (
-    ARRETE,
-    ProjetStatus,
-)
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
@@ -31,7 +29,7 @@ def test_generate_documents_step3_form_exposes_with_qr_code():
         user=user,
         dotation=Dotation.DETR,
         request=None,
-        document_type=ARRETE,
+        document_type=GeneratedDocument.Type.ARRETE,
     ).fields["with_qr_code"]
     assert field.required is False
     assert field.initial is True
@@ -46,7 +44,7 @@ def test_generate_documents_step3_form_valid_without_qr_field_submitted():
         user=user,
         dotation=Dotation.DETR,
         request=None,
-        document_type=ARRETE,
+        document_type=GeneratedDocument.Type.ARRETE,
     )
     assert form.is_valid(), form.errors
     assert form.cleaned_data["with_qr_code"] is False

@@ -1,13 +1,14 @@
 from django import forms
 from dsfr.forms import DsfrBaseForm
 
-from gsl.notification.models import MODELES, ModeleDocument
+from gsl.notification.models import ModeleDocument
 
 
 class ModeleDocumentStepZeroForm(DsfrBaseForm):
-    TYPE_CHOICES = tuple((type_, klass.type_label) for type_, klass in MODELES.items())
     type = forms.ChoiceField(
-        label="Type de document", choices=TYPE_CHOICES, widget=forms.RadioSelect
+        label="Type de document",
+        choices=ModeleDocument._meta.get_field("type").choices,
+        widget=forms.RadioSelect,
     )
 
 

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, replace
 from functools import cached_property
+from operator import attrgetter
 
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
@@ -13,7 +14,6 @@ from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
 from gsl.notification.forms.bulk_generation import (
-    DOCUMENT_TYPE_DISPLAY_ORDER,
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
@@ -25,9 +25,8 @@ from gsl.notification.forms.bulk_generation import (
     GenerateDocumentsTypeSelectionForm,
     GenerateRefusLettersLaunchForm,
 )
-from gsl.notification.models import ExportJob
+from gsl.notification.models import ExportJob, GeneratedDocument
 from gsl.notification.tasks import generate_export_task
-from gsl.projet.constants import LETTRE_REFUS
 from gsl.projet.models import EnveloppeProjet
 
 
@@ -223,9 +222,11 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
         raise NotImplementedError
 
     @property
-    def selected_types(self) -> frozenset[str]:
+    def selected_types(self) -> list[GeneratedDocument.Type]:
         """The document types the run generates, one document each per projet."""
-        return SELECTED_TYPES_BY_CHOICE[self.document_type]
+        return sorted(
+            SELECTED_TYPES_BY_CHOICE[self.document_type], key=attrgetter("rank")
+        )
 
     @cached_property
     def enveloppe_projets(self):
@@ -262,19 +263,11 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
             overwrite_strategy=merged_data.get("overwrite_strategy"),
         )
 
-        selected_types = self.selected_types
         with_qr_code = merged_data.get("with_qr_code")
         job = ExportJob.objects.create(
             created_by=self.request.user,
-            enveloppe_projet_ids=[dp.pk for dp in enveloppe_projets],
-            # attr_names is stored as JSON: selected_types is a frozenset, so
-            # pin a deterministic order (lettre before arrêté before refus,
-            # matching the display order elsewhere) rather than the set itself.
-            attr_names=[
-                document_type
-                for document_type in DOCUMENT_TYPE_DISPLAY_ORDER
-                if document_type in selected_types
-            ],
+            enveloppe_projet_ids=[ep.pk for ep in enveloppe_projets],
+            attr_names=self.selected_types,
             export_format=merged_data.get("export_format"),
             document_type=self.document_type,
             with_qr_code=with_qr_code,
@@ -346,7 +339,7 @@ class GenerateLettreRefusWizard(BaseGenerateDocumentsWizard):
     MODAL_POST_URL_NAME = "gsl_notification:generate-refus-documents-modal"
     STATUS_URL_NAME = "gsl_notification:generate-refus-documents-status"
 
-    document_type = LETTRE_REFUS
+    document_type = GeneratedDocument.Type.LETTRE_REFUS
 
 
 @method_decorator(htmx_only, name="dispatch")
@@ -356,7 +349,7 @@ class BaseGenerateDocumentsStatusView(DetailView):
     is running.
 
     Subclasses set WIZARD_CLASS, the paired wizard supplying the modal
-    identifiers, and fetch the relations their documents are rendered from.
+    identifiers.
     """
 
     model = ExportJob
@@ -398,36 +391,18 @@ class BaseGenerateDocumentsStatusView(DetailView):
     def get_refreshed_enveloppe_projets(self, enveloppe_projet_ids):
         """The generated documents are rendered back into the projet list rows,
         in the order the job stored them."""
-        by_pk = {dp.pk: dp for dp in self.get_enveloppe_projets(enveloppe_projet_ids)}
+        by_pk = {ep.pk: ep for ep in self.get_enveloppe_projets(enveloppe_projet_ids)}
         return [by_pk[pk] for pk in enveloppe_projet_ids if pk in by_pk]
 
     def get_enveloppe_projets(self, enveloppe_projet_ids):
-        """Subclasses fetch the relations their success template renders."""
-        return EnveloppeProjet.objects.filter(pk__in=enveloppe_projet_ids)
+        return EnveloppeProjet.objects.filter(
+            pk__in=enveloppe_projet_ids
+        ).prefetch_related("generated_documents", "uploaded_documents")
 
 
 class GenerateAcceptedDocumentsStatusView(BaseGenerateDocumentsStatusView):
     WIZARD_CLASS = GenerateAcceptedDocumentsWizard
 
-    def get_enveloppe_projets(self, enveloppe_projet_ids):
-        return (
-            super()
-            .get_enveloppe_projets(enveloppe_projet_ids)
-            .select_related(
-                "arrete",
-                "lettrenotification",
-                "lettre_et_arrete_signes",
-            )
-            .prefetch_related("annexes")
-        )
-
 
 class GenerateLettreRefusStatusView(BaseGenerateDocumentsStatusView):
     WIZARD_CLASS = GenerateLettreRefusWizard
-
-    def get_enveloppe_projets(self, enveloppe_projet_ids):
-        return (
-            super()
-            .get_enveloppe_projets(enveloppe_projet_ids)
-            .select_related("lettrerefus")
-        )

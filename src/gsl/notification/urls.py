@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, register_converter
 
+from gsl.notification.converters import GeneratedDocumentTypeConverter
 from gsl.notification.views.generate_document_for_multiple_projets_views import (
     GenerateAcceptedDocumentsStatusView,
     GenerateAcceptedDocumentsWizard,
@@ -27,13 +28,16 @@ from gsl.notification.views.uploaded_document_views import (
 )
 from gsl.notification.views.views import (
     ChangeDocumentView,
-    DeleteDocumentView,
+    DeleteGeneratedDocumentView,
+    DeleteUploadedDocumentView,
     DownloadDocumentView,
     DownloadMergedGeneratedDocumentsView,
     NotificationDocumentsView,
     PrintDocumentView,
     SelectModeleView,
 )
+
+register_converter(GeneratedDocumentTypeConverter, "generated_document_type")
 
 urlpatterns = [
     path(
@@ -48,28 +52,28 @@ urlpatterns = [
     ),
     # Generated files
     path(
-        "<int:projet_id>/selection-d-un-modele/<str:dotation>/<str:document_type>",
+        "<int:projet_id>/selection-d-un-modele/<str:dotation>/<generated_document_type:document_type>",
         SelectModeleView.as_view(),
         name="select-modele",
     ),
     path(
-        "<int:projet_id>/modifier-document/<str:dotation>/<str:document_type>",
+        "<int:projet_id>/modifier-document/<str:dotation>/<generated_document_type:document_type>",
         ChangeDocumentView.as_view(),
         name="modifier-document",
     ),
     path(
-        "document/<str:document_type>/<int:document_id>/download/",
+        "document/<int:document_id>/download/",
         DownloadDocumentView.as_view(),
         name="document-download",
     ),
     path(
-        "document/<str:document_type>/<int:document_id>/view/",
+        "document/<int:document_id>/view/",
         PrintDocumentView.as_view(),
         name="document-view",
     ),
     path(
-        "document/<str:document_type>/<int:document_id>/delete/",
-        DeleteDocumentView.as_view(),
+        "document/<int:document_id>/delete/",
+        DeleteGeneratedDocumentView.as_view(),
         name="delete-document",
     ),
     # Modal HTMX - génération en masse
@@ -115,14 +119,19 @@ urlpatterns = [
         name="import-progress",
     ),
     path(
-        "document-televerse/<str:document_type>/<int:document_id>/download/",
+        "document-televerse/<int:document_id>/download/",
         download_uploaded_document,
         name="uploaded-document-download",
     ),
     path(
-        "document-televerse/<str:document_type>/<int:document_id>/view/",
+        "document-televerse/<int:document_id>/view/",
         view_uploaded_document,
         name="uploaded-document-view",
+    ),
+    path(
+        "document-televerse/<int:document_id>/delete/",
+        DeleteUploadedDocumentView.as_view(),
+        name="delete-uploaded-document",
     ),
     # Modèles d'arrêtés
     path(
@@ -136,17 +145,17 @@ urlpatterns = [
         name="modele-creer-choix-du-type",
     ),
     path(
-        "modeles/nouveau/<str:modele_type>/<str:dotation>/",
+        "modeles/nouveau/<generated_document_type:modele_type>/<str:dotation>/",
         CreateModelDocumentWizard.as_view(),
         name="modele-creer",
     ),
     path(
-        "modeles/modifier/<str:modele_type>/<str:modele_id>/",
+        "modeles/modifier/<int:modele_id>/",
         UpdateModele.as_view(),
         name="modele-modifier",
     ),
     path(
-        "modeles/dupliquer/<str:modele_type>/<str:modele_id>/",
+        "modeles/dupliquer/<int:modele_id>/",
         DuplicateModele.as_view(),
         name="modele-dupliquer",
     ),
@@ -156,7 +165,7 @@ urlpatterns = [
         name="get-generic-modele-template",
     ),
     path(
-        "modeles/<str:modele_type>/<str:modele_id>/",
+        "modeles/<int:modele_id>/",
         DeleteModeleView.as_view(),
         name="delete-modele",
     ),

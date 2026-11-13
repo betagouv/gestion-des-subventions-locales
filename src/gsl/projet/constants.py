@@ -24,11 +24,4 @@ class NotificationStatus(models.TextChoices):
     NOTIFIED = "notified", "Notifié"
 
 
-ARRETE = "arrete"
-LETTRE = "lettre"
-LETTRE_REFUS = "refus"
-
-LETTRE_ET_ARRETE_SIGNES = "lettre_et_arrete_signes"
-ANNEXE = "annexe"
-
 MIN_DEMANDE_MONTANT_FOR_AVIS_DETR = 100_000

@@ -28,12 +28,7 @@ from typing import Iterator
 import segno
 
 from dn.sync.models import Dotation
-from gsl.notification.models import GENERATED_DOCUMENTS
-from gsl.projet.constants import (
-    ARRETE,
-    LETTRE,
-    LETTRE_REFUS,
-)
+from gsl.notification.models import GeneratedDocument
 
 PAYLOAD_PREFIX = "GSL1"
 
@@ -43,16 +38,16 @@ PAYLOAD_PREFIX = "GSL1"
 RENDER_SCALE = 200 / 72
 
 _ALLOWED_DOTATIONS = (Dotation.DETR, Dotation.DSIL)
-_ALLOWED_DOCUMENT_TYPES = GENERATED_DOCUMENTS
 
 _DOTATION_TO_CODE = {Dotation.DETR: "D", Dotation.DSIL: "S"}
 _CODE_TO_DOTATION = {v: k for k, v in _DOTATION_TO_CODE.items()}
 
-_DOCUMENT_TYPE_TO_CODE = {ARRETE: "A", LETTRE: "L", LETTRE_REFUS: "R"}
-_CODE_TO_DOCUMENT_TYPE = {v: k for k, v in _DOCUMENT_TYPE_TO_CODE.items()}
+_CODE_TO_DOCUMENT_TYPE = {
+    document_type.short_code: document_type for document_type in GeneratedDocument.Type
+}
 
 _DOTATION_CODES = "".join(_DOTATION_TO_CODE.values())
-_DOCUMENT_TYPE_CODES = "".join(_DOCUMENT_TYPE_TO_CODE.values())
+_DOCUMENT_TYPE_CODES = "".join(_CODE_TO_DOCUMENT_TYPE)
 
 _PAYLOAD_RE = re.compile(
     r"^GSL1:(?P<ds_number>\d+)"
@@ -89,14 +84,15 @@ class QrHit:
 def build_payload(ds_number: int, dotation: str, document_type: str, page: int) -> str:
     if dotation not in _ALLOWED_DOTATIONS:
         raise ValueError(f"Unknown dotation: {dotation!r}")
-    if document_type not in _ALLOWED_DOCUMENT_TYPES:
+    if document_type not in GeneratedDocument.Type.values:
         raise ValueError(f"Unknown document_type: {document_type!r}")
     if page < 1:
         raise ValueError(f"page must be >= 1, got {page}")
+    short_code = GeneratedDocument.Type(document_type).short_code
     return (
         f"{PAYLOAD_PREFIX}:{ds_number}"
         f":{_DOTATION_TO_CODE[dotation]}"
-        f":{_DOCUMENT_TYPE_TO_CODE[document_type]}"
+        f":{short_code}"
         f":{page}"
     )
 

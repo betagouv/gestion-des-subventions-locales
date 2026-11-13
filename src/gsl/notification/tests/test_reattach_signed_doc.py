@@ -9,7 +9,7 @@ from django.core.management.base import CommandError
 from pikepdf import Page, Pdf
 
 from gsl.core.tests.factories import CollegueFactory
-from gsl.notification.models import LettreEtArreteSignes, LettreRefusSignee
+from gsl.notification.models import UploadedDocument
 from gsl.notification.qr.codec import (
     RENDER_SCALE,
     QrPayload,
@@ -42,6 +42,18 @@ from gsl.projet.tests.factories import EnveloppeProjetFactory
 def _mock_logo():
     with patch("gsl.notification.utils.get_logo_base64", return_value="mocked_base64"):
         yield
+
+
+def _lettres_et_arretes_signes():
+    return UploadedDocument.objects.filter(
+        type=UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
+    )
+
+
+def _lettres_refus_signees():
+    return UploadedDocument.objects.filter(
+        type=UploadedDocument.Type.LETTRE_REFUS_SIGNEE
+    )
 
 
 def _build_pdf_for_enveloppe_projet(ds_number, dotation=None, content_blocks=200):
@@ -103,8 +115,8 @@ def test_happy_path_splits_two_groups(tmp_path):
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
-    doc1 = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet1)
-    doc2 = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet2)
+    doc1 = _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet1)
+    doc2 = _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet2)
     assert f"enveloppe_projet_{enveloppe_projet1.id}/" in doc1.file.name
     assert f"enveloppe_projet_{enveloppe_projet2.id}/" in doc2.file.name
 
@@ -139,7 +151,7 @@ def _build_refus_pdf_for_enveloppe_projet(ds_number, dotation=None, content_bloc
 @pytest.mark.django_db
 def test_happy_path_attaches_lettre_refus_signee(tmp_path):
     """A scan of a signed lettre de refus (QR document_type="refus") must be
-    attached as a LettreRefusSignee, not a LettreEtArreteSignes."""
+    attached as a lettre de refus signée, not a lettre et arrêté signés."""
     user = CollegueFactory(email="op@example.com")
     enveloppe_projet, _, pdf_bytes = _build_refus_pdf_for_enveloppe_projet(
         ds_number=7777777
@@ -151,12 +163,14 @@ def test_happy_path_attaches_lettre_refus_signee(tmp_path):
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
     enveloppe_projet.refresh_from_db()
-    doc = LettreRefusSignee.objects.get(enveloppe_projet=enveloppe_projet)
+    doc = _lettres_refus_signees().get(enveloppe_projet=enveloppe_projet)
     assert f"enveloppe_projet_{enveloppe_projet.id}/" in doc.file.name
     assert "lettre-refus-signee" in doc.file.name
-    assert not LettreEtArreteSignes.objects.filter(
-        enveloppe_projet=enveloppe_projet
-    ).exists()
+    assert (
+        not _lettres_et_arretes_signes()
+        .filter(enveloppe_projet=enveloppe_projet)
+        .exists()
+    )
 
 
 @pytest.mark.django_db
@@ -188,8 +202,8 @@ def test_mixed_lettre_et_arrete_and_refus_pages_attach_independently(tmp_path):
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
     enveloppe_projet.refresh_from_db()
-    lettre_doc = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
-    refus_doc = LettreRefusSignee.objects.get(enveloppe_projet=enveloppe_projet)
+    lettre_doc = _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet)
+    refus_doc = _lettres_refus_signees().get(enveloppe_projet=enveloppe_projet)
 
     with lettre_doc.file.open("rb") as fh:
         assert len(Pdf.open(io.BytesIO(fh.read())).pages) == lettre_pages
@@ -288,9 +302,9 @@ def test_unreadable_page_is_skipped(tmp_path):
 
     assert str(blank_page_idx) in str(exc.value) or "unreadable" in str(exc.value)
     # The valid group is still committed despite the blank page.
-    assert LettreEtArreteSignes.objects.filter(
-        enveloppe_projet=enveloppe_projet
-    ).exists()
+    assert (
+        _lettres_et_arretes_signes().filter(enveloppe_projet=enveloppe_projet).exists()
+    )
 
 
 @pytest.mark.django_db
@@ -312,7 +326,7 @@ def test_unknown_ds_number_is_skipped(tmp_path):
     msg = str(exc.value)
     assert str(ds_number) in msg
     assert dotation in msg
-    assert LettreEtArreteSignes.objects.count() == 0
+    assert _lettres_et_arretes_signes().count() == 0
 
 
 @pytest.mark.django_db
@@ -333,7 +347,7 @@ def test_replaces_existing_lettre_et_arrete_signes(tmp_path):
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
-    docs = LettreEtArreteSignes.objects.filter(enveloppe_projet=enveloppe_projet)
+    docs = _lettres_et_arretes_signes().filter(enveloppe_projet=enveloppe_projet)
     assert docs.count() == 1
     new_doc = docs.get()
     assert new_doc.id != pre_id
@@ -391,7 +405,7 @@ def test_qr_mask_blends_in_with_surrounding_texture(tmp_path):
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
-    doc = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
+    doc = _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet)
     with doc.file.open("rb") as fh:
         stored_bytes = fh.read()
 
@@ -443,7 +457,7 @@ def test_qr_is_removed_from_stored_pdf(tmp_path):
 
     call_command("reattach_signed_doc", str(scan), "--user", user.email)
 
-    doc = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
+    doc = _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet)
     with doc.file.open("rb") as fh:
         stored_decoded = _decode_pdf_bytes(fh.read())
 
@@ -469,7 +483,7 @@ def test_qr_is_kept_when_remove_qr_code_is_false():
     all_enveloppe_projets = EnveloppeProjet.objects.all()
     list(reattach_signed_docs(pdfs, user, all_enveloppe_projets, remove_qr_code=False))
 
-    doc = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
+    doc = _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet)
     with doc.file.open("rb") as fh:
         stored_decoded = _decode_pdf_bytes(fh.read())
 
@@ -512,7 +526,7 @@ def test_reimport_same_scan_filename_keeps_new_file(
             )
         )
 
-    doc = LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
+    doc = _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet)
     assert doc.file.storage.exists(doc.file.name), (
         "freshly-written file was deleted after re-import with a colliding key"
     )
@@ -545,16 +559,18 @@ def test_extracting_writes_nothing_and_can_be_replayed():
         enveloppe_projet.id
     ]
     assert extract() == documents
-    assert not LettreEtArreteSignes.objects.filter(
-        enveloppe_projet=enveloppe_projet
-    ).exists()
+    assert (
+        not _lettres_et_arretes_signes()
+        .filter(enveloppe_projet=enveloppe_projet)
+        .exists()
+    )
 
     attached = list(replace_documents(documents, pdfs, user))
     assert [event.document for event in attached] == documents
     assert (
-        LettreEtArreteSignes.objects.filter(enveloppe_projet=enveloppe_projet).count()
+        _lettres_et_arretes_signes().filter(enveloppe_projet=enveloppe_projet).count()
         == 1
     )
     assert [event.stored for event in attached] == [
-        LettreEtArreteSignes.objects.get(enveloppe_projet=enveloppe_projet)
+        _lettres_et_arretes_signes().get(enveloppe_projet=enveloppe_projet)
     ]
