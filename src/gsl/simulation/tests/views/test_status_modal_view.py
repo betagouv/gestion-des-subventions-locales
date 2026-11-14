@@ -70,6 +70,8 @@ def test_refuse_modal_excludes_notified_projects(
     # Mark the related programmation as notified
     simulation_projet.enveloppe_projet.projet.notified_at = date.today()
     simulation_projet.enveloppe_projet.projet.save()
+    simulation_projet.enveloppe_projet.notified_at = date.today()
+    simulation_projet.enveloppe_projet.save()
 
     url = reverse(
         "simulation:simulation-projet-update-programmed-status",

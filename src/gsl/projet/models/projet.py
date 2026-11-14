@@ -113,12 +113,12 @@ class ProjetQuerySet(models.QuerySet):
         return self.filter(notified_at__isnull=True)
 
     def with_at_least_one_treated_dotation(self):
+        """In their most recent campagne."""
         return self.filter(
             Exists(
-                EnveloppeProjet.objects.programmees().filter(
-                    projet=OuterRef("pk"),
-                    status__in=ProjetStatus.FINAL,
-                )
+                EnveloppeProjet.objects.programmees()
+                .in_most_recent_campagne()
+                .filter(projet=OuterRef("pk"))
             )
         )
 
@@ -294,6 +294,24 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return Enveloppe.objects.root_for(dotation, self.perimetre, annee)
 
     @property
+    def enveloppe_projets_in_most_recent_campagne(self) -> list[EnveloppeProjet]:
+        """Python side twin of `EnveloppeProjetQuerySet.in_most_recent_campagne`,
+        to benefit from the prefetch."""
+        campagne = self.most_recent_campagne
+        return [
+            ep
+            for ep in self.enveloppeprojet_set.all()
+            if ep.enveloppe.annee == campagne
+        ]
+
+    @property
+    def has_programmed_dotation_in_most_recent_campagne(self) -> bool:
+        """Python side twin of `ProjetQuerySet.with_at_least_one_treated_dotation`."""
+        return any(
+            ep.is_programmee for ep in self.enveloppe_projets_in_most_recent_campagne
+        )
+
+    @property
     def campagne(self) -> int | None:
         """The campagne of its enveloppe projets, none if they span several."""
         annees = {ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()}
@@ -303,7 +321,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return annee
 
     @property
-    def campagne_ouverte(self) -> int | None:
+    def most_recent_campagne(self) -> int | None:
         """The most recent campagne of its enveloppe projets."""
         return max(
             (ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()), default=None
@@ -392,6 +410,12 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return self.enveloppeprojet_set.count() > 1
 
     @property
+    def has_multiple_dotation(self) -> bool:
+        """Several dotations among its courant enveloppe projets, all campagnes
+        together."""
+        return len({ep.dotation for ep in self.enveloppeprojet_set.all()}) > 1
+
+    @property
     def dotation_detr(self):
         for dp in self.enveloppeprojet_set.all():
             if dp.dotation == Dotation.DETR:
@@ -458,35 +482,32 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def generated_documents(self):
-        documents = [
-            document
-            for model in GENERATED_DOCUMENTS.values()
-            for document in model.objects.filter(
-                enveloppe_projet__projet=self
-            ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
-        ]
-        return sorted(
-            documents,
-            key=lambda d: (
-                Dotation.values.index(d.enveloppe_projet.dotation),
-                list(GENERATED_DOCUMENTS.keys()).index(d.document_type),
-            ),
+        """Of its courant enveloppe projets of the most recent campagne only."""
+        return self._documents_in_most_recent_campagne(
+            GENERATED_DOCUMENTS, _GENERATED_DOCUMENT_SELECT_RELATED
         )
 
     @property
     def imported_documents(self):
+        """Of its courant enveloppe projets of the most recent campagne only."""
+        return self._documents_in_most_recent_campagne(
+            UPLOADED_DOCUMENTS, _UPLOADED_DOCUMENT_SELECT_RELATED
+        )
+
+    def _documents_in_most_recent_campagne(self, models_by_type, select_related):
+        """Sorted by dotation, then by document type."""
         documents = [
             document
-            for model in UPLOADED_DOCUMENTS.values()
-            for document in model.objects.filter(
-                enveloppe_projet__projet=self
-            ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
+            for model in models_by_type.values()
+            for document in model.objects.filter(enveloppe_projet__projet=self)
+            .in_most_recent_campagne()
+            .select_related(*select_related)
         ]
         return sorted(
             documents,
             key=lambda d: (
                 Dotation.values.index(d.enveloppe_projet.dotation),
-                list(UPLOADED_DOCUMENTS.keys()).index(d.document_type),
+                list(models_by_type.keys()).index(d.document_type),
             ),
         )
 

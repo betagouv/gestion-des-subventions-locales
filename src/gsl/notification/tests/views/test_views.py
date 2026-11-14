@@ -26,6 +26,7 @@ from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl.projet.constants import (
     ARRETE,
     LETTRE,
@@ -72,6 +73,26 @@ def accepted_detr_enveloppe_projet(perimetre):
         dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
     )
+
+
+@pytest.fixture
+def projet_on_two_campagnes():
+    """A closed DETR on 2026 and a DSIL on 2027, each with its documents."""
+    perimetre = PerimetreDepartementalFactory()
+    closed = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    recent = EnveloppeProjetFactory(
+        projet=closed.projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    for enveloppe_projet in (closed, recent):
+        ArreteFactory(enveloppe_projet=enveloppe_projet)
+        LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
+    return closed, recent
 
 
 ## TESTS
@@ -142,6 +163,67 @@ def test_get_documents_renders_the_table_of_existing_documents(
         f"/notification/{enveloppe_projet.projet_id}/modifier-document/"
         f"{enveloppe_projet.dotation}/{ARRETE}" in content
     )
+
+
+def test_get_documents_only_shows_the_most_recent_campagne(projet_on_two_campagnes):
+    closed, recent = projet_on_two_campagnes
+    projet = recent.projet
+    client = ClientWithLoggedUserFactory(CollegueFactory(perimetre=projet.perimetre))
+
+    response = client.get(
+        reverse("notification:documents", kwargs={"projet_id": projet.id})
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    modifier_document = f"/notification/{projet.id}/modifier-document"
+    assert f"{modifier_document}/{recent.dotation}/{ARRETE}" in content
+    assert f"{modifier_document}/{closed.dotation}/{ARRETE}" not in content
+    assert recent.lettre_et_arrete_signes.get_view_url() in content
+    assert closed.lettre_et_arrete_signes.get_view_url() not in content
+    assert f'name="skip_arrete_{recent.dotation}"' in content
+    assert f'name="skip_arrete_{closed.dotation}"' not in content
+
+
+def test_get_documents_without_programmed_dotation_in_the_most_recent_campagne():
+    perimetre = PerimetreDepartementalFactory()
+    closed = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=closed.projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    client = ClientWithLoggedUserFactory(CollegueFactory(perimetre=perimetre))
+
+    response = client.get(
+        reverse("notification:documents", kwargs={"projet_id": closed.projet_id})
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Aucune dotation n’est programmée sur la campagne 2027" in content
+    assert 'name="hide_qr_code"' not in content
+    assert 'aria-controls="upload-document-modal"' not in content
+
+
+def test_get_documents_with_programmed_dotation_in_the_most_recent_campagne(
+    enveloppe_projet, correct_perimetre_client_with_user_logged
+):
+    response = correct_perimetre_client_with_user_logged.get(
+        reverse(
+            "notification:documents", kwargs={"projet_id": enveloppe_projet.projet_id}
+        )
+    )
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Aucune dotation n’est programmée" not in content
+    assert 'name="hide_qr_code"' in content
+    assert 'aria-controls="upload-document-modal"' in content
 
 
 def test_get_documents_without_back_param_uses_projet_list(
@@ -246,6 +328,41 @@ def test_post_documents_after_notification_returns_404(
     assert not LettreNotification.objects.filter(
         enveloppe_projet=enveloppe_projet
     ).exists()
+
+
+@pytest.mark.parametrize(
+    "recent_status, expected_status_code",
+    ((ProjetStatus.PROCESSING, 404), (ProjetStatus.ACCEPTED, 200)),
+)
+def test_post_documents_needs_a_treated_dotation_in_the_most_recent_campagne(
+    recent_status, expected_status_code
+):
+    perimetre = PerimetreDepartementalFactory()
+    closed = EnveloppeProjetFactory(
+        projet__dossier_ds__perimetre=perimetre,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=closed.projet,
+        status=recent_status,
+        enveloppe=DsilEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    client = ClientWithLoggedUserFactory(CollegueFactory(perimetre=perimetre))
+    url = reverse(
+        "fragment:gsl_notification:generate_documents", kwargs={"pk": closed.projet_id}
+    )
+
+    response = client.post(
+        url,
+        {
+            f"skip_arrete_{Dotation.DSIL}": "on",
+            f"skip_lettre_{Dotation.DSIL}": "on",
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == expected_status_code
 
 
 def test_post_documents_invalid_rerenders_block_with_errors(
@@ -888,6 +1005,24 @@ def test_generated_documents_download_with_wrong_perimetre(
     url = reverse("notification:generated-documents-download", args=[projet.id])
     response = different_perimetre_client_with_user_logged.get(url)
     assert response.status_code == 404
+
+
+def test_generated_documents_download_only_merges_the_most_recent_campagne(
+    projet_on_two_campagnes,
+):
+    closed, recent = projet_on_two_campagnes
+    projet = recent.projet
+    client = ClientWithLoggedUserFactory(CollegueFactory(perimetre=projet.perimetre))
+
+    url = reverse("notification:generated-documents-download", args=[projet.id])
+    with patch(
+        "gsl.notification.views.views.merge_generated_documents_into_pdf",
+        return_value=b"%PDF-1.4",
+    ) as merge_mock:
+        response = client.get(url)
+
+    assert response.status_code == 200
+    assert merge_mock.call_args.args[0] == [recent.arrete]
 
 
 ### document-view

@@ -32,7 +32,7 @@ from gsl.notification.qr.reattach import (
     replace_documents,
 )
 from gsl.projet.constants import ProjetStatus
-from gsl.projet.fragments import BaseProjetFragment, ProjetActionsFragment
+from gsl.projet.fragments import BaseProjetFragment, DnActionsFragment
 from gsl.projet.models import EnveloppeProjet, Projet
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class NotificationMessageFragment(BaseProjetFragment):
     route_params = "<int:pk>"
     template_name = "includes/_notification_message_form.html"
     form_class = NotificationMessageForm
-    oob_fragments = (NotifiedFragment, ProjetActionsFragment, GenerateDocumentsFragment)
+    oob_fragments = (NotifiedFragment, DnActionsFragment, GenerateDocumentsFragment)
 
     @classmethod
     def get_queryset(cls, request):
@@ -109,7 +109,7 @@ class NotificationMessageFragment(BaseProjetFragment):
             "is_instructor": self.object.dossier_ds.is_instructeur(self.request.user),
             "enveloppe_projets_without_signed_document": list(
                 self.object.enveloppeprojet_set.for_campagne(
-                    self.object.campagne_ouverte
+                    self.object.most_recent_campagne
                 ).without_signed_document()
             ),
         }
@@ -123,13 +123,15 @@ class NotificationMessageFragment(BaseProjetFragment):
                 f"Une erreur est survenue lors de l'envoi de la notification. {e}",
             )
             return self.on_invalid()
+        # The DN sync saved notified_at on another instance of the projet.
+        self.object.refresh_from_db()
 
         queue_matomo_event(
             self.request,
             MATOMO_CATEGORY_NOTIFICATION,
             MATOMO_ACTION_ENVOI_DN,
             NOTIFICATION_RESULT_TO_MATOMO_ACTION[
-                self.object.status_for(self.object.campagne_ouverte)
+                self.object.status_for(self.object.most_recent_campagne)
             ],
         )
         return self.render_valid()

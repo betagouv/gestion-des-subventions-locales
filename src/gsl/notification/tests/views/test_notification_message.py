@@ -169,7 +169,7 @@ class TestForm:
         form = NotificationMessageForm(data={"message": ""}, instance=projet)
         assert form.is_valid()
 
-    def test_message_requirement_depends_on_the_campagne_ouverte(self, perimetre):
+    def test_message_requirement_depends_on_the_most_recent_campagne(self, perimetre):
         projet = _accepted_projet(perimetre)
         EnveloppeProjetFactory(
             projet=projet,
@@ -599,7 +599,7 @@ class TestView:
         content = response.content.decode()
         assert 'id="notification-message-block"' in content
         assert 'id="notified-block"' in content
-        assert 'id="projet-actions"' in content
+        assert 'id="dn-actions"' in content
         assert 'id="generate-documents-block"' in content
         # Regression: the tab's other form fragment tags (generate_documents_form,
         # notification_message_form) share this same POST request. Without
@@ -608,6 +608,9 @@ class TestView:
         assert "fr-error-text" not in content
         projet.refresh_from_db()
         assert projet.notified_at is not None
+        # The "3 - Notifier" block swaps its form for the sent confirmation.
+        assert "Message de notification envoyé" in content
+        assert 'name="message"' not in content
         # The "4 - Notifications" block lists this notification's details.
         assert "Bravo" in content
 

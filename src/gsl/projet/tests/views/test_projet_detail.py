@@ -171,10 +171,16 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
     projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=datetime.now())
 
     EnveloppeProjetFactory(
-        projet=projet, status=dotation_status_1, dotation=Dotation.DETR
+        projet=projet,
+        status=dotation_status_1,
+        dotation=Dotation.DETR,
+        notified_at=projet.notified_at,
     )
     EnveloppeProjetFactory(
-        projet=projet, status=dotation_status_2, dotation=Dotation.DSIL
+        projet=projet,
+        status=dotation_status_2,
+        dotation=Dotation.DSIL,
+        notified_at=projet.notified_at,
     )
 
     url = reverse(

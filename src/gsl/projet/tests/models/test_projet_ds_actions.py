@@ -137,7 +137,7 @@ def _patch_ds_notify_methods():
         }
 
 
-# Campagne ouverte =====================================================================
+# Most recent campagne ================================================================
 
 
 def _projet_accepte_puis_refuse_la_campagne_suivante():
@@ -156,14 +156,14 @@ def _projet_accepte_puis_refuse_la_campagne_suivante():
     return projet, accepte, refuse
 
 
-def test_campagne_ouverte_is_the_most_recent_campagne():
+def test_most_recent_campagne_is_the_most_recent_campagne():
     projet, *_ = _projet_accepte_puis_refuse_la_campagne_suivante()
 
-    assert projet.campagne_ouverte == 2027
-    assert ProjetFactory().campagne_ouverte is None
+    assert projet.most_recent_campagne == 2027
+    assert ProjetFactory().most_recent_campagne is None
 
 
-def test_notify_only_notifies_the_campagne_ouverte():
+def test_notify_only_notifies_the_most_recent_campagne():
     projet, accepte, refuse = _projet_accepte_puis_refuse_la_campagne_suivante()
     LettreEtArreteSignesFactory(enveloppe_projet=accepte)
     lettre_refus = LettreRefusSigneeFactory(enveloppe_projet=refuse)

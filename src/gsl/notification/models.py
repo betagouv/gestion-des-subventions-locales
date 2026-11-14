@@ -158,6 +158,16 @@ class ModeleLettreRefus(ModeleDocument):
         verbose_name_plural = "Modèles de lettre de refus ou classement sans suite"
 
 
+class DocumentQuerySet(models.QuerySet):
+    def in_most_recent_campagne(self):
+        """Of courant enveloppe projets on the most recent campagne of their projet."""
+        from gsl.projet.models import EnveloppeProjet
+
+        return self.filter(
+            enveloppe_projet__in=EnveloppeProjet.objects.in_most_recent_campagne()
+        )
+
+
 GENERATED_DOCUMENTS = {}
 
 
@@ -187,6 +197,8 @@ class GeneratedDocument(VerboseNameMixin, models.Model):
         related_name="%(class)s",
     )
     with_qr_code = models.BooleanField(default=True)
+
+    objects = DocumentQuerySet.as_manager()
 
     class Meta:
         abstract = True
@@ -350,6 +362,8 @@ class UploadedDocument(VerboseNameMixin, models.Model):
         verbose_name="Fichier infecté",
         null=True,
     )
+
+    objects = DocumentQuerySet.as_manager()
 
     class Meta:
         abstract = True

@@ -15,6 +15,7 @@ from gsl.notification.tests.factories import (
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl.projet.constants import (
     ARRETE,
     LETTRE,
@@ -221,3 +222,74 @@ def test_generate_accepted_dotations_documents_form_hide_qr_code_propagates(
     assert mock_generate_pdf.call_count == 2
     for call in mock_generate_pdf.call_args_list:
         assert call.kwargs["with_qr_code"] is False
+
+
+@pytest.mark.django_db
+def test_generate_dotations_documents_form_only_lists_the_most_recent_campagne():
+    projet = ProjetFactory()
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2026),
+    )
+    recent = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre, annee=2027),
+    )
+
+    form = GenerateDotationsDocumentsForm(projet=projet, user=CollegueFactory())
+
+    assert list(form.dotation_fields.keys()) == [Dotation.DSIL]
+    assert form.dotation_fields[Dotation.DSIL]["enveloppe_projet"] == recent
+
+
+@pytest.mark.django_db
+def test_generate_dotations_documents_form_keeps_the_most_recent_of_a_dotation():
+    projet = ProjetFactory()
+    recent = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2027),
+    )
+    # Created last, the closed one would be the one kept by the dotation key.
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2026),
+    )
+
+    form = GenerateDotationsDocumentsForm(projet=projet, user=CollegueFactory())
+
+    assert form.treated_enveloppe_projets == [recent]
+    assert form.dotation_fields[Dotation.DETR]["enveloppe_projet"] == recent
+
+
+@pytest.mark.django_db
+def test_generate_dotations_documents_form_ignores_non_courant_enveloppe_projets():
+    projet = ProjetFactory()
+    courant = EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=projet.perimetre, annee=2026),
+    )
+    # Created last, a superseded one would be the one kept by the dotation key.
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=courant.enveloppe,
+        is_courant=False,
+    )
+    # On a later campagne, a superseded one must not hide the courant campagne.
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DsilEnveloppeFactory(perimetre=projet.perimetre, annee=2027),
+        is_courant=False,
+    )
+
+    form = GenerateDotationsDocumentsForm(projet=projet, user=CollegueFactory())
+
+    assert form.treated_enveloppe_projets == [courant]
+    assert list(form.dotation_fields.keys()) == [Dotation.DETR]
+    assert form.dotation_fields[Dotation.DETR]["enveloppe_projet"] == courant
