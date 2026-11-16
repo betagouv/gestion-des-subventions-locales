@@ -672,6 +672,49 @@ class TestView:
         projet.refresh_from_db()
         assert projet.notified_at == second_date_traitement
 
+    def test_notifications_are_displayed_in_a_table(
+        self, client_with_user_logged, collegue, perimetre
+    ):
+        projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+        agent_notification = ProjetActionFactory(
+            projet=projet,
+            action_type=ProjetAction.TYPE_NOTIFIED,
+            actor=collegue,
+            created_at=datetime(2025, 6, 25, 11, 46, tzinfo=UTC),
+            details="Message agent",
+            document=SimpleUploadedFile("notification.pdf", b"%PDF-1.4"),
+        )
+        ProjetActionFactory(
+            projet=projet,
+            action_type=ProjetAction.TYPE_NOTIFIED,
+            actor=None,
+            created_at=datetime(2025, 6, 26, 9, 0, tzinfo=UTC),
+            details="Message de DN",
+        )
+
+        response = client_with_user_logged.get(
+            reverse("notification:documents", kwargs={"projet_id": projet.id})
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        notified_block = content[content.index('id="notified-block"') :]
+        assert "<table>" in notified_block
+        assert "Historique des notifications" in notified_block
+        for header in (
+            "Date",
+            "Notifié par",
+            "Message de motivation",
+            "Document envoyé",
+        ):
+            assert f'<th scope="col">{header}</th>' in notified_block
+        assert agent_notification.actor_name in notified_block
+        assert "Démarches Numériques" in notified_block
+        assert agent_notification.document.url in notified_block
+        assert notified_block.index("Message agent") < notified_block.index(
+            "Message de DN"
+        )
+
     def test_post_send_notification_blocked_when_document_missing(
         self, client_with_user_logged, perimetre
     ):
