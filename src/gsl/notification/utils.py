@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -64,7 +65,7 @@ class MentionType(Enum):
 class Mention:
     key: str
     label: str
-    attribute: str
+    source: str | Callable[[EnveloppeProjet], object]
     type: MentionType = MentionType.STRING
 
     def get_value(self, enveloppe_projet: EnveloppeProjet) -> str:
@@ -73,7 +74,10 @@ class Mention:
     def _format_value(self, enveloppe_projet: EnveloppeProjet) -> str:
         if self.type == MentionType.DATE_NOW:
             return timezone.now().strftime("%d/%m/%Y")
-        value = get_nested_attribute(enveloppe_projet, self.attribute)
+        if callable(self.source):
+            value = self.source(enveloppe_projet)
+        else:
+            value = get_nested_attribute(enveloppe_projet, self.source)
         match self.type:
             case MentionType.EURO:
                 return euro(value, 2) if value is not None else "N/A"
@@ -92,6 +96,15 @@ class Mention:
                 return BeautifulSoup(value, "html.parser").get_text() if value else ""
             case _:
                 return str(value) if value is not None else ""
+
+
+def porteur_civilite_longue(enveloppe_projet: EnveloppeProjet) -> str:
+    civilite = enveloppe_projet.dossier_ds.porteur_de_projet_civilite
+    if civilite == "M.":
+        return "Monsieur"
+    if civilite == "Mme":
+        return "Madame"
+    return ""
 
 
 MENTIONS = [
@@ -155,6 +168,11 @@ MENTIONS = [
         "porteur-civilite",
         "Civilité du porteur de projet",
         "dossier_ds.porteur_de_projet_civilite",
+    ),
+    Mention(
+        "porteur-civilite-longue",
+        "Civilité du porteur de projet (en toutes lettres)",
+        porteur_civilite_longue,
     ),
     Mention(
         "porteur-prenom",

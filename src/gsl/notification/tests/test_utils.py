@@ -68,6 +68,7 @@ def enveloppe_projet():
         projet__dossier_ds__ds_number=1234567,
         projet__dossier_ds__finance_cout_total=50_000,
         projet__dossier_ds__porteur_de_projet_fonction="Maire",
+        projet__dossier_ds__porteur_de_projet_civilite="Mme",
         projet__dossier_ds__porteur_de_projet_prenom="Jean",
         projet__dossier_ds__porteur_de_projet_nom="Dupont",
         projet__comment_1="<p>Commentaire <strong>important</strong></p>",
@@ -94,6 +95,12 @@ def enveloppe_projet():
         ("cout-total", "Coût total de l'opération", "50 000,00 €"),
         ("assiette", "Assiette", "20 000,00 €"),
         ("porteur-fonction", "Fonction du porteur de projet", "Maire"),
+        ("porteur-civilite", "Civilité du porteur de projet", "Mme"),
+        (
+            "porteur-civilite-longue",
+            "Civilité du porteur de projet (en toutes lettres)",
+            "Madame",
+        ),
         ("porteur-prenom", "Prénom du porteur de projet", "Jean"),
         ("porteur-nom", "Nom du porteur de projet", "Dupont"),
         (
@@ -189,6 +196,22 @@ def test_replace_mention_montant_lettres_omits_zero_centimes():
     result = replace_mentions_in_html(html_content, enveloppe_projet)
 
     assert result == "<p>deux cent cinquante mille euros</p>"
+
+
+@pytest.mark.parametrize(
+    "civilite, expected_value", (("M.", "Monsieur"), ("Mme", "Madame"), ("", ""))
+)
+@pytest.mark.django_db
+def test_replace_mention_porteur_civilite_longue(civilite, expected_value):
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__porteur_de_projet_civilite=civilite,
+    )
+    html_content = '<p><span class="mention" data-id="porteur-civilite-longue">@Civilité</span></p>'
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == f"<p>{expected_value}</p>"
 
 
 @pytest.mark.django_db
