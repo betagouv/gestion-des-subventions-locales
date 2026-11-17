@@ -108,6 +108,16 @@ def porteur_civilite_longue(enveloppe_projet: EnveloppeProjet) -> str:
     return ""
 
 
+def porteur_fonction(enveloppe_projet: EnveloppeProjet) -> str:
+    fonction = enveloppe_projet.dossier_ds.porteur_de_projet_fonction
+    return "Président" if fonction == "Président de l'EPCI" else fonction
+
+
+def formule_appel(enveloppe_projet: EnveloppeProjet) -> str:
+    civilite = porteur_civilite_longue(enveloppe_projet)
+    return f"{civilite} le {porteur_fonction(enveloppe_projet)}"
+
+
 def de_nom_commune(nom: str) -> str:
     """
     >>> de_nom_commune("Barran")
@@ -260,7 +270,7 @@ MENTIONS = [
     Mention(
         "porteur-fonction",
         "Fonction du porteur de projet",
-        "dossier_ds.porteur_de_projet_fonction",
+        porteur_fonction,
     ),
     Mention(
         "porteur-civilite",
@@ -271,6 +281,11 @@ MENTIONS = [
         "porteur-civilite-longue",
         "Civilité du porteur de projet (en toutes lettres)",
         porteur_civilite_longue,
+    ),
+    Mention(
+        "formule-appel",
+        "Formule d'appel (ex. : Madame le Maire)",
+        formule_appel,
     ),
     Mention(
         "porteur-prenom",

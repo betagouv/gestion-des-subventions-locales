@@ -80,47 +80,36 @@ def enveloppe_projet():
 
 
 @pytest.mark.parametrize(
-    "key, label, expected_value",
+    "key, expected_value",
     (
-        ("nom-beneficiaire", "Nom du bénéficiaire", "Commune de Bagnères-de-Luchon"),
-        ("siret-beneficiaire", "SIRET du bénéficiaire", "12345678901234"),
-        ("projet-intitule", "Intitulé du projet", "Nouvelle plaque d'égoûts"),
-        ("nom-departement", "Nom du département", "Haute-Garonne"),
-        ("montant-subvention", "Montant prévisionnel de la subvention", "2 000,50 €"),
-        ("taux-subvention", "Taux de subvention", "10,00 %"),
-        ("date-commencement", "Date de commencement", "12/07/1998"),
-        ("date-achevement", "Date d'achèvement", "31/07/2024"),
-        ("date-depot", "Date de dépôt du dossier", "15/03/2023"),
-        ("numero-dossier", "Numéro DN du dossier", "1234567"),
-        ("cout-total", "Coût total de l'opération", "50 000,00 €"),
-        ("assiette", "Assiette", "20 000,00 €"),
-        ("porteur-fonction", "Fonction du porteur de projet", "Maire"),
-        ("porteur-civilite", "Civilité du porteur de projet", "Mme"),
-        (
-            "porteur-civilite-longue",
-            "Civilité du porteur de projet (en toutes lettres)",
-            "Madame",
-        ),
-        ("porteur-prenom", "Prénom du porteur de projet", "Jean"),
-        ("porteur-nom", "Nom du porteur de projet", "Dupont"),
-        (
-            "adresse-demandeur",
-            "Adresse du demandeur",
-            "1 rue de la Paix<br/>75001 Paris",
-        ),
-        ("commentaire-1", "Commentaire 1", "Commentaire important"),
-        ("numero-ej", "Numéro d'engagement juridique (EJ)", "2105006797"),
-        ("campagne", "Campagne", "2026"),
-        (
-            "montant-subvention-lettres",
-            "Montant accordé (toutes lettres)",
-            "deux mille euros et cinquante centimes",
-        ),
+        ("nom-beneficiaire", "Commune de Bagnères-de-Luchon"),
+        ("siret-beneficiaire", "12345678901234"),
+        ("projet-intitule", "Nouvelle plaque d'égoûts"),
+        ("nom-departement", "Haute-Garonne"),
+        ("montant-subvention", "2 000,50 €"),
+        ("taux-subvention", "10,00 %"),
+        ("date-commencement", "12/07/1998"),
+        ("date-achevement", "31/07/2024"),
+        ("date-depot", "15/03/2023"),
+        ("numero-dossier", "1234567"),
+        ("cout-total", "50 000,00 €"),
+        ("assiette", "20 000,00 €"),
+        ("porteur-fonction", "Maire"),
+        ("porteur-civilite", "Mme"),
+        ("porteur-civilite-longue", "Madame"),
+        ("formule-appel", "Madame le Maire"),
+        ("porteur-prenom", "Jean"),
+        ("porteur-nom", "Dupont"),
+        ("adresse-demandeur", "1 rue de la Paix<br/>75001 Paris"),
+        ("commentaire-1", "Commentaire important"),
+        ("numero-ej", "2105006797"),
+        ("campagne", "2026"),
+        ("montant-subvention-lettres", "deux mille euros et cinquante centimes"),
     ),
 )
 @pytest.mark.django_db
-def test_replace_mentions_in_html(key, label, expected_value, enveloppe_projet):
-    html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{key}" data-label="{label}" data-mention-suggestion-char="@">@{label}</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
+def test_replace_mentions_in_html(key, expected_value, enveloppe_projet):
+    html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{key}" data-label="Mention" data-mention-suggestion-char="@">@Mention</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
     expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
 
     assert expected_text == replace_mentions_in_html(html_content, enveloppe_projet)
