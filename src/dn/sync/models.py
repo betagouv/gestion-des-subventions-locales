@@ -119,22 +119,27 @@ class FormeJuridique(models.Model):
     SYNDICAT_MIXTE_FERME = "7354"
     SYNDICAT_MIXTE_OUVERT = "7355"
     PETR = "7357"
-    # Communes and groupements known to Fico, by INSEE legal form.
-    COLLECTIVITES = frozenset(
+    # Grammatical gender of the legal form's name: « la communauté », « le syndicat ».
+    FEMININES = frozenset(
         {
             COMMUNE,
-            POLE_METROPOLITAIN,
-            COMMUNAUTE_URBAINE,
-            METROPOLE,
-            SIVOM,
             COMMUNAUTE_DE_COMMUNES,
             COMMUNAUTE_D_AGGLOMERATION,
+            COMMUNAUTE_URBAINE,
+            METROPOLE,
+        }
+    )
+    MASCULINES = frozenset(
+        {
+            SIVOM,
             SIVU,
             SYNDICAT_MIXTE_FERME,
             SYNDICAT_MIXTE_OUVERT,
             PETR,
+            POLE_METROPOLITAIN,
         }
     )
+    COLLECTIVITES = FEMININES | MASCULINES
 
     code = models.CharField("Code", primary_key=True)
     libelle = models.CharField("Libellé")

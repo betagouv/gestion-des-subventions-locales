@@ -244,6 +244,46 @@ def test_replace_mention_nom_beneficiaire_keeps_raison_sociale_for_epci():
 
 
 @pytest.mark.parametrize(
+    "forme_juridique_code, raison_sociale, expected_value",
+    (
+        (
+            FormeJuridique.COMMUNE,
+            "COMMUNE DU CAILAR",
+            "de la commune du Cailar / à la commune du Cailar",
+        ),
+        (
+            FormeJuridique.SIVOM,
+            "SIVOM DI MIZANA",
+            "du SIVOM DI MIZANA / au SIVOM DI MIZANA",
+        ),
+    ),
+)
+@pytest.mark.django_db
+def test_replace_mentions_nom_beneficiaire_with_preposition(
+    forme_juridique_code, raison_sociale, expected_value
+):
+    forme_juridique, _ = FormeJuridique.objects.get_or_create(
+        code=forme_juridique_code, defaults={"libelle": raison_sociale}
+    )
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            raison_sociale=raison_sociale,
+            forme_juridique=forme_juridique,
+            address__commune__name="Le Cailar",
+        ),
+    )
+    html_content = (
+        '<p><span class="mention" data-id="de-nom-beneficiaire">@De</span> / '
+        '<span class="mention" data-id="a-nom-beneficiaire">@À</span></p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == f"<p>{expected_value}</p>"
+
+
+@pytest.mark.parametrize(
     "civilite, expected_value", (("M.", "Monsieur"), ("Mme", "Madame"), ("", ""))
 )
 @pytest.mark.django_db

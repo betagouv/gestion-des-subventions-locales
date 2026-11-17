@@ -130,10 +130,41 @@ def de_nom_commune(nom: str) -> str:
     for article, contraction in (("Le ", "du "), ("Les ", "des ")):
         if nom.startswith(article):
             return contraction + nom.removeprefix(article)
-    first_letter = unicodedata.normalize("NFD", nom)[:1].upper()
-    if first_letter and first_letter in "AEIOUH":
+    if starts_with_vowel_or_h(nom):
         return f"d'{nom}"
     return f"de {nom}"
+
+
+def starts_with_vowel_or_h(text: str) -> bool:
+    first_letter = unicodedata.normalize("NFD", text)[:1].upper()
+    return first_letter != "" and first_letter in "AEIOUH"
+
+
+def avec_preposition(preposition: str, forme_juridique: str | None, nom: str) -> str:
+    """
+    >>> avec_preposition("de", FormeJuridique.COMMUNE, "commune d'Aure")
+    "de la commune d'Aure"
+    >>> avec_preposition("à", FormeJuridique.COMMUNE, "commune d'Aure")
+    "à la commune d'Aure"
+    >>> avec_preposition("de", FormeJuridique.SIVOM, "SIVOM DI MIZANA")
+    'du SIVOM DI MIZANA'
+    >>> avec_preposition("à", FormeJuridique.SIVOM, "SIVOM DI MIZANA")
+    'au SIVOM DI MIZANA'
+    >>> avec_preposition(
+    ...     "de", FormeJuridique.COMMUNAUTE_D_AGGLOMERATION, "AGGLOMERATION DU GRAND AUCH"
+    ... )
+    "de l'AGGLOMERATION DU GRAND AUCH"
+    >>> avec_preposition("à", "7364", "CENTRE HOSPITALIER D AUCH")
+    'à CENTRE HOSPITALIER D AUCH'
+    """
+    if forme_juridique not in FormeJuridique.COLLECTIVITES:
+        return f"{preposition} {nom}"
+    if starts_with_vowel_or_h(nom):
+        return f"{preposition} l'{nom}"
+    if forme_juridique in FormeJuridique.FEMININES:
+        return f"{preposition} la {nom}"
+    contraction = "du" if preposition == "de" else "au"
+    return f"{contraction} {nom}"
 
 
 def nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
@@ -146,6 +177,24 @@ def nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
     return str(demandeur)
 
 
+def nom_beneficiaire_avec_preposition(
+    preposition: str, enveloppe_projet: EnveloppeProjet
+) -> str:
+    nom = nom_beneficiaire(enveloppe_projet)
+    if not nom:
+        return ""
+    forme_juridique = enveloppe_projet.dossier_ds.ds_demandeur.forme_juridique_id
+    return avec_preposition(preposition, forme_juridique, nom)
+
+
+def de_nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+    return nom_beneficiaire_avec_preposition("de", enveloppe_projet)
+
+
+def a_nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+    return nom_beneficiaire_avec_preposition("à", enveloppe_projet)
+
+
 MENTIONS = [
     Mention("numero-dossier", "Numéro DN du dossier", "dossier_ds.ds_number"),
     Mention(
@@ -155,6 +204,16 @@ MENTIONS = [
         MentionType.DATE,
     ),
     Mention("nom-beneficiaire", "Nom du bénéficiaire", nom_beneficiaire),
+    Mention(
+        "de-nom-beneficiaire",
+        "Nom du bénéficiaire précédé de « de »",
+        de_nom_beneficiaire,
+    ),
+    Mention(
+        "a-nom-beneficiaire",
+        "Nom du bénéficiaire précédé de « à »",
+        a_nom_beneficiaire,
+    ),
     Mention(
         "siret-beneficiaire", "SIRET du bénéficiaire", "dossier_ds.ds_demandeur.siret"
     ),
