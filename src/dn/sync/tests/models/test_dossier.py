@@ -108,8 +108,116 @@ def test_has_missing_annotations(
         annotations_montant_accorde_detr=annotations_montant_accorde_detr,
         annotations_assiette_dsil=annotations_assiette_dsil,
         annotations_montant_accorde_dsil=annotations_montant_accorde_dsil,
+        annotations_ej_detr="2104567890",
+        annotations_ej_dsil="2104567891",
     )
     assert dossier.has_missing_annotations == expected
+
+
+COMPLETE_DETR_ANNOTATIONS = {
+    "annotations_assiette_detr": 100,
+    "annotations_montant_accorde_detr": 50,
+    "annotations_ej_detr": "2104567890",
+}
+COMPLETE_DSIL_ANNOTATIONS = {
+    "annotations_assiette_dsil": 200,
+    "annotations_montant_accorde_dsil": 80,
+    "annotations_ej_dsil": "2104567891",
+}
+MISSING_AMOUNTS_DETR = (
+    "L'assiette et/ou le montant associés sont manquants pour la dotation DETR"
+)
+MISSING_AMOUNTS_DSIL = (
+    "L'assiette et/ou le montant associés sont manquants pour la dotation DSIL"
+)
+MISSING_EJ_DETR = "Le numéro d'EJ est manquant pour la dotation DETR"
+MISSING_EJ_DSIL = "Le numéro d'EJ est manquant pour la dotation DSIL"
+
+
+@pytest.mark.parametrize(
+    "annotations_dotation, annotations, expected_details",
+    (
+        ("DETR", COMPLETE_DETR_ANNOTATIONS, []),
+        (
+            "DETR",
+            {**COMPLETE_DETR_ANNOTATIONS, "annotations_ej_detr": ""},
+            [MISSING_EJ_DETR],
+        ),
+        (
+            "DETR",
+            {
+                **COMPLETE_DETR_ANNOTATIONS,
+                "annotations_assiette_detr": None,
+                "annotations_ej_detr": "",
+            },
+            [MISSING_AMOUNTS_DETR, MISSING_EJ_DETR],
+        ),
+        ("DSIL", COMPLETE_DSIL_ANNOTATIONS, []),
+        (
+            "DSIL",
+            {**COMPLETE_DSIL_ANNOTATIONS, "annotations_ej_dsil": ""},
+            [MISSING_EJ_DSIL],
+        ),
+        (
+            "DSIL",
+            {**COMPLETE_DSIL_ANNOTATIONS, "annotations_montant_accorde_dsil": None},
+            [MISSING_AMOUNTS_DSIL],
+        ),
+        (
+            '["DETR", "DSIL"]',
+            {**COMPLETE_DETR_ANNOTATIONS, **COMPLETE_DSIL_ANNOTATIONS},
+            [],
+        ),
+        (
+            '["DETR", "DSIL"]',
+            {
+                **COMPLETE_DETR_ANNOTATIONS,
+                **COMPLETE_DSIL_ANNOTATIONS,
+                "annotations_ej_dsil": "",
+            },
+            [MISSING_EJ_DSIL],
+        ),
+        (
+            '["DETR", "DSIL"]',
+            {
+                **COMPLETE_DETR_ANNOTATIONS,
+                **COMPLETE_DSIL_ANNOTATIONS,
+                "annotations_ej_detr": "",
+                "annotations_ej_dsil": "",
+            },
+            [MISSING_EJ_DETR, MISSING_EJ_DSIL],
+        ),
+        # Only the EJ of the dotations chosen in DN is required
+        (
+            "DETR",
+            {**COMPLETE_DETR_ANNOTATIONS, "annotations_ej_dsil": ""},
+            [],
+        ),
+        ("[]", COMPLETE_DETR_ANNOTATIONS, ["Aucune dotation n'est cochée"]),
+    ),
+)
+def test_missing_annotations_with_ej(
+    annotations_dotation, annotations, expected_details
+):
+    dossier = DossierFactory(
+        ds_state=Dossier.State.ACCEPTE,
+        annotations_dotation=annotations_dotation,
+        **annotations,
+    )
+
+    assert dossier.has_missing_annotations is bool(expected_details)
+    assert dossier.missing_annotations_details == expected_details
+
+
+def test_missing_annotations_ignores_non_accepted_dossier_without_ej():
+    dossier = DossierFactory(
+        ds_state=Dossier.State.EN_INSTRUCTION,
+        annotations_dotation="DETR",
+        **{**COMPLETE_DETR_ANNOTATIONS, "annotations_ej_detr": ""},
+    )
+
+    assert dossier.has_missing_annotations is False
+    assert dossier.missing_annotations_details == []
 
 
 @pytest.mark.parametrize(

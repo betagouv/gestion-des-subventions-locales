@@ -603,7 +603,7 @@ class ProjetMissingAnnotationsListView(ListView):
     """Liste des projets acceptés sur DN avec des annotations DETR/DSIL incomplètes."""
 
     model = Projet
-    paginate_by = 25
+    paginate_by = 50
     template_name = "gsl_projet/projet_missing_annotations_list.html"
     context_object_name = "object_list"
 

@@ -271,6 +271,7 @@ def test_with_missing_annotations():
             annotations_dotation="DETR",
             annotations_assiette_detr=100,
             annotations_montant_accorde_detr=50,
+            annotations_ej_detr="2104567890",
         ),
     )
 
@@ -280,6 +281,86 @@ def test_with_missing_annotations():
     assert len(ids) == 2
     assert with_missing.pk in ids
     assert with_missing_detr.pk in ids
+
+
+COMPLETE_DETR_ANNOTATIONS = {
+    "annotations_assiette_detr": 100,
+    "annotations_montant_accorde_detr": 50,
+    "annotations_ej_detr": "2104567890",
+}
+COMPLETE_DSIL_ANNOTATIONS = {
+    "annotations_assiette_dsil": 200,
+    "annotations_montant_accorde_dsil": 80,
+    "annotations_ej_dsil": "2104567891",
+}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "annotations_dotation, annotations, is_missing",
+    (
+        ("DETR", COMPLETE_DETR_ANNOTATIONS, False),
+        ("DETR", {**COMPLETE_DETR_ANNOTATIONS, "annotations_ej_detr": ""}, True),
+        ("DSIL", COMPLETE_DSIL_ANNOTATIONS, False),
+        ("DSIL", {**COMPLETE_DSIL_ANNOTATIONS, "annotations_ej_dsil": ""}, True),
+        (
+            "DSIL",
+            {**COMPLETE_DSIL_ANNOTATIONS, "annotations_montant_accorde_dsil": None},
+            True,
+        ),
+        (
+            '["DETR", "DSIL"]',
+            {**COMPLETE_DETR_ANNOTATIONS, **COMPLETE_DSIL_ANNOTATIONS},
+            False,
+        ),
+        (
+            '["DETR", "DSIL"]',
+            {
+                **COMPLETE_DETR_ANNOTATIONS,
+                **COMPLETE_DSIL_ANNOTATIONS,
+                "annotations_ej_dsil": "",
+            },
+            True,
+        ),
+        (
+            '["DETR", "DSIL"]',
+            {
+                **COMPLETE_DETR_ANNOTATIONS,
+                **COMPLETE_DSIL_ANNOTATIONS,
+                "annotations_ej_detr": "",
+            },
+            True,
+        ),
+        # Only the EJ of the dotations chosen in DN is required
+        ("DETR", {**COMPLETE_DETR_ANNOTATIONS, "annotations_ej_dsil": ""}, False),
+        ("[]", COMPLETE_DETR_ANNOTATIONS, True),
+    ),
+)
+def test_with_missing_annotations_checks_ej(
+    annotations_dotation, annotations, is_missing
+):
+    projet = ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=Dossier.State.ACCEPTE,
+            annotations_dotation=annotations_dotation,
+            **annotations,
+        ),
+    )
+
+    assert Projet.objects.with_missing_annotations().contains(projet) is is_missing
+
+
+@pytest.mark.django_db
+def test_with_missing_annotations_ignores_non_accepted_dossier_without_ej():
+    projet = ProjetFactory(
+        dossier_ds=DossierFactory(
+            ds_state=Dossier.State.EN_INSTRUCTION,
+            annotations_dotation="DETR",
+            **{**COMPLETE_DETR_ANNOTATIONS, "annotations_ej_detr": ""},
+        ),
+    )
+
+    assert not Projet.objects.with_missing_annotations().contains(projet)
 
 
 # Annotate status =====================================================================
