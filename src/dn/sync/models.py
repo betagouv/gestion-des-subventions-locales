@@ -108,20 +108,31 @@ class Demarche(BaseModel):
 
 
 class FormeJuridique(models.Model):
+    COMMUNE = "7210"
+    POLE_METROPOLITAIN = "7340"
+    COMMUNAUTE_URBAINE = "7343"
+    METROPOLE = "7344"
+    SIVOM = "7345"
+    COMMUNAUTE_DE_COMMUNES = "7346"
+    COMMUNAUTE_D_AGGLOMERATION = "7348"
+    SIVU = "7353"
+    SYNDICAT_MIXTE_FERME = "7354"
+    SYNDICAT_MIXTE_OUVERT = "7355"
+    PETR = "7357"
     # Communes and groupements known to Fico, by INSEE legal form.
     COLLECTIVITES = frozenset(
         {
-            "7210",
-            "7340",
-            "7343",
-            "7344",
-            "7345",
-            "7346",
-            "7348",
-            "7353",
-            "7354",
-            "7355",
-            "7357",
+            COMMUNE,
+            POLE_METROPOLITAIN,
+            COMMUNAUTE_URBAINE,
+            METROPOLE,
+            SIVOM,
+            COMMUNAUTE_DE_COMMUNES,
+            COMMUNAUTE_D_AGGLOMERATION,
+            SIVU,
+            SYNDICAT_MIXTE_FERME,
+            SYNDICAT_MIXTE_OUVERT,
+            PETR,
         }
     )
 

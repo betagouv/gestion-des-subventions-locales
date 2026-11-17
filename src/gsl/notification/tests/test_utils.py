@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
-from dn.sync.models import Dotation
+from dn.sync.models import Dotation, FormeJuridique
 from dn.sync.tests.factories import PersonneMoraleFactory
 from gsl.core.tests.factories import (
     AdresseFactory,
@@ -196,6 +196,51 @@ def test_replace_mention_montant_lettres_omits_zero_centimes():
     result = replace_mentions_in_html(html_content, enveloppe_projet)
 
     assert result == "<p>deux cent cinquante mille euros</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mention_nom_beneficiaire_for_commune():
+    forme_commune, _ = FormeJuridique.objects.get_or_create(
+        code=FormeJuridique.COMMUNE, defaults={"libelle": "Commune"}
+    )
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            raison_sociale="COMMUNE DE QUELQUE PART",
+            forme_juridique=forme_commune,
+            address__commune__name="Le Cailar",
+        ),
+    )
+    html_content = (
+        '<p><span class="mention" data-id="nom-beneficiaire">@Bénéficiaire</span></p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>commune du Cailar</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mention_nom_beneficiaire_keeps_raison_sociale_for_epci():
+    forme_epci, _ = FormeJuridique.objects.get_or_create(
+        code=FormeJuridique.COMMUNAUTE_DE_COMMUNES,
+        defaults={"libelle": "Communauté de communes"},
+    )
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            raison_sociale="CC DU BAS ARMAGNAC",
+            forme_juridique=forme_epci,
+            address__commune__name="Nogaro",
+        ),
+    )
+    html_content = (
+        '<p><span class="mention" data-id="nom-beneficiaire">@Bénéficiaire</span></p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>CC DU BAS ARMAGNAC</p>"
 
 
 @pytest.mark.parametrize(

@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import re
+import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -21,7 +22,7 @@ from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
-from dn.sync.models import Dotation
+from dn.sync.models import Dotation, FormeJuridique
 from gsl.core.models import Perimetre
 from gsl.core.templatetags.gsl_filters import euro, percent
 from gsl.historique.models import ProjetAction
@@ -107,6 +108,44 @@ def porteur_civilite_longue(enveloppe_projet: EnveloppeProjet) -> str:
     return ""
 
 
+def de_nom_commune(nom: str) -> str:
+    """
+    >>> de_nom_commune("Barran")
+    'de Barran'
+    >>> de_nom_commune("Aure")
+    "d'Aure"
+    >>> de_nom_commune("Écromagny")
+    "d'Écromagny"
+    >>> de_nom_commune("Hagetmau")
+    "d'Hagetmau"
+    >>> de_nom_commune("Le Cailar")
+    'du Cailar'
+    >>> de_nom_commune("Les Cresnays")
+    'des Cresnays'
+    >>> de_nom_commune("La Neuville-sur-Essonne")
+    'de La Neuville-sur-Essonne'
+    >>> de_nom_commune("L'Épine-aux-Bois")
+    "de L'Épine-aux-Bois"
+    """
+    for article, contraction in (("Le ", "du "), ("Les ", "des ")):
+        if nom.startswith(article):
+            return contraction + nom.removeprefix(article)
+    first_letter = unicodedata.normalize("NFD", nom)[:1].upper()
+    if first_letter and first_letter in "AEIOUH":
+        return f"d'{nom}"
+    return f"de {nom}"
+
+
+def nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+    demandeur = enveloppe_projet.dossier_ds.ds_demandeur
+    if demandeur is None:
+        return ""
+    commune = demandeur.address.commune if demandeur.address else None
+    if demandeur.forme_juridique_id == FormeJuridique.COMMUNE and commune:
+        return f"commune {de_nom_commune(commune.name)}"
+    return str(demandeur)
+
+
 MENTIONS = [
     Mention("numero-dossier", "Numéro DN du dossier", "dossier_ds.ds_number"),
     Mention(
@@ -115,7 +154,7 @@ MENTIONS = [
         "dossier_ds.ds_date_depot",
         MentionType.DATE,
     ),
-    Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier_ds.ds_demandeur"),
+    Mention("nom-beneficiaire", "Nom du bénéficiaire", nom_beneficiaire),
     Mention(
         "siret-beneficiaire", "SIRET du bénéficiaire", "dossier_ds.ds_demandeur.siret"
     ),

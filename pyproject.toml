@@ -77,7 +77,7 @@ dev = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "gsl.settings_test"
 pythonpath = ["src"]
-addopts = "--reuse-db"
+addopts = "--reuse-db --doctest-modules"
 
 [tool.ruff.lint]
 exclude = ["**/migrations/*.py"]
