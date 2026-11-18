@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from pikepdf import Pdf
 
-from dn.sync.models import Dotation
+from dn.sync.models import Dotation, FormeJuridique
 from dn.sync.tests.factories import PersonneMoraleFactory
 from gsl.core.tests.factories import (
     AdresseFactory,
@@ -46,17 +46,21 @@ def enveloppe_projet():
         departement__name="Haute-Garonne",
     )
     adresse = AdresseFactory(
-        label="1 rue de la Paix 75001 Paris",
+        label="1 rue de la Paix 31110 Bagnères-de-Luchon",
         street_address="1 rue de la Paix",
-        postal_code="75001",
-        commune__name="Paris",
+        postal_code="31110",
+        commune__name="Bagnères-de-Luchon",
+    )
+    forme_commune, _ = FormeJuridique.objects.get_or_create(
+        code=FormeJuridique.COMMUNE, defaults={"libelle": "Commune"}
     )
     return EnveloppeProjetFactory(
         status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
-            raison_sociale="Commune de Bagnères-de-Luchon",
+            raison_sociale="COMMUNE DE BAGNERES DE LUCHON",
             siret="12345678901234",
             address=adresse,
+            forme_juridique=forme_commune,
         ),
         projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
         projet__dossier_ds__perimetre=perimetre,
@@ -68,6 +72,7 @@ def enveloppe_projet():
         projet__dossier_ds__ds_number=1234567,
         projet__dossier_ds__finance_cout_total=50_000,
         projet__dossier_ds__porteur_de_projet_fonction="Maire",
+        projet__dossier_ds__porteur_de_projet_civilite="Mme",
         projet__dossier_ds__porteur_de_projet_prenom="Jean",
         projet__dossier_ds__porteur_de_projet_nom="Dupont",
         projet__comment_1="<p>Commentaire <strong>important</strong></p>",
@@ -79,41 +84,37 @@ def enveloppe_projet():
 
 
 @pytest.mark.parametrize(
-    "key, label, expected_value",
+    "key, expected_value",
     (
-        ("nom-beneficiaire", "Nom du bénéficiaire", "Commune de Bagnères-de-Luchon"),
-        ("siret-beneficiaire", "SIRET du bénéficiaire", "12345678901234"),
-        ("projet-intitule", "Intitulé du projet", "Nouvelle plaque d'égoûts"),
-        ("nom-departement", "Nom du département", "Haute-Garonne"),
-        ("montant-subvention", "Montant prévisionnel de la subvention", "2 000,50 €"),
-        ("taux-subvention", "Taux de subvention", "10,00 %"),
-        ("date-commencement", "Date de commencement", "12/07/1998"),
-        ("date-achevement", "Date d'achèvement", "31/07/2024"),
-        ("date-depot", "Date de dépôt du dossier", "15/03/2023"),
-        ("numero-dossier", "Numéro DN du dossier", "1234567"),
-        ("cout-total", "Coût total de l'opération", "50 000,00 €"),
-        ("assiette", "Assiette", "20 000,00 €"),
-        ("porteur-fonction", "Fonction du porteur de projet", "Maire"),
-        ("porteur-prenom", "Prénom du porteur de projet", "Jean"),
-        ("porteur-nom", "Nom du porteur de projet", "Dupont"),
-        (
-            "adresse-demandeur",
-            "Adresse du demandeur",
-            "1 rue de la Paix<br/>75001 Paris",
-        ),
-        ("commentaire-1", "Commentaire 1", "Commentaire important"),
-        ("numero-ej", "Numéro d'engagement juridique (EJ)", "2105006797"),
-        ("campagne", "Campagne", "2026"),
-        (
-            "montant-subvention-lettres",
-            "Montant accordé (toutes lettres)",
-            "deux mille euros et cinquante centimes",
-        ),
+        ("nom-beneficiaire", "commune de Bagnères-de-Luchon"),
+        ("siret-beneficiaire", "12345678901234"),
+        ("projet-intitule", "Nouvelle plaque d'égoûts"),
+        ("nom-departement", "Haute-Garonne"),
+        ("montant-subvention", "2 000,50 €"),
+        ("taux-subvention", "10,00 %"),
+        ("date-commencement", "12/07/1998"),
+        ("date-achevement", "31/07/2024"),
+        ("date-depot", "15/03/2023"),
+        ("numero-dossier", "1234567"),
+        ("cout-total", "50 000,00 €"),
+        ("assiette", "20 000,00 €"),
+        ("porteur-fonction", "Maire"),
+        ("porteur-qualite", "Maire de Bagnères-de-Luchon"),
+        ("porteur-civilite", "Mme"),
+        ("porteur-civilite-longue", "Madame"),
+        ("formule-appel", "Madame le Maire"),
+        ("porteur-prenom", "Jean"),
+        ("porteur-nom", "Dupont"),
+        ("adresse-demandeur", "1 rue de la Paix<br/>31110 Bagnères-de-Luchon"),
+        ("commentaire-1", "Commentaire important"),
+        ("numero-ej", "2105006797"),
+        ("campagne", "2026"),
+        ("montant-subvention-lettres", "deux mille euros et cinquante centimes"),
     ),
 )
 @pytest.mark.django_db
-def test_replace_mentions_in_html(key, label, expected_value, enveloppe_projet):
-    html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{key}" data-label="{label}" data-mention-suggestion-char="@">@{label}</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
+def test_replace_mentions_in_html(key, expected_value, enveloppe_projet):
+    html_content = f'<p>Voici le mot: <span class="mention" data-type="mention" data-id="{key}" data-label="Mention" data-mention-suggestion-char="@">@Mention</span> vous octroie une subvention</p><p>Bravo et merci !</p>'
     expected_text = f"<p>Voici le mot: {expected_value} vous octroie une subvention</p><p>Bravo et merci !</p>"
 
     assert expected_text == replace_mentions_in_html(html_content, enveloppe_projet)
@@ -189,6 +190,107 @@ def test_replace_mention_montant_lettres_omits_zero_centimes():
     result = replace_mentions_in_html(html_content, enveloppe_projet)
 
     assert result == "<p>deux cent cinquante mille euros</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mention_nom_beneficiaire_for_commune():
+    forme_commune, _ = FormeJuridique.objects.get_or_create(
+        code=FormeJuridique.COMMUNE, defaults={"libelle": "Commune"}
+    )
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            raison_sociale="COMMUNE DE QUELQUE PART",
+            forme_juridique=forme_commune,
+            address__commune__name="Le Cailar",
+        ),
+    )
+    html_content = (
+        '<p><span class="mention" data-id="nom-beneficiaire">@Bénéficiaire</span></p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>commune du Cailar</p>"
+
+
+@pytest.mark.django_db
+def test_replace_mention_nom_beneficiaire_keeps_raison_sociale_for_epci():
+    forme_epci, _ = FormeJuridique.objects.get_or_create(
+        code=FormeJuridique.COMMUNAUTE_DE_COMMUNES,
+        defaults={"libelle": "Communauté de communes"},
+    )
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            raison_sociale="CC DU BAS ARMAGNAC",
+            forme_juridique=forme_epci,
+            address__commune__name="Nogaro",
+        ),
+    )
+    html_content = (
+        '<p><span class="mention" data-id="nom-beneficiaire">@Bénéficiaire</span></p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == "<p>CC DU BAS ARMAGNAC</p>"
+
+
+@pytest.mark.parametrize(
+    "forme_juridique_code, raison_sociale, expected_value",
+    (
+        (
+            FormeJuridique.COMMUNE,
+            "COMMUNE DU CAILAR",
+            "de la commune du Cailar / à la commune du Cailar",
+        ),
+        (
+            FormeJuridique.SIVOM,
+            "SIVOM DI MIZANA",
+            "du SIVOM DI MIZANA / au SIVOM DI MIZANA",
+        ),
+    ),
+)
+@pytest.mark.django_db
+def test_replace_mentions_nom_beneficiaire_with_preposition(
+    forme_juridique_code, raison_sociale, expected_value
+):
+    forme_juridique, _ = FormeJuridique.objects.get_or_create(
+        code=forme_juridique_code, defaults={"libelle": raison_sociale}
+    )
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
+            raison_sociale=raison_sociale,
+            forme_juridique=forme_juridique,
+            address__commune__name="Le Cailar",
+        ),
+    )
+    html_content = (
+        '<p><span class="mention" data-id="de-nom-beneficiaire">@De</span> / '
+        '<span class="mention" data-id="a-nom-beneficiaire">@À</span></p>'
+    )
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == f"<p>{expected_value}</p>"
+
+
+@pytest.mark.parametrize(
+    "civilite, expected_value", (("M.", "Monsieur"), ("Mme", "Madame"), ("", ""))
+)
+@pytest.mark.django_db
+def test_replace_mention_porteur_civilite_longue(civilite, expected_value):
+    enveloppe_projet = EnveloppeProjetFactory(
+        status=ProjetStatus.ACCEPTED,
+        projet__dossier_ds__porteur_de_projet_civilite=civilite,
+    )
+    html_content = '<p><span class="mention" data-id="porteur-civilite-longue">@Civilité</span></p>'
+
+    result = replace_mentions_in_html(html_content, enveloppe_projet)
+
+    assert result == f"<p>{expected_value}</p>"
 
 
 @pytest.mark.django_db

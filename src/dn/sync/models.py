@@ -108,22 +108,38 @@ class Demarche(BaseModel):
 
 
 class FormeJuridique(models.Model):
-    # Communes and groupements known to Fico, by INSEE legal form.
-    COLLECTIVITES = frozenset(
+    COMMUNE = "7210"
+    POLE_METROPOLITAIN = "7340"
+    COMMUNAUTE_URBAINE = "7343"
+    METROPOLE = "7344"
+    SIVOM = "7345"
+    COMMUNAUTE_DE_COMMUNES = "7346"
+    COMMUNAUTE_D_AGGLOMERATION = "7348"
+    SIVU = "7353"
+    SYNDICAT_MIXTE_FERME = "7354"
+    SYNDICAT_MIXTE_OUVERT = "7355"
+    PETR = "7357"
+    # Grammatical gender of the legal form's name: « la communauté », « le syndicat ».
+    FEMININES = frozenset(
         {
-            "7210",
-            "7340",
-            "7343",
-            "7344",
-            "7345",
-            "7346",
-            "7348",
-            "7353",
-            "7354",
-            "7355",
-            "7357",
+            COMMUNE,
+            COMMUNAUTE_DE_COMMUNES,
+            COMMUNAUTE_D_AGGLOMERATION,
+            COMMUNAUTE_URBAINE,
+            METROPOLE,
         }
     )
+    MASCULINES = frozenset(
+        {
+            SIVOM,
+            SIVU,
+            SYNDICAT_MIXTE_FERME,
+            SYNDICAT_MIXTE_OUVERT,
+            PETR,
+            POLE_METROPOLITAIN,
+        }
+    )
+    COLLECTIVITES = FEMININES | MASCULINES
 
     code = models.CharField("Code", primary_key=True)
     libelle = models.CharField("Libellé")

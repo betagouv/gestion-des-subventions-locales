@@ -2,6 +2,8 @@ import base64
 import io
 import os
 import re
+import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -20,8 +22,8 @@ from num2words import num2words
 from pikepdf import Pdf
 from weasyprint import HTML
 
-from dn.sync.models import Dotation
-from gsl.core.models import Perimetre
+from dn.sync.models import Dotation, FormeJuridique
+from gsl.core.models import Commune, Perimetre
 from gsl.core.templatetags.gsl_filters import euro, percent
 from gsl.historique.models import ProjetAction
 from gsl.notification.models import (
@@ -64,7 +66,7 @@ class MentionType(Enum):
 class Mention:
     key: str
     label: str
-    attribute: str
+    source: str | Callable[[EnveloppeProjet], object]
     type: MentionType = MentionType.STRING
 
     def get_value(self, enveloppe_projet: EnveloppeProjet) -> str:
@@ -73,7 +75,10 @@ class Mention:
     def _format_value(self, enveloppe_projet: EnveloppeProjet) -> str:
         if self.type == MentionType.DATE_NOW:
             return timezone.now().strftime("%d/%m/%Y")
-        value = get_nested_attribute(enveloppe_projet, self.attribute)
+        if callable(self.source):
+            value = self.source(enveloppe_projet)
+        else:
+            value = get_nested_attribute(enveloppe_projet, self.source)
         match self.type:
             case MentionType.EURO:
                 return euro(value, 2) if value is not None else "N/A"
@@ -94,6 +99,125 @@ class Mention:
                 return str(value) if value is not None else ""
 
 
+def porteur_civilite_longue(enveloppe_projet: EnveloppeProjet) -> str:
+    civilite = enveloppe_projet.dossier_ds.porteur_de_projet_civilite
+    if civilite == "M.":
+        return "Monsieur"
+    if civilite == "Mme":
+        return "Madame"
+    return ""
+
+
+def porteur_fonction(enveloppe_projet: EnveloppeProjet) -> str:
+    fonction = enveloppe_projet.dossier_ds.porteur_de_projet_fonction
+    return "Président" if fonction == "Président de l'EPCI" else fonction
+
+
+def formule_appel(enveloppe_projet: EnveloppeProjet) -> str:
+    civilite = porteur_civilite_longue(enveloppe_projet)
+    return f"{civilite} le {porteur_fonction(enveloppe_projet)}"
+
+
+def de_nom_commune(nom: str) -> str:
+    """
+    >>> de_nom_commune("Barran")
+    'de Barran'
+    >>> de_nom_commune("Aure")
+    "d'Aure"
+    >>> de_nom_commune("Écromagny")
+    "d'Écromagny"
+    >>> de_nom_commune("Hagetmau")
+    "d'Hagetmau"
+    >>> de_nom_commune("Le Cailar")
+    'du Cailar'
+    >>> de_nom_commune("Les Cresnays")
+    'des Cresnays'
+    >>> de_nom_commune("La Neuville-sur-Essonne")
+    'de La Neuville-sur-Essonne'
+    >>> de_nom_commune("L'Épine-aux-Bois")
+    "de L'Épine-aux-Bois"
+    """
+    for article, contraction in (("Le ", "du "), ("Les ", "des ")):
+        if nom.startswith(article):
+            return contraction + nom.removeprefix(article)
+    if starts_with_vowel_or_h(nom):
+        return f"d'{nom}"
+    return f"de {nom}"
+
+
+def starts_with_vowel_or_h(text: str) -> bool:
+    first_letter = unicodedata.normalize("NFD", text)[:1].upper()
+    return first_letter != "" and first_letter in "AEIOUH"
+
+
+def avec_preposition(preposition: str, forme_juridique: str | None, nom: str) -> str:
+    """
+    >>> avec_preposition("de", FormeJuridique.COMMUNE, "commune d'Aure")
+    "de la commune d'Aure"
+    >>> avec_preposition("à", FormeJuridique.COMMUNE, "commune d'Aure")
+    "à la commune d'Aure"
+    >>> avec_preposition("de", FormeJuridique.SIVOM, "SIVOM DI MIZANA")
+    'du SIVOM DI MIZANA'
+    >>> avec_preposition("à", FormeJuridique.SIVOM, "SIVOM DI MIZANA")
+    'au SIVOM DI MIZANA'
+    >>> avec_preposition(
+    ...     "de", FormeJuridique.COMMUNAUTE_D_AGGLOMERATION, "AGGLOMERATION DU GRAND AUCH"
+    ... )
+    "de l'AGGLOMERATION DU GRAND AUCH"
+    >>> avec_preposition("à", "7364", "CENTRE HOSPITALIER D AUCH")
+    'à CENTRE HOSPITALIER D AUCH'
+    """
+    if forme_juridique not in FormeJuridique.COLLECTIVITES:
+        return f"{preposition} {nom}"
+    if starts_with_vowel_or_h(nom):
+        return f"{preposition} l'{nom}"
+    if forme_juridique in FormeJuridique.FEMININES:
+        return f"{preposition} la {nom}"
+    contraction = "du" if preposition == "de" else "au"
+    return f"{contraction} {nom}"
+
+
+def commune_beneficiaire(enveloppe_projet: EnveloppeProjet) -> Commune | None:
+    demandeur = enveloppe_projet.dossier_ds.ds_demandeur
+    if demandeur is None or demandeur.forme_juridique_id != FormeJuridique.COMMUNE:
+        return None
+    return demandeur.address.commune if demandeur.address else None
+
+
+def nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+    commune = commune_beneficiaire(enveloppe_projet)
+    if commune:
+        return f"commune {de_nom_commune(commune.name)}"
+    demandeur = enveloppe_projet.dossier_ds.ds_demandeur
+    return str(demandeur) if demandeur else ""
+
+
+def porteur_qualite(enveloppe_projet: EnveloppeProjet) -> str:
+    fonction = porteur_fonction(enveloppe_projet)
+    commune = commune_beneficiaire(enveloppe_projet)
+    if commune:
+        return f"{fonction} {de_nom_commune(commune.name)}"
+    return f"{fonction} {de_nom_beneficiaire(enveloppe_projet)}"
+
+
+def nom_beneficiaire_avec_preposition(
+    preposition: str, enveloppe_projet: EnveloppeProjet
+) -> str:
+    nom = nom_beneficiaire(enveloppe_projet)
+    if not nom:
+        return ""
+    forme_juridique = enveloppe_projet.dossier_ds.ds_demandeur.forme_juridique_id
+    return avec_preposition(preposition, forme_juridique, nom)
+
+
+def de_nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+    return nom_beneficiaire_avec_preposition("de", enveloppe_projet)
+
+
+def a_nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+    return nom_beneficiaire_avec_preposition("à", enveloppe_projet)
+
+
 MENTIONS = [
     Mention("numero-dossier", "Numéro DN du dossier", "dossier_ds.ds_number"),
     Mention(
@@ -102,7 +226,17 @@ MENTIONS = [
         "dossier_ds.ds_date_depot",
         MentionType.DATE,
     ),
-    Mention("nom-beneficiaire", "Nom du bénéficiaire", "dossier_ds.ds_demandeur"),
+    Mention("nom-beneficiaire", "Nom du bénéficiaire", nom_beneficiaire),
+    Mention(
+        "de-nom-beneficiaire",
+        "Nom du bénéficiaire précédé de « de »",
+        de_nom_beneficiaire,
+    ),
+    Mention(
+        "a-nom-beneficiaire",
+        "Nom du bénéficiaire précédé de « à »",
+        a_nom_beneficiaire,
+    ),
     Mention(
         "siret-beneficiaire", "SIRET du bénéficiaire", "dossier_ds.ds_demandeur.siret"
     ),
@@ -148,13 +282,28 @@ MENTIONS = [
     ),
     Mention(
         "porteur-fonction",
-        "Fonction du porteur de projet",
-        "dossier_ds.porteur_de_projet_fonction",
+        "Fonction du porteur de projet (ex. : Maire)",
+        porteur_fonction,
+    ),
+    Mention(
+        "porteur-qualite",
+        "Qualité du porteur de projet (ex. : Maire d'Aure)",
+        porteur_qualite,
     ),
     Mention(
         "porteur-civilite",
         "Civilité du porteur de projet",
         "dossier_ds.porteur_de_projet_civilite",
+    ),
+    Mention(
+        "porteur-civilite-longue",
+        "Civilité du porteur de projet (en toutes lettres)",
+        porteur_civilite_longue,
+    ),
+    Mention(
+        "formule-appel",
+        "Formule d'appel (ex. : Madame le Maire)",
+        formule_appel,
     ),
     Mention(
         "porteur-prenom",
