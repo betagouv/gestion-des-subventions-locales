@@ -46,17 +46,21 @@ def enveloppe_projet():
         departement__name="Haute-Garonne",
     )
     adresse = AdresseFactory(
-        label="1 rue de la Paix 75001 Paris",
+        label="1 rue de la Paix 31110 Bagnères-de-Luchon",
         street_address="1 rue de la Paix",
-        postal_code="75001",
-        commune__name="Paris",
+        postal_code="31110",
+        commune__name="Bagnères-de-Luchon",
+    )
+    forme_commune, _ = FormeJuridique.objects.get_or_create(
+        code=FormeJuridique.COMMUNE, defaults={"libelle": "Commune"}
     )
     return EnveloppeProjetFactory(
         status=ProjetStatus.ACCEPTED,
         projet__dossier_ds__ds_demandeur=PersonneMoraleFactory(
-            raison_sociale="Commune de Bagnères-de-Luchon",
+            raison_sociale="COMMUNE DE BAGNERES DE LUCHON",
             siret="12345678901234",
             address=adresse,
+            forme_juridique=forme_commune,
         ),
         projet__dossier_ds__projet_intitule="Nouvelle plaque d'égoûts",
         projet__dossier_ds__perimetre=perimetre,
@@ -82,7 +86,7 @@ def enveloppe_projet():
 @pytest.mark.parametrize(
     "key, expected_value",
     (
-        ("nom-beneficiaire", "Commune de Bagnères-de-Luchon"),
+        ("nom-beneficiaire", "commune de Bagnères-de-Luchon"),
         ("siret-beneficiaire", "12345678901234"),
         ("projet-intitule", "Nouvelle plaque d'égoûts"),
         ("nom-departement", "Haute-Garonne"),
@@ -95,12 +99,13 @@ def enveloppe_projet():
         ("cout-total", "50 000,00 €"),
         ("assiette", "20 000,00 €"),
         ("porteur-fonction", "Maire"),
+        ("porteur-qualite", "Maire de Bagnères-de-Luchon"),
         ("porteur-civilite", "Mme"),
         ("porteur-civilite-longue", "Madame"),
         ("formule-appel", "Madame le Maire"),
         ("porteur-prenom", "Jean"),
         ("porteur-nom", "Dupont"),
-        ("adresse-demandeur", "1 rue de la Paix<br/>75001 Paris"),
+        ("adresse-demandeur", "1 rue de la Paix<br/>31110 Bagnères-de-Luchon"),
         ("commentaire-1", "Commentaire important"),
         ("numero-ej", "2105006797"),
         ("campagne", "2026"),

@@ -23,7 +23,7 @@ from pikepdf import Pdf
 from weasyprint import HTML
 
 from dn.sync.models import Dotation, FormeJuridique
-from gsl.core.models import Perimetre
+from gsl.core.models import Commune, Perimetre
 from gsl.core.templatetags.gsl_filters import euro, percent
 from gsl.historique.models import ProjetAction
 from gsl.notification.models import (
@@ -177,14 +177,27 @@ def avec_preposition(preposition: str, forme_juridique: str | None, nom: str) ->
     return f"{contraction} {nom}"
 
 
-def nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+def commune_beneficiaire(enveloppe_projet: EnveloppeProjet) -> Commune | None:
     demandeur = enveloppe_projet.dossier_ds.ds_demandeur
-    if demandeur is None:
-        return ""
-    commune = demandeur.address.commune if demandeur.address else None
-    if demandeur.forme_juridique_id == FormeJuridique.COMMUNE and commune:
+    if demandeur is None or demandeur.forme_juridique_id != FormeJuridique.COMMUNE:
+        return None
+    return demandeur.address.commune if demandeur.address else None
+
+
+def nom_beneficiaire(enveloppe_projet: EnveloppeProjet) -> str:
+    commune = commune_beneficiaire(enveloppe_projet)
+    if commune:
         return f"commune {de_nom_commune(commune.name)}"
-    return str(demandeur)
+    demandeur = enveloppe_projet.dossier_ds.ds_demandeur
+    return str(demandeur) if demandeur else ""
+
+
+def porteur_qualite(enveloppe_projet: EnveloppeProjet) -> str:
+    fonction = porteur_fonction(enveloppe_projet)
+    commune = commune_beneficiaire(enveloppe_projet)
+    if commune:
+        return f"{fonction} {de_nom_commune(commune.name)}"
+    return f"{fonction} {de_nom_beneficiaire(enveloppe_projet)}"
 
 
 def nom_beneficiaire_avec_preposition(
@@ -269,8 +282,13 @@ MENTIONS = [
     ),
     Mention(
         "porteur-fonction",
-        "Fonction du porteur de projet",
+        "Fonction du porteur de projet (ex. : Maire)",
         porteur_fonction,
+    ),
+    Mention(
+        "porteur-qualite",
+        "Qualité du porteur de projet (ex. : Maire d'Aure)",
+        porteur_qualite,
     ),
     Mention(
         "porteur-civilite",
