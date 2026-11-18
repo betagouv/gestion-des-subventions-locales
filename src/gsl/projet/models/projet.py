@@ -144,6 +144,7 @@ class ProjetQuerySet(models.QuerySet):
                 & (
                     Q(dossier_ds__annotations_assiette_detr__isnull=True)
                     | Q(dossier_ds__annotations_montant_accorde_detr__isnull=True)
+                    | Q(dossier_ds__annotations_ej_detr="")
                 )
             )
             | (
@@ -151,6 +152,7 @@ class ProjetQuerySet(models.QuerySet):
                 & (
                     Q(dossier_ds__annotations_assiette_dsil__isnull=True)
                     | Q(dossier_ds__annotations_montant_accorde_dsil__isnull=True)
+                    | Q(dossier_ds__annotations_ej_dsil="")
                 )
             )
         )

@@ -931,6 +931,7 @@ class Dossier(BaseModel):
             if (
                 self.annotations_assiette_detr is None
                 or self.annotations_montant_accorde_detr is None
+                or not self.annotations_ej_detr
             ):
                 return True
 
@@ -938,6 +939,7 @@ class Dossier(BaseModel):
             if (
                 self.annotations_assiette_dsil is None
                 or self.annotations_montant_accorde_dsil is None
+                or not self.annotations_ej_dsil
             ):
                 return True
 
@@ -960,6 +962,8 @@ class Dossier(BaseModel):
                 details.append(
                     "L'assiette et/ou le montant associés sont manquants pour la dotation DETR"
                 )
+            if not self.annotations_ej_detr:
+                details.append("Le numéro d'EJ est manquant pour la dotation DETR")
 
         if "DSIL" in self.annotations_dotation:
             if (
@@ -969,6 +973,8 @@ class Dossier(BaseModel):
                 details.append(
                     "L'assiette et/ou le montant associés sont manquants pour la dotation DSIL"
                 )
+            if not self.annotations_ej_dsil:
+                details.append("Le numéro d'EJ est manquant pour la dotation DSIL")
 
         return details
 
