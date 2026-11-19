@@ -42,6 +42,32 @@ def test_params_keep_action_specific_data():
     assert job.params == params
 
 
+def test_running_marks_the_job_running_then_done():
+    job = BulkActionsJobFactory(object_ids=[1])
+
+    with job.running():
+        job.refresh_from_db()
+        assert job.status == BulkActionsJob.Status.RUNNING
+        job.record_success()
+
+    job.refresh_from_db()
+    assert job.status == BulkActionsJob.Status.DONE
+    assert job.report == []
+
+
+def test_running_marks_the_job_done_with_a_crash_entry_and_propagates():
+    job = BulkActionsJobFactory(object_ids=[1, 2])
+
+    with pytest.raises(RuntimeError, match="boom"), job.running():
+        job.record_error(1, "111", "Erreur DN")
+        raise RuntimeError("boom")
+
+    job.refresh_from_db()
+    assert job.status == BulkActionsJob.Status.DONE
+    assert [error["object_id"] for error in job.report] == [1, None]
+    assert "interrompu" in job.report[1]["message"]
+
+
 def test_record_success_increments_processed():
     job = BulkActionsJobFactory(object_ids=[1, 2])
 
