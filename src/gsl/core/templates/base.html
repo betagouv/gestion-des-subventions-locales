@@ -57,7 +57,7 @@
                     "modeleArreteForm": "{% static 'js/modeleArreteForm.js' %}",
                     "deleteNotificationDocumentModal": "{% static 'js/deleteNotificationDocumentModal.js' %}",
                     "skipDocumentToggle": "{% static 'js/skipDocumentToggle.js' %}",
-                    "checkboxSelection": "{% static 'js/checkboxSelection.js' %}",
+                    "bulkSelection": "{% static 'js/controllers/bulkSelection.js' %}",
                     "bindAmountFields": "{% static 'js/controllers/bindAmountFields.js' %}",
                     "cancelPollOnModalClose": "{% static 'js/controllers/cancelPollOnModalClose.js' %}",
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
@@ -134,8 +134,8 @@
             import { Autocomplete } from "autocomplete"
             import { AutoDismiss } from "autoDismiss"
             import { BindAmountFields } from "bindAmountFields"
+            import { BulkSelection } from "bulkSelection"
             import { CancelPollOnModalClose } from "cancelPollOnModalClose"
-            import { CheckboxSelection } from "checkboxSelection"
             import { CollectiviteMenu } from "collectiviteMenu"
             import { CommentArbitrage } from "commentArbitrage"
             import { ConditionalField } from "conditionalField"
@@ -166,7 +166,7 @@
             Stimulus.register("modele-arrete-form", ModeleArreteForm)
             Stimulus.register("delete-notification-document-modal", DeleteNotificationDocumentModal)
             Stimulus.register("skip-document-toggle", SkipDocumentToggle)
-            Stimulus.register("checkbox-selection", CheckboxSelection)
+            Stimulus.register("bulk-selection", BulkSelection)
             Stimulus.register("bind-amount-fields", BindAmountFields)
             Stimulus.register("cancel-poll-on-modal-close", CancelPollOnModalClose)
             Stimulus.register("form-utils", FormUtils)

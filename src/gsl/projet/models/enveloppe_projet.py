@@ -76,18 +76,6 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def to_notify(self):
         return self.filter(projet__in=Projet.objects.to_notify())
 
-    def can_generate_accepted_documents(self):
-        return self.programmees().filter(
-            status=ProjetStatus.ACCEPTED,
-            projet__notified_at__isnull=True,
-        )
-
-    def can_generate_refus_documents(self):
-        return self.programmees().filter(
-            status__in=ProjetStatus.NEGATIVE,
-            projet__notified_at__isnull=True,
-        )
-
     def annotate_notification_status(self):
         return self.annotate(
             _notification_status=Case(
@@ -446,6 +434,16 @@ class EnveloppeProjet(BaseModel):
 
     def generated_document(self, type: str) -> GeneratedDocument | None:
         return self.generated_documents.filter(type=type).first()
+
+    @property
+    def decision_documents(self) -> frozenset[GeneratedDocument.Type]:
+        if self.status == ProjetStatus.ACCEPTED:
+            return frozenset(
+                {GeneratedDocument.Type.ARRETE, GeneratedDocument.Type.LETTRE}
+            )
+        if self.status in ProjetStatus.NEGATIVE:
+            return frozenset({GeneratedDocument.Type.LETTRE_REFUS})
+        return frozenset()
 
     @cached_property
     def documents_summary(self):

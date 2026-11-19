@@ -74,7 +74,6 @@ class SimulationListView(ListView):
 class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
     filterset_class = SimulationProjetFilters
     template_name = "gsl_simulation/simulation_detail.html"
-    paginate_by = 25
 
     PARAMS_NOT_FILTERS = {"page", "reset_filters"}
 
@@ -131,20 +130,9 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
         aggregates["total_amount_granted"] = simulation.get_total_amount_granted(
             self.filterset.qs
         )
-        selectable_ids_list = list(
-            SimulationProjet.objects.active()
-            .filter(
-                simulation=simulation,
-                enveloppe_projet__projet__in=self.filterset.qs,
-                enveloppe_projet__projet__notified_at__isnull=True,
-            )
-            .values_list("id", flat=True)
-        )
         context.update(
             {
                 "simulation": simulation,
-                "selectable_ids_list": selectable_ids_list,
-                "selectable_count": len(selectable_ids_list),
                 "bulk_status_choices": [
                     status for status, _ in SimulationProjet.STATUS_CHOICES
                 ],
@@ -174,8 +162,12 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
             Projet.objects.active()
             .filter(enveloppeprojet__simulationprojet__simulation=self.object)
             .select_related("address", "address__commune")
+            .prefetch_related(None)
             .prefetch_related(
-                "enveloppeprojet_set",
+                Prefetch(
+                    "enveloppeprojet_set",
+                    queryset=EnveloppeProjet.objects.annotate_notification_status(),
+                ),
                 "enveloppeprojet_set__simulationprojet_set",
                 "dossier_ds__demande_categorie_detr",
                 "dossier_ds__demande_categorie_dsil",
@@ -187,9 +179,9 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
                 "dossier_ds__projet_contractualisation",
                 Prefetch(
                     "enveloppeprojet_set",
-                    queryset=EnveloppeProjet.objects.active().for_dotation(
-                        self.object.enveloppe.dotation
-                    ),
+                    queryset=EnveloppeProjet.objects.active()
+                    .for_dotation(self.object.enveloppe.dotation)
+                    .annotate_notification_status(),
                     to_attr="enveloppe_projet",
                 ),
                 Prefetch(

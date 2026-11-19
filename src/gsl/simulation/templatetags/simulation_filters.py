@@ -4,6 +4,7 @@ from django.urls import reverse
 from gsl.projet.constants import ProjetStatus
 
 from ..models import SimulationProjet
+from ..views.simulation_projet_views import BULK_ACTIONS
 
 register = template.Library()
 
@@ -109,3 +110,12 @@ def split_symbol_and_status(symbol_and_status):
     symbol = parts[0]
     status = parts[1] if len(parts) > 1 else ""
     return f"<span aria-hidden='true'>{symbol}</span> {status}"
+
+
+@register.filter
+def bulk_actions(simulation_projet):
+    return " ".join(
+        name
+        for name, view in BULK_ACTIONS.items()
+        if view.applies_to(simulation_projet)
+    )

@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.views import RedirectURLMixin
-from django.db.models import ProtectedError
+from django.db.models import Prefetch, ProtectedError
 from django.shortcuts import redirect
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -32,7 +32,6 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
     filterset_class = ProgrammationFilters
     template_name = "gsl_programmation/programmation_projet_list.html"
     context_object_name = "enveloppe_projets"
-    paginate_by = 25
     ordering = ["-date_programmation"]
 
     def get_queryset(self):
@@ -50,7 +49,10 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
                 "uploaded_documents",
                 "enveloppe",
                 "enveloppe__perimetre",
-                "projet__enveloppeprojet_set",
+                Prefetch(
+                    "projet__enveloppeprojet_set",
+                    queryset=EnveloppeProjet.objects.annotate_notification_status(),
+                ),
                 "projet__enveloppeprojet_set__simulationprojet_set",
                 "projet__enveloppeprojet_set__generated_documents",
                 "projet__enveloppeprojet_set__uploaded_documents",
@@ -109,19 +111,6 @@ class ProgrammationListView(FilterSkiplinksMixin, FilterView, ListView):
                 "enveloppes": [enveloppe] if enveloppe else [],
                 "dotation": self.dotation,
                 "title": title,
-                "selectable_ids_list": list(
-                    self.object_list.values_list("id", flat=True)
-                ),
-                "can_generate_accepted_documents_ids": list(
-                    self.object_list.can_generate_accepted_documents().values_list(
-                        "id", flat=True
-                    )
-                ),
-                "can_generate_refus_documents_ids": list(
-                    self.object_list.can_generate_refus_documents().values_list(
-                        "id", flat=True
-                    )
-                ),
                 "current_order": self.request.GET.get("order", ""),
                 "columns": PROGRAMMATION_TABLE_COLUMNS,
             }
