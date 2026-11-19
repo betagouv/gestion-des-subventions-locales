@@ -1,4 +1,5 @@
 import uuid
+from contextlib import contextmanager
 
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
@@ -465,6 +466,40 @@ class BulkActionsJob(BaseModel):
     @property
     def succeeded_count(self) -> int:
         return self.processed - len(self.report)
+
+    @contextmanager
+    def running(self):
+        """
+        Marks the job running for the duration of the block, then done.
+
+        Whatever escapes the block (programming error, DB outage…) still marks
+        the job done, with a crash entry in its report so the UI stops polling,
+        and propagates so Celery and Sentry see the traceback. Expected per-item
+        failures are the task's to record with `record_error`.
+        """
+        self.status = self.Status.RUNNING
+        self.save(update_fields=["status", "updated_at"])
+        try:
+            yield
+            self.status = self.Status.DONE
+            self.save(update_fields=["status", "updated_at"])
+        finally:
+            # Read back from the DB: the in-memory status may say DONE while
+            # the save above failed.
+            current = (
+                BulkActionsJob.objects.filter(pk=self.pk)
+                .only("status", "report")
+                .first()
+            )
+            if current is not None and current.status != self.Status.DONE:
+                crash_error = {
+                    "object_id": None,
+                    "label": "Traitement",
+                    "message": "Erreur inattendue : le traitement a été interrompu.",
+                }
+                current.report = [*current.report, crash_error]
+                current.status = self.Status.DONE
+                current.save(update_fields=["status", "report", "updated_at"])
 
     # F() makes the increment atomic in DB: a stale instance of the same job
     # would otherwise overwrite `processed` and lose increments. The refresh is
