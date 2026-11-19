@@ -8,13 +8,14 @@ from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreFactory,
 )
+from gsl.notification.models import UploadedDocument
 from gsl.notification.tests.factories import (
     AnnexeFactory,
     LettreEtArreteSignesFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import ANNEXE, LETTRE_ET_ARRETE_SIGNES, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -56,7 +57,7 @@ def test_upload_triggers_scan_task_when_antivirus_enabled(
         doc = LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
 
     mock_scan_task.delay.assert_called_once_with(
-        "gsl_notification.LettreEtArreteSignes", doc.pk
+        "gsl_notification.UploadedDocument", doc.pk
     )
 
 
@@ -73,7 +74,7 @@ def test_upload_triggers_scan_task_only_after_commit(
         callback()
 
     mock_scan_task.delay.assert_called_once_with(
-        "gsl_notification.LettreEtArreteSignes", doc.pk
+        "gsl_notification.UploadedDocument", doc.pk
     )
 
 
@@ -102,7 +103,9 @@ def test_annexe_upload_triggers_scan_task(
     with django_capture_on_commit_callbacks(execute=True):
         doc = AnnexeFactory(enveloppe_projet=enveloppe_projet)
 
-    mock_scan_task.delay.assert_called_once_with("gsl_notification.Annexe", doc.pk)
+    mock_scan_task.delay.assert_called_once_with(
+        "gsl_notification.UploadedDocument", doc.pk
+    )
 
 
 ## SCAN TASK TESTS
@@ -120,7 +123,7 @@ def test_scan_task_marks_clean_file(mock_run, settings, enveloppe_projet):
 
     from gsl.notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
+    scan_uploaded_document("gsl_notification.UploadedDocument", doc.pk)
 
     doc.refresh_from_db()
     assert doc.last_scan is not None
@@ -136,7 +139,7 @@ def test_scan_task_marks_infected_file(mock_run, settings, enveloppe_projet):
 
     from gsl.notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
+    scan_uploaded_document("gsl_notification.UploadedDocument", doc.pk)
 
     doc.refresh_from_db()
     assert doc.last_scan is not None
@@ -153,7 +156,7 @@ def test_scan_task_raises_on_clamdscan_error(mock_run, settings, enveloppe_proje
     from gsl.notification.tasks import scan_uploaded_document
 
     with pytest.raises(RuntimeError, match="clamdscan exited with code 2"):
-        scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
+        scan_uploaded_document("gsl_notification.UploadedDocument", doc.pk)
 
 
 def test_scan_task_skips_when_bypassed(settings, enveloppe_projet):
@@ -163,7 +166,7 @@ def test_scan_task_skips_when_bypassed(settings, enveloppe_projet):
 
     from gsl.notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.LettreEtArreteSignes", doc.pk)
+    scan_uploaded_document("gsl_notification.UploadedDocument", doc.pk)
 
     doc.refresh_from_db()
     assert doc.last_scan is None
@@ -177,7 +180,10 @@ def test_scan_task_skips_when_bypassed(settings, enveloppe_projet):
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
+    (
+        (UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory),
+        (UploadedDocument.Type.ANNEXE, AnnexeFactory),
+    ),
 )
 def test_download_blocked_when_never_scanned(
     settings, client_with_user, enveloppe_projet, doc_type, factory
@@ -194,7 +200,10 @@ def test_download_blocked_when_never_scanned(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
+    (
+        (UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory),
+        (UploadedDocument.Type.ANNEXE, AnnexeFactory),
+    ),
 )
 def test_download_blocked_when_infected(
     settings, client_with_user, enveloppe_projet, doc_type, factory
@@ -214,7 +223,10 @@ def test_download_blocked_when_infected(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
+    (
+        (UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory),
+        (UploadedDocument.Type.ANNEXE, AnnexeFactory),
+    ),
 )
 def test_download_allowed_when_clean(
     settings, client_with_user, enveloppe_projet, doc_type, factory
@@ -245,7 +257,10 @@ def test_download_allowed_when_clean(
 
 @pytest.mark.parametrize(
     "doc_type, factory",
-    ((LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory), (ANNEXE, AnnexeFactory)),
+    (
+        (UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES, LettreEtArreteSignesFactory),
+        (UploadedDocument.Type.ANNEXE, AnnexeFactory),
+    ),
 )
 def test_download_allowed_when_bypass_even_if_never_scanned(
     settings, client_with_user, enveloppe_projet, doc_type, factory
@@ -332,8 +347,8 @@ def test_generated_document_is_always_downloadable(enveloppe_projet):
 @pytest.mark.parametrize(
     "factory, model_label",
     (
-        (ModeleArreteFactory, "gsl_notification.ModeleArrete"),
-        (ModeleLettreNotificationFactory, "gsl_notification.ModeleLettreNotification"),
+        (ModeleArreteFactory, "gsl_notification.ModeleDocument"),
+        (ModeleLettreNotificationFactory, "gsl_notification.ModeleDocument"),
     ),
 )
 @patch("gsl.notification.tasks.scan_uploaded_document")
@@ -350,8 +365,8 @@ def test_logo_create_triggers_scan(
 @pytest.mark.parametrize(
     "factory, model_label",
     (
-        (ModeleArreteFactory, "gsl_notification.ModeleArrete"),
-        (ModeleLettreNotificationFactory, "gsl_notification.ModeleLettreNotification"),
+        (ModeleArreteFactory, "gsl_notification.ModeleDocument"),
+        (ModeleLettreNotificationFactory, "gsl_notification.ModeleDocument"),
     ),
 )
 @patch("gsl.notification.tasks.scan_uploaded_document")
@@ -418,7 +433,7 @@ def test_scan_task_with_logo_field_marks_clean(mock_run, settings):
 
     from gsl.notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.ModeleArrete", doc.pk, "logo")
+    scan_uploaded_document("gsl_notification.ModeleDocument", doc.pk, "logo")
 
     doc.refresh_from_db()
     assert doc.last_scan is not None
@@ -435,7 +450,7 @@ def test_scan_task_with_logo_field_marks_infected(mock_run, settings):
 
     from gsl.notification.tasks import scan_uploaded_document
 
-    scan_uploaded_document("gsl_notification.ModeleArrete", doc.pk, "logo")
+    scan_uploaded_document("gsl_notification.ModeleDocument", doc.pk, "logo")
 
     doc.refresh_from_db()
     assert doc.last_scan is not None

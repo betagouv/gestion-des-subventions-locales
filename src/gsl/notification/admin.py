@@ -5,32 +5,15 @@ from django.utils.safestring import mark_safe
 from gsl.core.admin import AllPermsForStaffUser
 
 from .models import (
-    Annexe,
-    Arrete,
     DocumentImportJob,
-    LettreEtArreteSignes,
-    LettreNotification,
-    LettreRefus,
-    LettreRefusSignee,
-    ModeleArrete,
-    ModeleLettreNotification,
-    ModeleLettreRefus,
+    GeneratedDocument,
+    ModeleDocument,
+    UploadedDocument,
 )
 from .tasks import scan_uploaded_document
 
 
-@admin.register(Arrete)
-class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = (
-        "__str__",
-        "dossier_link",
-        "created_by",
-        "created_at",
-        "updated_at",
-    )
-    readonly_fields = ("dossier_link",)
-    list_select_related = ("enveloppe_projet__projet__dossier_ds", "created_by")
-
+class DossierLinkMixin:
     def dossier_link(self, obj):
         dossier = obj.enveloppe_projet.projet.dossier_ds
         if dossier:
@@ -45,14 +28,18 @@ class ArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     dossier_link.admin_order_field = "enveloppe_projet__projet__dossier_ds__ds_number"
 
 
-@admin.register(LettreNotification)
-class LettreNotificationAdmin(ArreteAdmin):
-    pass
-
-
-@admin.register(LettreRefus)
-class LettreRefusAdmin(ArreteAdmin):
-    pass
+@admin.register(GeneratedDocument)
+class GeneratedDocumentAdmin(DossierLinkMixin, AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = (
+        "__str__",
+        "dossier_link",
+        "created_by",
+        "created_at",
+        "updated_at",
+    )
+    list_filter = ("type",)
+    readonly_fields = ("dossier_link",)
+    list_select_related = ("enveloppe_projet__projet__dossier_ds", "created_by")
 
 
 @admin.action(description="Relancer l'analyse antivirus")
@@ -66,8 +53,8 @@ def relaunch_antivirus_scan(modeladmin, request, queryset):
     )
 
 
-@admin.register(LettreEtArreteSignes)
-class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+@admin.register(UploadedDocument)
+class UploadedDocumentAdmin(DossierLinkMixin, AllPermsForStaffUser, admin.ModelAdmin):
     list_display = (
         "__str__",
         "dossier_link",
@@ -77,6 +64,7 @@ class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "last_scan",
         "is_infected",
     )
+    list_filter = ("type",)
     readonly_fields = (
         "dossier_link",
         "last_scan",
@@ -85,34 +73,19 @@ class LettreEtArreteSignesAdmin(AllPermsForStaffUser, admin.ModelAdmin):
     actions = [relaunch_antivirus_scan]
     list_select_related = ("enveloppe_projet__projet__dossier_ds", "created_by")
 
-    def dossier_link(self, obj):
-        dossier = obj.enveloppe_projet.projet.dossier_ds
-        if dossier:
-            url = reverse(
-                "admin:gsl_demarches_simplifiees_dossier_change",
-                args=[dossier.id],
-            )
-            return mark_safe(f'<a href="{url}">{dossier.ds_number}</a>')
-        return None
 
-    dossier_link.short_description = "Dossier"
-    dossier_link.admin_order_field = "enveloppe_projet__projet__dossier_ds__ds_number"
-
-
-@admin.register(Annexe)
-class AnnexeAdmin(LettreEtArreteSignesAdmin):
-    pass
-
-
-@admin.register(LettreRefusSignee)
-class LettreRefusSigneeAdmin(LettreEtArreteSignesAdmin):
-    pass
-
-
-@admin.register(ModeleArrete)
-class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
-    list_display = ("pk", "name", "perimetre", "created_by", "last_scan", "is_infected")
-    list_filter = ("perimetre__region__name", "perimetre__departement__name")
+@admin.register(ModeleDocument)
+class ModeleDocumentAdmin(AllPermsForStaffUser, admin.ModelAdmin):
+    list_display = (
+        "pk",
+        "name",
+        "type",
+        "perimetre",
+        "created_by",
+        "last_scan",
+        "is_infected",
+    )
+    list_filter = ("type", "perimetre__region__name", "perimetre__departement__name")
     readonly_fields = ("last_scan", "is_infected")
     actions = [relaunch_antivirus_scan]
     list_select_related = (
@@ -122,16 +95,6 @@ class ModeleArreteAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "perimetre__arrondissement",
         "created_by",
     )
-
-
-@admin.register(ModeleLettreNotification)
-class ModeleLettreNotificationAdmin(ModeleArreteAdmin):
-    pass
-
-
-@admin.register(ModeleLettreRefus)
-class ModeleLettreRefusAdmin(ModeleArreteAdmin):
-    pass
 
 
 @admin.register(DocumentImportJob)

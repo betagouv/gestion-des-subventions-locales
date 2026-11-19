@@ -10,16 +10,8 @@ from django.views.generic import DeleteView, DetailView, FormView, UpdateView
 
 from gsl.core.exceptions import Http404
 from gsl.historique.models import ProjetAction
-from gsl.notification.forms.update_doc import (
-    GENERATED_DOCUMENT_TO_FORM,
-    ChoixModeleForm,
-)
-from gsl.notification.models import (
-    GENERATED_DOCUMENTS,
-    MODELES,
-    UPLOADED_DOCUMENTS,
-    GeneratedDocument,
-)
+from gsl.notification.forms.update_doc import ChoixModeleForm, GeneratedDocumentForm
+from gsl.notification.models import GeneratedDocument, ModeleDocument, UploadedDocument
 from gsl.notification.utils import (
     generate_pdf_for_generated_document,
     get_modele_perimetres,
@@ -54,10 +46,6 @@ class SelectModeleView(FormView):
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         self.document_type = kwargs["document_type"]
-        try:
-            self.modele_class = MODELES[self.document_type]
-        except KeyError:
-            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
         self.enveloppe_projet = get_object_or_404(
             EnveloppeProjet.objects.programmees()
             .active()
@@ -70,13 +58,12 @@ class SelectModeleView(FormView):
         kwargs = super().get_form_kwargs()
         dotation = self.enveloppe_projet.dotation
         perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
-        kwargs["queryset"] = self.modele_class.objects.filter(
-            dotation=dotation, perimetre__in=perimetres
+        kwargs["queryset"] = ModeleDocument.objects.filter(
+            type=self.document_type, dotation=dotation, perimetre__in=perimetres
         )
-        if hasattr(self.enveloppe_projet, self.document_type):
-            kwargs["initial"] = {
-                "modele": getattr(self.enveloppe_projet, self.document_type).modele_id
-            }
+        document = self.enveloppe_projet.generated_document(self.document_type)
+        if document:
+            kwargs["initial"] = {"modele": document.modele_id}
         return kwargs
 
     def form_valid(self, form):
@@ -100,9 +87,11 @@ class SelectModeleView(FormView):
             enveloppe_projet=self.enveloppe_projet,
             dotation=self.enveloppe_projet.dotation,
             document_type=self.document_type,
-            modele_label=self.modele_class.verbose_name(),
-            page_title=f"Modification de {self.modele_class.article_name}",
-            page_step_title=f"1 - Choix du modèle de {self.modele_class.article_name}",
+            modele_label=self.document_type.modele_verbose_name,
+            page_title=f"Modification de {self.document_type.article_name}",
+            page_step_title=(
+                f"1 - Choix du modèle de {self.document_type.article_name}"
+            ),
             cancel_link=reverse(
                 "gsl_notification:documents", args=[self.kwargs["projet_id"]]
             ),
@@ -114,15 +103,11 @@ class SelectModeleView(FormView):
 )
 class ChangeDocumentView(UpdateView):
     template_name = "gsl_notification/generated_document/change_document.html"
+    form_class = GeneratedDocumentForm
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         self.document_type = kwargs["document_type"]
-        try:
-            self.modele_class = MODELES[self.document_type]
-            self.form_class = GENERATED_DOCUMENT_TO_FORM[self.document_type]
-        except KeyError:
-            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
 
     def get_object(self, queryset=None):
         self.enveloppe_projet = get_object_or_404(
@@ -132,9 +117,9 @@ class ChangeDocumentView(UpdateView):
             .for_dotation(self.kwargs["dotation"]),
             projet_id=self.kwargs["projet_id"],
         )
-        if not hasattr(self.enveloppe_projet, self.document_type):
+        document = self.enveloppe_projet.generated_document(self.document_type)
+        if document is None:
             raise Http404(user_message="Il n'y a pas de document à modifier.")
-        document = getattr(self.enveloppe_projet, self.document_type)
         self.modele = document.modele
 
         modele_id = self.request.GET.get("modele_id")
@@ -142,8 +127,9 @@ class ChangeDocumentView(UpdateView):
             dotation = self.enveloppe_projet.dotation
             perimetres = get_modele_perimetres(dotation, self.request.user.perimetre)
             self.modele = get_object_or_404(
-                self.modele_class,
+                ModeleDocument,
                 id=modele_id,
+                type=self.document_type,
                 dotation=dotation,
                 perimetre__in=perimetres,
             )
@@ -158,7 +144,7 @@ class ChangeDocumentView(UpdateView):
         log_generated_document_action(
             self.request.user,
             self.enveloppe_projet,
-            self.object.__class__,
+            self.object,
             is_creating=False,
         )
         return response
@@ -177,9 +163,9 @@ class ChangeDocumentView(UpdateView):
         context = super().get_context_data(**kwargs)
         context["arrete_form"] = context["form"]
         context["arrete_initial_content"] = mark_safe(self.object.content)
-        context["page_title"] = f"Modification de {self.modele_class.article_name}"
+        context["page_title"] = f"Modification de {self.document_type.article_name}"
         context["page_step_title"] = (
-            f"1 - Choix du modèle de {self.modele_class.article_name}"
+            f"1 - Choix du modèle de {self.document_type.article_name}"
         )
         context["modele"] = self.modele
         context["document_type"] = self.document_type
@@ -204,37 +190,26 @@ def _add_success_message(request, document):
 
 @method_decorator(require_POST, name="dispatch")
 class DeleteDocumentView(DeleteView):
+    action_type: str
     context_object_name = "document"
     pk_url_kwarg = "document_id"
 
     def get_queryset(self):
-        try:
-            DOCUMENTS = {**GENERATED_DOCUMENTS, **UPLOADED_DOCUMENTS}
-            document_class = DOCUMENTS[self.kwargs["document_type"]]
-        except KeyError:
-            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
-
-        return document_class.objects.filter(
+        return self.model.objects.filter(
             enveloppe_projet__projet__in=Projet.objects.active().for_user(
                 self.request.user
-            )
+            ),
         )
 
     def form_valid(self, form):
         enveloppe_projet = self.object.enveloppe_projet
-        doc_class_name = self.object.__class__._meta.verbose_name
-        action_type = (
-            ProjetAction.TYPE_DOC_UPLOAD_DELETED
-            if hasattr(self.object, "file")
-            else ProjetAction.TYPE_DOC_DELETED
-        )
         ProjetAction.objects.create(
             projet=enveloppe_projet.projet,
-            action_type=action_type,
+            action_type=self.action_type,
             actor=self.request.user,
             source=ProjetAction.SOURCE_TURGOT,
             dotation=enveloppe_projet.dotation,
-            document_name=doc_class_name,
+            document_name=self.object.verbose_name,
         )
         messages.success(self.request, "Le document a bien été supprimé.")
         return super().form_valid(form)
@@ -244,6 +219,16 @@ class DeleteDocumentView(DeleteView):
             "gsl_notification:documents",
             kwargs={"projet_id": self.object.enveloppe_projet.projet.id},
         )
+
+
+class DeleteGeneratedDocumentView(DeleteDocumentView):
+    model = GeneratedDocument
+    action_type = ProjetAction.TYPE_DOC_DELETED
+
+
+class DeleteUploadedDocumentView(DeleteDocumentView):
+    model = UploadedDocument
+    action_type = ProjetAction.TYPE_DOC_UPLOAD_DELETED
 
 
 # View and Download views -----------------------------------------------------------------------
@@ -257,18 +242,10 @@ class PrintDocumentView(DetailView):
     pdf_attachment = False
 
     def get_queryset(self):
-        self.document_type = self.kwargs["document_type"]
-        try:
-            document_class = MODELES[self.document_type].generated_document_class
-            if document_class is None:
-                raise ValueError("Type inconnu")
-        except (ValueError, KeyError):
-            raise Http404(user_message="Le type de document sélectionné n'existe pas.")
-
-        return document_class.objects.filter(
+        return GeneratedDocument.objects.filter(
             enveloppe_projet__projet__in=Projet.objects.active().for_user(
                 self.request.user
-            )
+            ),
         )
 
     def get(self, request, *args, **kwargs):

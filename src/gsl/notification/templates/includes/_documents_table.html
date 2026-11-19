@@ -54,7 +54,7 @@
                                                    class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line">
                                                     Télécharger ({{ document.size|filesizeformat }})
                                                 </a>
-                                                <a href="{% url "notification:modifier-document" document.enveloppe_projet.projet.id document.enveloppe_projet.dotation document.document_type %}"
+                                                <a href="{% url "notification:modifier-document" document.enveloppe_projet.projet.id document.enveloppe_projet.dotation document.type %}"
                                                    class="fr-btn fr-btn--sm fr-btn--secondary fr-icon-edit-line">
                                                     Modifier
                                                 </a>
@@ -69,8 +69,7 @@
                                                     aria-expanded="false"
                                                     data-fr-opened="false"
                                                     data-name="{{ document.name }}"
-                                                    data-type="{{ document.document_type }}"
-                                                    data-form-action="{% url "notification:delete-document" document.document_type document.id %}"
+                                                    data-form-action="{{ document.get_delete_url }}"
                                                     data-delete-title="{{ document.delete_title }}"
                                                     data-delete-question="{{ document.delete_question }}"
                                                     data-action="delete-notification-document-modal#updateModaleTitleAndSubmitAction"

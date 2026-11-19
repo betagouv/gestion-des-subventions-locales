@@ -25,17 +25,25 @@ from gsl.notification.forms.bulk_generation import (
     EXPORT_FORMAT_ONE_PDF_PER_PROJECT,
     GenerateDocumentsModeleSelectionForm,
 )
-from gsl.notification.models import ExportJob, LettreNotification
+from gsl.notification.models import ExportJob, GeneratedDocument
 from gsl.notification.tests.factories import (
     LettreNotificationFactory,
     ModeleArreteFactory,
     ModeleLettreNotificationFactory,
 )
-from gsl.projet.constants import LETTRE, ProjetStatus
+from gsl.projet.constants import ProjetStatus
 from gsl.projet.models import Projet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
+
+
+def _lettre(enveloppe_projet):
+    return enveloppe_projet.generated_document(GeneratedDocument.Type.LETTRE)
+
+
+def _arrete(enveloppe_projet):
+    return enveloppe_projet.generated_document(GeneratedDocument.Type.ARRETE)
 
 
 ## FIXTURES
@@ -241,7 +249,9 @@ def test_wizard_type_selection_to_modele_selection_renders_modeles(
     _open_wizard_at_type_selection_step(client, enveloppe_projets)
     response = client.post(
         _wizard_url(),
-        _wizard_step_data("type_selection", {"document_type": LETTRE}),
+        _wizard_step_data(
+            "type_selection", {"document_type": GeneratedDocument.Type.LETTRE}
+        ),
         **HTMX_HEADERS,
     )
     assert response.status_code == 200
@@ -250,7 +260,7 @@ def test_wizard_type_selection_to_modele_selection_renders_modeles(
     )
     form = response.context["form"]
     assert detr_lettre_modele in form.fields["modele_lettre_id"].queryset
-    assert form.document_type == LETTRE
+    assert form.document_type == GeneratedDocument.Type.LETTRE
 
 
 def test_wizard_type_selection_to_modele_selection_both_types_renders_two_selectors(
@@ -300,7 +310,9 @@ def test_wizard_modele_selection_missing_modele_re_renders_modele_selection(
     _open_wizard_at_type_selection_step(client, enveloppe_projets)
     client.post(
         _wizard_url(),
-        _wizard_step_data("type_selection", {"document_type": LETTRE}),
+        _wizard_step_data(
+            "type_selection", {"document_type": GeneratedDocument.Type.LETTRE}
+        ),
         **HTMX_HEADERS,
     )
     response = client.post(
@@ -347,7 +359,9 @@ def test_wizard_modele_selection_to_format_step(
     _open_wizard_at_type_selection_step(client, enveloppe_projets)
     client.post(
         _wizard_url(),
-        _wizard_step_data("type_selection", {"document_type": LETTRE}),
+        _wizard_step_data(
+            "type_selection", {"document_type": GeneratedDocument.Type.LETTRE}
+        ),
         **HTMX_HEADERS,
     )
     response = client.post(
@@ -370,7 +384,9 @@ def test_wizard_format_step_invalid_export_format_re_renders_format_step(
     _open_wizard_at_type_selection_step(client, enveloppe_projets)
     client.post(
         _wizard_url(),
-        _wizard_step_data("type_selection", {"document_type": LETTRE}),
+        _wizard_step_data(
+            "type_selection", {"document_type": GeneratedDocument.Type.LETTRE}
+        ),
         **HTMX_HEADERS,
     )
     client.post(
@@ -402,7 +418,7 @@ def _drive_through_format_step(
     client,
     enveloppe_projets,
     *,
-    document_type=LETTRE,
+    document_type=GeneratedDocument.Type.LETTRE,
     modele_selection_fields,
     export_format=EXPORT_FORMAT_ONE_PDF_PER_DOC,
     dotation=Dotation.DETR,
@@ -517,7 +533,10 @@ def test_wizard_create_step_aborts_when_projets_became_ineligible(
     )
     assert "Aucun projet à notifier." in response.content.decode()
     assert ExportJob.objects.count() == 0
-    assert LettreNotification.objects.count() == 0
+    assert (
+        GeneratedDocument.objects.filter(type=GeneratedDocument.Type.LETTRE).count()
+        == 0
+    )
 
 
 def test_wizard_create_step_creates_documents_and_returns_success(
@@ -537,8 +556,8 @@ def test_wizard_create_step_creates_documents_and_returns_success(
     assert len(list(response.context["refreshed_enveloppe_projets"])) == 3
     for dp in enveloppe_projets:
         dp.refresh_from_db()
-        assert dp.lettrenotification.modele == detr_lettre_modele
-        assert dp.lettrenotification.created_by == client.user
+        assert _lettre(dp).modele == detr_lettre_modele
+        assert _lettre(dp).created_by == client.user
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (3 docs)
@@ -560,7 +579,7 @@ def test_wizard_create_step_replaces_existing_doc(
     )
     response = _post_create_step(client)
     dp.refresh_from_db()
-    assert dp.lettrenotification.id != old_lettre.id
+    assert _lettre(dp).id != old_lettre.id
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -575,7 +594,9 @@ def test_wizard_modele_selection_conserver_when_all_covered_advances_to_format_s
     _open_wizard_at_type_selection_step(client, enveloppe_projets)
     client.post(
         _wizard_url(),
-        _wizard_step_data("type_selection", {"document_type": LETTRE}),
+        _wizard_step_data(
+            "type_selection", {"document_type": GeneratedDocument.Type.LETTRE}
+        ),
         **HTMX_HEADERS,
     )
     response = client.post(
@@ -596,7 +617,10 @@ def test_wizard_modele_selection_conserver_when_all_covered_advances_to_format_s
     form = response.context["form"]
     assert "overwrite_strategy" not in form.errors
     # No new lettre created yet: only the original 3 fixtures remain.
-    assert LettreNotification.objects.count() == 3
+    assert (
+        GeneratedDocument.objects.filter(type=GeneratedDocument.Type.LETTRE).count()
+        == 3
+    )
 
 
 def test_wizard_create_step_conserver_creates_only_missing_documents(
@@ -620,10 +644,10 @@ def test_wizard_create_step_conserver_creates_only_missing_documents(
     )
 
     with_existing.refresh_from_db()
-    assert with_existing.lettrenotification.id == old_lettre.id
+    assert _lettre(with_existing).id == old_lettre.id
     for dp in without:
         dp.refresh_from_db()
-        assert dp.lettrenotification.modele == detr_lettre_modele
+        assert _lettre(dp).modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -651,8 +675,8 @@ def test_wizard_create_step_remplacer_when_all_covered_replaces_all(
     )
     for dp, old_id in zip(enveloppe_projets, old_ids, strict=True):
         dp.refresh_from_db()
-        assert dp.lettrenotification.id != old_id
-        assert dp.lettrenotification.modele == detr_lettre_modele
+        assert _lettre(dp).id != old_id
+        assert _lettre(dp).modele == detr_lettre_modele
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -671,7 +695,9 @@ def test_wizard_create_step_conserver_full_coverage_with_empty_ids_reaches_succe
     _post_launch(client, ids="")
     client.post(
         _wizard_url(),
-        _wizard_step_data("type_selection", {"document_type": LETTRE}),
+        _wizard_step_data(
+            "type_selection", {"document_type": GeneratedDocument.Type.LETTRE}
+        ),
         **HTMX_HEADERS,
     )
     client.post(
@@ -695,7 +721,10 @@ def test_wizard_create_step_conserver_full_coverage_with_empty_ids_reaches_succe
     assert "gsl_notification/modal/bulk_generation/success.html" in _template_names(
         response
     )
-    assert LettreNotification.objects.count() == 3
+    assert (
+        GeneratedDocument.objects.filter(type=GeneratedDocument.Type.LETTRE).count()
+        == 3
+    )
 
     _, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"
@@ -723,8 +752,8 @@ def test_wizard_create_step_both_creates_arrete_and_lettre(
     assert len(list(response.context["refreshed_enveloppe_projets"])) == 3
     for dp in enveloppe_projets:
         dp.refresh_from_db()
-        assert dp.arrete.modele == detr_arrete_modele
-        assert dp.lettrenotification.modele == detr_lettre_modele
+        assert _arrete(dp).modele == detr_arrete_modele
+        assert _lettre(dp).modele == detr_lettre_modele
 
     key, body = _read_storage_body(response.context["download_url"])
     assert body[:2] == b"PK"  # ZIP (6 docs)
@@ -759,7 +788,7 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
 
     key, body = _read_storage_body(response.context["download_url"])
     filename = os.path.basename(key)
-    assert filename == enveloppe_projets[0].lettrenotification.name
+    assert filename == _lettre(enveloppe_projets[0]).name
     assert body[:4] == b"%PDF"
 
 

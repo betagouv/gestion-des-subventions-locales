@@ -1,17 +1,8 @@
 import pytest
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from dn.sync.models import Dotation
-from gsl.notification.tests.factories import (
-    ModeleArreteFactory,
-    ModeleLettreNotificationFactory,
-)
-from gsl.projet.constants import (
-    ANNEXE,
-    ARRETE,
-    LETTRE,
-    LETTRE_ET_ARRETE_SIGNES,
-)
+from gsl.notification.models import GeneratedDocument
 
 
 def test_documents_url():
@@ -25,7 +16,9 @@ def test_documents_url():
 # Document URLs
 
 
-@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+@pytest.mark.parametrize(
+    "document_type", (GeneratedDocument.Type.ARRETE, GeneratedDocument.Type.LETTRE)
+)
 def test_select_modele_url(document_type):
     url = reverse(
         "gsl_notification:select-modele",
@@ -41,7 +34,9 @@ def test_select_modele_url(document_type):
     )
 
 
-@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
+@pytest.mark.parametrize(
+    "document_type", (GeneratedDocument.Type.ARRETE, GeneratedDocument.Type.LETTRE)
+)
 def test_modifier_document_url(document_type):
     url = reverse(
         "gsl_notification:modifier-document",
@@ -54,31 +49,19 @@ def test_modifier_document_url(document_type):
     assert url == f"/notification/123/modifier-document/{Dotation.DETR}/{document_type}"
 
 
-@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
-def test_document_download_url(document_type):
-    url = reverse(
-        "gsl_notification:document-download",
-        kwargs={"document_type": document_type, "document_id": 456},
-    )
-    assert url == f"/notification/document/{document_type}/456/download/"
+def test_document_download_url():
+    url = reverse("gsl_notification:document-download", kwargs={"document_id": 456})
+    assert url == "/notification/document/456/download/"
 
 
-@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
-def test_document_view_url(document_type):
-    url = reverse(
-        "gsl_notification:document-view",
-        kwargs={"document_type": document_type, "document_id": 456},
-    )
-    assert url == f"/notification/document/{document_type}/456/view/"
+def test_document_view_url():
+    url = reverse("gsl_notification:document-view", kwargs={"document_id": 456})
+    assert url == "/notification/document/456/view/"
 
 
-@pytest.mark.parametrize("document_type", (ARRETE, LETTRE))
-def test_document_delete_url(document_type):
-    url = reverse(
-        "gsl_notification:delete-document",
-        kwargs={"document_type": document_type, "document_id": 789},
-    )
-    assert url == f"/notification/document/{document_type}/789/delete/"
+def test_document_delete_url():
+    url = reverse("gsl_notification:delete-document", kwargs={"document_id": 789})
+    assert url == "/notification/document/789/delete/"
 
 
 # Uploaded documents URLs
@@ -104,22 +87,18 @@ def test_upload_document_step_urls(fragment_name, expected):
     )
 
 
-@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
-def test_uploaded_document_download_url(doc_type):
+def test_uploaded_document_download_url():
     url = reverse(
-        "gsl_notification:uploaded-document-download",
-        kwargs={"document_type": doc_type, "document_id": 789},
+        "gsl_notification:uploaded-document-download", kwargs={"document_id": 789}
     )
-    assert url == f"/notification/document-televerse/{doc_type}/789/download/"
+    assert url == "/notification/document-televerse/789/download/"
 
 
-@pytest.mark.parametrize("doc_type", (LETTRE_ET_ARRETE_SIGNES, ANNEXE))
-def test_uploaded_document_delete_url(doc_type):
+def test_uploaded_document_delete_url():
     url = reverse(
-        "gsl_notification:delete-document",
-        kwargs={"document_type": doc_type, "document_id": 789},
+        "gsl_notification:delete-uploaded-document", kwargs={"document_id": 789}
     )
-    assert url == f"/notification/document/{doc_type}/789/delete/"
+    assert url == "/notification/document-televerse/789/delete/"
 
 
 # Modele Arrete URLs
@@ -139,55 +118,27 @@ def test_create_modele_arrete_wizard_url():
     assert url == "/notification/modeles/nouveau/arrete/DETR/"
 
 
-@pytest.mark.parametrize(
-    ("modele_type, factory"),
-    (
-        (ARRETE, ModeleArreteFactory),
-        (LETTRE, ModeleLettreNotificationFactory),
-    ),
-)
-@pytest.mark.django_db
-def test_update_modele_url(modele_type, factory):
-    modele = factory()
-    url = reverse(
-        "gsl_notification:modele-modifier",
-        kwargs={"modele_type": modele_type, "modele_id": modele.id},
-    )
-    assert url == f"/notification/modeles/modifier/{modele_type}/{modele.id}/"
+def test_update_modele_url():
+    url = reverse("gsl_notification:modele-modifier", kwargs={"modele_id": 12})
+    assert url == "/notification/modeles/modifier/12/"
 
 
-@pytest.mark.parametrize(
-    ("modele_type, factory"),
-    (
-        (ARRETE, ModeleArreteFactory),
-        (LETTRE, ModeleLettreNotificationFactory),
-    ),
-)
-@pytest.mark.django_db
-def test_duplicate_modele_url(modele_type, factory):
-    modele = factory()
-    url = reverse(
-        "gsl_notification:modele-dupliquer",
-        kwargs={"modele_type": modele_type, "modele_id": modele.id},
-    )
-    assert url == f"/notification/modeles/dupliquer/{modele_type}/{modele.id}/"
+def test_duplicate_modele_url():
+    url = reverse("gsl_notification:modele-dupliquer", kwargs={"modele_id": 12})
+    assert url == "/notification/modeles/dupliquer/12/"
 
 
-@pytest.mark.parametrize(
-    ("modele_type, factory"),
-    (
-        (ARRETE, ModeleArreteFactory),
-        (LETTRE, ModeleLettreNotificationFactory),
-    ),
-)
-@pytest.mark.django_db
-def test_delete_modele_url(modele_type, factory):
-    modele = factory()
-    url = reverse(
-        "gsl_notification:delete-modele",
-        kwargs={"modele_type": modele_type, "modele_id": modele.id},
-    )
-    assert url == f"/notification/modeles/{modele_type}/{modele.id}/"
+def test_delete_modele_url():
+    url = reverse("gsl_notification:delete-modele", kwargs={"modele_id": 12})
+    assert url == "/notification/modeles/12/"
+
+
+def test_unknown_generated_document_type_does_not_resolve():
+    with pytest.raises(NoReverseMatch):
+        reverse(
+            "gsl_notification:modele-creer",
+            kwargs={"dotation": "DETR", "modele_type": "inconnu"},
+        )
 
 
 @pytest.mark.parametrize("dotation", (Dotation.DETR, Dotation.DSIL))

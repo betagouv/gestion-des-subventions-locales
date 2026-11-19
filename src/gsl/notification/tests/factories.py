@@ -4,23 +4,14 @@ import factory
 
 from dn.sync.models import Dotation
 
-from ..models import (
-    Annexe,
-    Arrete,
-    LettreEtArreteSignes,
-    LettreNotification,
-    LettreRefus,
-    LettreRefusSignee,
-    ModeleArrete,
-    ModeleLettreNotification,
-    ModeleLettreRefus,
-)
+from ..models import GeneratedDocument, ModeleDocument, UploadedDocument
 
 
 class ModeleArreteFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = ModeleArrete
+        model = ModeleDocument
 
+    type = GeneratedDocument.Type.ARRETE
     name = factory.Sequence(lambda n: f"Modele {n}")
     description = "La description du modèle"
     perimetre = factory.SubFactory("gsl.core.tests.factories.PerimetreFactory")
@@ -35,19 +26,18 @@ class ModeleArreteFactory(factory.django.DjangoModelFactory):
 
 
 class ModeleLettreNotificationFactory(ModeleArreteFactory):
-    class Meta:
-        model = ModeleLettreNotification
+    type = GeneratedDocument.Type.LETTRE
 
 
 class ModeleLettreRefusFactory(ModeleArreteFactory):
-    class Meta:
-        model = ModeleLettreRefus
+    type = GeneratedDocument.Type.LETTRE_REFUS
 
 
 class ArreteFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = Arrete
+        model = GeneratedDocument
 
+    type = GeneratedDocument.Type.ARRETE
     enveloppe_projet = factory.SubFactory(
         "gsl.projet.tests.factories.EnveloppeProjetFactory", status="accepted"
     )
@@ -64,9 +54,7 @@ class ArreteFactory(factory.django.DjangoModelFactory):
 
 
 class LettreNotificationFactory(ArreteFactory):
-    class Meta:
-        model = LettreNotification
-
+    type = GeneratedDocument.Type.LETTRE
     modele = factory.LazyAttribute(
         lambda obj: ModeleLettreNotificationFactory(
             dotation=obj.enveloppe_projet.dotation,
@@ -75,9 +63,7 @@ class LettreNotificationFactory(ArreteFactory):
 
 
 class LettreRefusFactory(ArreteFactory):
-    class Meta:
-        model = LettreRefus
-
+    type = GeneratedDocument.Type.LETTRE_REFUS
     enveloppe_projet = factory.SubFactory(
         "gsl.projet.tests.factories.EnveloppeProjetFactory", status="refused"
     )
@@ -90,8 +76,9 @@ class LettreRefusFactory(ArreteFactory):
 
 class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = LettreEtArreteSignes
+        model = UploadedDocument
 
+    type = UploadedDocument.Type.LETTRE_ET_ARRETE_SIGNES
     file = factory.django.FileField(
         filename="test_file.pdf",
         content_type="application/pdf",
@@ -105,14 +92,11 @@ class LettreEtArreteSignesFactory(factory.django.DjangoModelFactory):
 
 
 class AnnexeFactory(LettreEtArreteSignesFactory):
-    class Meta:
-        model = Annexe
+    type = UploadedDocument.Type.ANNEXE
 
 
 class LettreRefusSigneeFactory(LettreEtArreteSignesFactory):
-    class Meta:
-        model = LettreRefusSignee
-
+    type = UploadedDocument.Type.LETTRE_REFUS_SIGNEE
     enveloppe_projet = factory.SubFactory(
         "gsl.projet.tests.factories.EnveloppeProjetFactory",
         status="refused",
