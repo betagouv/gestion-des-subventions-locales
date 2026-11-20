@@ -131,6 +131,10 @@ class ProjetDetailView(BaseProjetDetailView):
         return ProjetForm(instance=self.object)
 
 
+class ProjetDotationsView(BaseProjetDetailView):
+    template_name = "gsl_projet/projet/tab_dotations.html"
+
+
 class ProjetSimulationsView(BaseProjetDetailView):
     template_name = "gsl_projet/projet/tab_simulations.html"
 
