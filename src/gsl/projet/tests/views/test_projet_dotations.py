@@ -75,11 +75,16 @@ def test_dotations_tab_without_autres_dotations_sollicitees():
     assert "<p>Aucune</p>" in response.content.decode()
 
 
-def _get_dotations_tab_text(user, projet):
+def _get_dotations_tab_content(user, projet):
     url = reverse("gsl_projet:get-projet-dotations", kwargs={"projet_id": projet.id})
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
-    return " ".join(re.sub(r"<[^>]+>", " ", response.content.decode()).split())
+    return response.content.decode()
+
+
+def _get_dotations_tab_text(user, projet):
+    content = _get_dotations_tab_content(user, projet)
+    return " ".join(re.sub(r"<[^>]+>", " ", content).split())
 
 
 def test_dotation_card_displays_financial_informations_of_a_programmed_dotation():
@@ -129,32 +134,78 @@ def test_dotation_card_hides_financial_informations_of_a_dotation_in_processing(
     assert "Montant retenu" not in text
 
 
+def _avis_commission_form_url(enveloppe_projet):
+    return reverse(
+        "fragment:gsl_projet:detr_avis_commission_form",
+        kwargs={"pk": enveloppe_projet.pk},
+    )
+
+
 @pytest.mark.parametrize(
     "status,avis,expected",
     (
         (ProjetStatus.REFUSED, False, "Avis de la commission Non"),
         (ProjetStatus.ACCEPTED, True, "Avis de la commission Oui"),
-        (ProjetStatus.PROCESSING, True, None),
+        (ProjetStatus.DISMISSED, None, "Avis de la commission En cours"),
     ),
 )
 def test_dotation_card_displays_detr_avis_commission_of_a_programmed_dotation(
     status, avis, expected
 ):
     user = CollegueFactory()
-    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
-    DetrProjetFactory(projet=projet, status=status, detr_avis_commission=avis)
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
+    )
+    enveloppe_projet = DetrProjetFactory(
+        projet=projet, status=status, detr_avis_commission=avis
+    )
 
-    text = _get_dotations_tab_text(user, projet)
+    content = _get_dotations_tab_content(user, projet)
 
-    if expected:
-        assert expected in text
-    else:
-        assert "Avis de la commission" not in text
+    assert expected in " ".join(re.sub(r"<[^>]+>", " ", content).split())
+    assert _avis_commission_form_url(enveloppe_projet) not in content
 
 
-def test_dotation_card_does_not_display_avis_commission_for_dsil():
+def test_dotation_card_displays_detr_avis_commission_form_of_a_dotation_in_processing():
     user = CollegueFactory()
-    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
-    DsilProjetFactory(projet=projet, status=ProjetStatus.ACCEPTED)
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
+    )
+    enveloppe_projet = DetrProjetFactory(
+        projet=projet, status=ProjetStatus.PROCESSING, detr_avis_commission=True
+    )
 
-    assert "Avis de la commission" not in _get_dotations_tab_text(user, projet)
+    content = _get_dotations_tab_content(user, projet)
+
+    assert _avis_commission_form_url(enveloppe_projet) in content
+    assert "Avis de la commission" not in content
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED, ProjetStatus.REFUSED)
+)
+def test_dotation_card_hides_detr_avis_commission_below_min_demande_montant(status):
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=99_999
+    )
+    enveloppe_projet = DetrProjetFactory(projet=projet, status=status)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert "Avis de la commission" not in content
+    assert _avis_commission_form_url(enveloppe_projet) not in content
+
+
+@pytest.mark.parametrize("status", (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED))
+def test_dotation_card_does_not_display_avis_commission_for_dsil(status):
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
+    )
+    DsilProjetFactory(projet=projet, status=status)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert "Avis de la commission" not in content
+    assert "detr_avis_commission_form" not in content
