@@ -8,7 +8,7 @@
 
 {% block tab_projet %}
     <div class="fr-container--fluid">
-        {% if projet.has_double_dotations %}
+        {% if projet.has_multiple_dotation %}
             <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-mb-4w">
                 <div class="fr-col-auto">
                     <fieldset class="fr-segmented"
@@ -51,14 +51,19 @@
                 </div>
             </div>
         {% endif %}
-        {% if simulation_projets_with_forms %}
-            <div class="fr-grid-row fr-grid-row--gutters">
-                {% for simu, simulation_projet_form, form_id in simulation_projets_with_forms %}
-                    {% with enveloppe_projet=simu.enveloppe_projet dossier=simu.dossier %}
-                        {% include "gsl_projet/projet/includes/_simulation_card.html" %}
-                    {% endwith %}
-                {% endfor %}
-            </div>
+        {% if simulation_projets_with_forms_by_campagne %}
+            {% for annee, simulation_projets_with_forms in simulation_projets_with_forms_by_campagne %}
+                <section aria-labelledby="simulations-campagne-{{ annee }}">
+                    <h2 id="simulations-campagne-{{ annee }}" class="fr-h4 fr-mb-3w">Campagne {{ annee }}</h2>
+                    <div class="fr-grid-row fr-grid-row--gutters">
+                        {% for simu, simulation_projet_form, form_id in simulation_projets_with_forms %}
+                            {% with enveloppe_projet=simu.enveloppe_projet dossier=simu.dossier %}
+                                {% include "gsl_projet/projet/includes/_simulation_card.html" %}
+                            {% endwith %}
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
         {% else %}
             <div class="fr-py-8w fr-text--center">
                 <p class="fr-text--lg fr-text--bold">Aucune simulation pour ce projet</p>

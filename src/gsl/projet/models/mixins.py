@@ -16,13 +16,9 @@ class ProjetDNActionsMixin:
     """
 
     def notify(self, user: Collegue, motivation: str = "") -> None:
-        """Notifies the decision of its campagne ouverte only."""
-        campagne = self.campagne_ouverte
-        documents = [
-            document
-            for document in self.imported_documents
-            if document.enveloppe_projet.enveloppe.annee == campagne
-        ]
+        """Notifies the decision of its most recent campagne only."""
+        campagne = self.most_recent_campagne
+        documents = self.imported_documents
         justificatif_file = None
         if documents:
             justificatif_file = merge_documents_into_pdf(

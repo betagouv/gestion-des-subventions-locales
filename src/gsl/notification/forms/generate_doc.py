@@ -32,9 +32,9 @@ class GenerateDotationsDocumentsForm(DsfrBaseForm):
         super().__init__(*args, **kwargs)
         self.user = user
         self.treated_enveloppe_projets = list(
-            projet.enveloppeprojet_set.filter(status__in=ProjetStatus.FINAL).order_by(
-                "enveloppe__dotation"
-            )
+            projet.enveloppeprojet_set.in_most_recent_campagne()
+            .programmees()
+            .order_by("enveloppe__dotation")
         )
 
         self.dotation_fields = {

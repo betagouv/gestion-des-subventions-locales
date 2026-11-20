@@ -10,6 +10,7 @@ from gsl.notification.tests.factories import (
     LettreNotificationFactory,
     LettreRefusSigneeFactory,
 )
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 
 from ...constants import ProjetStatus
 from ...models import EnveloppeProjet, Projet
@@ -64,6 +65,29 @@ def test_has_double_dotations():
 
     EnveloppeProjetFactory(projet=projet, dotation=Dotation.DSIL)
     assert projet.has_double_dotations is True
+
+
+def test_has_multiple_dotation():
+    projet = ProjetFactory()
+    perimetre = projet.perimetre
+    assert projet.has_multiple_dotation is False
+
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2026),
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=perimetre, annee=2027),
+    )
+    assert projet.has_multiple_dotation is False
+
+    dsil = DsilEnveloppeFactory(perimetre=perimetre, annee=2027)
+    EnveloppeProjetFactory(projet=projet, enveloppe=dsil, is_courant=False)
+    assert projet.has_multiple_dotation is False
+
+    EnveloppeProjetFactory(projet=projet, enveloppe=dsil)
+    assert projet.has_multiple_dotation is True
 
 
 def test_dotation_detr():
@@ -550,6 +574,22 @@ def test_imported_documents_sorted_by_dotation_then_type_with_annexe_last():
         lettre_et_arrete_signes_dsil,
         annexe_dsil,
     ]
+
+
+def test_documents_leave_out_the_superseded_enveloppe_projets():
+    ancien = EnveloppeProjetFactory(
+        dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
+    )
+    ArreteFactory(enveloppe_projet=ancien)
+    LettreEtArreteSignesFactory(enveloppe_projet=ancien)
+    # Back in processing: the former one keeps its documents as history.
+    nouveau = ancien.set_back_status_to_processing_without_ds()
+    arrete = ArreteFactory(enveloppe_projet=nouveau)
+    lettre_et_arrete_signes = LettreEtArreteSignesFactory(enveloppe_projet=nouveau)
+
+    projet = Projet.objects.get(pk=ancien.projet_id)
+    assert projet.generated_documents == [arrete]
+    assert projet.imported_documents == [lettre_et_arrete_signes]
 
 
 @pytest.mark.django_db

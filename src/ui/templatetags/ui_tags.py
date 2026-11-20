@@ -149,16 +149,20 @@ def ui_status_badge(*args, **kwargs) -> dict:
     data_dict = {
         "type": "accepted | refused | dismissed | reported | processing | to_generate | to_sign | to_notify | notified",
         "dotation": "(Optional) Dotation prefix, e.g. 'DETR' or 'DSIL'",
+        "annee": "(Optional) Année suffix, e.g. '2026' or '2027'",
         "class": "(Optional) Extra CSS classes on the <span>",
     }
     ```"""
-    allowed_keys = ["type", "dotation", "class"]
+    allowed_keys = ["type", "dotation", "annee", "class"]
     tag_data = parse_tag_args(args, kwargs, allowed_keys)
 
     config = _STATUS_BADGE_CONFIGS.get(tag_data.get("type", ""), {})
     label = config.get("label", "")
     if tag_data.get("dotation"):
         label = f"{tag_data['dotation']} {label}"
+
+    if tag_data.get("annee"):
+        label = f"{label} - {tag_data['annee']}"
 
     return {
         "self": {
