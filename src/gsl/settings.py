@@ -414,6 +414,9 @@ ALLOW_LOGOUT_GET_METHOD = True
 # Celery configuration
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379")
+CELERY_TASK_ALWAYS_EAGER = (
+    os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"
+)
 CELERY_ACCEPT_CONTENT = {"application/json"}
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_SERIALIZER = "json"
