@@ -405,6 +405,10 @@ class Collegue(AbstractUser):
         return self.username
 
 
+class BulkItemError(Exception):
+    """An expected failure of one item of a bulk job, recorded in its report."""
+
+
 class BulkActionsJobQuerySet(models.QuerySet):
     def unfinished(self):
         return self.filter(

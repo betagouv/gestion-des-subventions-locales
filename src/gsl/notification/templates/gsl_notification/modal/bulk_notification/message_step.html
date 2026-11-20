@@ -1,0 +1,26 @@
+{% extends "gsl_notification/modal/bulk_generation/form_step_base.html" %}
+{% load custom_pluralize %}
+{% block stepper %}
+{% endblock stepper %}
+{% block content %}
+    {% with count=enveloppe_projets|length %}
+        <p>
+            Vous allez notifier sur Démarches Numériques {{ count }} projet{{ count|custom_pluralize }}
+            refusé{{ count|custom_pluralize }} ou classé{{ count|custom_pluralize }} sans suite.
+        </p>
+    {% endwith %}
+    <p>Cette opération peut prendre plusieurs minutes et ne doit pas être interrompue.</p>
+    {{ form.message.as_field_group }}
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <button type="submit" class="fr-btn fr-icon-mail-line fr-btn--icon-right">Notifier</button>
+    </li>
+    <li>
+        <button class="fr-btn fr-btn--secondary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Annuler
+        </button>
+    </li>
+{% endblock footer_buttons %}

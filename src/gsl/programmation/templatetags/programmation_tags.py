@@ -4,12 +4,14 @@ from gsl.notification.forms.bulk_generation import (
     GenerateAcceptedDocumentsLaunchForm,
     GenerateRefusLettersLaunchForm,
 )
+from gsl.notification.forms.bulk_notification import NotifyRefusLaunchForm
 
 register = template.Library()
 
 BULK_ACTION_FORMS = [
     GenerateAcceptedDocumentsLaunchForm,
     GenerateRefusLettersLaunchForm,
+    NotifyRefusLaunchForm,
 ]
 
 
