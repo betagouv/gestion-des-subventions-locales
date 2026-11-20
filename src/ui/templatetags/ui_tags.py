@@ -175,6 +175,35 @@ def ui_status_badge(*args, **kwargs) -> dict:
     }
 
 
+@register.inclusion_tag("ui/components/avis_commission.html")
+def ui_avis_commission(*args, **kwargs) -> dict:
+    """
+    ```python
+    data_dict = {
+        "avis": "True (Oui) | False (Non) | None (En cours)",
+        "class": "(Optional) Extra CSS classes on the <p>",
+    }
+    ```"""
+    allowed_keys = ["avis", "class"]
+    tag_data = parse_tag_args(args, kwargs, allowed_keys)
+
+    avis = tag_data.get("avis")
+    if avis is True:
+        icon_class, label = "fr-icon-chat-check-fill green-color", "Oui"
+    elif avis is False:
+        icon_class, label = "fr-icon-chat-delete-fill red-color", "Non"
+    else:
+        icon_class, label = "fr-icon-message-2-fill grey-color", "En cours"
+
+    return {
+        "self": {
+            "icon_class": icon_class,
+            "label": label,
+            "extra_class": tag_data.get("class", ""),
+        }
+    }
+
+
 @register.inclusion_tag("ui/components/form_errors.html")
 def ui_form_errors(form, title=None):
     return {"form": form, "title": title or "Erreur dans le formulaire"}

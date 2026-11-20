@@ -16,6 +16,9 @@
             {% endif %}
         </ul>
         {% if enveloppe_projet.is_programmee %}
+            {% if enveloppe_projet.dotation == "DETR" %}
+                {% ui_avis_commission avis=enveloppe_projet.detr_avis_commission class="fr-mb-2w" %}
+            {% endif %}
             <ul>
                 <li>
                     <span aria-hidden="true">💰</span> Assiette subventionnable : {{ enveloppe_projet.assiette|euro }}

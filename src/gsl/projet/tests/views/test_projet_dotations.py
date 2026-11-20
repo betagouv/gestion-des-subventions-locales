@@ -127,3 +127,34 @@ def test_dotation_card_hides_financial_informations_of_a_dotation_in_processing(
     assert "Catégorie d'opération DSIL : Rénovation" in text
     assert "Assiette subventionnable" not in text
     assert "Montant retenu" not in text
+
+
+@pytest.mark.parametrize(
+    "status,avis,expected",
+    (
+        (ProjetStatus.REFUSED, False, "Avis de la commission Non"),
+        (ProjetStatus.ACCEPTED, True, "Avis de la commission Oui"),
+        (ProjetStatus.PROCESSING, True, None),
+    ),
+)
+def test_dotation_card_displays_detr_avis_commission_of_a_programmed_dotation(
+    status, avis, expected
+):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    DetrProjetFactory(projet=projet, status=status, detr_avis_commission=avis)
+
+    text = _get_dotations_tab_text(user, projet)
+
+    if expected:
+        assert expected in text
+    else:
+        assert "Avis de la commission" not in text
+
+
+def test_dotation_card_does_not_display_avis_commission_for_dsil():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    DsilProjetFactory(projet=projet, status=ProjetStatus.ACCEPTED)
+
+    assert "Avis de la commission" not in _get_dotations_tab_text(user, projet)
