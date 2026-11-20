@@ -7,6 +7,12 @@
                class="fr-tabs__tab fr-icon-article-line fr-tabs__tab--icon-left">Projet</a>
         </li>
         <li>
+            {% url "projet:get-projet-dotations" projet_id=projet.id as dotations_url %}
+            <a href="{{ dotations_url }}{% querystring %}"
+               {% if request.path == dotations_url %}aria-selected="true"{% endif %}
+               class="fr-tabs__tab fr-icon-money-euro-box-line fr-tabs__tab--icon-left">Dotations</a>
+        </li>
+        <li>
             {% url "projet:get-projet-notes" projet_id=projet.id as notes_url %}
             <a href="{{ notes_url }}{% querystring %}"
                {% if request.path == notes_url %}aria-selected="true"{% endif %}

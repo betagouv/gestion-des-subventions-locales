@@ -3,7 +3,9 @@ from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.core.fragments import Fragment
 
+from .constants import ProjetStatus
 from .forms import (
+    DotationCardForm,
     EnveloppeProjetAssietteForm,
     EnveloppeProjetForm,
     ProjetBudgetVertForm,
@@ -108,3 +110,17 @@ class AssietteDotationFragment(EnveloppeProjetFormFragment):
     @classmethod
     def get_queryset(cls, request):
         return super().get_queryset(request).filter(notified_at__isnull=True)
+
+
+class DotationCardFragment(EnveloppeProjetFormFragment):
+    name = "dotation_card_form"
+    form_class = DotationCardForm
+    template_name = "includes/forms/_dotation_card_form.html"
+
+    @classmethod
+    def get_queryset(cls, request):
+        return (
+            super()
+            .get_queryset(request)
+            .filter(status=ProjetStatus.PROCESSING, notified_at__isnull=True)
+        )
