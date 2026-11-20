@@ -143,13 +143,18 @@ class ProjetSimulationsView(BaseProjetDetailView):
             "simulation",
             "simulation__enveloppe",
             "enveloppe_projet",
+            "enveloppe_projet__enveloppe",
             "enveloppe_projet__projet",
             "enveloppe_projet__projet__dossier_ds",
         )
 
         dotation_filter = self.request.GET.get("dotation", "")
+        # Most recent campagne first, then by dotation
         filtered_qs = all_qs.order_by(
-            "-simulation__enveloppe__annee", "-simulation__created_at"
+            "-enveloppe_projet__enveloppe__annee",
+            "enveloppe_projet__enveloppe__dotation",
+            "enveloppe_projet_id",
+            "-simulation__created_at",
         )
         if dotation_filter in ("DETR", "DSIL"):
             filtered_qs = filtered_qs.filter(
@@ -165,12 +170,11 @@ class ProjetSimulationsView(BaseProjetDetailView):
                     form.fields[field].widget.attrs["form"] = form_id
             simulation_projets_with_forms.append((sp, form, form_id))
 
-        # Most recent campagne first
-        context["simulation_projets_with_forms_by_campagne"] = [
-            (annee, list(items))
-            for annee, items in groupby(
+        context["simulation_projets_with_forms_by_enveloppe_projet"] = [
+            (enveloppe_projet, list(items))
+            for enveloppe_projet, items in groupby(
                 simulation_projets_with_forms,
-                key=lambda item: item[0].simulation.enveloppe.annee,
+                key=lambda item: item[0].enveloppe_projet,
             )
         ]
         context["dotation_filter"] = dotation_filter
