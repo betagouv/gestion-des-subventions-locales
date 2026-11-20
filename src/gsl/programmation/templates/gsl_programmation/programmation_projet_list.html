@@ -78,6 +78,34 @@
                 </div>
             </div>
         </dialog>
+        <dialog class="fr-modal"
+                id="notify-refus-modal"
+                aria-labelledby="notify-refus-modal-title"
+                data-controller="cancel-poll-on-modal-close"
+                data-action="dsfr.conceal->cancel-poll-on-modal-close#cancel">
+            <div class="fr-container fr-container--fluid fr-container-md">
+                <div class="fr-grid-row fr-grid-row--center">
+                    <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+                        <div class="fr-modal__body modal-wizard-body">
+                            <div class="fr-modal__header">
+                                <button aria-controls="notify-refus-modal"
+                                        title="Fermer"
+                                        type="button"
+                                        class="fr-btn--close fr-btn">
+                                    Fermer
+                                </button>
+                            </div>
+                            <div class="modal-wizard-loading fr-modal__content">
+                                <div class="fr-my-6w fr-grid-row fr-grid-row--center">
+                                    <span class="fr-icon-refresh-line generate-docs-spinner" aria-hidden="true"></span>
+                                </div>
+                            </div>
+                            <div class="modal-wizard-step" id="notify-refus-modal-step"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </dialog>
         <div class="gsl-table-toolbar fr-mt-11v fr-mb-6v">
             <span>
                 {{ enveloppe_projets|length }} projet{{ enveloppe_projets|length|custom_pluralize }}
@@ -144,6 +172,27 @@
                                                     data-fr-opened="false"
                                                     disabled>
                                                 Générer <span data-bulk-count>0</span> lettres de refus ou de classement sans suite
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form hx-post="{% url "gsl_notification:notify-refus-modal" dotation %}"
+                                              hx-target="#notify-refus-modal-step"
+                                              hx-swap="outerHTML"
+                                              hx-indicator=".modal-wizard-body"
+                                              data-bulk-selection-target="action"
+                                              data-action-name="notify_refus">
+                                            {% csrf_token %}
+                                            <input type="hidden"
+                                                   name="notify_refus_wizard_{{ dotation }}-current_step"
+                                                   value="launch">
+                                            <input type="hidden" name="launch-ids" value="" data-bulk-ids>
+                                            <button type="submit"
+                                                    class="fr-nav__link fr-btn--icon-left fr-icon-mail-line"
+                                                    aria-controls="notify-refus-modal"
+                                                    data-fr-opened="false"
+                                                    disabled>
+                                                Notifier <span data-bulk-count>0</span> refus ou classements sans suite
                                             </button>
                                         </form>
                                     </li>
