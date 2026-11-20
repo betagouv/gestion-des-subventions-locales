@@ -130,14 +130,13 @@ def test_dotation_card_hides_financial_informations_of_a_dotation_in_processing(
 
     assert "DSIL - 2027" in text
     assert "Catégorie d'opération DSIL : Rénovation" in text
-    assert "Assiette subventionnable" not in text
+    assert "Assiette subventionnable :" not in text
     assert "Montant retenu" not in text
 
 
-def _avis_commission_form_url(enveloppe_projet):
+def _dotation_card_form_url(enveloppe_projet):
     return reverse(
-        "fragment:gsl_projet:detr_avis_commission_form",
-        kwargs={"pk": enveloppe_projet.pk},
+        "fragment:gsl_projet:dotation_card_form", kwargs={"pk": enveloppe_projet.pk}
     )
 
 
@@ -149,7 +148,7 @@ def _avis_commission_form_url(enveloppe_projet):
         (ProjetStatus.DISMISSED, None, "Avis de la commission En cours"),
     ),
 )
-def test_dotation_card_displays_detr_avis_commission_of_a_programmed_dotation(
+def test_programmed_dotation_card_displays_detr_avis_commission_read_only(
     status, avis, expected
 ):
     user = CollegueFactory()
@@ -163,42 +162,66 @@ def test_dotation_card_displays_detr_avis_commission_of_a_programmed_dotation(
     content = _get_dotations_tab_content(user, projet)
 
     assert expected in " ".join(re.sub(r"<[^>]+>", " ", content).split())
-    assert _avis_commission_form_url(enveloppe_projet) not in content
+    assert _dotation_card_form_url(enveloppe_projet) not in content
 
 
-def test_dotation_card_displays_detr_avis_commission_form_of_a_dotation_in_processing():
+def test_processing_detr_dotation_card_has_a_single_form_with_avis_and_assiette():
     user = CollegueFactory()
     projet = ProjetFactory(
         dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
     )
     enveloppe_projet = DetrProjetFactory(
-        projet=projet, status=ProjetStatus.PROCESSING, detr_avis_commission=True
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
     )
 
     content = _get_dotations_tab_content(user, projet)
 
-    assert _avis_commission_form_url(enveloppe_projet) in content
+    assert content.count(_dotation_card_form_url(enveloppe_projet)) == 1
+    assert 'name="detr_avis_commission"' in content
+    assert 'name="assiette"' in content
+    assert content.count(">\n        Enregistrer\n    </button>") == 1
+    assert "Assiette subventionnable" in content
+    assert (
+        "Cette valeur est identique sur toutes les simulations de cette dotation."
+        in content
+    )
+    # The card already displays the dotation title: the form does not repeat it.
+    assert content.count("DETR - 2026") == 1
+
+
+@pytest.mark.parametrize("demande_montant", (99_999, None))
+def test_processing_detr_dotation_card_form_has_no_avis_below_min_demande_montant(
+    demande_montant,
+):
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre,
+        dossier_ds__demande_montant=demande_montant,
+    )
+    DetrProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert 'name="assiette"' in content
+    assert 'name="detr_avis_commission"' not in content
     assert "Avis de la commission" not in content
 
 
-@pytest.mark.parametrize(
-    "status", (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED, ProjetStatus.REFUSED)
-)
-def test_dotation_card_hides_detr_avis_commission_below_min_demande_montant(status):
+@pytest.mark.parametrize("status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED))
+def test_programmed_detr_dotation_card_has_no_avis_below_min_demande_montant(status):
     user = CollegueFactory()
     projet = ProjetFactory(
         dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=99_999
     )
-    enveloppe_projet = DetrProjetFactory(projet=projet, status=status)
+    DetrProjetFactory(projet=projet, status=status)
 
-    content = _get_dotations_tab_content(user, projet)
-
-    assert "Avis de la commission" not in content
-    assert _avis_commission_form_url(enveloppe_projet) not in content
+    assert "Avis de la commission" not in _get_dotations_tab_content(user, projet)
 
 
 @pytest.mark.parametrize("status", (ProjetStatus.PROCESSING, ProjetStatus.ACCEPTED))
-def test_dotation_card_does_not_display_avis_commission_for_dsil(status):
+def test_dsil_dotation_card_has_no_avis_commission(status):
     user = CollegueFactory()
     projet = ProjetFactory(
         dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
@@ -208,4 +231,103 @@ def test_dotation_card_does_not_display_avis_commission_for_dsil(status):
     content = _get_dotations_tab_content(user, projet)
 
     assert "Avis de la commission" not in content
-    assert "detr_avis_commission_form" not in content
+    assert 'name="detr_avis_commission"' not in content
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
+)
+def test_programmed_dotation_card_has_no_form(status):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DsilProjetFactory(projet=projet, status=status)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert _dotation_card_form_url(enveloppe_projet) not in content
+    assert 'name="assiette"' not in content
+
+
+def test_dotation_card_form_saves_assiette_and_detr_avis_commission():
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
+    )
+    enveloppe_projet = DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        assiette=10_000,
+        detr_avis_commission=None,
+    )
+    url = _dotation_card_form_url(enveloppe_projet)
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        url,
+        {"assiette": "50 000 €", "detr_avis_commission": "False"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.assiette == 50_000
+    assert enveloppe_projet.detr_avis_commission is False
+    content = response.content.decode()
+    assert url in content
+    assert "Modifications enregistrées" in content
+
+
+def test_dotation_card_form_ignores_detr_avis_commission_for_dsil():
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
+    )
+    enveloppe_projet = DsilProjetFactory(
+        projet=projet, status=ProjetStatus.PROCESSING, detr_avis_commission=None
+    )
+
+    ClientWithLoggedUserFactory(user=user).post(
+        _dotation_card_form_url(enveloppe_projet),
+        {"assiette": "50000", "detr_avis_commission": "True"},
+        headers={"HX-Request": "true"},
+    )
+
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.assiette == 50_000
+    assert enveloppe_projet.detr_avis_commission is None
+
+
+def test_dotation_card_form_requires_assiette():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DsilProjetFactory(
+        projet=projet, status=ProjetStatus.PROCESSING, assiette=10_000
+    )
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _dotation_card_form_url(enveloppe_projet),
+        {"assiette": ""},
+        headers={"HX-Request": "true"},
+    )
+
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.assiette == 10_000
+    content = response.content.decode()
+    assert "fr-input-group--error" in content
+    assert "Modifications enregistrées" not in content
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
+)
+def test_dotation_card_form_cannot_be_posted_for_a_programmed_dotation(status):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DsilProjetFactory(projet=projet, status=status)
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _dotation_card_form_url(enveloppe_projet),
+        {"assiette": "50000"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 404

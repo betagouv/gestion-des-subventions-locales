@@ -15,14 +15,12 @@
                 <li>Catégorie d'opération DETR : {{ dossier.demande_categorie_detr.complete_label|default:"—" }}</li>
             {% endif %}
         </ul>
-        {% if enveloppe_projet.dotation == "DETR" and projet.demande_montant_is_greater_than_min_montant_for_detr_commission %}
-            {% if enveloppe_projet.status == "processing" %}
-                {% render_fragment "gsl_projet:detr_avis_commission_form" enveloppe_projet %}
-            {% elif enveloppe_projet.is_programmee %}
+        {% if enveloppe_projet.status == "processing" %}
+            {% render_fragment "gsl_projet:dotation_card_form" enveloppe_projet %}
+        {% elif enveloppe_projet.is_programmee %}
+            {% if enveloppe_projet.dotation == "DETR" and projet.demande_montant_is_greater_than_min_montant_for_detr_commission %}
                 {% ui_avis_commission avis=enveloppe_projet.detr_avis_commission class="fr-mb-2w" %}
             {% endif %}
-        {% endif %}
-        {% if enveloppe_projet.is_programmee %}
             <ul>
                 <li>
                     <span aria-hidden="true">💰</span> Assiette subventionnable : {{ enveloppe_projet.assiette|euro }}
