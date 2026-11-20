@@ -104,7 +104,7 @@ _STATUS_BADGE_CONFIGS = {
     "refused": {
         "icon_class": "fr-icon-close-circle-fill",
         "label": "Refusé",
-        "badge_class": "badge-projet-status__refused",
+        "badge_class": "fr-badge--error fr-badge--no-icon",
     },
     "dismissed": {
         "icon_class": "fr-icon-close-circle-fill",
@@ -118,6 +118,7 @@ _STATUS_BADGE_CONFIGS = {
     },
     "processing": {
         "label": "En traitement",
+        "badge_class": "fr-badge--info fr-badge--no-icon",
     },
     "to_generate": {
         "icon_class": "fr-icon-mail-add-fill",
@@ -159,10 +160,10 @@ def ui_status_badge(*args, **kwargs) -> dict:
     config = _STATUS_BADGE_CONFIGS.get(tag_data.get("type", ""), {})
     label = config.get("label", "")
     if tag_data.get("dotation"):
-        label = f"{tag_data['dotation']} {label}"
-
-    if tag_data.get("annee"):
-        label = f"{label} - {tag_data['annee']}"
+        if tag_data.get("annee"):
+            label = f"{tag_data['dotation']} {tag_data['annee']} - {label}"
+        else:
+            label = f"{tag_data['dotation']} - {label}"
 
     return {
         "self": {
