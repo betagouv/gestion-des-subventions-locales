@@ -1,0 +1,35 @@
+{% load ui_tags gsl_filters %}
+<div class="fr-callout fr-background-alt--blue-france fr-mb-3w">
+    <h3 class="fr-callout__title fr-h6">{{ enveloppe_projet.dotation }} - {{ enveloppe_projet.enveloppe.annee }}</h3>
+    <div class="fr-callout__text fr-text--md">
+        {% ui_status_badge type=enveloppe_projet.status class="fr-mr-1w" %}
+        {% if enveloppe_projet.notification_status %}
+            {% ui_status_badge type=enveloppe_projet.notification_status %}
+        {% endif %}
+        <ul class="fr-mt-2w">
+            {% if enveloppe_projet.dotation == "DSIL" %}
+                <li>Catégorie d'opération DSIL : {{ dossier.demande_categorie_dsil.label|default:"—" }}</li>
+            {% elif dossier.demande_has_categorie_detr == False %}
+                <li>Catégorie d'opération DETR : Hors catégorie</li>
+            {% else %}
+                <li>Catégorie d'opération DETR : {{ dossier.demande_categorie_detr.complete_label|default:"—" }}</li>
+            {% endif %}
+        </ul>
+        {% if enveloppe_projet.is_programmee %}
+            <ul>
+                <li>
+                    <span aria-hidden="true">💰</span> Assiette subventionnable : {{ enveloppe_projet.assiette|euro }}
+                </li>
+                <li>
+                    <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ enveloppe_projet.taux_de_subvention_sollicite|percent:2|default:"—" }}
+                </li>
+                <li>
+                    <span aria-hidden="true">🧾</span> Montant retenu : {{ enveloppe_projet.montant_retenu|euro }}
+                </li>
+                <li>
+                    <span aria-hidden="true">🧾</span> Taux retenu : {{ enveloppe_projet.taux_retenu|percent:2|default:"—" }}
+                </li>
+            </ul>
+        {% endif %}
+    </div>
+</div>

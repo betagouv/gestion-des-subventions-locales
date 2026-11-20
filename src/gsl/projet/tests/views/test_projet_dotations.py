@@ -4,8 +4,15 @@ import pytest
 from django.shortcuts import reverse
 
 from dn.sync.models import Cofinancement
+from dn.sync.tests.factories import CategorieDetrFactory, CategorieDsilFactory
 from gsl.core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
-from gsl.projet.tests.factories import ProjetFactory
+from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
+from gsl.projet.constants import ProjetStatus
+from gsl.projet.tests.factories import (
+    DetrProjetFactory,
+    DsilProjetFactory,
+    ProjetFactory,
+)
 
 pytestmark = pytest.mark.django_db()
 
@@ -66,3 +73,57 @@ def test_dotations_tab_without_autres_dotations_sollicitees():
     response = ClientWithLoggedUserFactory(user=user).get(url)
 
     assert "<p>Aucune</p>" in response.content.decode()
+
+
+def _get_dotations_tab_text(user, projet):
+    url = reverse("gsl_projet:get-projet-dotations", kwargs={"projet_id": projet.id})
+    response = ClientWithLoggedUserFactory(user=user).get(url)
+    assert response.status_code == 200
+    return " ".join(re.sub(r"<[^>]+>", " ", response.content.decode()).split())
+
+
+def test_dotation_card_displays_financial_informations_of_a_programmed_dotation():
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre,
+        dossier_ds__demande_montant=80_000,
+        dossier_ds__demande_categorie_detr=CategorieDetrFactory(
+            label="Améliorer les espaces scolaires"
+        ),
+    )
+    DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        assiette=100_000,
+        montant=50_000,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+    )
+
+    text = _get_dotations_tab_text(user, projet)
+
+    assert "DETR - 2026" in text
+    assert "Catégorie d'opération DETR : Améliorer les espaces scolaires" in text
+    assert "Assiette subventionnable : 100 000 €" in text
+    assert "Taux de subvention sollicité : 80" in text
+    assert "Montant retenu : 50 000 €" in text
+    assert "Taux retenu : 50" in text
+
+
+def test_dotation_card_hides_financial_informations_of_a_dotation_in_processing():
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre,
+        dossier_ds__demande_categorie_dsil=CategorieDsilFactory(label="Rénovation"),
+    )
+    DsilProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2027),
+    )
+
+    text = _get_dotations_tab_text(user, projet)
+
+    assert "DSIL - 2027" in text
+    assert "Catégorie d'opération DSIL : Rénovation" in text
+    assert "Assiette subventionnable" not in text
+    assert "Montant retenu" not in text

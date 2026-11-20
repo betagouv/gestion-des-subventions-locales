@@ -27,4 +27,11 @@
             {% endwith %}
         </div>
     </div>
+
+    <h3 class="fr-h4 fr-mt-4w">Dotations</h3>
+    <div class="fr-grid-row fr-grid-row--gutters fr-mt-3w">
+        {% for enveloppe_projet in enveloppe_projets %}
+            <div class="fr-col-12 fr-col-md-6">{% include "includes/projet_detail/_dotation_card.html" %}</div>
+        {% endfor %}
+    </div>
 {% endblock tab_projet %}
