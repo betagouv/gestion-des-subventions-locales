@@ -1,4 +1,30 @@
 {% extends "gsl_projet/projet.html" %}
+{% load gsl_filters %}
 
 {% block tab_projet %}
+    <div class="fr-grid-row fr-grid-row--gutters">
+        <div class="fr-col-12 fr-col-md-6">
+            <h3 class="fr-h5">Financement</h3>
+            <ul class="no-list-style">
+                <li>
+                    <span aria-hidden="true">💶</span> Coût total de l’opération : {{ dossier.finance_cout_total|euro }}
+                </li>
+                <li>
+                    <span aria-hidden="true">🧾</span> Montant total sollicité : {{ dossier.demande_montant|euro }}
+                </li>
+            </ul>
+        </div>
+        <div class="fr-col-12 fr-col-md-6">
+            <h3 class="fr-h5">Autre dotations sollicitées</h3>
+            {% with cofinancements=dossier.cofinancements_avec_montants %}
+                {% if cofinancements %}
+                    <ul>
+                        {% for cofinancement in cofinancements %}<li>{{ cofinancement.nom }}</li>{% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Aucune</p>
+                {% endif %}
+            {% endwith %}
+        </div>
+    </div>
 {% endblock tab_projet %}
