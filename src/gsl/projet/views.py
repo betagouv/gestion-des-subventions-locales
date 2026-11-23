@@ -1,5 +1,4 @@
 import json
-from itertools import groupby
 
 from django.contrib import messages
 from django.db.models import (
@@ -136,45 +135,49 @@ class ProjetSimulationsView(BaseProjetDetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        projet = self.object
-        all_qs = SimulationProjet.objects.filter(
-            enveloppe_projet__projet=projet
-        ).select_related(
-            "simulation",
-            "simulation__enveloppe",
-            "enveloppe_projet",
-            "enveloppe_projet__projet",
-            "enveloppe_projet__projet__dossier_ds",
-        )
-
         dotation_filter = self.request.GET.get("dotation", "")
-        filtered_qs = all_qs.order_by(
-            "-simulation__enveloppe__annee", "-simulation__created_at"
+        enveloppes_projet = (
+            EnveloppeProjet.objects.filter(
+                projet=self.object, simulationprojet__isnull=False
+            )
+            .distinct()
+            .select_related("enveloppe", "projet__dossier_ds")
+            .prefetch_related(
+                Prefetch(
+                    "simulationprojet_set",
+                    queryset=SimulationProjet.objects.select_related(
+                        "simulation__enveloppe"
+                    ).order_by("-simulation__created_at"),
+                )
+            )
+            # Most recent campagne first, then by dotation
+            .order_by("-enveloppe__annee", "enveloppe__dotation", "pk")
         )
         if dotation_filter in ("DETR", "DSIL"):
-            filtered_qs = filtered_qs.filter(
-                enveloppe_projet__enveloppe__dotation=dotation_filter
+            enveloppes_projet = enveloppes_projet.filter(
+                enveloppe__dotation=dotation_filter
             )
 
-        simulation_projets_with_forms = []
-        for sp in filtered_qs:
-            form_id = f"simulation-card-form-{sp.pk}"
-            form = SimulationProjetForm(instance=sp, prefix=form_id)
-            for field in ("assiette", "montant", "taux"):
-                if field in form.fields:
-                    form.fields[field].widget.attrs["form"] = form_id
-            simulation_projets_with_forms.append((sp, form, form_id))
-
-        # Most recent campagne first
-        context["simulation_projets_with_forms_by_campagne"] = [
-            (annee, list(items))
-            for annee, items in groupby(
-                simulation_projets_with_forms,
-                key=lambda item: item[0].simulation.enveloppe.annee,
+        context["forms"] = [
+            (
+                enveloppe_projet,
+                [
+                    self._build_simulation_projet_form(simulation_projet)
+                    for simulation_projet in enveloppe_projet.simulationprojet_set.all()
+                ],
             )
+            for enveloppe_projet in enveloppes_projet
         ]
         context["dotation_filter"] = dotation_filter
         return context
+
+    def _build_simulation_projet_form(self, simulation_projet):
+        form_id = f"simulation-card-form-{simulation_projet.pk}"
+        form = SimulationProjetForm(instance=simulation_projet, prefix=form_id)
+        for field in ("assiette", "montant", "taux"):
+            if field in form.fields:
+                form.fields[field].widget.attrs["form"] = form_id
+        return simulation_projet, form, form_id
 
 
 class ProjetHistoriqueView(BaseProjetDetailView):
