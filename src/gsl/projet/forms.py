@@ -422,6 +422,36 @@ class DotationCardForm(EnveloppeProjetForm):
         )
 
 
+class EnveloppeProjetDeleteForm(forms.Form):
+    def __init__(self, *args, instance: EnveloppeProjet, user: Collegue, **kwargs):
+        self.instance = instance
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        if not self.instance.can_be_deleted:
+            raise ValidationError(
+                "Seule une dotation en traitement peut être supprimée, "
+                "et le projet doit garder au moins une dotation."
+            )
+        return super().clean()
+
+    @transaction.atomic
+    def save(self):
+        projet = self.instance.projet
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_DOTATION_REMOVED,
+            actor=self.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=self.instance.dotation,
+            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+        )
+        self.instance.delete()
+        projet.dotations_updated_in_app = True
+        projet.save(update_fields=["dotations_updated_in_app"])
+
+
 class ProjetNoteForm(ModelForm, DsfrBaseForm):
     title = forms.CharField(
         label="Titre de la note",

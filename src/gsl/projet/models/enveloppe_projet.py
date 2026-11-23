@@ -375,6 +375,15 @@ class EnveloppeProjet(BaseModel):
         return self.status in ProjetStatus.FINAL
 
     @property
+    def can_be_deleted(self) -> bool:
+        """Only while in processing, and never the last enveloppe projet of its
+        projet: a projet keeps at least one dotation."""
+        return (
+            self.status == ProjetStatus.PROCESSING
+            and self.projet.enveloppeprojet_set.exclude(pk=self.pk).exists()
+        )
+
+    @property
     def other_dotations_in_the_same_campagne(self) -> List["EnveloppeProjet"]:
         # Python side filtering so we benefit from prefetching
         return [

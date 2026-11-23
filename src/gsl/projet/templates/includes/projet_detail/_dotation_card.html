@@ -1,7 +1,7 @@
 {% load ui_tags gsl_filters fragment_tags %}
 <div class="fr-callout fr-background-alt--blue-france fr-mb-3w">
     <h3 class="fr-callout__title fr-h6">{{ enveloppe_projet.dotation }} - {{ enveloppe_projet.enveloppe.annee }}</h3>
-    <div class="fr-callout__text fr-text--md">
+    <div class="fr-callout__text">
         {% ui_status_badge type=enveloppe_projet.status class="fr-mr-1w" %}
         {% if enveloppe_projet.notification_status %}
             {% ui_status_badge type=enveloppe_projet.notification_status %}
@@ -35,6 +35,13 @@
                     <span aria-hidden="true">🧾</span> Taux retenu : <b>{{ enveloppe_projet.taux_retenu|percent:2|default:"—" }}</b>
                 </li>
             </ul>
+        {% endif %}
+        {% if enveloppe_projet.can_be_deleted %}
+            <form method="post"
+                  id="delete-enveloppe-projet-form-{{ enveloppe_projet.pk }}"
+                  action="{% url 'projet:enveloppe-projet-delete' enveloppe_projet.pk %}">
+                {% csrf_token %}
+            </form>
         {% endif %}
     </div>
 </div>

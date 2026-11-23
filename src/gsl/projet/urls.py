@@ -25,6 +25,11 @@ urlpatterns = [
         name="get-projet-dotations",
     ),
     path(
+        "dotations/<int:pk>/supprimer/",
+        views.EnveloppeProjetDeleteView.as_view(),
+        name="enveloppe-projet-delete",
+    ),
+    path(
         "voir/<int:projet_id>/notes/",
         views.ProjetNotesView.as_view(),
         name="get-projet-notes",
