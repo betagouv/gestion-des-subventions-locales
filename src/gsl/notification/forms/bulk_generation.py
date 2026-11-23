@@ -9,6 +9,7 @@ from dsfr.forms import DsfrBaseForm
 from gsl.historique.models import ProjetAction
 from gsl.notification.models import ExportJob, GeneratedDocument, ModeleDocument
 from gsl.notification.utils import get_modele_perimetres, replace_mentions_in_html
+from gsl.programmation.constants import BulkAction
 from gsl.projet.models import EnveloppeProjet
 
 ARRETE_ET_LETTRE = ExportJob.DOCUMENT_TYPE_ARRETE_ET_LETTRE
@@ -119,17 +120,13 @@ class BaseGenerateDocumentsLaunchForm(BaseGenerateDocumentsForm):
 
 
 class GenerateAcceptedDocumentsLaunchForm(BaseGenerateDocumentsLaunchForm):
+    action = BulkAction.GENERATE_ACCEPTED
     document = GeneratedDocument.Type.ARRETE
 
 
 class GenerateRefusLettersLaunchForm(BaseGenerateDocumentsLaunchForm):
+    action = BulkAction.GENERATE_REFUS
     document = GeneratedDocument.Type.LETTRE_REFUS
-
-
-BULK_ACTIONS = {
-    "generate_accepted": GenerateAcceptedDocumentsLaunchForm,
-    "generate_refus": GenerateRefusLettersLaunchForm,
-}
 
 
 class GenerateDocumentsTypeSelectionForm(BaseGenerateDocumentsForm):
