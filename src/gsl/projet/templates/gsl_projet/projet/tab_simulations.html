@@ -51,8 +51,8 @@
                 </div>
             </div>
         {% endif %}
-        {% if simulation_projets_with_forms_by_enveloppe_projet %}
-            {% for bloc_enveloppe_projet, simulation_projets_with_forms in simulation_projets_with_forms_by_enveloppe_projet %}
+        {% if forms %}
+            {% for bloc_enveloppe_projet, simulation_projets_with_forms in forms %}
                 <section aria-labelledby="simulations-enveloppe-projet-{{ bloc_enveloppe_projet.pk }}">
                     <h2 id="simulations-enveloppe-projet-{{ bloc_enveloppe_projet.pk }}"
                         class="fr-h4 fr-mb-3w">
