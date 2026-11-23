@@ -99,13 +99,13 @@ COLUMN_CATEGORIE = Column(
 
 
 def _get_projet_statut(context):
-    dp = context.get("enveloppe_projet")
-    if not dp:
+    ep = context.get("enveloppe_projet")
+    if not ep:
         return ""
     return format_html(
         '<span class="projet_status__{}">{}</span>',
-        dp.status,
-        _wrap_emoji(dp.get_status_display()),
+        ep.status,
+        _wrap_emoji(ep.get_status_display()),
     )
 
 
