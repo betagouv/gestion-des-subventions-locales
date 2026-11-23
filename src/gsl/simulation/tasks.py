@@ -19,10 +19,7 @@ def run_bulk_status_job(job_id: str) -> None:
     job = BulkActionsJob.objects.select_related("created_by").get(
         pk=job_id, action=BULK_STATUS_ACTION
     )
-    try:
-        job.status = BulkActionsJob.Status.RUNNING
-        job.save(update_fields=["status", "updated_at"])
-
+    with job.running():
         simulation_projets = (
             SimulationProjet.objects.filter(
                 simulation_id=job.params["simulation_id"],
@@ -44,27 +41,6 @@ def run_bulk_status_job(job_id: str) -> None:
                 job.record_error(**error)
             else:
                 job.record_success()
-
-        job.status = BulkActionsJob.Status.DONE
-        job.save(update_fields=["status", "updated_at"])
-    finally:
-        # Last-resort safety net: if an unexpected exception propagated out of
-        # the loop (programming error, DB outage, etc.), mark the job DONE with
-        # a crash sentinel so the UI stops polling, then re-raise so Celery and
-        # Sentry see the traceback. Per-row expected failures are caught
-        # narrowly in _process_one and recorded as row-level errors instead.
-        current = (
-            BulkActionsJob.objects.filter(pk=job.pk).only("status", "report").first()
-        )
-        if current is not None and current.status != BulkActionsJob.Status.DONE:
-            crash_error = {
-                "object_id": None,
-                "label": "Traitement",
-                "message": "Erreur inattendue : le traitement a été interrompu.",
-            }
-            current.report = [*current.report, crash_error]
-            current.status = BulkActionsJob.Status.DONE
-            current.save(update_fields=["status", "report", "updated_at"])
 
 
 def _process_one(
