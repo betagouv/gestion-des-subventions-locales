@@ -2,7 +2,8 @@ from django.urls import path, register_converter
 
 from gsl.notification.converters import GeneratedDocumentTypeConverter
 from gsl.notification.views.bulk_notification_views import (
-    NotifyRefusProgressView,
+    NotifyAcceptedWizard,
+    NotifyProgressView,
     NotifyRefusWizard,
 )
 from gsl.notification.views.generate_document_for_multiple_projets_views import (
@@ -101,16 +102,21 @@ urlpatterns = [
         GenerateLettreRefusStatusView.as_view(),
         name="generate-refus-documents-status",
     ),
-    # Modal HTMX - notification en masse des refus
+    # Modal HTMX - notification en masse
     path(
         "<str:dotation>/notifier-refus/",
         NotifyRefusWizard.as_view(),
         name="notify-refus-modal",
     ),
     path(
-        "<str:dotation>/notifier-refus/progress/<uuid:pk>/",
-        NotifyRefusProgressView.as_view(),
-        name="notify-refus-progress",
+        "<str:dotation>/notifier-acceptations/",
+        NotifyAcceptedWizard.as_view(),
+        name="notify-accepted-modal",
+    ),
+    path(
+        "<str:dotation>/notifier/progress/<uuid:pk>/",
+        NotifyProgressView.as_view(),
+        name="notify-progress",
     ),
     # Modal HTMX - import des documents signés
     path(

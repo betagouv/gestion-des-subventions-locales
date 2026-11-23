@@ -12,7 +12,9 @@ from gsl.core.tests.factories import (
     CollegueWithDSProfileFactory,
     PerimetreDepartementalFactory,
 )
-from gsl.notification.tasks import run_bulk_notification_refus_job
+from gsl.notification.models import UploadedDocument
+from gsl.notification.tasks import run_bulk_notification_job
+from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 from gsl.programmation.constants import BulkAction
 from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
@@ -24,7 +26,8 @@ from gsl.projet.tests.factories import EnveloppeProjetFactory
 pytestmark = pytest.mark.django_db
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
-WIZARD_PREFIX = f"notify_refus_wizard_{Dotation.DETR}"
+REFUS = "refus"
+ACCEPTED = "accepted"
 
 
 @pytest.fixture
@@ -49,7 +52,13 @@ def detr_enveloppe(perimetre):
 
 @pytest.fixture
 def make_enveloppe_projet(perimetre, detr_enveloppe, collegue):
-    def make(status=ProjetStatus.REFUSED, instructeur=True, notified_at=None, **kwargs):
+    def make(
+        status=ProjetStatus.REFUSED,
+        instructeur=True,
+        notified_at=None,
+        signed=False,
+        **kwargs,
+    ):
         enveloppe_projet = EnveloppeProjetFactory(
             projet__dossier_ds__perimetre=perimetre,
             projet__notified_at=notified_at,
@@ -60,6 +69,8 @@ def make_enveloppe_projet(perimetre, detr_enveloppe, collegue):
         )
         if instructeur:
             enveloppe_projet.projet.dossier_ds.ds_instructeurs.add(collegue.ds_profile)
+        if signed:
+            LettreEtArreteSignesFactory(enveloppe_projet=enveloppe_projet)
         return enveloppe_projet
 
     return make
@@ -72,28 +83,36 @@ def dn():
         mock.patch("dn.sync.services.DsService.refuser") as refuser,
         mock.patch("dn.sync.services.DsService.classer_sans_suite") as dismiss,
         mock.patch("dn.sync.services.DsService.accepter") as accepter,
+        mock.patch(
+            "gsl.projet.models.mixins.merge_documents_into_pdf",
+            return_value=mock.sentinel.merged_pdf,
+        ),
     ):
         yield mock.Mock(refuser=refuser, classer_sans_suite=dismiss, accepter=accepter)
 
 
-def _post_step(client, step, fields):
-    data = {f"{WIZARD_PREFIX}-current_step": step}
+def _post_step(client, step, fields, kind=REFUS):
+    data = {f"notify_{kind}_wizard_{Dotation.DETR}-current_step": step}
     data.update({f"{step}-{key}": value for key, value in fields.items()})
     return client.post(
-        reverse("gsl_notification:notify-refus-modal", args=[Dotation.DETR]),
+        reverse(f"gsl_notification:notify-{kind}-modal", args=[Dotation.DETR]),
         data,
         **HTMX_HEADERS,
     )
 
 
-def _post_launch(client, *enveloppe_projets):
+def _post_launch(client, *enveloppe_projets, kind=REFUS):
     ids = ",".join(str(enveloppe_projet.pk) for enveloppe_projet in enveloppe_projets)
-    return _post_step(client, "launch", {"ids": ids})
+    return _post_step(client, "launch", {"ids": ids}, kind=kind)
 
 
-def _post_start(client, *enveloppe_projets, message="Dossier incomplet"):
-    _post_launch(client, *enveloppe_projets)
-    return _post_step(client, "message", {"message": message})
+def _post_start(client, *enveloppe_projets, message="Dossier incomplet", kind=REFUS):
+    _post_launch(client, *enveloppe_projets, kind=kind)
+    return _post_step(client, "message", {"message": message}, kind=kind)
+
+
+def _content(response):
+    return " ".join(response.content.decode().split())
 
 
 def test_launch_keeps_only_the_projets_with_every_dotation_refused_or_dismissed(
@@ -116,8 +135,9 @@ def test_launch_keeps_only_the_projets_with_every_dotation_refused_or_dismissed(
     )
 
     assert response.status_code == 200
-    content = " ".join(response.content.decode().split())
-    assert "2 projets refusés ou classés sans suite" in content
+    content = _content(response)
+    assert "2 projet(s) refusé(s) ou classé(s) sans suite" in content
+    assert "3 projets de la sélection ne sont plus notifiables" in content
 
     _post_step(client, "message", {"message": "Hors critères"})
 
@@ -133,6 +153,24 @@ def test_launch_without_any_eligible_projet_renders_an_error(
     response = _post_launch(client, accepted)
 
     assert response.status_code == 200
+    assert "Aucun projet à notifier." in response.content.decode()
+
+
+def test_launch_skips_a_projet_whose_most_recent_campagne_is_another_one(
+    client, make_enveloppe_projet, perimetre, detr_enveloppe
+):
+    refused = make_enveloppe_projet()
+    EnveloppeProjetFactory(
+        projet=refused.projet,
+        dotation=Dotation.DSIL,
+        enveloppe=DsilEnveloppeFactory(
+            perimetre=perimetre, annee=detr_enveloppe.annee + 1
+        ),
+        status=ProjetStatus.REFUSED,
+    )
+
+    response = _post_launch(client, refused)
+
     assert "Aucun projet à notifier." in response.content.decode()
 
 
@@ -153,8 +191,10 @@ def test_start_notifies_every_projet_with_the_same_message(
     refused = make_enveloppe_projet(status=ProjetStatus.REFUSED)
     dismissed = make_enveloppe_projet(status=ProjetStatus.DISMISSED)
 
-    response = _post_start(client, refused, dismissed, message="Hors critères")
+    launch_response = _post_launch(client, refused, dismissed)
+    response = _post_step(client, "message", {"message": "Hors critères"})
 
+    assert "plus notifiable" not in _content(launch_response)
     assert response.status_code == 200
     job = BulkActionsJob.objects.get(action=BulkAction.NOTIFY_REFUS)
     assert job.status == BulkActionsJob.Status.DONE
@@ -209,18 +249,70 @@ def test_task_skips_a_projet_notified_since_the_selection(
     refused = make_enveloppe_projet()
 
     with mock.patch(
-        "gsl.notification.views.bulk_notification_views.run_bulk_notification_refus_job.delay"
+        "gsl.notification.views.bulk_notification_views.run_bulk_notification_job.delay"
     ):
         _post_start(client, refused)
     refused.projet.notified_at = timezone.now()
     refused.projet.save()
     job = BulkActionsJob.objects.get()
 
-    run_bulk_notification_refus_job(str(job.pk))
+    run_bulk_notification_job(str(job.pk))
 
     job.refresh_from_db()
     assert "notifié depuis la sélection" in job.report[0]["message"]
     dn.refuser.assert_not_called()
+
+
+def test_accepted_launch_keeps_only_the_projets_with_their_signed_documents(
+    client, make_enveloppe_projet, dn
+):
+    signed = make_enveloppe_projet(status=ProjetStatus.ACCEPTED, signed=True)
+    unsigned = make_enveloppe_projet(status=ProjetStatus.ACCEPTED)
+    refused = make_enveloppe_projet()
+
+    response = _post_launch(client, signed, unsigned, refused, kind=ACCEPTED)
+
+    content = _content(response)
+    assert "1 projet(s) accepté(s)." in content
+    assert "2 projets de la sélection ne sont plus notifiables" in content
+
+    _post_step(client, "message", {"message": ""}, kind=ACCEPTED)
+
+    job = BulkActionsJob.objects.get(action=BulkAction.NOTIFY_ACCEPTED)
+    assert job.object_ids == [signed.projet_id]
+
+
+def test_accepted_start_notifies_without_a_message(client, make_enveloppe_projet, dn):
+    signed = make_enveloppe_projet(status=ProjetStatus.ACCEPTED, signed=True)
+
+    _post_start(client, signed, message="", kind=ACCEPTED)
+
+    job = BulkActionsJob.objects.get()
+    assert job.succeeded_count == 1
+    dn.accepter.assert_called_once()
+    assert dn.accepter.call_args.args[0] == signed.projet.dossier_ds
+    assert dn.accepter.call_args.kwargs["motivation"] == ""
+    assert dn.accepter.call_args.kwargs["document"] is mock.sentinel.merged_pdf
+    dn.refuser.assert_not_called()
+
+
+def test_task_skips_a_projet_whose_signed_document_was_deleted(
+    client, make_enveloppe_projet, dn
+):
+    signed = make_enveloppe_projet(status=ProjetStatus.ACCEPTED, signed=True)
+
+    with mock.patch(
+        "gsl.notification.views.bulk_notification_views.run_bulk_notification_job.delay"
+    ):
+        _post_start(client, signed, message="", kind=ACCEPTED)
+    UploadedDocument.objects.filter(enveloppe_projet=signed).delete()
+    job = BulkActionsJob.objects.get()
+
+    run_bulk_notification_job(str(job.pk))
+
+    job.refresh_from_db()
+    assert "documents signés" in job.report[0]["message"]
+    dn.accepter.assert_not_called()
 
 
 def test_progress_of_a_done_job_renders_its_report_and_stops_polling(
@@ -231,7 +323,7 @@ def test_progress_of_a_done_job_renders_its_report_and_stops_polling(
     job = BulkActionsJob.objects.get()
 
     response = client.get(
-        reverse("gsl_notification:notify-refus-progress", args=[Dotation.DETR, job.pk]),
+        reverse("gsl_notification:notify-progress", args=[Dotation.DETR, job.pk]),
         **HTMX_HEADERS,
     )
 
@@ -249,7 +341,7 @@ def test_progress_of_another_user_job_is_not_found(client, make_enveloppe_projet
     )
 
     response = client.get(
-        reverse("gsl_notification:notify-refus-progress", args=[Dotation.DETR, job.pk]),
+        reverse("gsl_notification:notify-progress", args=[Dotation.DETR, job.pk]),
         **HTMX_HEADERS,
     )
 

@@ -3,12 +3,19 @@
 {% block stepper %}
 {% endblock stepper %}
 {% block content %}
-    {% with count=enveloppe_projets|length %}
-        <p>
-            Vous allez notifier sur Démarches Numériques {{ count }} projet{{ count|custom_pluralize }}
-            refusé{{ count|custom_pluralize }} ou classé{{ count|custom_pluralize }} sans suite.
-        </p>
-    {% endwith %}
+    {% if skipped_count %}
+        <div class="fr-alert fr-alert--warning fr-alert--sm fr-mt-3w"
+             role="status">
+            <p>
+                {{ skipped_count }} projet{{ skipped_count|custom_pluralize }} de la sélection
+                {{ skipped_count|pluralize:"n'est,ne sont" }} plus notifiable{{ skipped_count|custom_pluralize }} :
+                leur état a changé depuis l'affichage de la page.
+            </p>
+        </div>
+    {% endif %}
+    <p class="fr-mt-3w">
+        Vous allez notifier sur Démarches Numériques {{ enveloppe_projets|length }} projet(s) {{ decision_label }}.
+    </p>
     <p>Cette opération peut prendre plusieurs minutes et ne doit pas être interrompue.</p>
     {{ form.message.as_field_group }}
 {% endblock content %}

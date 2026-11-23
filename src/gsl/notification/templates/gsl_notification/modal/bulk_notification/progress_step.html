@@ -2,7 +2,7 @@
 {% load custom_pluralize %}
 {% block step_div_attrs %}
     {% if job.is_unfinished %}
-        hx-get="{% url 'gsl_notification:notify-refus-progress' dotation job.pk %}"
+        hx-get="{% url 'gsl_notification:notify-progress' dotation job.pk %}"
         hx-trigger="every 1s"
         hx-swap="outerHTML"
         hx-target="this"

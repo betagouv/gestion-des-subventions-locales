@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from django.utils.functional import classproperty
 from django.views.generic import DetailView
 from formtools.wizard.views import SessionWizardView
 
@@ -13,36 +14,29 @@ from gsl.core.matomo_constants import (
 )
 from gsl.core.models import BulkActionsJob
 from gsl.notification.forms.bulk_notification import (
+    NotifyAcceptedLaunchForm,
+    NotifyMessageForm,
     NotifyRefusLaunchForm,
-    NotifyRefusMessageForm,
 )
-from gsl.notification.tasks import run_bulk_notification_refus_job
+from gsl.notification.tasks import run_bulk_notification_job
 from gsl.notification.views.generate_document_for_multiple_projets_views import (
     HtmxModalWizardMixin,
     Step,
 )
-from gsl.programmation.constants import BulkAction
 
-MODAL_ID = "notify-refus-modal"
-MODAL_TITLE = "Notifier les refus et classements sans suite"
 TEMPLATES = "gsl_notification/modal/bulk_notification/"
+LAUNCH_TEMPLATE = "gsl_notification/modal/bulk_generation/launch.html"
 PROGRESS_TEMPLATE = TEMPLATES + "progress_step.html"
+LAUNCH_FORM_KWARGS = ("user", "dotation")
 
-# The launch step is the trigger button submission, from the projet list page.
-# It is only ever rendered when resolving the checked projets fails.
-LAUNCH = Step(
-    name="launch",
-    form_class=NotifyRefusLaunchForm,
-    template="gsl_notification/modal/bulk_generation/launch.html",
-    form_kwargs=("user", "dotation"),
-)
+
 MESSAGE = Step(
     name="message",
-    form_class=NotifyRefusMessageForm,
+    form_class=NotifyMessageForm,
     template=TEMPLATES + "message_step.html",
     title="Message de notification",
-    form_kwargs=("user",),
-    extra_context=("enveloppe_projets",),
+    form_kwargs=("user", "action"),
+    extra_context=("enveloppe_projets", "skipped_count", "decision_label"),
 )
 
 
@@ -58,17 +52,20 @@ class DotationMixin:
 
 
 @method_decorator(htmx_only, name="dispatch")
-class NotifyRefusWizard(DotationMixin, HtmxModalWizardMixin, SessionWizardView):
+class BaseNotifyWizard(DotationMixin, HtmxModalWizardMixin, SessionWizardView):
     """
-    Notifies DN of the refusal or dismissal of the checked projets, all with
-    the same message, then polls the BulkActionsJob until every projet is done.
+    Notifies DN of the decision on the checked projets, all with the same
+    message, then polls the BulkActionsJob until every projet is done.
+
+    The launch step is the trigger button submission, from the projet list
+    page. It is only ever rendered when resolving the checked projets fails.
     """
 
-    STEPS = (LAUNCH, MESSAGE)
+    MATOMO_LABEL: str
 
-    MODAL_TITLE = MODAL_TITLE
-    MODAL_POST_URL_NAME = "gsl_notification:notify-refus-modal"
-    modal_id = MODAL_ID
+    @classproperty
+    def action(cls):
+        return cls.STEPS[0].form_class.action
 
     def get_storage_namespace(self):
         # One run per dotation, so DETR and DSIL don't collide.
@@ -79,9 +76,16 @@ class NotifyRefusWizard(DotationMixin, HtmxModalWizardMixin, SessionWizardView):
         return self.request.user
 
     @property
+    def launch_data(self) -> dict:
+        return self.get_cleaned_data_for_step(self.steps.first) or {}
+
+    @property
     def enveloppe_projets(self):
-        launch_data = self.get_cleaned_data_for_step(LAUNCH.name) or {}
-        return launch_data.get("ids") or []
+        return self.launch_data.get("ids") or []
+
+    @property
+    def skipped_count(self) -> int:
+        return self.launch_data.get("skipped_count", 0)
 
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
@@ -89,26 +93,65 @@ class NotifyRefusWizard(DotationMixin, HtmxModalWizardMixin, SessionWizardView):
         return context
 
     def done(self, form_list, form_dict, **kwargs):
-        enveloppe_projets = form_dict[LAUNCH.name].cleaned_data["ids"]
-        job = form_dict[MESSAGE.name].save(enveloppe_projets)
-        run_bulk_notification_refus_job.delay(str(job.pk))
+        launch_form, message_form = form_list
+        job = message_form.save(launch_form.cleaned_data["ids"])
+        run_bulk_notification_job.delay(str(job.pk))
         queue_matomo_event(
             self.request,
             MATOMO_CATEGORY_NOTIFICATION,
             MATOMO_ACTION_ENVOI_DN,
-            f"refus_en_masse:{job.total}",
+            f"{self.MATOMO_LABEL}:{job.total}",
         )
         context = {
             "job": job,
             "dotation": self.dotation,
-            "modal_id": MODAL_ID,
-            "modal_title": MODAL_TITLE,
+            "modal_id": self.modal_id,
+            "modal_title": self.MODAL_TITLE,
         }
         return render(self.request, PROGRESS_TEMPLATE, context)
 
 
+class NotifyRefusWizard(BaseNotifyWizard):
+    STEPS = (
+        Step(
+            "launch",
+            NotifyRefusLaunchForm,
+            LAUNCH_TEMPLATE,
+            form_kwargs=LAUNCH_FORM_KWARGS,
+        ),
+        MESSAGE,
+    )
+    MODAL_TITLE = "Notifier les refus et classements sans suite"
+    MODAL_POST_URL_NAME = "gsl_notification:notify-refus-modal"
+    MATOMO_LABEL = "refus_en_masse"
+    modal_id = "notify-refus-modal"
+    decision_label = "refusé(s) ou classé(s) sans suite"
+
+
+class NotifyAcceptedWizard(BaseNotifyWizard):
+    STEPS = (
+        Step(
+            "launch",
+            NotifyAcceptedLaunchForm,
+            LAUNCH_TEMPLATE,
+            form_kwargs=LAUNCH_FORM_KWARGS,
+        ),
+        MESSAGE,
+    )
+    MODAL_TITLE = "Notifier les acceptations"
+    MODAL_POST_URL_NAME = "gsl_notification:notify-accepted-modal"
+    MATOMO_LABEL = "acceptation_en_masse"
+    modal_id = "notify-accepted-modal"
+    decision_label = "accepté(s)"
+
+
+WIZARDS_BY_ACTION = {
+    wizard.action: wizard for wizard in (NotifyRefusWizard, NotifyAcceptedWizard)
+}
+
+
 @method_decorator(htmx_only, name="dispatch")
-class NotifyRefusProgressView(DotationMixin, DetailView):
+class NotifyProgressView(DotationMixin, DetailView):
     """Polled while the job is running, then renders its report."""
 
     model = BulkActionsJob
@@ -117,16 +160,17 @@ class NotifyRefusProgressView(DotationMixin, DetailView):
 
     def get_queryset(self):
         return BulkActionsJob.objects.filter(
-            action=BulkAction.NOTIFY_REFUS, created_by=self.request.user
+            action__in=WIZARDS_BY_ACTION, created_by=self.request.user
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        wizard = WIZARDS_BY_ACTION[self.object.action]
         context.update(
             {
                 "dotation": self.dotation,
-                "modal_id": MODAL_ID,
-                "modal_title": MODAL_TITLE,
+                "modal_id": wizard.modal_id,
+                "modal_title": wizard.MODAL_TITLE,
             }
         )
         return context
