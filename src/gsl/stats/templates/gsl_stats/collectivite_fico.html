@@ -4,7 +4,12 @@
 {% block extra_css %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'ui/components/autocomplete.css' %}">
-    {% if fico_url %}<link rel="stylesheet" href="{{ fico_url }}/assets/fico.css">{% endif %}
+    {% if fico_url %}
+        <link rel="stylesheet"
+              href="{{ fico_url }}/assets/fico.2026.11.24.css"
+              integrity="sha384-aVfrofgQZwru97nOzC1FYhyvpKzp7u2NoNEqVsUHA5QSDQAFjEcSSqrs8YDqIcxB"
+              crossorigin="anonymous">
+    {% endif %}
 {% endblock extra_css %}
 
 {% block content %}
@@ -47,7 +52,10 @@
             {% endif %}
         </div>
         {% if siren %}
-            <script type="module" src="{{ fico_url }}/assets/fiche.js"></script>
+            <script type="module"
+                    src="{{ fico_url }}/assets/fico.2026.11.24.js"
+                    integrity="sha384-JHVh3EAd8WbLAXzIgHrISQVxS19iP3Lr9XSLPboVq0bG9nXqZrFHy73Y+sJ3+WMw"
+                    crossorigin="anonymous"></script>
             <fico-fiche collectivite="{{ siren }}" components="{{ view.components }}"></fico-fiche>
         {% endif %}
     {% else %}
