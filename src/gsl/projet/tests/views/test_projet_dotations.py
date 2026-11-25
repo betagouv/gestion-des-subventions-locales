@@ -576,7 +576,11 @@ def test_programmed_dotation_card_displays_revert_to_processing_action(status):
     assert f'aria-controls="{modal_id}"' in content
     assert f'id="{modal_id}"' in content
     assert f'form="revert-enveloppe-projet-form-{enveloppe_projet.pk}"' in content
-    assert "sera de nouveau modifiable dans les simulations" in content
+    assert (
+        "Cette dotation repassera en traitement dans toutes les simulations, et le "
+        "projet sera retiré de la programmation." in content
+    )
+    assert "repassera aussi en instruction" not in content
 
 
 def test_notified_dotation_revert_modal_warns_about_the_whole_campagne():
@@ -586,8 +590,9 @@ def test_notified_dotation_revert_modal_warns_about_the_whole_campagne():
     text = _get_dotations_tab_text(user, projet)
 
     assert (
-        "toutes les dotations de la campagne 2026 repasseront en traitement, et le "
-        "dossier repassera en instruction sur Démarche Numérique" in text
+        "toutes les dotations de la campagne 2026 repasseront en traitement dans "
+        "toutes les simulations, et le projet sera retiré de la programmation. Le "
+        "dossier repassera aussi en instruction sur Démarche Numérique" in text
     )
 
 
