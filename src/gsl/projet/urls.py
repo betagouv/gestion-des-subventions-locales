@@ -35,6 +35,11 @@ urlpatterns = [
         name="enveloppe-projet-revert-to-processing",
     ),
     path(
+        "dotations/<int:pk>/reporter/",
+        views.EnveloppeProjetReportView.as_view(),
+        name="enveloppe-projet-report",
+    ),
+    path(
         "voir/<int:projet_id>/notes/",
         views.ProjetNotesView.as_view(),
         name="get-projet-notes",

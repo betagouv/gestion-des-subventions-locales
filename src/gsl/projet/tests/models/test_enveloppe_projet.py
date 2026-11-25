@@ -8,7 +8,7 @@ from django.utils import timezone
 from django_fsm import TransitionNotAllowed
 
 from dn.sync.models import Dossier, Dotation
-from gsl.core.campagne import get_campagne
+from gsl.core.campagne import CAMPAGNES, get_campagne
 from gsl.core.tests.factories import (
     CollegueFactory,
     PerimetreArrondissementFactory,
@@ -1019,6 +1019,119 @@ def test_set_back_status_to_processing_of_a_not_notified_dotation_keeps_the_othe
     dsil.refresh_from_db()
     assert dsil.is_courant
     assert dsil.status == ProjetStatus.ACCEPTED
+    mock_repasser_en_instruction.assert_not_called()
+
+
+# -- report --
+
+
+def _refused_notified_on_2026(**kwargs):
+    return EnveloppeProjetFactory(
+        enveloppe=DetrEnveloppeFactory(annee=2026),
+        status=ProjetStatus.REFUSED,
+        notified_at=timezone.now(),
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("status", ProjetStatus.NEGATIVE)
+def test_can_be_reported_when_refused_or_dismissed_and_notified(status):
+    enveloppe_projet = EnveloppeProjetFactory(
+        enveloppe=DetrEnveloppeFactory(annee=2026),
+        status=status,
+        notified_at=timezone.now(),
+    )
+
+    assert enveloppe_projet.can_be_reported
+
+
+@pytest.mark.parametrize(
+    "status, notified",
+    (
+        (ProjetStatus.ACCEPTED, True),
+        (ProjetStatus.REFUSED, False),
+        (ProjetStatus.DISMISSED, False),
+        (ProjetStatus.PROCESSING, False),
+    ),
+)
+def test_cannot_be_reported_unless_negative_and_notified(status, notified):
+    enveloppe_projet = EnveloppeProjetFactory(
+        enveloppe=DetrEnveloppeFactory(annee=2026),
+        status=status,
+        notified_at=timezone.now() if notified else None,
+    )
+
+    assert not enveloppe_projet.can_be_reported
+
+
+def test_cannot_be_reported_when_the_next_campagne_is_not_open():
+    enveloppe_projet = EnveloppeProjetFactory(
+        enveloppe=DetrEnveloppeFactory(annee=max(CAMPAGNES)),
+        status=ProjetStatus.REFUSED,
+        notified_at=timezone.now(),
+    )
+
+    assert not enveloppe_projet.can_be_reported
+
+
+def test_cannot_be_reported_when_the_next_campagne_already_has_the_dotation():
+    enveloppe_projet = _refused_notified_on_2026()
+    EnveloppeProjetFactory(
+        projet=enveloppe_projet.projet, enveloppe=DetrEnveloppeFactory(annee=2027)
+    )
+
+    assert not enveloppe_projet.can_be_reported
+
+
+@mock.patch("dn.sync.services.DsService.repasser_en_instruction")
+def test_report_creates_the_dotation_on_the_next_campagne(
+    mock_repasser_en_instruction,
+):
+    user = CollegueFactory()
+    enveloppe_projet = _refused_notified_on_2026(
+        assiette=80_000,
+        detr_avis_commission=False,
+        projet__notified_at=timezone.now(),
+        projet__dossier_ds__ds_state=Dossier.State.REFUSE,
+    )
+    projet = enveloppe_projet.projet
+
+    nouveau = enveloppe_projet.report(user)
+
+    nouveau.refresh_from_db()
+    assert nouveau.enveloppe.annee == 2027
+    assert nouveau.dotation == Dotation.DETR
+    assert nouveau.status == ProjetStatus.PROCESSING
+    assert nouveau.is_courant
+    assert nouveau.assiette == 80_000
+    assert nouveau.detr_avis_commission is None
+    assert nouveau.notified_at is None
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.is_courant
+    assert enveloppe_projet.status == ProjetStatus.REFUSED
+    assert enveloppe_projet.is_notified
+    projet.refresh_from_db()
+    assert projet.notified_at is None
+    action = ProjetAction.objects.get(
+        projet=projet, action_type=ProjetAction.TYPE_REPORT
+    )
+    assert action.actor == user
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    assert action.enveloppe == nouveau.enveloppe
+    assert action.action_label == "Report DETR de la campagne 2026 vers 2027"
+    mock_repasser_en_instruction.assert_called_once_with(projet.dossier_ds, user)
+
+
+@mock.patch("dn.sync.services.DsService.repasser_en_instruction")
+def test_report_does_not_call_dn_when_the_dossier_is_already_in_instruction(
+    mock_repasser_en_instruction,
+):
+    enveloppe_projet = _refused_notified_on_2026(
+        projet__dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION
+    )
+
+    enveloppe_projet.report(CollegueFactory())
+
     mock_repasser_en_instruction.assert_not_called()
 
 

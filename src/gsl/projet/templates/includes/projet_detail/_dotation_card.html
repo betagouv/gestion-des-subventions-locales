@@ -1,5 +1,5 @@
 {% load ui_tags gsl_filters fragment_tags %}
-<div class="fr-callout fr-background-alt--blue-france fr-mb-3w">
+<div class="fr-callout {% if enveloppe_projet.is_closed %}fr-background-alt--grey{% else %}fr-background-alt--blue-france{% endif %} fr-mb-3w">
     <h3 class="fr-callout__title fr-h6">{{ enveloppe_projet.dotation }} - {{ enveloppe_projet.enveloppe.annee }}</h3>
     <div class="fr-callout__text">
         {% ui_status_badge type=enveloppe_projet.status class="fr-mr-1w" %}
@@ -35,22 +35,43 @@
                     <span aria-hidden="true">🧾</span> Taux retenu : <b>{{ enveloppe_projet.taux_retenu|percent:2|default:"—" }}</b>
                 </li>
             </ul>
-            {% if enveloppe_projet.can_be_set_back_to_processing %}
+            {% if enveloppe_projet.can_be_set_back_to_processing or enveloppe_projet.can_be_reported %}
                 <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--sm fr-btns-group--icon-left">
-                    <li>
-                        <button type="button"
-                                class="fr-btn fr-btn--secondary fr-icon-arrow-go-back-fill"
-                                aria-controls="revert-enveloppe-projet-modal-{{ enveloppe_projet.pk }}"
-                                data-fr-opened="false">
-                            Repasser en traitement
-                        </button>
-                    </li>
+                    {% if enveloppe_projet.can_be_set_back_to_processing %}
+                        <li>
+                            <button type="button"
+                                    class="fr-btn fr-btn--secondary fr-icon-arrow-go-back-fill"
+                                    aria-controls="revert-enveloppe-projet-modal-{{ enveloppe_projet.pk }}"
+                                    data-fr-opened="false">
+                                Repasser en traitement
+                            </button>
+                        </li>
+                    {% endif %}
+                    {% if enveloppe_projet.can_be_reported %}
+                        <li>
+                            <button type="button"
+                                    class="fr-btn fr-btn--secondary fr-icon-calendar-event-line"
+                                    aria-controls="report-enveloppe-projet-modal-{{ enveloppe_projet.pk }}"
+                                    data-fr-opened="false">
+                                Reporter en {{ enveloppe_projet.annee_suivante }}
+                            </button>
+                        </li>
+                    {% endif %}
                 </ul>
-                <form method="post"
-                      id="revert-enveloppe-projet-form-{{ enveloppe_projet.pk }}"
-                      action="{% url 'projet:enveloppe-projet-revert-to-processing' enveloppe_projet.pk %}">
-                    {% csrf_token %}
-                </form>
+                {% if enveloppe_projet.can_be_set_back_to_processing %}
+                    <form method="post"
+                          id="revert-enveloppe-projet-form-{{ enveloppe_projet.pk }}"
+                          action="{% url 'projet:enveloppe-projet-revert-to-processing' enveloppe_projet.pk %}">
+                        {% csrf_token %}
+                    </form>
+                {% endif %}
+                {% if enveloppe_projet.can_be_reported %}
+                    <form method="post"
+                          id="report-enveloppe-projet-form-{{ enveloppe_projet.pk }}"
+                          action="{% url 'projet:enveloppe-projet-report' enveloppe_projet.pk %}">
+                        {% csrf_token %}
+                    </form>
+                {% endif %}
             {% endif %}
         {% endif %}
         {% if enveloppe_projet.can_be_deleted %}

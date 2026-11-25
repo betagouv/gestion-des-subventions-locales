@@ -55,6 +55,7 @@ from gsl.simulation.models import SimulationProjet
 
 from .forms import (
     EnveloppeProjetDeleteForm,
+    EnveloppeProjetReportForm,
     EnveloppeProjetRevertToProcessingForm,
     ProjetCommentForm,
     ProjetForm,
@@ -91,8 +92,10 @@ class BaseProjetDetailView(DetailView):
 
     @staticmethod
     def get_base_projet_context(projet, request):
+        # Most recent campagne first, then by dotation
         enveloppe_projets = sorted(
-            projet.enveloppeprojet_set.all(), key=lambda dp: dp.dotation
+            projet.enveloppeprojet_set.all(),
+            key=lambda ep: (-ep.enveloppe.annee, ep.dotation),
         )
         return {
             "title": projet.dossier_ds.projet_intitule,
@@ -475,6 +478,23 @@ class EnveloppeProjetRevertToProcessingView(EnveloppeProjetCardActionView):
                 f"La dotation {self.object.dotation} - {annee} "
                 "est repassée en traitement.",
             )
+        return redirect(self.get_success_url())
+
+
+class EnveloppeProjetReportView(EnveloppeProjetCardActionView):
+    form_class = EnveloppeProjetReportForm
+
+    def form_valid(self, form):
+        try:
+            nouveau = form.save()
+        except DsServiceException as e:
+            messages.error(self.request, str(e))
+            return redirect(self.get_success_url())
+        messages.success(
+            self.request,
+            f"La dotation {nouveau.dotation} est reportée sur la campagne "
+            f"{nouveau.enveloppe.annee}.",
+        )
         return redirect(self.get_success_url())
 
 

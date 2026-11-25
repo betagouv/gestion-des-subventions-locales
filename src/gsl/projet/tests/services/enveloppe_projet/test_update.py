@@ -983,3 +983,35 @@ def _assert_treated_from_dn(projet, ancienne, expected_status, expected_status_a
         source=ProjetAction.SOURCE_DN,
     ).order_by("pk")
     assert [action.status for action in status_actions] == expected_status_actions
+
+
+@pytest.mark.django_db
+def test_update_keeps_a_reported_dotation_in_processing_once_back_to_instruction():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
+        dossier_ds__ds_date_traitement=timezone.datetime(2026, 6, 10, tzinfo=UTC),
+        dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
+            2026, 11, 2, tzinfo=UTC
+        ),
+    )
+    origine = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(annee=2026),
+        status=ProjetStatus.REFUSED,
+        date_programmation=timezone.datetime(2026, 6, 1, tzinfo=UTC),
+        notified_at=timezone.datetime(2026, 6, 10, tzinfo=UTC),
+    )
+    reportee = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(annee=2027),
+        status=ProjetStatus.PROCESSING,
+    )
+
+    synchroniser(projet)
+
+    reportee.refresh_from_db()
+    assert reportee.is_courant
+    assert reportee.status == ProjetStatus.PROCESSING
+    origine.refresh_from_db()
+    assert origine.is_courant
+    assert origine.status == ProjetStatus.REFUSED
