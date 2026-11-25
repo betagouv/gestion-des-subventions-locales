@@ -1,0 +1,14 @@
+{# The DSFR radio option, plus a tooltip giving why a disabled option cannot be picked. #}
+<div class="fr-radio-group">
+    {% include "django/forms/widgets/input.html" %}
+    <label class="fr-label"
+           for="{{ widget.attrs.id }}"
+           {% if widget.disabled_reason %}aria-describedby="{{ widget.attrs.id }}-reason"{% endif %}>
+        {{ widget.label }}
+    </label>
+    {% if widget.disabled_reason %}
+        <span class="fr-tooltip fr-placement"
+              id="{{ widget.attrs.id }}-reason"
+              role="tooltip">{{ widget.disabled_reason }}</span>
+    {% endif %}
+</div>

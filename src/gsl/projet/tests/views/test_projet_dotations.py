@@ -1097,8 +1097,19 @@ def test_dotation_card_form_disables_a_year_already_holding_the_dotation():
         user, enveloppe_projet, edit=True
     ).content.decode()
 
-    assert "disabled" in _radio_input(content, 2027).group(0)
+    disabled = _radio_input(content, 2027).group(0)
+    assert "disabled" in disabled
     assert "disabled" not in _radio_input(content, 2025).group(0)
+    tooltip_id = re.search(r'aria-describedby="([^"]+)"', disabled).group(1)
+    tooltip = re.search(
+        rf'<span class="fr-tooltip fr-placement"\s+id="{tooltip_id}"\s+role="tooltip">'
+        r"([^<]*)</span>",
+        content,
+    )
+    assert (
+        tooltip.group(1) == "Le projet a déjà une dotation DETR sur la campagne 2027."
+    )
+    assert content.count('class="fr-tooltip') == 1
 
 
 @pytest.mark.parametrize(

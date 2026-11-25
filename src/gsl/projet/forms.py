@@ -350,20 +350,25 @@ class EnveloppeProjetAssietteForm(ModelForm, DsfrBaseForm):
 
 
 class InlineRadioSelect(dsfr_widgets.InlineRadioSelect):
-    """Inline DSFR radio buttons whose `disabled_choices` stay visible but cannot be
-    picked, and which can put the focus on the checked one.
+    """Inline DSFR radio buttons whose `disabled_choices` ({value: reason}) stay
+    visible but cannot be picked, the reason shown in a tooltip; it can also put
+    the focus on the checked one.
 
     The class name needs to be InlineRadioSelect for DsfrBaseForm to render it as
     a DSFR fieldset (it dispatches on the widget class name).
     """
 
-    disabled_choices = ()
+    option_template_name = "includes/forms/widgets/radio_option_with_reason.html"
+    disabled_choices = {}
     focus_checked = False
 
     def create_option(self, name, value, label, selected, *args, **kwargs):
         option = super().create_option(name, value, label, selected, *args, **kwargs)
         if value in self.disabled_choices:
             option["attrs"]["disabled"] = True
+            option["disabled_reason"] = self.disabled_choices[value]
+            # A disabled input never gets the focus: describe it for screen readers.
+            option["attrs"]["aria-describedby"] = f"{option['attrs']['id']}-reason"
         if self.focus_checked and selected:
             option["attrs"]["autofocus"] = True
         return option
@@ -406,7 +411,11 @@ class DotationCardForm(EnveloppeProjetForm):
         annee = self.fields["annee"]
         annee.initial = self.instance.enveloppe.annee
         annee.choices = [(a, a) for a in self.instance.annees_de_bascule]
-        annee.widget.disabled_choices = self.instance.annees_occupees
+        annee.widget.disabled_choices = {
+            occupee: f"Le projet a déjà une dotation {self.instance.dotation} sur la "
+            f"campagne {occupee}."
+            for occupee in self.instance.annees_occupees
+        }
 
         if self.instance.is_programmee:
             # Once programmed, only its campagne can still be corrected.
