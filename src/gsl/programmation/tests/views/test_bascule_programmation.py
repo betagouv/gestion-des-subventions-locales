@@ -57,7 +57,7 @@ def enveloppe_projet(perimetre, enveloppe):
 def test_basculed_projet_leaves_origin_programmation_list(
     client, enveloppe_projet, enveloppe_suivante
 ):
-    enveloppe_projet.projet.basculer(CAMPAGNE_SUIVANTE)
+    enveloppe_projet.basculer(CAMPAGNE_SUIVANTE)
 
     origine = client.get(_programmation_url(CAMPAGNE))
     cible = client.get(_programmation_url(CAMPAGNE_SUIVANTE))
@@ -74,7 +74,7 @@ def test_basculed_accepted_montant_moves_between_enveloppe_recaps(
     assert _summary(enveloppe)["accepted_montant"] == Decimal("20000")
     assert _summary(enveloppe_suivante)["accepted_montant"] == 0
 
-    enveloppe_projet.projet.basculer(CAMPAGNE_SUIVANTE)
+    enveloppe_projet.basculer(CAMPAGNE_SUIVANTE)
 
     origine = _summary(enveloppe)
     assert origine["accepted_montant"] == 0

@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import models
 from django.db.models import (
     Case,
     Count,
@@ -17,9 +16,7 @@ from django.utils import timezone
 
 from dn.sync.models import Dossier, Dotation
 from dn.sync.services import DsService
-from gsl.core.campagne import CAMPAGNES
 from gsl.core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
-from gsl.historique.models import ProjetAction
 from gsl.notification.models import GeneratedDocument, UploadedDocument
 from gsl.programmation.models import Enveloppe
 
@@ -328,63 +325,11 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         )
 
     @property
-    def campagne(self) -> int | None:
-        """The campagne of its enveloppe projets, none if they span several."""
-        annees = {ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()}
-        if len(annees) != 1:
-            return None
-        (annee,) = annees
-        return annee
-
-    @property
     def most_recent_campagne(self) -> int | None:
         """The most recent campagne of its enveloppe projets."""
         return max(
             (ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()), default=None
         )
-
-    @property
-    def campagnes_de_bascule(self) -> list[int]:
-        """The adjacent campagnes existing in Turgot, none if the projet spans
-        several campagnes."""
-        actuelle = self.campagne
-        if actuelle is None:
-            return []
-        return [
-            campagne
-            for campagne in (actuelle - 1, actuelle + 1)
-            if campagne in CAMPAGNES
-        ]
-
-    @transaction.atomic
-    def basculer(self, campagne: int, actor: Collegue | None = None) -> None:
-        """Moves the whole projet, history included, to an adjacent campagne: its
-        enveloppe projets are kept, only their enveloppe changes."""
-        from gsl.simulation.models import SimulationProjet
-
-        if campagne not in self.campagnes_de_bascule:
-            raise ValidationError(
-                f"Ce projet ne peut pas être basculé sur la campagne {campagne}."
-            )
-
-        origine = self.campagne
-        for enveloppe_projet in EnveloppeProjet.all_objects.filter(projet=self):
-            enveloppe_projet.enveloppe = self.root_enveloppe(
-                enveloppe_projet.dotation, campagne
-            )
-            enveloppe_projet.save(update_fields=["enveloppe"])
-            if not enveloppe_projet.is_courant:
-                continue
-            SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
-            ProjetAction.objects.create(
-                projet=self,
-                action_type=ProjetAction.TYPE_BASCULE,
-                source=ProjetAction.SOURCE_TURGOT,
-                actor=actor,
-                dotation=enveloppe_projet.dotation,
-                enveloppe=enveloppe_projet.enveloppe,
-                details=str(origine),
-            )
 
     def status_for(self, campagne: int) -> str | None:
         """Derived from its enveloppe projets of the campagne only."""

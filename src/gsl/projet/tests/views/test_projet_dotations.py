@@ -1182,3 +1182,16 @@ def test_dotation_card_form_keeps_the_year_when_only_the_assiette_changes():
     assert not ProjetAction.objects.filter(
         projet=enveloppe_projet.projet, action_type=ProjetAction.TYPE_BASCULE
     ).exists()
+
+
+def test_projet_tab_no_longer_has_the_premiere_annee_form():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    DetrProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    response = ClientWithLoggedUserFactory(user=user).get(
+        reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
+    )
+
+    assert response.status_code == 200
+    assert "Première année de traitement" not in response.content.decode()
