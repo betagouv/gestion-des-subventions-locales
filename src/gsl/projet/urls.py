@@ -30,6 +30,11 @@ urlpatterns = [
         name="enveloppe-projet-delete",
     ),
     path(
+        "dotations/<int:pk>/repasser-en-traitement/",
+        views.EnveloppeProjetRevertToProcessingView.as_view(),
+        name="enveloppe-projet-revert-to-processing",
+    ),
+    path(
         "voir/<int:projet_id>/notes/",
         views.ProjetNotesView.as_view(),
         name="get-projet-notes",

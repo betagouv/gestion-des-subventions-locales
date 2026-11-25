@@ -452,6 +452,24 @@ class EnveloppeProjetDeleteForm(forms.Form):
         projet.save(update_fields=["dotations_updated_in_app"])
 
 
+class EnveloppeProjetRevertToProcessingForm(forms.Form):
+    def __init__(self, *args, instance: EnveloppeProjet, user: Collegue, **kwargs):
+        self.instance = instance
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        if not self.instance.can_be_set_back_to_processing:
+            raise ValidationError(
+                "Seule une dotation programmée de la campagne la plus récente du "
+                "projet peut repasser en traitement."
+            )
+        return super().clean()
+
+    def save(self):
+        return self.instance.set_back_status_to_processing(self.user)
+
+
 class ProjetNoteForm(ModelForm, DsfrBaseForm):
     title = forms.CharField(
         label="Titre de la note",

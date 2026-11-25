@@ -23,9 +23,11 @@ from django.views.generic import (
     CreateView,
     DeleteView,
     DetailView,
+    FormView,
     ListView,
     UpdateView,
 )
+from django.views.generic.detail import SingleObjectMixin
 from django_filters.views import FilterView
 from django_htmx.http import HttpResponseClientRedirect
 
@@ -53,6 +55,7 @@ from gsl.simulation.models import SimulationProjet
 
 from .forms import (
     EnveloppeProjetDeleteForm,
+    EnveloppeProjetRevertToProcessingForm,
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
@@ -399,10 +402,16 @@ class ProjetNoteCreateView(ProjetNotesContextMixin, CreateView):
         )
 
 
-class EnveloppeProjetDeleteView(DeleteView):
+class EnveloppeProjetCardActionView(SingleObjectMixin, FormView):
+    """An action at the bottom of a dotation card, posted from its confirmation
+    modal: it goes back to the dotations tab with a message."""
+
     model = EnveloppeProjet
-    form_class = EnveloppeProjetDeleteForm
     http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return super().post(request, *args, **kwargs)
 
     def get_queryset(self):
         projets = (
@@ -419,15 +428,6 @@ class EnveloppeProjetDeleteView(DeleteView):
             "user": self.request.user,
         }
 
-    def form_valid(self, form):
-        form.save()
-        messages.success(
-            self.request,
-            f"La dotation {self.object.dotation} - {self.object.enveloppe.annee} "
-            "a bien été supprimée.",
-        )
-        return redirect(self.get_success_url())
-
     def form_invalid(self, form):
         for error in form.non_field_errors():
             messages.error(self.request, error)
@@ -437,6 +437,45 @@ class EnveloppeProjetDeleteView(DeleteView):
         return reverse(
             "projet:get-projet-dotations", kwargs={"projet_id": self.object.projet_id}
         )
+
+
+class EnveloppeProjetDeleteView(EnveloppeProjetCardActionView):
+    form_class = EnveloppeProjetDeleteForm
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            f"La dotation {self.object.dotation} - {self.object.enveloppe.annee} "
+            "a bien été supprimée.",
+        )
+        return redirect(self.get_success_url())
+
+
+class EnveloppeProjetRevertToProcessingView(EnveloppeProjetCardActionView):
+    form_class = EnveloppeProjetRevertToProcessingForm
+
+    def form_valid(self, form):
+        is_notified = self.object.is_notified
+        try:
+            form.save()
+        except DsServiceException as e:
+            messages.error(self.request, str(e))
+            return redirect(self.get_success_url())
+        annee = self.object.enveloppe.annee
+        if is_notified:
+            messages.success(
+                self.request,
+                f"Les dotations de la campagne {annee} sont repassées en traitement "
+                "et le dossier est repassé en instruction sur Démarche Numérique.",
+            )
+        else:
+            messages.success(
+                self.request,
+                f"La dotation {self.object.dotation} - {annee} "
+                "est repassée en traitement.",
+            )
+        return redirect(self.get_success_url())
 
 
 class ProjetNoteDeleteView(DeleteView):

@@ -35,6 +35,23 @@
                     <span aria-hidden="true">🧾</span> Taux retenu : <b>{{ enveloppe_projet.taux_retenu|percent:2|default:"—" }}</b>
                 </li>
             </ul>
+            {% if enveloppe_projet.can_be_set_back_to_processing %}
+                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--sm fr-btns-group--icon-left">
+                    <li>
+                        <button type="button"
+                                class="fr-btn fr-btn--secondary fr-icon-arrow-go-back-fill"
+                                aria-controls="revert-enveloppe-projet-modal-{{ enveloppe_projet.pk }}"
+                                data-fr-opened="false">
+                            Repasser en traitement
+                        </button>
+                    </li>
+                </ul>
+                <form method="post"
+                      id="revert-enveloppe-projet-form-{{ enveloppe_projet.pk }}"
+                      action="{% url 'projet:enveloppe-projet-revert-to-processing' enveloppe_projet.pk %}">
+                    {% csrf_token %}
+                </form>
+            {% endif %}
         {% endif %}
         {% if enveloppe_projet.can_be_deleted %}
             <form method="post"
