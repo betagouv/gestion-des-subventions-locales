@@ -418,6 +418,21 @@ class EnveloppeProjet(BaseModel):
         )
 
     @property
+    def annees_de_bascule(self) -> list[int]:
+        """Its year and the adjacent ones, among the campagnes open in Turgot."""
+        annee = self.enveloppe.annee
+        return [a for a in (annee - 1, annee, annee + 1) if a in CAMPAGNES]
+
+    @property
+    def annees_occupees(self) -> set[int]:
+        """The years on which the projet already holds this dotation."""
+        return set(
+            self.projet.enveloppeprojet_set.exclude(pk=self.pk)
+            .filter(enveloppe__dotation=self.dotation)
+            .values_list("enveloppe__annee", flat=True)
+        )
+
+    @property
     def other_dotations_in_the_same_campagne(self) -> List["EnveloppeProjet"]:
         # Python side filtering so we benefit from prefetching
         return [
@@ -711,6 +726,42 @@ class EnveloppeProjet(BaseModel):
             status=ProjetStatus.PROCESSING,
         )
         return nouveau
+
+    @transaction.atomic
+    def basculer(self, annee: int, actor: Collegue | None = None) -> None:
+        """Moves this dotation, with its superseded history on the same enveloppe,
+        to another campagne: only its enveloppe changes. No DN call."""
+        from gsl.simulation.models import SimulationProjet
+
+        if annee not in self.annees_de_bascule or annee == self.enveloppe.annee:
+            raise ValidationError(
+                f"Cette dotation ne peut pas être basculée sur la campagne {annee}."
+            )
+        if annee in self.annees_occupees:
+            raise ValidationError(
+                f"Le projet a déjà une dotation {self.dotation} sur la campagne "
+                f"{annee}."
+            )
+
+        origine = self.enveloppe
+        self.enveloppe = self.projet.root_enveloppe(self.dotation, annee)
+        EnveloppeProjet.all_objects.filter(
+            projet=self.projet, enveloppe=origine
+        ).update(enveloppe=self.enveloppe)
+        SimulationProjet.objects.reset_for_enveloppe_projet(self)
+        # The DN sync only drives the most recent campagne: without this flag, it
+        # would recreate there the requested dotations left on the other one.
+        self.projet.dotations_updated_in_app = True
+        self.projet.save(update_fields=["dotations_updated_in_app"])
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_BASCULE,
+            source=ProjetAction.SOURCE_TURGOT,
+            actor=actor,
+            dotation=self.dotation,
+            enveloppe=self.enveloppe,
+            details=str(origine.annee),
+        )
 
     @transaction.atomic
     def report(self, user: Collegue) -> "EnveloppeProjet":

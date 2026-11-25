@@ -1080,3 +1080,41 @@ def test_update_reopens_notified_dotations_on_any_other_back_to_instruction(
     synchroniser(projet)
 
     assert courant(detr).status == ProjetStatus.PROCESSING
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "ds_state", (Dossier.State.EN_CONSTRUCTION, Dossier.State.EN_INSTRUCTION)
+)
+def test_update_after_basculing_one_dotation_keeps_the_other_campagne(ds_state):
+    projet = ProjetFactory(
+        dossier_ds__ds_state=ds_state,
+        dossier_ds__demande_dispositif_sollicite="DETR, DSIL",
+    )
+    detr = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(
+            perimetre=projet.perimetre, annee=2026
+        ).delegation_root,
+        status=ProjetStatus.PROCESSING,
+    )
+    dsil = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DsilEnveloppeFactory(
+            perimetre=projet.perimetre, annee=2026
+        ).delegation_root,
+        status=ProjetStatus.PROCESSING,
+    )
+    detr.basculer(2027)
+
+    synchroniser(projet)
+
+    assert sorted(
+        (ep.dotation, ep.enveloppe.annee, ep.status)
+        for ep in EnveloppeProjet.objects.filter(projet=projet)
+    ) == [
+        (Dotation.DETR, 2027, ProjetStatus.PROCESSING),
+        (Dotation.DSIL, 2026, ProjetStatus.PROCESSING),
+    ]
+    dsil.refresh_from_db()
+    assert dsil.is_courant

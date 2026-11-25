@@ -4,6 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import ModelForm
+from dsfr import widgets as dsfr_widgets
 from dsfr.forms import DsfrBaseForm
 
 from dn.sync.exceptions import DsServiceException
@@ -382,11 +383,36 @@ class EnveloppeProjetAssietteForm(ModelForm, DsfrBaseForm):
         fields = ["assiette"]
 
 
-class DotationCardForm(EnveloppeProjetForm):
-    """The editable fields of an enveloppe projet in processing, saved together
-    from its card in the dotations tab. The DETR commission avis only applies to
-    a DETR enveloppe projet whose demande reaches the commission threshold."""
+class InlineRadioSelect(dsfr_widgets.InlineRadioSelect):
+    """Inline DSFR radio buttons whose `disabled_choices` stay visible but cannot be
+    picked, and which can put the focus on the checked one.
 
+    The class name needs to be InlineRadioSelect for DsfrBaseForm to render it as
+    a DSFR fieldset (it dispatches on the widget class name).
+    """
+
+    disabled_choices = ()
+    focus_checked = False
+
+    def create_option(self, name, value, label, selected, *args, **kwargs):
+        option = super().create_option(name, value, label, selected, *args, **kwargs)
+        if value in self.disabled_choices:
+            option["attrs"]["disabled"] = True
+        if self.focus_checked and selected:
+            option["attrs"]["autofocus"] = True
+        return option
+
+
+class DotationCardForm(EnveloppeProjetForm):
+    """The editable fields of an enveloppe projet, saved together from its card in
+    the dotations tab: its year whatever its status; while in processing, also its
+    assiette and, for a DETR one reaching the threshold, the commission avis."""
+
+    annee = forms.TypedChoiceField(
+        label="Année de traitement",
+        coerce=int,
+        widget=InlineRadioSelect,
+    )
     assiette = FrenchDecimalField(
         label="Assiette subventionnable",
         required=True,
@@ -400,14 +426,27 @@ class DotationCardForm(EnveloppeProjetForm):
         ),
     )
 
+    field_order = ["annee", "detr_avis_commission", "assiette"]
+
     class Meta:
         model = EnveloppeProjet
         fields = ["assiette", "detr_avis_commission"]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user: Collegue | None = None, **kwargs):
+        self.user = user
         # Several cards share the page: keep their field ids distinct.
         kwargs.setdefault("auto_id", f"id_%s_{kwargs['instance'].pk}")
         super().__init__(*args, **kwargs)
+        annee = self.fields["annee"]
+        annee.initial = self.instance.enveloppe.annee
+        annee.choices = [(a, a) for a in self.instance.annees_de_bascule]
+        annee.widget.disabled_choices = self.instance.annees_occupees
+
+        if self.instance.is_programmee:
+            # Once programmed, only its campagne can still be corrected.
+            del self.fields["assiette"]
+            del self.fields["detr_avis_commission"]
+            return
         self.fields["assiette"].widget.attrs["aria-describedby"] = (
             f"{self['assiette'].auto_id}-messages"
         )
@@ -420,6 +459,26 @@ class DotationCardForm(EnveloppeProjetForm):
             self.instance.dotation == Dotation.DETR
             and self.instance.projet.demande_montant_is_greater_than_min_montant_for_detr_commission
         )
+
+    @property
+    def annee_changed(self) -> bool:
+        return "annee" in self.changed_data
+
+    def clean_annee(self):
+        annee = self.cleaned_data["annee"]
+        if annee in self.instance.annees_occupees:
+            raise ValidationError(
+                f"Le projet a déjà une dotation {self.instance.dotation} sur la "
+                f"campagne {annee}."
+            )
+        return annee
+
+    @transaction.atomic
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit and self.annee_changed:
+            instance.basculer(self.cleaned_data["annee"], actor=self.user)
+        return instance
 
 
 class EnveloppeProjetDeleteForm(forms.Form):
