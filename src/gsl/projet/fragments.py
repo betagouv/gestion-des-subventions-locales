@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.http import HttpResponse
 from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.core.fragments import Fragment
@@ -124,3 +125,23 @@ class DotationCardFragment(EnveloppeProjetFormFragment):
             .get_queryset(request)
             .filter(status=ProjetStatus.PROCESSING, notified_at__isnull=True)
         )
+
+    def on_get(self):
+        """Read-only by default; `?edit` opens the form, and dropping it cancels."""
+        editing = "edit" in self.request.GET
+        if editing:
+            self.form = self.get_form()
+            first_field = next(iter(self.form.fields.values()))
+            first_field.widget.attrs["autofocus"] = True
+        return HttpResponse(self.render(editing=editing))
+
+    def on_valid(self):
+        """Back to read-only once saved, displaying the saved values."""
+        self.form.save()
+        if self.form.errors:
+            return self.on_invalid()
+        self.form = None
+        return self.render_valid(saved=True)
+
+    def render_invalid(self):
+        return HttpResponse(self.render(editing=True))
