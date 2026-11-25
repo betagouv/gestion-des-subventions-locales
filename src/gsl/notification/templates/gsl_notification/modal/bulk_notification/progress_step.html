@@ -1,5 +1,5 @@
 {% extends "gsl_notification/modal/step_base.html" %}
-{% load custom_pluralize %}
+{% load custom_pluralize dsfr_tags %}
 {% block step_div_attrs %}
     {% if job.is_unfinished %}
         hx-get="{% url 'gsl_notification:notify-progress' dotation job.pk %}"
@@ -8,6 +8,9 @@
         hx-target="this"
     {% endif %}
 {% endblock step_div_attrs %}
+{% block stepper %}
+    {% dsfr_stepper current_step_id=2 total_steps=2 current_step_title="Notification" %}
+{% endblock stepper %}
 {% block content %}
     {% if job.is_unfinished %}
         <div class="fr-alert fr-alert--info fr-mt-3w"
