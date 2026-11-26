@@ -76,14 +76,6 @@
     </div>
 
 
-    {% if projet_form %}
-        <form method="post"
-              id="projet-form"
-              action="{% url 'gsl_projet:patch-projet' projet.id %}"
-              data-double-dotation-target="form">
-            {% csrf_token %}
-        </form>
-    {% endif %}
 
     <div class="fr-container fr-mt-2w">
         <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--center gsl-projet-container">
@@ -231,30 +223,9 @@
                         </p>
                     {% endif %}
 
-                    {% if projet_form %}
-                        {% render_fragment "gsl_projet:zonage_form" projet %}
-                    {% else %}
-                        <h5 id="presentation_details_proj_zonage_et_contrats_choix_instructeur">Informations spécifiées par l'instructeur</h5>
-                        {% if projet.areas_and_contracts_provided_by_instructor|length > 0 %}
-                            <ul class="fr-highlight fr-highlight--beige-gris-galet fr-ml-0 fr-mb-4w">
-                                {% for zonage in projet.areas_and_contracts_provided_by_instructor %}
-                                    <li>
-                                        {% if zonage == "Projet rattaché à un autre zonage local" %}
-                                            {{ zonage }} : {{ projet.autre_zonage_local|default:"-" }}
-                                        {% elif zonage == "Projet rattaché à un contrat local" %}
-                                            {{ zonage }} : {{ projet.contrat_local|default:"-" }}
-                                        {% else %}
-                                            {{ zonage }}
-                                        {% endif %}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p>
-                                <i>Aucune information spécifiée par l'instructeur</i>
-                            </p>
-                        {% endif %}
-                    {% endif %}
+
+                    {% render_fragment "gsl_projet:zonage_form" projet %}
+
 
                     {% if projet.can_have_a_commission_detr_avis %}
                         <h4 id="avis_commission_detr" class="fr-mt-2w">
@@ -265,17 +236,12 @@
                     {% endif %}
 
                     <h3 id="presentation_transition_eco">Transition écologique</h3>
-                    {% if projet_form %}
-                        <p>
-                            <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert&nbsp;:</b>&nbsp;{{ projet.dossier_ds.environnement_transition_eco|yesno:"Oui,Non,Non renseigné" }}
-                        </p>
-                        {% render_fragment "gsl_projet:budget_vert_form" projet %}
-                    {% else %}
-                        <p>
-                            <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert: </b>
-                            {{ projet.is_budget_vert|yesno:"Oui,Non,Non renseigné" }}
-                        </p>
-                    {% endif %}
+
+                    <p>
+                        <b>Le projet concourt-il aux enjeux de la transition écologique au sens budget vert&nbsp;:</b>&nbsp;{{ projet.dossier_ds.environnement_transition_eco|yesno:"Oui,Non,Non renseigné" }}
+                    </p>
+                    {% render_fragment "gsl_projet:budget_vert_form" projet %}
+
                     {% if dossier.environnement_objectifs.count > 0 %}
                         <p>Objectifs environnementaux impactés favorablement</p>
                         <ul>
@@ -330,19 +296,6 @@
                         <b>Dispositif de financement sollicité :</b>
                         {{ projet.dossier_ds.dotations_demande|join:", " }}
                     </p>
-                    {% if projet_form %}
-                        {% if not projet.all_dotations_are_notified %}
-                            {% include "includes/forms/_dotations_form.html" %}
-                        {% else %}
-                            {% for dp in enveloppe_projets %}
-                                <input type="hidden"
-                                       name="dotations"
-                                       value="{{ dp.dotation }}"
-                                       form="projet-form">
-                            {% endfor %}
-                        {% endif %}
-                    {% endif %}
-
                     {% for enveloppe_projet in enveloppe_projets %}
                         {% if enveloppe_projet.dotation == "DSIL" and enveloppe_projet.projet.dossier_ds.demande_categorie_dsil %}
                             <p>
