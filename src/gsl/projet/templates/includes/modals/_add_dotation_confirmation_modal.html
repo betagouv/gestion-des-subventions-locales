@@ -1,0 +1,50 @@
+{% comment %}
+Confirms the creation of a dotation on a dossier already treated on DN. Unlike
+`ui_confirmation_modal`, whose controller submits a form present at page load and
+bypassing htmx, the confirmation submits the htmx form of the new dotation card,
+which only exists once a dotation is chosen.
+{% endcomment %}
+<dialog id="add-dotation-confirmation-modal"
+        class="fr-modal confirmation-modal"
+        aria-labelledby="add-dotation-confirmation-modal-title">
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-8 fr-col-lg-6 confirmation-modal-container">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button aria-controls="add-dotation-confirmation-modal"
+                                title="Fermer"
+                                type="button"
+                                class="fr-btn--close fr-btn">
+                            Fermer
+                        </button>
+                    </div>
+                    <div class="fr-modal__content">
+                        <h1 class="fr-modal__title" id="add-dotation-confirmation-modal-title">
+                            <span class="fr-icon-add-line fr-icon--lg" aria-hidden="true"></span>
+                            Ajouter une dotation
+                        </h1>
+                        <p>
+                            Ce dossier a déjà été traité sur Démarche Numérique. À la création de cette
+                            dotation, le dossier repassera en instruction sur Démarche Numérique : le
+                            demandeur en sera prévenu via la messagerie.
+                        </p>
+                    </div>
+                    <div class="fr-modal__footer confirmation-modal-footer">
+                        <button type="button"
+                                class="fr-btn fr-btn--secondary"
+                                aria-controls="add-dotation-confirmation-modal">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                                class="fr-btn fr-btn--primary"
+                                form="new-dotation-card-form"
+                                aria-controls="add-dotation-confirmation-modal">
+                            Ajouter la dotation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>

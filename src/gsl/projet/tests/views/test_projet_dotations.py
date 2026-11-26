@@ -212,7 +212,7 @@ def test_processing_detr_dotation_card_is_read_only_with_a_modify_button():
     assert 'name="detr_avis_commission"' not in content
     assert "Enregistrer" not in content
     # The card already displays the dotation title: the fragment does not repeat it.
-    assert content.count("DETR - 2026") == 1
+    assert len(re.findall(r"<h3[^>]*>\s*DETR - 2026\s*</h3>", content)) == 1
 
 
 def test_modify_button_opens_the_dotation_card_form():
@@ -1206,3 +1206,265 @@ def test_projet_tab_no_longer_has_the_premiere_annee_form():
 
     assert response.status_code == 200
     assert "Première année de traitement" not in response.content.decode()
+
+
+# -- Ajouter une dotation --
+
+
+def _new_card_url(projet, choix=None):
+    url = reverse("fragment:gsl_projet:new_dotation_card", kwargs={"pk": projet.pk})
+    return f"{url}?choix={choix}" if choix else url
+
+
+def _get_new_card(user, projet, choix=None):
+    return ClientWithLoggedUserFactory(user=user).get(
+        _new_card_url(projet, choix), headers={"HX-Request": "true"}
+    )
+
+
+def _post_new_card(user, projet, choix, data):
+    return ClientWithLoggedUserFactory(user=user).post(
+        _new_card_url(projet, choix), data, headers={"HX-Request": "true"}
+    )
+
+
+def _menu_entries(content):
+    menu = re.search(
+        r'<div class="fr-menu fr-collapse" id="add-dotation-menu">.*?</ul>',
+        content,
+        re.S,
+    )
+    return [
+        (choix, "disabled" in attrs)
+        for choix, attrs in re.findall(r'\?choix=([^"]+)"([^>]*)>', menu.group(0))
+    ]
+
+
+def _projet_with_detr_on(user, annee=2026, ds_state=Dossier.State.EN_INSTRUCTION):
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre,
+        dossier_ds__ds_state=ds_state,
+        dossier_ds__demande_montant=100_000,
+    )
+    _detr_on(user, annee, projet=projet, status=ProjetStatus.PROCESSING)
+    return projet
+
+
+def test_dotations_tab_offers_the_dotations_of_the_projet_years():
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+    DsilProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2027),
+    )
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert 'aria-controls="add-dotation-menu"' in content
+    assert "Ajouter une dotation" in content
+    assert _menu_entries(content) == [
+        ("DETR-2027", False),
+        ("DSIL-2027", True),
+        ("DETR-2026", True),
+        ("DSIL-2026", False),
+    ]
+    assert '<div id="new-dotation-card"></div>' in content
+
+
+def test_choosing_a_dotation_opens_its_card_in_form_mode():
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+
+    response = _get_new_card(user, projet, "DSIL-2026")
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Nouvelle dotation DSIL" in content
+    assert f'hx-post="{_new_card_url(projet, "DSIL-2026")}"' in content
+    assert re.findall(r'name="annee"[^>]*value="(\d+)"', content) == [
+        "2025",
+        "2026",
+        "2027",
+    ]
+    assert "checked" in _radio_input(content, 2026).group(0)
+    assert 'name="assiette"' in content
+    assert 'name="detr_avis_commission"' not in content
+    assert "add-dotation-confirmation-modal" not in content
+
+
+def test_new_detr_card_has_the_avis_above_the_threshold():
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+    DsilProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2027),
+    )
+
+    content = _get_new_card(user, projet, "DETR-2027").content.decode()
+
+    assert 'name="detr_avis_commission"' in content
+    # DETR already on 2026: that year cannot be picked
+    assert "disabled" in _radio_input(content, 2026).group(0)
+
+
+@pytest.mark.parametrize("choix", (None, "DETR-2026", "DSIL-2030", "nimporte"))
+def test_new_card_is_empty_without_an_addable_choice(choix):
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+
+    content = _get_new_card(user, projet, choix).content.decode()
+
+    assert '<div id="new-dotation-card"></div>' in content
+    assert 'name="assiette"' not in content
+
+
+@mock.patch.object(DsService, "repasser_en_instruction")
+def test_add_a_dotation(mock_repasser_en_instruction):
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+
+    response = _post_new_card(
+        user, projet, "DSIL-2026", {"annee": 2027, "assiette": "40 000 €"}
+    )
+
+    assert response.headers["HX-Refresh"] == "true"
+    nouveau = EnveloppeProjet.objects.get(projet=projet, enveloppe__dotation="DSIL")
+    assert nouveau.enveloppe.annee == 2027
+    assert nouveau.status == ProjetStatus.PROCESSING
+    assert nouveau.assiette == 40_000
+    action = ProjetAction.objects.get(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_ADDED
+    )
+    assert action.actor == user
+    assert action.dotation == Dotation.DSIL
+    projet.refresh_from_db()
+    assert projet.dotations_updated_in_app is True
+    mock_repasser_en_instruction.assert_not_called()
+    assert [m.message for m in get_messages(response.wsgi_request)] == [
+        "La dotation DSIL a été ajoutée sur la campagne 2027."
+    ]
+
+
+def test_add_a_detr_dotation_with_its_avis():
+    user = CollegueFactory()
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre,
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
+        dossier_ds__demande_montant=100_000,
+    )
+    DsilProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+    )
+
+    _post_new_card(
+        user,
+        projet,
+        "DETR-2026",
+        {"annee": 2026, "assiette": "40000", "detr_avis_commission": "True"},
+    )
+
+    nouveau = EnveloppeProjet.objects.get(projet=projet, enveloppe__dotation="DETR")
+    assert nouveau.detr_avis_commission is True
+
+
+@mock.patch.object(DsService, "repasser_en_instruction")
+def test_add_a_dotation_to_a_treated_dossier_sends_it_back_to_instruction(
+    mock_repasser_en_instruction,
+):
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026, ds_state=Dossier.State.ACCEPTE)
+    projet.enveloppeprojet_set.update(notified_at=timezone.now())
+
+    tab = _get_dotations_tab_content(user, projet)
+    card = _get_new_card(user, projet, "DSIL-2026").content.decode()
+    response = _post_new_card(
+        user, projet, "DSIL-2026", {"annee": 2026, "assiette": "40000"}
+    )
+
+    assert 'id="add-dotation-confirmation-modal"' in tab
+    assert 'form="new-dotation-card-form"' in tab
+    assert 'aria-controls="add-dotation-confirmation-modal"' in card
+    assert response.headers["HX-Refresh"] == "true"
+    assert EnveloppeProjet.objects.filter(
+        projet=projet, enveloppe__dotation="DSIL"
+    ).exists()
+    projet.refresh_from_db()
+    assert not projet.all_dotations_are_notified
+    assert projet.dotation_detr.is_notified
+    assert projet.instruction_rouverte_par_turgot_le is not None
+    mock_repasser_en_instruction.assert_called_once_with(projet.dossier_ds, user)
+
+
+def test_no_confirmation_modal_when_the_dossier_is_not_treated():
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+
+    assert "add-dotation-confirmation-modal" not in _get_dotations_tab_content(
+        user, projet
+    )
+
+
+@mock.patch.object(
+    DsService,
+    "repasser_en_instruction",
+    side_effect=DsServiceException("DN indisponible"),
+)
+def test_add_a_dotation_is_rolled_back_when_dn_fails(_mock_repasser):
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026, ds_state=Dossier.State.REFUSE)
+
+    response = _post_new_card(
+        user, projet, "DSIL-2026", {"annee": 2026, "assiette": "40000"}
+    )
+
+    assert "HX-Refresh" not in response.headers
+    assert "DN indisponible" in response.content.decode()
+    assert not EnveloppeProjet.all_objects.filter(
+        projet=projet, enveloppe__dotation="DSIL"
+    ).exists()
+    assert not ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_DOTATION_ADDED
+    ).exists()
+
+
+@pytest.mark.parametrize(
+    "data, error",
+    (
+        ({"annee": 2026, "assiette": ""}, "fr-input-group--error"),
+        ({"annee": 2024, "assiette": "40000"}, "fr-fieldset--error"),
+    ),
+)
+def test_add_a_dotation_with_invalid_data(data, error):
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+
+    response = _post_new_card(user, projet, "DSIL-2026", data)
+
+    assert "HX-Refresh" not in response.headers
+    assert error in response.content.decode()
+    assert not EnveloppeProjet.objects.filter(
+        projet=projet, enveloppe__dotation="DSIL"
+    ).exists()
+
+
+def test_cannot_add_a_dotation_the_projet_already_has():
+    user = CollegueFactory()
+    projet = _projet_with_detr_on(user, 2026)
+
+    response = _post_new_card(
+        user, projet, "DETR-2026", {"annee": 2026, "assiette": "40000"}
+    )
+
+    assert response.status_code == 404
+
+
+def test_cannot_add_a_dotation_outside_perimetre():
+    projet = _projet_with_detr_on(CollegueFactory(), 2026)
+
+    response = _get_new_card(CollegueFactory(), projet, "DSIL-2026")
+
+    assert response.status_code == 404

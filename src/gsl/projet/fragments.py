@@ -1,12 +1,16 @@
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
+from django.template.loader import render_to_string
+from django.utils.functional import cached_property
 from django_htmx.http import HttpResponseClientRefresh
 
+from dn.sync.exceptions import DsServiceException
 from gsl.core.fragments import Fragment
 
 from .forms import (
     DotationCardForm,
     EnveloppeProjetAssietteForm,
+    EnveloppeProjetCreateForm,
     EnveloppeProjetForm,
     ProjetBudgetVertForm,
     ProjetZonageForm,
@@ -128,3 +132,73 @@ class DotationCardFragment(EnveloppeProjetFormFragment):
 
     def render_invalid(self):
         return HttpResponse(self.render(editing=True))
+
+
+class NewDotationCardFragment(BaseProjetFragment):
+    """The card of a dotation being added, opened from the « Ajouter une
+    dotation » dropdown of the dotations tab with `?choix=<dotation>-<annee>`.
+    Without a choice, it renders empty: that is how the card is cancelled."""
+
+    name = "new_dotation_card"
+    route_params = "<int:pk>"
+    form_class = EnveloppeProjetCreateForm
+    template_name = "includes/forms/_new_dotation_card.html"
+
+    @classmethod
+    def get_queryset(cls, request):
+        return Projet.objects.active().for_user(request.user)
+
+    @cached_property
+    def choix(self) -> tuple[str, int] | None:
+        """The chosen dotation and year, if one the projet can be given."""
+        dotation, _, annee = self.request.GET.get("choix", "").partition("-")
+        for possible, annee_possible, existe in self.object.dotations_ajoutables:
+            if (possible, str(annee_possible)) == (dotation, annee) and not existe:
+                return possible, annee_possible
+        return None
+
+    def get_form(self, data=None):
+        dotation, annee = self.choix
+        return self.form_class(
+            data=data,
+            projet=self.object,
+            dotation=dotation,
+            annee=annee,
+            user=self.request.user,
+        )
+
+    def get_context(self):
+        return {**super().get_context(), "choix": self.request.GET.get("choix", "")}
+
+    def render(self, *, oob=False, **extra):
+        if self.choix is None:
+            return render_to_string(
+                "includes/forms/_new_dotation_card_empty.html",
+                {**self.get_context(), "oob": oob},
+                request=self.request,
+            )
+        return super().render(oob=oob, **extra)
+
+    def on_get(self):
+        if self.choix is not None:
+            self.form = self.get_form()
+            self.form.fields["annee"].widget.focus_checked = True
+        return HttpResponse(self.render())
+
+    def on_post(self):
+        if self.choix is None:
+            raise Http404
+        return super().on_post()
+
+    def on_valid(self):
+        try:
+            self.form.save()
+        except DsServiceException as e:
+            self.form.add_error(None, str(e))
+            return self.on_invalid()
+        messages.success(
+            self.request,
+            f"La dotation {self.form.instance.dotation} a été ajoutée sur la "
+            f"campagne {self.form.instance.enveloppe.annee}.",
+        )
+        return HttpResponseClientRefresh()

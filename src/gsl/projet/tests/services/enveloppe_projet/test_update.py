@@ -8,6 +8,7 @@ from freezegun import freeze_time
 from dn.sync.models import Dossier, Dotation
 from dn.sync.tests.factories import DossierFactory
 from gsl.core.tests.factories import (
+    CollegueFactory,
     PerimetreArrondissementFactory,
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
@@ -21,6 +22,7 @@ from gsl.simulation.models import SimulationProjet
 from gsl.simulation.tests.factories import SimulationFactory
 
 from ....constants import ProjetStatus
+from ....forms import EnveloppeProjetCreateForm
 from ....models import EnveloppeProjet
 from ....services.enveloppe_projet_services import EnveloppeProjetService
 from ...factories import (
@@ -1118,3 +1120,33 @@ def test_update_after_basculing_one_dotation_keeps_the_other_campagne(ds_state):
     ]
     dsil.refresh_from_db()
     assert dsil.is_courant
+
+
+@pytest.mark.django_db
+def test_update_keeps_a_dotation_added_in_turgot():
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.State.EN_CONSTRUCTION,
+        dossier_ds__demande_dispositif_sollicite="DETR",
+    )
+    EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(
+            perimetre=projet.perimetre, annee=2026
+        ).delegation_root,
+        status=ProjetStatus.PROCESSING,
+    )
+    form = EnveloppeProjetCreateForm(
+        data={"annee": 2026, "assiette": "40000"},
+        projet=projet,
+        dotation=Dotation.DSIL,
+        annee=2026,
+        user=CollegueFactory(),
+    )
+    assert form.is_valid(), form.errors
+    form.save()
+
+    synchroniser(projet)
+
+    assert sorted(
+        ep.dotation for ep in EnveloppeProjet.objects.filter(projet=projet)
+    ) == [Dotation.DETR, Dotation.DSIL]
