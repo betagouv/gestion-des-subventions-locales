@@ -60,7 +60,6 @@
                     "bindAmountFields": "{% static 'js/controllers/bindAmountFields.js' %}",
                     "cancelPollOnModalClose": "{% static 'js/controllers/cancelPollOnModalClose.js' %}",
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
-                    "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
                     "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
                     "conditionalField": "{% static 'js/controllers/conditionalField.js' %}",
                     "enableOnChange": "{% static 'js/controllers/enableOnChange.js' %}",
@@ -140,7 +139,6 @@
             import { ConditionalField } from "conditionalField"
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
             import { DocumentImport } from "documentImport"
-            import { DotationDropdown } from "dotationDropdown"
             import { FormatMontant } from "formatMontant"
             import { FormUtils } from "formUtils"
             import { HtmxError } from "htmxError"
@@ -167,7 +165,6 @@
             Stimulus.register("bind-amount-fields", BindAmountFields)
             Stimulus.register("cancel-poll-on-modal-close", CancelPollOnModalClose)
             Stimulus.register("form-utils", FormUtils)
-            Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)
             Stimulus.register("conditional-field", ConditionalField)
             Stimulus.register("enable-on-change", EnableOnChange)

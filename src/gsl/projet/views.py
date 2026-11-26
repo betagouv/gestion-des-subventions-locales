@@ -55,7 +55,6 @@ from .forms import (
     EnveloppeProjetReportForm,
     EnveloppeProjetRevertToProcessingForm,
     ProjetCommentForm,
-    ProjetForm,
     ProjetNoteForm,
     ProjetRevertToProcessingForm,
 )
@@ -244,51 +243,6 @@ class ProjetCommentUpdateView(SafeRedirectMixin, UpdateView):
 
     def form_invalid(self, form):
         return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
-
-
-def _redirect_to_referer_or_projet(request, projet):
-    referer = request.headers.get("Referer")
-    if referer and url_has_allowed_host_and_scheme(
-        referer, allowed_hosts=request.get_host()
-    ):
-        return redirect(referer)
-    return redirect("projet:get-projet", projet_id=projet.pk)
-
-
-class ProjetUpdateView(BaseProjetDetailView, UpdateView):
-    form_class = ProjetForm
-    http_method_names = ["post"]
-
-    def get_queryset(self):
-        return Projet.objects.active().for_user(self.request.user)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        try:
-            form.save()
-            messages.success(
-                self.request,
-                "Les modifications ont été enregistrées avec succès.",
-            )
-        except DsServiceException as e:
-            messages.error(
-                self.request,
-                f"Une erreur est survenue lors de la mise à jour sur Démarche Numérique. {e}",
-            )
-        return _redirect_to_referer_or_projet(self.request, self.object)
-
-    def form_invalid(self, form):
-        messages.error(
-            self.request,
-            "Une erreur s'est produite lors de la soumission du formulaire.",
-        )
-        for error in form.non_field_errors():
-            messages.error(self.request, error)
-        return _redirect_to_referer_or_projet(self.request, self.object)
 
 
 @method_decorator(htmx_only, name="dispatch")

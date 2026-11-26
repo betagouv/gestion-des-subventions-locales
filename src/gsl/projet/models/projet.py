@@ -371,12 +371,13 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def dotations(self) -> list[Dotation]:
+        """Its dotations, each once, whatever the campagnes they span."""
         return sorted(
-            [
-                dotation.dotation
-                for dotation in self.enveloppeprojet_set.all()
-                if dotation.dotation in [Dotation.DETR, Dotation.DSIL]
-            ]
+            {
+                enveloppe_projet.dotation
+                for enveloppe_projet in self.enveloppeprojet_set.all()
+                if enveloppe_projet.dotation in [Dotation.DETR, Dotation.DSIL]
+            }
         )
 
     @property

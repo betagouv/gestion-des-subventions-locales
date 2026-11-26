@@ -1,11 +1,4 @@
 /* table */
-.gsl-projet-table__select {
-  text-align: right;
-  padding: 0.25rem 1.25rem 0.25rem 0.25rem;
-  background-position: calc(100% - 4px) 50%;
-  box-shadow: none
-}
-
 .gsl-projet-table__input-wrap {
   position: relative;
   display: inline-block;
@@ -19,31 +12,6 @@
 .simulation-menu {
   display: inline-block;
 }
-
-.gsl-projet-table__dotation-dropdown {
-  width: fit-content;
-}
-
-.gsl-projet-table__dotation-dropdown > button {
-  line-height: inherit;
-}
-
-.gsl-projet-table__dotation-content {
-  text-align: left;
-  gap: 0;
-  display: none;
-  position: absolute;
-  background-color: white;
-  border: none;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 20%);
-  padding: 10px;
-  z-index: 1000;
-}
-
-.gsl-projet-table__dotation-content .fr-label {
-  font-size: small;
-}
-
 
 .gsl-projet-table__row--other-dotation .gsl-col--statut {
   padding: 0;

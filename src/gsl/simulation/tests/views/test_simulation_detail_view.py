@@ -294,8 +294,8 @@ class TestNotifiedProjectDisplayOnSimulationTable:
 
         assert response.status_code == 200
         content = response.content.decode()
-        # Should have the dotation dropdown form
-        assert "simulation-projet-dotation-form" in content
+        # The dotations are read only: they are managed from the projet
+        assert "simulation-projet-dotation-form" not in content
         # Should have the montant edit button
         assert f"edit-montant/{simu.id}/" in content
         # Should be selectable for the bulk status change
