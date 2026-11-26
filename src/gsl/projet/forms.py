@@ -470,6 +470,25 @@ class EnveloppeProjetRevertToProcessingForm(forms.Form):
         return self.instance.set_back_status_to_processing(self.user)
 
 
+class EnveloppeProjetReportForm(forms.Form):
+    def __init__(self, *args, instance: EnveloppeProjet, user: Collegue, **kwargs):
+        self.instance = instance
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        if not self.instance.can_be_reported:
+            raise ValidationError(
+                "Seule une dotation refusée ou classée sans suite, et notifiée, peut "
+                "être reportée sur la campagne suivante, si celle-ci est ouverte et "
+                "n'a pas déjà cette dotation."
+            )
+        return super().clean()
+
+    def save(self):
+        return self.instance.report(self.user)
+
+
 class ProjetNoteForm(ModelForm, DsfrBaseForm):
     title = forms.CharField(
         label="Titre de la note",

@@ -59,5 +59,18 @@
                 {% endwith %}
             {% endwith %}
         {% endif %}
+        {% if enveloppe_projet.can_be_reported %}
+            {% with pk=enveloppe_projet.pk|stringformat:"s" annee=enveloppe_projet.enveloppe.annee|stringformat:"s" annee_suivante=enveloppe_projet.annee_suivante|stringformat:"s" %}
+                {% with modal_id="report-enveloppe-projet-modal-"|add:pk form_id="report-enveloppe-projet-form-"|add:pk text="Une nouvelle dotation "|add:enveloppe_projet.dotation|add:" sera créée sur la campagne "|add:annee_suivante|add:", en traitement, avec la même assiette (sans l'avis de la commission). Le projet sera ajouté aux simulations de cette campagne. La dotation de la campagne "|add:annee|add:" reste inchangée." %}
+                    {% if dossier.is_treated %}
+                        {% with text=text|add:" Le dossier repassera aussi en instruction sur Démarche Numérique : le demandeur en sera prévenu via la messagerie." %}
+                            {% ui_confirmation_modal modal_id=modal_id title="Reporter sur la campagne suivante" icon="fr-icon-calendar-event-line" text=text form=form_id action_text="Reporter" is_title_red=False %}
+                        {% endwith %}
+                    {% else %}
+                        {% ui_confirmation_modal modal_id=modal_id title="Reporter sur la campagne suivante" icon="fr-icon-calendar-event-line" text=text form=form_id action_text="Reporter" is_title_red=False %}
+                    {% endif %}
+                {% endwith %}
+            {% endwith %}
+        {% endif %}
     {% endfor %}
 {% endblock modal %}

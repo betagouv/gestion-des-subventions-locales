@@ -21,6 +21,7 @@ from django_fsm import FSMField, TransitionNotAllowed, transition
 from dn.sync.models import Dotation
 from dn.sync.services import DsService
 from gsl.chorus.models import SuiviFinancier
+from gsl.core.campagne import CAMPAGNES
 from gsl.core.models import BaseModel, Collegue, Perimetre
 from gsl.historique.models import ProjetAction
 from gsl.notification.models import GeneratedDocument, UploadedDocument
@@ -387,10 +388,35 @@ class EnveloppeProjet(BaseModel):
     def can_be_set_back_to_processing(self) -> bool:
         """Only once programmed, and on the most recent campagne of its projet: the
         older campagnes are closed."""
+        return self.is_programmee and self.is_in_most_recent_campagne
+
+    @property
+    def is_in_most_recent_campagne(self) -> bool:
+        """Same rule as `EnveloppeProjetQuerySet.in_most_recent_campagne`."""
+        return not self.projet.enveloppeprojet_set.filter(
+            enveloppe__annee__gt=self.enveloppe.annee
+        ).exists()
+
+    @property
+    def is_closed(self) -> bool:
+        """Notified on a campagne that a more recent one has since replaced."""
+        return self.is_notified and not self.is_in_most_recent_campagne
+
+    @property
+    def annee_suivante(self) -> int:
+        return self.enveloppe.annee + 1
+
+    @property
+    def can_be_reported(self) -> bool:
+        """Refused or dismissed and notified, while the next campagne is open and does
+        not hold this dotation yet."""
         return (
-            self.is_programmee
+            self.status in ProjetStatus.NEGATIVE
+            and self.is_notified
+            and self.annee_suivante in CAMPAGNES
             and not self.projet.enveloppeprojet_set.filter(
-                enveloppe__annee__gt=self.enveloppe.annee
+                enveloppe__dotation=self.dotation,
+                enveloppe__annee=self.annee_suivante,
             ).exists()
         )
 
@@ -687,6 +713,36 @@ class EnveloppeProjet(BaseModel):
             dotation=self.dotation,
             status=ProjetStatus.PROCESSING,
         )
+        return nouveau
+
+    @transaction.atomic
+    def report(self, user: Collegue) -> "EnveloppeProjet":
+        """Creates the same dotation on the next campagne, in processing, without the
+        avis of the commission. The dossier goes back to instruction on DN, whose
+        sync would otherwise close the new dotation again."""
+        from gsl.simulation.models import SimulationProjet
+
+        nouveau = EnveloppeProjet.objects.create(
+            projet=self.projet,
+            enveloppe=self.projet.root_enveloppe(self.dotation, self.annee_suivante),
+            assiette=self.assiette,
+        )
+        SimulationProjet.objects.reset_for_enveloppe_projet(nouveau)
+        ProjetAction.objects.create(
+            projet=self.projet,
+            action_type=ProjetAction.TYPE_REPORT,
+            actor=user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=self.dotation,
+            enveloppe=nouveau.enveloppe,
+            details=str(self.enveloppe.annee),
+        )
+        self.projet.notified_at = None
+        self.projet.save(update_fields=["notified_at"])
+
+        # A second report finds the dossier already back in instruction.
+        if self.dossier_ds.is_treated:
+            DsService().repasser_en_instruction(self.dossier_ds, user)
         return nouveau
 
     @transaction.atomic

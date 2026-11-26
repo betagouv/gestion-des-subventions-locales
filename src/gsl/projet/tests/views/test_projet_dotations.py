@@ -1,3 +1,4 @@
+import html
 import re
 from unittest import mock
 
@@ -7,7 +8,7 @@ from django.shortcuts import reverse
 from django.utils import timezone
 
 from dn.sync.exceptions import DsServiceException
-from dn.sync.models import Cofinancement, Dotation
+from dn.sync.models import Cofinancement, Dossier, Dotation
 from dn.sync.services import DsService
 from dn.sync.tests.factories import CategorieDetrFactory, CategorieDsilFactory
 from gsl.core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
@@ -759,3 +760,255 @@ def test_revert_to_processing_get_is_not_allowed():
     response = ClientWithLoggedUserFactory(user=user).get(_revert_url(detr))
 
     assert response.status_code == 405
+
+
+# -- Reporter --
+
+
+def _report_url(enveloppe_projet):
+    return reverse(
+        "gsl_projet:enveloppe-projet-report", kwargs={"pk": enveloppe_projet.pk}
+    )
+
+
+def _report_modal_text(user, projet):
+    """The text of the report modal only: the revert modal of the same dotation
+    also mentions Démarche Numérique."""
+    text = html.unescape(_get_dotations_tab_text(user, projet))
+    return text.split("Reporter sur la campagne suivante", 1)[1].split("Annuler")[0]
+
+
+def _projet_refused_and_notified_on_2026(user, ds_state=Dossier.State.REFUSE):
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre,
+        dossier_ds__ds_state=ds_state,
+        notified_at=timezone.now(),
+    )
+    detr = DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+        notified_at=timezone.now(),
+        assiette=80_000,
+        detr_avis_commission=False,
+    )
+    return projet, detr
+
+
+def test_refused_and_notified_dotation_card_displays_report_action():
+    user = CollegueFactory()
+    projet, detr = _projet_refused_and_notified_on_2026(user)
+
+    content = _get_dotations_tab_content(user, projet)
+    text = _report_modal_text(user, projet)
+
+    assert _report_url(detr) in content
+    modal_id = f"report-enveloppe-projet-modal-{detr.pk}"
+    assert f'aria-controls="{modal_id}"' in content
+    assert f'id="{modal_id}"' in content
+    assert f'form="report-enveloppe-projet-form-{detr.pk}"' in content
+    assert re.search(r">\s*Reporter en 2027\s*</button>", content)
+    assert (
+        "Une nouvelle dotation DETR sera créée sur la campagne 2027, en traitement, "
+        "avec la même assiette (sans l'avis de la commission). Le projet sera ajouté "
+        "aux simulations de cette campagne. La dotation de la campagne 2026 reste "
+        "inchangée." in text
+    )
+    assert "Le dossier repassera aussi en instruction" in text
+
+
+def test_report_modal_does_not_mention_dn_when_the_dossier_is_in_instruction():
+    user = CollegueFactory()
+    projet, _ = _projet_refused_and_notified_on_2026(
+        user, ds_state=Dossier.State.EN_INSTRUCTION
+    )
+
+    assert "repassera aussi en instruction" not in _report_modal_text(user, projet)
+
+
+@pytest.mark.parametrize(
+    "status, notified",
+    (
+        (ProjetStatus.ACCEPTED, True),
+        (ProjetStatus.REFUSED, False),
+        (ProjetStatus.PROCESSING, False),
+    ),
+)
+def test_dotation_card_has_no_report_action(status, notified):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DetrProjetFactory(
+        projet=projet,
+        status=status,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+        notified_at=timezone.now() if notified else None,
+    )
+
+    assert _report_url(enveloppe_projet) not in _get_dotations_tab_content(user, projet)
+
+
+def test_dotation_cards_are_sorted_by_most_recent_campagne_first():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    DsilProjetFactory(
+        projet=projet,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+    )
+    DetrProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+    )
+    DetrProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2027),
+    )
+
+    text = _get_dotations_tab_text(user, projet)
+
+    positions = [text.index(t) for t in ("DETR - 2027", "DETR - 2026", "DSIL - 2026")]
+    assert positions == sorted(positions)
+
+
+@mock.patch.object(DsService, "repasser_en_instruction")
+def test_report_a_dotation_on_the_next_campagne(mock_repasser_en_instruction):
+    user = CollegueFactory()
+    projet, detr = _projet_refused_and_notified_on_2026(user)
+
+    response = ClientWithLoggedUserFactory(user=user).post(_report_url(detr))
+
+    assert response.status_code == 302
+    assert response.url == reverse(
+        "gsl_projet:get-projet-dotations", kwargs={"projet_id": projet.id}
+    )
+    nouveau = EnveloppeProjet.objects.get(projet=projet, enveloppe__annee=2027)
+    assert nouveau.dotation == Dotation.DETR
+    assert nouveau.status == ProjetStatus.PROCESSING
+    assert nouveau.assiette == 80_000
+    assert nouveau.detr_avis_commission is None
+    detr.refresh_from_db()
+    assert detr.status == ProjetStatus.REFUSED
+    assert ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_REPORT, actor=user
+    ).exists()
+    mock_repasser_en_instruction.assert_called_once_with(projet.dossier_ds, user)
+    assert [m.message for m in get_messages(response.wsgi_request)] == [
+        "La dotation DETR est reportée sur la campagne 2027."
+    ]
+
+
+@mock.patch.object(
+    DsService,
+    "repasser_en_instruction",
+    side_effect=DsServiceException("DN indisponible"),
+)
+def test_report_is_rolled_back_when_dn_fails(_mock_repasser):
+    user = CollegueFactory()
+    projet, detr = _projet_refused_and_notified_on_2026(user)
+
+    response = ClientWithLoggedUserFactory(user=user).post(_report_url(detr))
+
+    assert list(EnveloppeProjet.all_objects.filter(projet=projet)) == [detr]
+    assert not ProjetAction.objects.filter(
+        projet=projet, action_type=ProjetAction.TYPE_REPORT
+    ).exists()
+    projet.refresh_from_db()
+    assert projet.notified_at is not None
+    assert [m.message for m in get_messages(response.wsgi_request)] == [
+        "DN indisponible"
+    ]
+
+
+@mock.patch.object(DsService, "repasser_en_instruction")
+def test_cannot_report_an_accepted_dotation(mock_repasser_en_instruction):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+        notified_at=timezone.now(),
+    )
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _report_url(enveloppe_projet)
+    )
+
+    assert response.status_code == 302
+    assert list(EnveloppeProjet.all_objects.filter(projet=projet)) == [enveloppe_projet]
+    mock_repasser_en_instruction.assert_not_called()
+    assert len(list(get_messages(response.wsgi_request))) == 1
+
+
+def test_cannot_report_a_dotation_outside_perimetre():
+    projet, detr = _projet_refused_and_notified_on_2026(CollegueFactory())
+
+    response = ClientWithLoggedUserFactory(user=CollegueFactory()).post(
+        _report_url(detr)
+    )
+
+    assert response.status_code == 404
+
+
+def test_report_get_is_not_allowed():
+    user = CollegueFactory()
+    _, detr = _projet_refused_and_notified_on_2026(user)
+
+    response = ClientWithLoggedUserFactory(user=user).get(_report_url(detr))
+
+    assert response.status_code == 405
+
+
+# -- Encart d'une campagne close --
+
+
+def _card_classes(content, title):
+    """The classes of the callout whose title is `title`."""
+    return re.search(
+        r'<div class="(fr-callout[^"]*)">\s*<h3[^>]*>\s*' + re.escape(title), content
+    ).group(1)
+
+
+def test_notified_dotation_of_a_closed_campagne_has_a_grey_card():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+        notified_at=timezone.now(),
+    )
+    DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2027),
+    )
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert "fr-background-alt--grey" in _card_classes(content, "DETR - 2026")
+    assert "fr-background-alt--blue-france" in _card_classes(content, "DETR - 2027")
+
+
+@pytest.mark.parametrize("annee_recente", (False, True))
+def test_dotation_card_stays_blue_unless_notified_on_a_closed_campagne(
+    annee_recente,
+):
+    """Not notified on a closed campagne, or notified on the most recent one."""
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+        notified_at=timezone.now() if annee_recente else None,
+    )
+    if not annee_recente:
+        DsilProjetFactory(
+            projet=projet,
+            status=ProjetStatus.PROCESSING,
+            enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2027),
+        )
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert "fr-background-alt--blue-france" in _card_classes(content, "DETR - 2026")
