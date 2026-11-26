@@ -356,8 +356,17 @@ class EnveloppeProjetForm(ModelForm, DsfrBaseForm):
 class FrenchDecimalField(forms.DecimalField):
     def to_python(self, value):
         if isinstance(value, str):
-            value = "".join(value.split()).replace(",", ".")
+            value = "".join(value.split()).replace(",", ".").replace("€", "")
         return super().to_python(value)
+
+
+MONTANT_INPUT_ATTRS = {
+    "class": "fr-input",
+    "inputmode": "numeric",
+    "data-controller": "format-montant",
+    "data-format-montant-target": "field",
+    "data-action": "change->format-montant#format",
+}
 
 
 class EnveloppeProjetAssietteForm(ModelForm, DsfrBaseForm):
@@ -365,20 +374,82 @@ class EnveloppeProjetAssietteForm(ModelForm, DsfrBaseForm):
         label="Montant des dépenses éligibles retenues (€)",
         required=True,
         help_text=" Cette valeur est identique sur toutes les simulations de cette dotation.",
+        widget=forms.TextInput(attrs=MONTANT_INPUT_ATTRS),
+    )
+
+    class Meta:
+        model = EnveloppeProjet
+        fields = ["assiette"]
+
+
+class DotationCardForm(EnveloppeProjetForm):
+    """The editable fields of an enveloppe projet in processing, saved together
+    from its card in the dotations tab. The DETR commission avis only applies to
+    a DETR enveloppe projet whose demande reaches the commission threshold."""
+
+    assiette = FrenchDecimalField(
+        label="Assiette subventionnable",
+        required=True,
+        help_text="Cette valeur est identique sur toutes les simulations de cette dotation.",
         widget=forms.TextInput(
             attrs={
-                "class": "fr-input",
-                "inputmode": "numeric",
-                "data-controller": "format-montant",
-                "data-format-montant-target": "field",
-                "data-action": "change->format-montant#format",
+                **MONTANT_INPUT_ATTRS,
+                "data-format-montant-suffix-value": " €",
+                "data-format-montant-minimum-fraction-digits-value": "0",
             }
         ),
     )
 
     class Meta:
         model = EnveloppeProjet
-        fields = ["assiette"]
+        fields = ["assiette", "detr_avis_commission"]
+
+    def __init__(self, *args, **kwargs):
+        # Several cards share the page: keep their field ids distinct.
+        kwargs.setdefault("auto_id", f"id_%s_{kwargs['instance'].pk}")
+        super().__init__(*args, **kwargs)
+        self.fields["assiette"].widget.attrs["aria-describedby"] = (
+            f"{self['assiette'].auto_id}-messages"
+        )
+        if not self.has_detr_avis_commission:
+            del self.fields["detr_avis_commission"]
+
+    @property
+    def has_detr_avis_commission(self) -> bool:
+        return (
+            self.instance.dotation == Dotation.DETR
+            and self.instance.projet.demande_montant_is_greater_than_min_montant_for_detr_commission
+        )
+
+
+class EnveloppeProjetDeleteForm(forms.Form):
+    def __init__(self, *args, instance: EnveloppeProjet, user: Collegue, **kwargs):
+        self.instance = instance
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        if not self.instance.can_be_deleted:
+            raise ValidationError(
+                "Seule une dotation en traitement peut être supprimée, "
+                "et le projet doit garder au moins une dotation."
+            )
+        return super().clean()
+
+    @transaction.atomic
+    def save(self):
+        projet = self.instance.projet
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_DOTATION_REMOVED,
+            actor=self.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=self.instance.dotation,
+            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+        )
+        self.instance.delete()
+        projet.dotations_updated_in_app = True
+        projet.save(update_fields=["dotations_updated_in_app"])
 
 
 class ProjetNoteForm(ModelForm, DsfrBaseForm):

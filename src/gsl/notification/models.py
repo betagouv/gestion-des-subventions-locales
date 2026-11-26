@@ -37,6 +37,16 @@ class AttributedTextChoices(models.TextChoices):
         return member
 
 
+class DocumentQuerySet(models.QuerySet):
+    def in_most_recent_campagne(self):
+        """Of courant enveloppe projets on the most recent campagne of their projet."""
+        from gsl.projet.models import EnveloppeProjet
+
+        return self.filter(
+            enveloppe_projet__in=EnveloppeProjet.objects.in_most_recent_campagne()
+        )
+
+
 @dataclass(frozen=True)
 class GeneratedDocumentAttributes:
     short_code: str
@@ -168,6 +178,8 @@ class GeneratedDocument(models.Model):
         related_name="generated_documents",
     )
     with_qr_code = models.BooleanField(default=True)
+
+    objects = DocumentQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Document généré"
@@ -440,6 +452,8 @@ class UploadedDocument(models.Model):
         verbose_name="Fichier infecté",
         null=True,
     )
+
+    objects = DocumentQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Document importé"

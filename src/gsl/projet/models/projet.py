@@ -110,12 +110,12 @@ class ProjetQuerySet(models.QuerySet):
         return self.filter(notified_at__isnull=True)
 
     def with_at_least_one_treated_dotation(self):
+        """In their most recent campagne."""
         return self.filter(
             Exists(
-                EnveloppeProjet.objects.programmees().filter(
-                    projet=OuterRef("pk"),
-                    status__in=ProjetStatus.FINAL,
-                )
+                EnveloppeProjet.objects.programmees()
+                .in_most_recent_campagne()
+                .filter(projet=OuterRef("pk"))
             )
         )
 
@@ -295,6 +295,24 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return Enveloppe.objects.root_for(dotation, self.perimetre, annee)
 
     @property
+    def enveloppe_projets_in_most_recent_campagne(self) -> list[EnveloppeProjet]:
+        """Python side twin of `EnveloppeProjetQuerySet.in_most_recent_campagne`,
+        to benefit from the prefetch."""
+        campagne = self.most_recent_campagne
+        return [
+            ep
+            for ep in self.enveloppeprojet_set.all()
+            if ep.enveloppe.annee == campagne
+        ]
+
+    @property
+    def has_programmed_dotation_in_most_recent_campagne(self) -> bool:
+        """Python side twin of `ProjetQuerySet.with_at_least_one_treated_dotation`."""
+        return any(
+            ep.is_programmee for ep in self.enveloppe_projets_in_most_recent_campagne
+        )
+
+    @property
     def campagne(self) -> int | None:
         """The campagne of its enveloppe projets, none if they span several."""
         annees = {ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()}
@@ -304,7 +322,7 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return annee
 
     @property
-    def campagne_ouverte(self) -> int | None:
+    def most_recent_campagne(self) -> int | None:
         """The most recent campagne of its enveloppe projets."""
         return max(
             (ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()), default=None
@@ -393,6 +411,12 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return self.enveloppeprojet_set.count() > 1
 
     @property
+    def has_multiple_dotation(self) -> bool:
+        """Several dotations among its courant enveloppe projets, all campagnes
+        together."""
+        return len({ep.dotation for ep in self.enveloppeprojet_set.all()}) > 1
+
+    @property
     def dotation_detr(self):
         for dp in self.enveloppeprojet_set.all():
             if dp.dotation == Dotation.DETR:
@@ -459,16 +483,22 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def generated_documents(self):
-        documents = GeneratedDocument.objects.filter(
-            enveloppe_projet__projet=self
-        ).select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
+        """Of its courant enveloppe projets of the most recent campagne only."""
+        documents = (
+            GeneratedDocument.objects.filter(enveloppe_projet__projet=self)
+            .in_most_recent_campagne()
+            .select_related(*_GENERATED_DOCUMENT_SELECT_RELATED)
+        )
         return sorted(documents, key=_document_display_order)
 
     @property
     def imported_documents(self):
-        documents = UploadedDocument.objects.filter(
-            enveloppe_projet__projet=self
-        ).select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
+        """Of its courant enveloppe projets of the most recent campagne only."""
+        documents = (
+            UploadedDocument.objects.filter(enveloppe_projet__projet=self)
+            .in_most_recent_campagne()
+            .select_related(*_UPLOADED_DOCUMENT_SELECT_RELATED)
+        )
         return sorted(documents, key=_document_display_order)
 
     @property

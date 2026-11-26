@@ -126,7 +126,7 @@ class TestProgrammationProjetListViewWithDotation:
         accepted = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, **common)
         refused = EnveloppeProjetFactory(status=ProjetStatus.REFUSED, **common)
         notified = EnveloppeProjetFactory(
-            status=ProjetStatus.ACCEPTED, projet__notified_at=timezone.now(), **common
+            status=ProjetStatus.ACCEPTED, notified_at=timezone.now(), **common
         )
         client = ClientWithLoggedUserFactory(user=user_with_perimetre)
         url = reverse(

@@ -104,7 +104,7 @@ _STATUS_BADGE_CONFIGS = {
     "refused": {
         "icon_class": "fr-icon-close-circle-fill",
         "label": "Refusé",
-        "badge_class": "badge-projet-status__refused",
+        "badge_class": "fr-badge--error fr-badge--no-icon",
     },
     "dismissed": {
         "icon_class": "fr-icon-close-circle-fill",
@@ -118,6 +118,7 @@ _STATUS_BADGE_CONFIGS = {
     },
     "processing": {
         "label": "En traitement",
+        "badge_class": "fr-badge--info fr-badge--no-icon",
     },
     "to_generate": {
         "icon_class": "fr-icon-mail-add-fill",
@@ -149,21 +150,54 @@ def ui_status_badge(*args, **kwargs) -> dict:
     data_dict = {
         "type": "accepted | refused | dismissed | reported | processing | to_generate | to_sign | to_notify | notified",
         "dotation": "(Optional) Dotation prefix, e.g. 'DETR' or 'DSIL'",
+        "annee": "(Optional) Année suffix, e.g. '2026' or '2027'",
         "class": "(Optional) Extra CSS classes on the <span>",
     }
     ```"""
-    allowed_keys = ["type", "dotation", "class"]
+    allowed_keys = ["type", "dotation", "annee", "class"]
     tag_data = parse_tag_args(args, kwargs, allowed_keys)
 
     config = _STATUS_BADGE_CONFIGS.get(tag_data.get("type", ""), {})
     label = config.get("label", "")
     if tag_data.get("dotation"):
-        label = f"{tag_data['dotation']} {label}"
+        if tag_data.get("annee"):
+            label = f"{tag_data['dotation']} {tag_data['annee']} - {label}"
+        else:
+            label = f"{tag_data['dotation']} - {label}"
 
     return {
         "self": {
             "badge_class": config.get("badge_class", ""),
             "icon_class": config.get("icon_class", ""),
+            "label": label,
+            "extra_class": tag_data.get("class", ""),
+        }
+    }
+
+
+@register.inclusion_tag("ui/components/avis_commission.html")
+def ui_avis_commission(*args, **kwargs) -> dict:
+    """
+    ```python
+    data_dict = {
+        "avis": "True (Oui) | False (Non) | None (En cours)",
+        "class": "(Optional) Extra CSS classes on the <p>",
+    }
+    ```"""
+    allowed_keys = ["avis", "class"]
+    tag_data = parse_tag_args(args, kwargs, allowed_keys)
+
+    avis = tag_data.get("avis")
+    if avis is True:
+        icon_class, label = "fr-icon-chat-check-fill green-color", "Oui"
+    elif avis is False:
+        icon_class, label = "fr-icon-chat-delete-fill red-color", "Non"
+    else:
+        icon_class, label = "fr-icon-message-2-fill grey-color", "En cours"
+
+    return {
+        "self": {
+            "icon_class": icon_class,
             "label": label,
             "extra_class": tag_data.get("class", ""),
         }

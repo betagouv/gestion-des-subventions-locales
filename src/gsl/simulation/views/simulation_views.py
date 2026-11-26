@@ -181,7 +181,8 @@ class SimulationDetailView(FilterSkiplinksMixin, SingleObjectMixin, FilterView):
                     "enveloppeprojet_set",
                     queryset=EnveloppeProjet.objects.active()
                     .for_dotation(self.object.enveloppe.dotation)
-                    .annotate_notification_status(),
+                    .annotate_notification_status()
+                    .for_campagne(self.object.enveloppe.annee),
                     to_attr="enveloppe_projet",
                 ),
                 Prefetch(

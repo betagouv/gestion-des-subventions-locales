@@ -52,6 +52,7 @@ from gsl.simulation.forms import SimulationProjetForm
 from gsl.simulation.models import SimulationProjet
 
 from .forms import (
+    EnveloppeProjetDeleteForm,
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
@@ -130,41 +131,58 @@ class ProjetDetailView(BaseProjetDetailView):
         return ProjetForm(instance=self.object)
 
 
+class ProjetDotationsView(BaseProjetDetailView):
+    template_name = "gsl_projet/projet/tab_dotations.html"
+
+
 class ProjetSimulationsView(BaseProjetDetailView):
     template_name = "gsl_projet/projet/tab_simulations.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        projet = self.object
-        all_qs = SimulationProjet.objects.filter(
-            enveloppe_projet__projet=projet
-        ).select_related(
-            "simulation",
-            "simulation__enveloppe",
-            "enveloppe_projet",
-            "enveloppe_projet__projet",
-            "enveloppe_projet__projet__dossier_ds",
-        )
-
         dotation_filter = self.request.GET.get("dotation", "")
-        filtered_qs = all_qs.order_by("-simulation__created_at")
+        enveloppes_projet = (
+            EnveloppeProjet.objects.filter(
+                projet=self.object, simulationprojet__isnull=False
+            )
+            .distinct()
+            .select_related("enveloppe", "projet__dossier_ds")
+            .prefetch_related(
+                Prefetch(
+                    "simulationprojet_set",
+                    queryset=SimulationProjet.objects.select_related(
+                        "simulation__enveloppe"
+                    ).order_by("-simulation__created_at"),
+                )
+            )
+            # Most recent campagne first, then by dotation
+            .order_by("-enveloppe__annee", "enveloppe__dotation", "pk")
+        )
         if dotation_filter in ("DETR", "DSIL"):
-            filtered_qs = filtered_qs.filter(
-                enveloppe_projet__enveloppe__dotation=dotation_filter
+            enveloppes_projet = enveloppes_projet.filter(
+                enveloppe__dotation=dotation_filter
             )
 
-        simulation_projets_with_forms = []
-        for sp in filtered_qs:
-            form_id = f"simulation-card-form-{sp.pk}"
-            form = SimulationProjetForm(instance=sp, prefix=form_id)
-            for field in ("assiette", "montant", "taux"):
-                if field in form.fields:
-                    form.fields[field].widget.attrs["form"] = form_id
-            simulation_projets_with_forms.append((sp, form, form_id))
-
-        context["simulation_projets_with_forms"] = simulation_projets_with_forms
+        context["forms"] = [
+            (
+                enveloppe_projet,
+                [
+                    self._build_simulation_projet_form(simulation_projet)
+                    for simulation_projet in enveloppe_projet.simulationprojet_set.all()
+                ],
+            )
+            for enveloppe_projet in enveloppes_projet
+        ]
         context["dotation_filter"] = dotation_filter
         return context
+
+    def _build_simulation_projet_form(self, simulation_projet):
+        form_id = f"simulation-card-form-{simulation_projet.pk}"
+        form = SimulationProjetForm(instance=simulation_projet, prefix=form_id)
+        for field in ("assiette", "montant", "taux"):
+            if field in form.fields:
+                form.fields[field].widget.attrs["form"] = form_id
+        return simulation_projet, form, form_id
 
 
 class ProjetHistoriqueView(BaseProjetDetailView):
@@ -378,6 +396,46 @@ class ProjetNoteCreateView(ProjetNotesContextMixin, CreateView):
             return referer
         return reverse(
             "projet:get-projet-notes", kwargs={"projet_id": self.object.projet.pk}
+        )
+
+
+class EnveloppeProjetDeleteView(DeleteView):
+    model = EnveloppeProjet
+    form_class = EnveloppeProjetDeleteForm
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        projets = (
+            Projet.objects.all()
+            if self.request.user.is_staff
+            else Projet.objects.for_user(self.request.user)
+        )
+        return EnveloppeProjet.objects.filter(projet__in=projets)
+
+    def get_form_kwargs(self):
+        return {
+            **super().get_form_kwargs(),
+            "instance": self.object,
+            "user": self.request.user,
+        }
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            f"La dotation {self.object.dotation} - {self.object.enveloppe.annee} "
+            "a bien été supprimée.",
+        )
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        for error in form.non_field_errors():
+            messages.error(self.request, error)
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse(
+            "projet:get-projet-dotations", kwargs={"projet_id": self.object.projet_id}
         )
 
 

@@ -1,25 +1,25 @@
 {% load ui_tags gsl_filters %}
 
 <div class="fr-callout fr-background-alt--blue-france fr-ml-0 fr-mt-2w">
-    <h5 class="fr-callout__title">{{ dp.dotation }}</h5>
-    {% ui_status_badge type=dp.status %}
+    <h5 class="fr-callout__title">{{ ep.dotation }} - {{ ep.annee }}</h5>
+    {% ui_status_badge type=ep.status %}
     <ul class="fr-mt-1w">
         <li>
             <b>Montant des dépenses éligibles retenues :</b>
-            {{ dp.assiette|euro:2 }}
+            {{ ep.assiette|euro:2 }}
         </li>
         <li>
             <b>Montant accordé :</b>
-            {% if dp.status == "accepted" %}
-                {{ dp.montant_retenu|euro:2 }}
+            {% if ep.status == "accepted" %}
+                {{ ep.montant_retenu|euro:2 }}
             {% else %}
                 —
             {% endif %}
         </li>
         <li>
             <b>Taux de subvention :</b>
-            {% if dp.status == "accepted" %}
-                {{ dp.taux_retenu|percent:3 }}
+            {% if ep.status == "accepted" %}
+                {{ ep.taux_retenu|percent:3 }}
             {% else %}
                 —
             {% endif %}
