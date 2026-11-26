@@ -161,7 +161,7 @@ class BaseImportStepFragment(BaseProjetFragment):
 
     @classmethod
     def get_queryset(cls, request):
-        return Projet.objects.active().for_user(request.user).not_notified()
+        return Projet.objects.active().for_user(request.user).not_totally_notified()
 
     def get_context(self):
         return {

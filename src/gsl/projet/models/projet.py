@@ -92,7 +92,7 @@ class ProjetQuerySet(models.QuerySet):
 
     def to_notify(self):
         return (
-            self.not_notified()
+            self.not_totally_notified()
             .annotate(
                 dotations_count=Count("enveloppeprojet"),
                 programmation_count=Count(
@@ -106,7 +106,7 @@ class ProjetQuerySet(models.QuerySet):
             )
         )
 
-    def not_notified(self):
+    def not_totally_notified(self):
         return self.filter(notified_at__isnull=True)
 
     def with_at_least_one_treated_dotation(self):
