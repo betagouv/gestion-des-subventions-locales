@@ -429,12 +429,12 @@ class Projet(ProjetDNActionsMixin, BaseModel):
                 return dp
 
     @property
-    def has_been_notified(self) -> bool:
+    def all_dotations_are_notified(self) -> bool:
         return self.notified_at is not None
 
     @property
     def to_notify(self) -> bool:
-        if self.has_been_notified:
+        if self.all_dotations_are_notified:
             return False
 
         enveloppe_projets = self.enveloppeprojet_set.all()

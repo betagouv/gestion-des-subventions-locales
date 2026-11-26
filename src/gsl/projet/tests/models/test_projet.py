@@ -113,15 +113,15 @@ def test_dotation_dsil():
 
 
 @pytest.mark.parametrize(
-    ("notified_at", "expected_has_been_notified"),
+    ("notified_at", "expected_all_dotations_are_notified"),
     (
         (None, False),
         (timezone.now(), True),
     ),
 )
-def test_has_been_notified(notified_at, expected_has_been_notified):
+def test_all_dotations_are_notified(notified_at, expected_all_dotations_are_notified):
     projet = ProjetFactory(notified_at=notified_at)
-    assert projet.has_been_notified is expected_has_been_notified
+    assert projet.all_dotations_are_notified is expected_all_dotations_are_notified
 
 
 def test_to_notify_false_without_enveloppe_projet():

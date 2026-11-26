@@ -44,7 +44,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     def clean_dotations(self):
         dotations = self.cleaned_data.get("dotations")
-        if self.instance.has_been_notified and set(dotations) != set(
+        if self.instance.all_dotations_are_notified and set(dotations) != set(
             self.instance.dotations
         ):
             raise ValidationError(
