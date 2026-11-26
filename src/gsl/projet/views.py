@@ -23,11 +23,10 @@ from django.views.generic import (
     CreateView,
     DeleteView,
     DetailView,
-    FormView,
     ListView,
     UpdateView,
 )
-from django.views.generic.detail import SingleObjectMixin
+from django.views.generic.edit import BaseUpdateView
 from django_filters.views import FilterView
 from django_htmx.http import HttpResponseClientRedirect
 
@@ -402,16 +401,12 @@ class ProjetNoteCreateView(ProjetNotesContextMixin, CreateView):
         )
 
 
-class EnveloppeProjetCardActionView(SingleObjectMixin, FormView):
+class EnveloppeProjetCardActionView(BaseUpdateView):
     """An action at the bottom of a dotation card, posted from its confirmation
     modal: it goes back to the dotations tab with a message."""
 
     model = EnveloppeProjet
     http_method_names = ["post"]
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        return super().post(request, *args, **kwargs)
 
     def get_queryset(self):
         projets = (
