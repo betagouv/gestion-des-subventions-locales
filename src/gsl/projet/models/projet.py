@@ -13,8 +13,10 @@ from django.db.models import (
     Value,
     When,
 )
+from django.utils import timezone
 
 from dn.sync.models import Dossier, Dotation
+from dn.sync.services import DsService
 from gsl.core.campagne import CAMPAGNES
 from gsl.core.models import Adresse, BaseModel, Collegue, Departement, Perimetre
 from gsl.historique.models import ProjetAction
@@ -228,6 +230,14 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
+
+    instruction_rouverte_par_turgot_le = models.DateTimeField(
+        verbose_name="Instruction rouverte par Turgot le",
+        help_text="Date à laquelle Turgot a repassé le dossier en instruction sur "
+        "Démarche Numérique pour l'une de ses dotations.",
+        null=True,
+        blank=True,
+    )
 
     is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
     is_attached_to_a_crte = models.BooleanField(
@@ -452,6 +462,27 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             ),
             default=None,
         )
+
+    @property
+    def is_instruction_rouverte_par_turgot(self) -> bool:
+        """Turgot sent the dossier back to instruction on DN for one of its
+        dotations, and DN has not treated it again since: the other notified
+        decisions still stand."""
+        rouverte = self.instruction_rouverte_par_turgot_le
+        traitement = self.dossier_ds.ds_date_traitement
+        return rouverte is not None and (traitement is None or rouverte >= traitement)
+
+    def repasser_en_traitement(self, user: Collegue) -> None:
+        """One of its dotations goes back to processing: a dossier treated on DN
+        goes back to instruction there. Called last in the transaction, so that a
+        DN failure cancels everything."""
+        if not self.dossier_ds.is_treated:
+            return
+        # Saved before the DN call, which syncs: the other notified dotations must
+        # not be reopened.
+        self.instruction_rouverte_par_turgot_le = timezone.now()
+        self.save(update_fields=["instruction_rouverte_par_turgot_le"])
+        DsService().repasser_en_instruction(self.dossier_ds, user)
 
     @property
     def has_accepted_dotation(self) -> bool:

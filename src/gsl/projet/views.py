@@ -455,25 +455,21 @@ class EnveloppeProjetRevertToProcessingView(EnveloppeProjetCardActionView):
     form_class = EnveloppeProjetRevertToProcessingForm
 
     def form_valid(self, form):
-        is_notified = self.object.is_notified
+        is_treated = self.object.dossier_ds.is_treated
         try:
             form.save()
         except DsServiceException as e:
             messages.error(self.request, str(e))
             return redirect(self.get_success_url())
-        annee = self.object.enveloppe.annee
-        if is_notified:
-            messages.success(
-                self.request,
-                f"Les dotations de la campagne {annee} sont repassées en traitement "
-                "et le dossier est repassé en instruction sur Démarche Numérique.",
+        message = (
+            f"La dotation {self.object.dotation} - {self.object.enveloppe.annee} "
+            "est repassée en traitement"
+        )
+        if is_treated:
+            message += (
+                " et le dossier est repassé en instruction sur Démarche Numérique"
             )
-        else:
-            messages.success(
-                self.request,
-                f"La dotation {self.object.dotation} - {annee} "
-                "est repassée en traitement.",
-            )
+        messages.success(self.request, f"{message}.")
         return redirect(self.get_success_url())
 
 

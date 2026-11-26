@@ -898,10 +898,10 @@ def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
 
 @mock.patch("dn.sync.services.DsService.repasser_en_instruction")
 @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
-def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notified(
+def test_set_back_status_to_processing_calls_repasser_en_instruction_when_treated(
     _mock_update_ds, mock_repasser_en_instruction
 ):
-    projet = ProjetFactory()
+    projet = ProjetFactory(dossier_ds__ds_state=Dossier.State.ACCEPTE)
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
@@ -916,6 +916,8 @@ def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notifi
     mock_repasser_en_instruction.assert_called_once_with(
         enveloppe_projet.projet.dossier_ds, user
     )
+    projet.refresh_from_db()
+    assert projet.instruction_rouverte_par_turgot_le is not None
 
 
 @mock.patch("dn.sync.services.DsService.repasser_en_instruction")
@@ -953,38 +955,33 @@ def test_set_back_status_to_processing_makes_the_projet_not_totally_notified(
 
 @mock.patch("dn.sync.services.DsService.repasser_en_instruction")
 @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
-def test_set_back_status_to_processing_of_a_notified_dotation_reopens_its_campagne(
+def test_set_back_status_to_processing_of_a_treated_dossier_keeps_the_other_dotations(
     _mock_update_ds, mock_repasser_en_instruction
 ):
-    projet = ProjetFactory()
+    notified_at = timezone.now()
+    projet = ProjetFactory(dossier_ds__ds_state=Dossier.State.ACCEPTE)
     user = CollegueFactory()
     detr = EnveloppeProjetFactory(
         projet=projet,
         enveloppe=DetrEnveloppeFactory(annee=2026),
         status=ProjetStatus.ACCEPTED,
-        notified_at=timezone.now(),
+        notified_at=notified_at,
     )
     dsil = EnveloppeProjetFactory(
         projet=projet,
         enveloppe=DsilEnveloppeFactory(annee=2026),
         status=ProjetStatus.REFUSED,
-        notified_at=timezone.now(),
-    )
-    closed_campagne = EnveloppeProjetFactory(
-        projet=projet,
-        enveloppe=DsilEnveloppeFactory(annee=2025),
-        status=ProjetStatus.ACCEPTED,
-        notified_at=timezone.now(),
+        notified_at=notified_at,
     )
 
     detr.set_back_status_to_processing(user=user)
 
     courants = EnveloppeProjet.objects.filter(projet=projet)
     assert courants.get(enveloppe=detr.enveloppe).status == ProjetStatus.PROCESSING
-    assert courants.get(enveloppe=dsil.enveloppe).status == ProjetStatus.PROCESSING
-    closed_campagne.refresh_from_db()
-    assert closed_campagne.is_courant
-    assert closed_campagne.status == ProjetStatus.ACCEPTED
+    dsil.refresh_from_db()
+    assert dsil.is_courant
+    assert dsil.status == ProjetStatus.REFUSED
+    assert dsil.notified_at == notified_at
     assert (
         ProjetAction.objects.filter(
             projet=projet,
@@ -992,7 +989,7 @@ def test_set_back_status_to_processing_of_a_notified_dotation_reopens_its_campag
             status=ProjetStatus.PROCESSING,
             actor=user,
         ).count()
-        == 2
+        == 1
     )
     mock_repasser_en_instruction.assert_called_once_with(projet.dossier_ds, user)
 
