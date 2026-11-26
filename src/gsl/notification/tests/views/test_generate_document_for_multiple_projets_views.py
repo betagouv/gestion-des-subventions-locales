@@ -32,7 +32,7 @@ from gsl.notification.tests.factories import (
     ModeleLettreNotificationFactory,
 )
 from gsl.projet.constants import ProjetStatus
-from gsl.projet.models import EnveloppeProjet, Projet
+from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import EnveloppeProjetFactory
 
 pytestmark = pytest.mark.django_db
@@ -61,7 +61,6 @@ def enveloppe_projets(perimetre):
         projet__dossier_ds__perimetre=perimetre,
         dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
-        projet__notified_at=None,
     )
 
 
@@ -205,7 +204,6 @@ def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_enveloppe_projet = EnveloppeProjetFactory(
         dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
-        projet__notified_at=None,
     )
     response = _post_launch(client, ids=str(wrong_enveloppe_projet.id))
     assert response.status_code == 200
@@ -523,7 +521,6 @@ def test_wizard_create_step_aborts_when_projets_became_ineligible(
         enveloppe_projets,
         modele_selection_fields={"modele_lettre_id": str(detr_lettre_modele.id)},
     )
-    Projet.objects.all().update(notified_at=timezone.now())
     EnveloppeProjet.objects.all().update(notified_at=timezone.now())
 
     response = _post_create_step_raw(client)
@@ -773,7 +770,6 @@ def test_export_one_pdf_per_doc_single_returns_named_pdf(perimetre, detr_lettre_
             projet__dossier_ds__perimetre=perimetre,
             dotation=Dotation.DETR,
             status=ProjetStatus.ACCEPTED,
-            projet__notified_at=None,
         )
     ]
     _drive_through_format_step(
@@ -840,7 +836,6 @@ def test_export_one_pdf_per_project_single_returns_named_pdf(
         projet__dossier_ds__perimetre=perimetre,
         dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
-        projet__notified_at=None,
     )
     _drive_through_format_step(
         client,

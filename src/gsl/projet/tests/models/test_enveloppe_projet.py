@@ -901,7 +901,7 @@ def test_set_back_status_to_processing_updates_ds_annotations(mock_update_ds):
 def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notified(
     _mock_update_ds, mock_repasser_en_instruction
 ):
-    projet = ProjetFactory(notified_at=timezone.now())
+    projet = ProjetFactory()
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet,
@@ -923,7 +923,7 @@ def test_set_back_status_to_processing_calls_repasser_en_instruction_when_notifi
 def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_when_not_notified(
     _mock_update_ds, mock_repasser_en_instruction
 ):
-    projet = ProjetFactory(notified_at=None)
+    projet = ProjetFactory()
     user = CollegueFactory()
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
@@ -937,10 +937,10 @@ def test_set_back_status_to_processing_does_not_call_repasser_en_instruction_whe
 
 @mock.patch("dn.sync.services.DsService.repasser_en_instruction")
 @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")
-def test_set_back_status_to_processing_resets_notified_at(
+def test_set_back_status_to_processing_makes_the_projet_not_totally_notified(
     _mock_update_ds, _mock_repasser_en_instruction
 ):
-    projet = ProjetFactory(notified_at=timezone.now())
+    projet = ProjetFactory()
     enveloppe_projet = EnveloppeProjetFactory(
         projet=projet, status=ProjetStatus.ACCEPTED, notified_at=timezone.now()
     )
@@ -948,7 +948,7 @@ def test_set_back_status_to_processing_resets_notified_at(
     enveloppe_projet.set_back_status_to_processing(user=CollegueFactory())
 
     projet.refresh_from_db()
-    assert projet.notified_at is None
+    assert not projet.all_dotations_are_notified
 
 
 @mock.patch("dn.sync.services.DsService.repasser_en_instruction")
@@ -956,7 +956,7 @@ def test_set_back_status_to_processing_resets_notified_at(
 def test_set_back_status_to_processing_of_a_notified_dotation_reopens_its_campagne(
     _mock_update_ds, mock_repasser_en_instruction
 ):
-    projet = ProjetFactory(notified_at=timezone.now())
+    projet = ProjetFactory()
     user = CollegueFactory()
     detr = EnveloppeProjetFactory(
         projet=projet,
@@ -1091,7 +1091,6 @@ def test_report_creates_the_dotation_on_the_next_campagne(
     enveloppe_projet = _refused_notified_on_2026(
         assiette=80_000,
         detr_avis_commission=False,
-        projet__notified_at=timezone.now(),
         projet__dossier_ds__ds_state=Dossier.State.REFUSE,
     )
     projet = enveloppe_projet.projet
@@ -1111,7 +1110,7 @@ def test_report_creates_the_dotation_on_the_next_campagne(
     assert enveloppe_projet.status == ProjetStatus.REFUSED
     assert enveloppe_projet.is_notified
     projet.refresh_from_db()
-    assert projet.notified_at is None
+    assert not projet.all_dotations_are_notified
     action = ProjetAction.objects.get(
         projet=projet, action_type=ProjetAction.TYPE_REPORT
     )

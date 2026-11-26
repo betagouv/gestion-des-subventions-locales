@@ -116,8 +116,7 @@ def test_projet_form_cannot_change_dotations_when_notified(projet):
     """Test that dotations cannot be changed for a notified project"""
     from django.utils import timezone
 
-    projet.notified_at = timezone.now()
-    projet.save()
+    projet.enveloppeprojet_set.update(notified_at=timezone.now())
 
     # Try to change dotations from DETR to DSIL
     data = {
@@ -137,8 +136,7 @@ def test_projet_form_allows_same_dotations_when_notified(projet):
     """Test that keeping the same dotations is allowed for a notified project"""
     from django.utils import timezone
 
-    projet.notified_at = timezone.now()
-    projet.save()
+    projet.enveloppeprojet_set.update(notified_at=timezone.now())
 
     # Keep the same dotations (DETR)
     data = {

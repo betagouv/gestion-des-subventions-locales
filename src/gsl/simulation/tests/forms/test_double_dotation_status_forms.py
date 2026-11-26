@@ -90,7 +90,7 @@ class TestRefuseOneDoubleDotation:
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.PROCESSING
         assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
 
     def test_refuse_detr_when_dsil_already_refused(
         self, double_enveloppe_projet_detr_dsil, user
@@ -129,7 +129,7 @@ class TestRefuseOneDoubleDotation:
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.REFUSED
         assert projet.status_for(get_campagne()) == ProjetStatus.REFUSED
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
 
     def test_refuse_detr_when_dsil_accepted(
         self, double_enveloppe_projet_detr_dsil, user
@@ -164,7 +164,7 @@ class TestRefuseOneDoubleDotation:
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.ACCEPTED
         assert projet.status_for(get_campagne()) == ProjetStatus.ACCEPTED
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
 
 
 class TestDismissOneDoubleDotation:
@@ -198,7 +198,7 @@ class TestDismissOneDoubleDotation:
         assert detr_dotation.status == ProjetStatus.PROCESSING
         assert dsil_dotation.status == ProjetStatus.DISMISSED
         assert projet.status_for(get_campagne()) == ProjetStatus.PROCESSING
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
 
     def test_dismiss_dsil_when_detr_dismissed(
         self, double_enveloppe_projet_detr_dsil, user
@@ -237,7 +237,7 @@ class TestDismissOneDoubleDotation:
         assert detr_dotation.status == ProjetStatus.DISMISSED
         assert dsil_dotation.status == ProjetStatus.DISMISSED
         assert projet.status_for(get_campagne()) == ProjetStatus.DISMISSED
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
 
     def test_dismiss_dsil_when_detr_refused(
         self, double_enveloppe_projet_detr_dsil, user
@@ -276,7 +276,7 @@ class TestDismissOneDoubleDotation:
         assert detr_dotation.status == ProjetStatus.REFUSED
         assert dsil_dotation.status == ProjetStatus.DISMISSED
         assert projet.status_for(get_campagne()) == ProjetStatus.DISMISSED
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
 
 
 class TestAcceptOneDoubleDotation:

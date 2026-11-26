@@ -35,6 +35,7 @@ from dn.sync.models import (
     CategorieDetr,
     CategorieDsil,
     Cofinancement,
+    Dossier,
     ProjetContractualisation,
     ProjetZonage,
 )
@@ -327,7 +328,7 @@ class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
 
     def get_queryset(self):
         return Projet.objects.for_user(self.request.user).filter(
-            notified_at__isnull=False
+            dossier_ds__in=Dossier.objects.treated()
         )
 
     def get_modal_id(self):

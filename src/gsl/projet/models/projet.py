@@ -107,7 +107,16 @@ class ProjetQuerySet(models.QuerySet):
         )
 
     def not_totally_notified(self):
-        return self.filter(notified_at__isnull=True)
+        """Twin of `Projet.all_dotations_are_notified`: a dotation not yet notified,
+        or no dotation at all."""
+        return self.exclude(
+            Exists(EnveloppeProjet.objects.filter(projet=OuterRef("pk")))
+            & ~Exists(
+                EnveloppeProjet.objects.filter(
+                    projet=OuterRef("pk"), notified_at__isnull=True
+                )
+            )
+        )
 
     def with_at_least_one_treated_dotation(self):
         """In their most recent campagne."""
@@ -219,10 +228,6 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     address = models.ForeignKey(Adresse, on_delete=models.PROTECT, null=True)
     departement = models.ForeignKey(Departement, on_delete=models.PROTECT, null=True)
-
-    notified_at = models.DateTimeField(
-        verbose_name="Date de notification", null=True, blank=True
-    )
 
     is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
     is_attached_to_a_crte = models.BooleanField(
@@ -430,7 +435,23 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def all_dotations_are_notified(self) -> bool:
-        return self.notified_at is not None
+        """Each of its dotations has been notified; never a projet without any."""
+        enveloppe_projets = self.enveloppeprojet_set.all()
+        return bool(enveloppe_projets) and all(
+            ep.is_notified for ep in enveloppe_projets
+        )
+
+    @property
+    def last_notification_date(self):
+        """When the last of its dotations was notified."""
+        return max(
+            (
+                ep.notified_at
+                for ep in self.enveloppeprojet_set.all()
+                if ep.notified_at is not None
+            ),
+            default=None,
+        )
 
     @property
     def has_accepted_dotation(self) -> bool:

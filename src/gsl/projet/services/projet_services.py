@@ -45,11 +45,6 @@ class ProjetService:
             ds_dossier, "annotations_is_contrat_local"
         )
         projet.contrat_local = ds_dossier.annotations_contrat_local
-        if ds_dossier.is_treated:
-            projet.notified_at = ds_dossier.ds_date_traitement
-        else:
-            projet.notified_at = None
-
         projet.save()
 
         create_projet_actions_from_dossier_traitements(projet)

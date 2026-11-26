@@ -3,7 +3,7 @@
      {% if oob %}hx-swap-oob="true"{% endif %}>
     {% if projet.all_dotations_are_notified %}
         <p class="fr-text-default--success">
-            Message de notification envoyé le {{ projet.notified_at|date }} à {{ projet.notified_at|time }} sur Démarche Numérique.
+            Message de notification envoyé le {{ projet.last_notification_date|date }} à {{ projet.last_notification_date|time }} sur Démarche Numérique.
         </p>
     {% elif is_instructor %}
         <div class="fr-grid-row">

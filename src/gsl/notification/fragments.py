@@ -81,7 +81,7 @@ class GenerateDocumentsFragment(BaseProjetFragment):
             Projet.objects.active()
             .for_user(request.user)
             .with_at_least_one_treated_dotation()
-            .filter(notified_at__isnull=True)
+            .not_totally_notified()
         )
 
     def get_form(self, data=None):
@@ -123,7 +123,7 @@ class NotificationMessageFragment(BaseProjetFragment):
                 f"Une erreur est survenue lors de l'envoi de la notification. {e}",
             )
             return self.on_invalid()
-        # The DN sync saved notified_at on another instance of the projet.
+        # The DN sync saved notified_at on other instances of its dotations.
         self.object.refresh_from_db()
 
         queue_matomo_event(

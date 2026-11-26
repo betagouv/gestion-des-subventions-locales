@@ -63,7 +63,6 @@ def processing_enveloppe_projet(perimetre_departemental):
         status=ProjetStatus.PROCESSING,
         assiette=10_000,
         projet__dossier_ds__perimetre=perimetre_departemental,
-        projet__notified_at=None,
     )
 
 
@@ -155,7 +154,6 @@ def test_patch_assiette_notified_projet_returns_404(
         dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=perimetre_departemental,
-        projet__notified_at=timezone.now(),
         notified_at=timezone.now(),
     )
     response = client_with_user_logged.post(
@@ -170,7 +168,6 @@ def test_patch_assiette_out_of_perimeter_returns_404(client_with_user_logged):
         dotation=Dotation.DETR,
         status=ProjetStatus.PROCESSING,
         projet__dossier_ds__perimetre=other_perimetre,
-        projet__notified_at=None,
     )
     response = client_with_user_logged.post(
         _assiette_url(dp), {"assiette": "50000"}, headers={"HX-Request": "true"}

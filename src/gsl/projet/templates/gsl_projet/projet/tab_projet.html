@@ -62,7 +62,7 @@
         <ul id="projet-actions"
             {% if oob %}hx-swap-oob="true"{% endif %}
             class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
-            {% if projet.all_dotations_are_notified %}
+            {% if projet.dossier_ds.is_treated %}
                 <li class="fr-mb-2w">
                     <button type="button"
                             class="fr-btn fr-btn--secondary"

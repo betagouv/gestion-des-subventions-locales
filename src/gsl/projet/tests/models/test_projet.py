@@ -113,15 +113,53 @@ def test_dotation_dsil():
 
 
 @pytest.mark.parametrize(
-    ("notified_at", "expected_all_dotations_are_notified"),
+    "notified, expected",
     (
-        (None, False),
-        (timezone.now(), True),
+        ((), False),
+        ((False,), False),
+        ((True, False), False),
+        ((True,), True),
+        ((True, True), True),
     ),
+    ids=("sans_dotation", "non_notifiee", "partielle", "notifiee", "toutes_notifiees"),
 )
-def test_all_dotations_are_notified(notified_at, expected_all_dotations_are_notified):
-    projet = ProjetFactory(notified_at=notified_at)
-    assert projet.all_dotations_are_notified is expected_all_dotations_are_notified
+def test_all_dotations_are_notified(notified, expected):
+    projet = ProjetFactory()
+    for dotation, is_notified in zip((Dotation.DETR, Dotation.DSIL), notified):
+        EnveloppeProjetFactory(
+            projet=projet,
+            dotation=dotation,
+            status=ProjetStatus.ACCEPTED,
+            notified_at=timezone.now() if is_notified else None,
+        )
+
+    assert projet.all_dotations_are_notified is expected
+    assert (projet in Projet.objects.not_totally_notified()) is not expected
+
+
+def test_last_notification_date_is_the_latest_of_its_dotations():
+    projet = ProjetFactory()
+    premiere = timezone.now() - timezone.timedelta(days=30)
+    derniere = timezone.now()
+    for dotation, notified_at in (
+        (Dotation.DETR, premiere),
+        (Dotation.DSIL, derniere),
+    ):
+        EnveloppeProjetFactory(
+            projet=projet,
+            dotation=dotation,
+            status=ProjetStatus.ACCEPTED,
+            notified_at=notified_at,
+        )
+
+    assert projet.last_notification_date == derniere
+
+
+def test_last_notification_date_without_notified_dotation():
+    projet = ProjetFactory()
+    EnveloppeProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    assert projet.last_notification_date is None
 
 
 def test_to_notify_false_without_enveloppe_projet():
@@ -152,9 +190,12 @@ def test_to_notify_true_with_treated_enveloppe_projet(status):
 
 def test_to_notify_false_when_projet_already_notified():
     """Project already notified should return False."""
-    projet = ProjetFactory(notified_at=timezone.now())
+    projet = ProjetFactory()
     EnveloppeProjetFactory(
-        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
+        projet=projet,
+        dotation=Dotation.DETR,
+        status=ProjetStatus.ACCEPTED,
+        notified_at=timezone.now(),
     )
 
     assert projet not in Projet.objects.to_notify()
@@ -162,20 +203,21 @@ def test_to_notify_false_when_projet_already_notified():
 
 def test_to_notify_with_double_dotation_all_notified():
     """Double dotation project returns False only if all dotations are notified."""
-    projet = ProjetFactory(notified_at=timezone.now())
-    EnveloppeProjetFactory(
-        projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
-    )
-    EnveloppeProjetFactory(
-        projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.ACCEPTED
-    )
+    projet = ProjetFactory()
+    for dotation in (Dotation.DETR, Dotation.DSIL):
+        EnveloppeProjetFactory(
+            projet=projet,
+            dotation=dotation,
+            status=ProjetStatus.ACCEPTED,
+            notified_at=timezone.now(),
+        )
 
     assert projet not in Projet.objects.to_notify()
 
 
 def test_to_notify_with_double_dotation_partial_programmation():
     """Double dotation project returns False if any dotation lacks programmation."""
-    projet = ProjetFactory(notified_at=None)
+    projet = ProjetFactory()
     EnveloppeProjetFactory(
         projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )

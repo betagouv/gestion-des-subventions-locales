@@ -78,23 +78,21 @@ def client(collegue):
 def notified_projet(collegue):
     projet = ProjetFactory(
         dossier_ds__perimetre=collegue.perimetre,
-        notified_at=timezone.now(),
+        dossier_ds__ds_state=Dossier.State.ACCEPTE,
     )
     EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
         dotation=Dotation.DETR,
         assiette=10_000,
+        notified_at=timezone.now(),
     )
     return projet
 
 
 @pytest.fixture
 def non_notified_projet(collegue):
-    projet = ProjetFactory(
-        dossier_ds__perimetre=collegue.perimetre,
-        notified_at=None,
-    )
+    projet = ProjetFactory(dossier_ds__perimetre=collegue.perimetre)
     EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
@@ -113,26 +111,26 @@ def test_get_modal_returns_confirmation(client, notified_projet):
     assert "Repasser le projet en traitement" in response.content.decode()
 
 
-def test_post_clears_notified_at(client, collegue):
+def test_post_makes_the_dotations_to_notify_again(client, collegue):
     """Real end-to-end: only the DN network call is faked. DsService's
     repasser_en_instruction and refresh_dossier_from_saved_data both run for
-    real — including ProjetService.create_or_update_from_ds_dossier, which is
-    what actually clears notified_at once it sees the dossier's DS state is
-    no longer treated. notified_at itself is never mocked."""
+    real. The dotations keep their status, but are no longer notified."""
     dossier = DossierFactory(
         perimetre=collegue.perimetre,
         porteur_de_projet_arrondissement=None,
         porteur_de_projet_departement=collegue.perimetre.departement,
         ds_state=Dossier.State.ACCEPTE,
+        ds_date_traitement=timezone.now() - timedelta(days=1),
     )
     DossierDataFactory(dossier=dossier, raw_data=_full_ds_dossier_data())
-    projet = ProjetFactory(dossier_ds=dossier, notified_at=timezone.now())
+    projet = ProjetFactory(dossier_ds=dossier)
     EnveloppeProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
         dotation=Dotation.DETR,
         assiette=10_000,
-        date_programmation=timezone.now(),
+        date_programmation=timezone.now() - timedelta(days=2),
+        notified_at=timezone.now() - timedelta(days=1),
     )
 
     with patch(
@@ -144,7 +142,8 @@ def test_post_clears_notified_at(client, collegue):
         client.post(_url(projet), {}, headers={"HX-Request": "true"})
 
     projet.refresh_from_db()
-    assert projet.notified_at is None
+    assert not projet.all_dotations_are_notified
+    assert projet.dotation_detr.status == ProjetStatus.ACCEPTED
 
 
 @patch("gsl.projet.forms.DsService.repasser_en_instruction")
@@ -163,7 +162,7 @@ def test_get_returns_404_for_out_of_perimeter_projet():
     other_collegue = CollegueWithDSProfileFactory(perimetre=other_perimetre)
     projet = ProjetFactory(
         dossier_ds__perimetre=PerimetreDepartementalFactory(),
-        notified_at=timezone.now(),
+        dossier_ds__ds_state=Dossier.State.ACCEPTE,
     )
     EnveloppeProjetFactory(projet=projet, status=ProjetStatus.ACCEPTED)
     client = ClientWithLoggedUserFactory(other_collegue)
@@ -262,7 +261,7 @@ def _notified_projet_with_dn_history(collegue, statuses, ds_state):
         ds_date_traitement=date_traitement,
     )
     DossierDataFactory(dossier=dossier, raw_data=raw_data)
-    projet = ProjetFactory(dossier_ds=dossier, notified_at=date_traitement)
+    projet = ProjetFactory(dossier_ds=dossier)
     for dotation, status in statuses.items():
         EnveloppeProjetFactory(
             projet=projet,
@@ -270,6 +269,7 @@ def _notified_projet_with_dn_history(collegue, statuses, ds_state):
             dotation=dotation,
             assiette=10_000,
             date_programmation=date_programmation,
+            notified_at=date_traitement,
         )
     return projet
 
@@ -278,14 +278,15 @@ def _notified_projet_with_dn_history(collegue, statuses, ds_state):
 def test_double_dotation_post_calls_ds_once(mock_repasser, collegue):
     projet = ProjetFactory(
         dossier_ds__perimetre=collegue.perimetre,
-        notified_at=timezone.now(),
+        dossier_ds__ds_state=Dossier.State.ACCEPTE,
     )
-    EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.ACCEPTED, dotation=Dotation.DETR
-    )
-    EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.ACCEPTED, dotation=Dotation.DSIL
-    )
+    for dotation in (Dotation.DETR, Dotation.DSIL):
+        EnveloppeProjetFactory(
+            projet=projet,
+            status=ProjetStatus.ACCEPTED,
+            dotation=dotation,
+            notified_at=timezone.now(),
+        )
     client = ClientWithLoggedUserFactory(collegue)
     client.post(_url(projet), {}, headers={"HX-Request": "true"})
     mock_repasser.assert_called_once()

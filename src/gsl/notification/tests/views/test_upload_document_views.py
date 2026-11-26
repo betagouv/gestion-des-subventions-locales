@@ -222,8 +222,7 @@ def test_import_on_a_notified_projet_is_404(
     enveloppe_projet, correct_perimetre_client_with_user_logged, url
 ):
     projet = enveloppe_projet.projet
-    projet.notified_at = timezone.now()
-    projet.save()
+    projet.enveloppeprojet_set.update(notified_at=timezone.now())
 
     response = correct_perimetre_client_with_user_logged.post(
         url(projet), {"file": _pdf()}, headers=HTMX

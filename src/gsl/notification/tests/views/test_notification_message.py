@@ -236,7 +236,7 @@ class TestForm:
         ds.assert_called_once()
         assert ds.call_args.kwargs["motivation"] == "Bravo"
         projet.refresh_from_db()
-        assert projet.notified_at is not None
+        assert projet.all_dotations_are_notified
 
     def test_save_uses_dn_date_traitement_for_notified_at(self, perimetre, collegue):
         dossier = DossierFactory(
@@ -270,7 +270,7 @@ class TestForm:
             form.save(user=collegue)
 
         projet.refresh_from_db()
-        assert projet.notified_at == dn_date_traitement
+        assert projet.last_notification_date == dn_date_traitement
 
     def test_save_passer_en_instruction_first_does_not_change_dotation_status(
         self, perimetre, collegue
@@ -330,7 +330,7 @@ class TestForm:
         enveloppe_projet.refresh_from_db()
         assert enveloppe_projet.status == ProjetStatus.ACCEPTED
         projet.refresh_from_db()
-        assert projet.notified_at is not None
+        assert projet.all_dotations_are_notified
 
         actions = ProjetAction.objects.filter(projet=projet)
         assert actions.count() == 2
@@ -614,7 +614,7 @@ class TestView:
         # bind to this notify form's body and render as invalid.
         assert "fr-error-text" not in content
         projet.refresh_from_db()
-        assert projet.notified_at is not None
+        assert projet.all_dotations_are_notified
         # The "3 - Notifier" block swaps its form for the sent confirmation.
         assert "Message de notification envoyé" in content
         assert 'name="message"' not in content
@@ -680,7 +680,7 @@ class TestView:
             == 2
         )
         projet.refresh_from_db()
-        assert projet.notified_at == second_date_traitement
+        assert projet.last_notification_date == second_date_traitement
 
     def test_notifications_are_displayed_in_a_table(
         self, client_with_user_logged, collegue, perimetre
@@ -738,7 +738,7 @@ class TestView:
         )
         assert response.status_code == 200
         projet.refresh_from_db()
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
         assert not ProjetAction.objects.filter(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         ).exists()
@@ -779,7 +779,7 @@ class TestView:
         assert 'id="notification-message-block"' in content
         assert 'id="notified-block"' in content
         projet.refresh_from_db()
-        assert projet.notified_at is not None
+        assert projet.all_dotations_are_notified
         assert ProjetAction.objects.filter(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         ).exists()
@@ -820,7 +820,7 @@ class TestView:
         assert 'id="notification-message-block"' in content
         assert 'id="notified-block"' in content
         projet.refresh_from_db()
-        assert projet.notified_at is not None
+        assert projet.all_dotations_are_notified
         assert ProjetAction.objects.filter(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         ).exists()
@@ -838,7 +838,7 @@ class TestView:
         )
         assert response.status_code == 200
         projet.refresh_from_db()
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
         assert not ProjetAction.objects.filter(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         ).exists()
@@ -856,7 +856,7 @@ class TestView:
         )
         assert response.status_code == 200
         projet.refresh_from_db()
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
         assert not ProjetAction.objects.filter(
             projet=projet, action_type=ProjetAction.TYPE_NOTIFIED
         ).exists()
@@ -892,8 +892,7 @@ class TestView:
         self, client_with_user_logged, perimetre
     ):
         projet = _accepted_projet(perimetre)
-        projet.notified_at = timezone.now()
-        projet.save()
+        projet.enveloppeprojet_set.update(notified_at=timezone.now())
 
         url = reverse(
             "fragment:gsl_notification:notification_message",

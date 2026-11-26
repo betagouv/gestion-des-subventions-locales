@@ -734,9 +734,6 @@ class EnveloppeProjet(BaseModel):
             enveloppe=nouveau.enveloppe,
             details=str(self.enveloppe.annee),
         )
-        self.projet.notified_at = None
-        self.projet.save(update_fields=["notified_at"])
-
         # A second report finds the dossier already back in instruction.
         if self.dossier_ds.is_treated:
             DsService().repasser_en_instruction(self.dossier_ds, user)
@@ -758,9 +755,6 @@ class EnveloppeProjet(BaseModel):
         nouveau = self.set_back_status_to_processing_without_ds(actor=user)
         for other in others:
             other.set_back_status_to_processing_without_ds(actor=user)
-        self.projet.notified_at = None
-        self.projet.save()
-
         if is_notified:
             ds_service.repasser_en_instruction(self.projet.dossier_ds, user)
 
