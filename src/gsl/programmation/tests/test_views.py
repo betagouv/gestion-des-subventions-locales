@@ -142,7 +142,7 @@ class TestProgrammationProjetListViewWithDotation:
             return re.search(r'data-actions="([^"]*)"', checkbox).group(1)
 
         assert actions(accepted) == "generate_accepted"
-        assert actions(refused) == "generate_refus"
+        assert actions(refused) == "generate_refus notify_refus"
         assert actions(notified) == ""
 
     def test_list_view_renders_import_documents_button(

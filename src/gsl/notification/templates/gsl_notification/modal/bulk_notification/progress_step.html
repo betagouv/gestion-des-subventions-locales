@@ -1,0 +1,53 @@
+{% extends "gsl_notification/modal/step_base.html" %}
+{% load custom_pluralize %}
+{% block step_div_attrs %}
+    {% if job.is_unfinished %}
+        hx-get="{% url 'gsl_notification:notify-refus-progress' dotation job.pk %}"
+        hx-trigger="every 1s"
+        hx-swap="outerHTML"
+        hx-target="this"
+    {% endif %}
+{% endblock step_div_attrs %}
+{% block content %}
+    {% if job.is_unfinished %}
+        <div class="fr-alert fr-alert--info fr-mt-3w"
+             role="status"
+             aria-live="polite">
+            <p>{{ job.processed }} / {{ job.total }} projet{{ job.total|custom_pluralize }} traité{{ job.total|custom_pluralize }}</p>
+        </div>
+        <div class="fr-mt-3w fr-grid-row fr-grid-row--gutters fr-grid-row--center"
+             aria-hidden="true">
+            <span class="fr-icon-refresh-line generate-docs-spinner"></span>
+        </div>
+    {% else %}
+        {% with count=job.succeeded_count %}
+            {% if count %}
+                <div class="fr-alert fr-alert--success fr-mt-3w" role="status">
+                    <p>{{ count }} projet{{ count|custom_pluralize }} notifié{{ count|custom_pluralize }}</p>
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% if job.report %}
+            <div class="fr-alert fr-alert--warning fr-mt-3w" role="alert">
+                <h3 class="fr-alert__title">
+                    {{ job.report|length }} projet{{ job.report|length|custom_pluralize }} non notifié{{ job.report|length|custom_pluralize }}
+                </h3>
+                {% for message, labels in job.errors_summary.items %}
+                    <p class="fr-mb-0">{{ message }}</p>
+                    <ul>
+                        {% for label in labels %}<li>{{ label }}</li>{% endfor %}
+                    </ul>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock content %}
+{% block footer_buttons %}
+    <li>
+        <button class="fr-btn fr-btn--secondary"
+                aria-controls="{{ modal_id }}"
+                type="button">
+            Fermer
+        </button>
+    </li>
+{% endblock footer_buttons %}
