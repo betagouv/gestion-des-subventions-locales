@@ -433,17 +433,6 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         return self.notified_at is not None
 
     @property
-    def to_notify(self) -> bool:
-        if self.all_dotations_are_notified:
-            return False
-
-        enveloppe_projets = self.enveloppeprojet_set.all()
-        if not enveloppe_projets:
-            return False
-
-        return all(dp.is_treated for dp in enveloppe_projets)
-
-    @property
     def has_accepted_dotation(self) -> bool:
         return any(
             dp.status == ProjetStatus.ACCEPTED for dp in self.enveloppeprojet_set.all()

@@ -85,9 +85,6 @@ class EnveloppeProjetQuerySet(models.QuerySet):
     def for_perimetre(self, perimetre: Perimetre | None):
         return self.filter(projet__in=Projet.objects.for_perimetre(perimetre))
 
-    def to_notify(self):
-        return self.filter(projet__in=Projet.objects.to_notify())
-
     def annotate_notification_status(self):
         return self.annotate(
             _notification_status=Case(

@@ -127,7 +127,6 @@ def test_all_dotations_are_notified(notified_at, expected_all_dotations_are_noti
 def test_to_notify_false_without_enveloppe_projet():
     """Project without any EnveloppeProjet should return False."""
     projet = ProjetFactory()
-    assert projet.to_notify is False
     assert projet not in Projet.objects.to_notify()
 
 
@@ -138,7 +137,7 @@ def test_to_notify_false_with_prcessing_enveloppe_projet():
         projet=projet, dotation=Dotation.DETR, status=ProjetStatus.PROCESSING
     )
 
-    assert projet.to_notify is False
+    assert projet not in Projet.objects.to_notify()
 
 
 @pytest.mark.parametrize(
@@ -148,7 +147,7 @@ def test_to_notify_true_with_treated_enveloppe_projet(status):
     """Project with programmation but not notified should return True."""
     projet = ProjetFactory()
     EnveloppeProjetFactory(projet=projet, dotation=Dotation.DETR, status=status)
-    assert projet.to_notify is True
+    assert projet in Projet.objects.to_notify()
 
 
 def test_to_notify_false_when_projet_already_notified():
@@ -158,7 +157,7 @@ def test_to_notify_false_when_projet_already_notified():
         projet=projet, dotation=Dotation.DETR, status=ProjetStatus.ACCEPTED
     )
 
-    assert projet.to_notify is False
+    assert projet not in Projet.objects.to_notify()
 
 
 def test_to_notify_with_double_dotation_all_notified():
@@ -171,7 +170,7 @@ def test_to_notify_with_double_dotation_all_notified():
         projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.ACCEPTED
     )
 
-    assert projet.to_notify is False
+    assert projet not in Projet.objects.to_notify()
 
 
 def test_to_notify_with_double_dotation_partial_programmation():
@@ -184,7 +183,7 @@ def test_to_notify_with_double_dotation_partial_programmation():
         projet=projet, dotation=Dotation.DSIL, status=ProjetStatus.PROCESSING
     )
 
-    assert projet.to_notify is False
+    assert projet not in Projet.objects.to_notify()
 
 
 def test_with_at_least_one_treated_dotation():

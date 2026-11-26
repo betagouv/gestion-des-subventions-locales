@@ -1395,24 +1395,3 @@ def test_clean_rejects_an_enveloppe_outside_the_projet_perimetre():
         "Le périmètre de l'enveloppe ne contient pas le périmètre du projet."
         in exc_info.value.message_dict["enveloppe"][0]
     )
-
-
-def test_to_notify():
-    accepted_not_notified = EnveloppeProjetFactory(
-        status=ProjetStatus.ACCEPTED, projet__notified_at=None
-    )
-    EnveloppeProjetFactory(
-        status=ProjetStatus.ACCEPTED, projet__notified_at=timezone.now()
-    )
-    refused_not_notified = EnveloppeProjetFactory(
-        status=ProjetStatus.REFUSED, projet__notified_at=None
-    )
-    EnveloppeProjetFactory(
-        status=ProjetStatus.REFUSED, projet__notified_at=timezone.now()
-    )
-
-    result = EnveloppeProjet.objects.to_notify()
-
-    assert accepted_not_notified in result
-    assert refused_not_notified in result
-    assert result.count() == 2

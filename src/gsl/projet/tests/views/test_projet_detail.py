@@ -14,6 +14,7 @@ from gsl.core.tests.factories import (
 )
 
 from ...constants import ProjetStatus
+from ...models import Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db()
@@ -189,7 +190,7 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
     )
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
-    assert projet.to_notify is False
+    assert projet not in Projet.objects.to_notify()
     assert projet.notified_at is not None
     assert response.context["projet"].all_dotations_have_processing_status is False
     assert notification_status_message in response.content.decode()
