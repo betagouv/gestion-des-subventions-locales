@@ -6,13 +6,13 @@
         {% if enveloppe_projet.notification_status %}
             {% ui_status_badge type=enveloppe_projet.notification_status %}
         {% endif %}
-        <ul class="fr-mt-2w">
+        <ul class="fr-mt-2w no-list-style">
             {% if enveloppe_projet.dotation == "DSIL" %}
-                <li>Catégorie d'opération DSIL : {{ dossier.demande_categorie_dsil.label|default:"—" }}</li>
+                <li><span aria-hidden="true">📍</span> Catégorie d'opération : <b>{{ dossier.demande_categorie_dsil.label|default:"—" }}</b></li>
             {% elif dossier.demande_has_categorie_detr == False %}
-                <li>Catégorie d'opération DETR : Hors catégorie</li>
+                <li><span aria-hidden="true">📍</span> Catégorie d'opération : <b>Hors catégorie</b></li>
             {% else %}
-                <li>Catégorie d'opération DETR : {{ dossier.demande_categorie_detr.complete_label|default:"—" }}</li>
+                <li><span aria-hidden="true">📍</span> Catégorie d'opération : <b>{{ dossier.demande_categorie_detr.complete_label|default:"—" }}</b></li>
             {% endif %}
         </ul>
         {% if enveloppe_projet.status == "processing" %}
@@ -23,16 +23,16 @@
             {% endif %}
             <ul>
                 <li>
-                    <span aria-hidden="true">💰</span> Assiette subventionnable : {{ enveloppe_projet.assiette|euro }}
+                    <span aria-hidden="true">💰</span> Assiette subventionnable : <b>{{ enveloppe_projet.assiette|euro }}</b>
                 </li>
                 <li>
-                    <span aria-hidden="true">🧾</span> Taux de subvention sollicité : {{ enveloppe_projet.taux_de_subvention_sollicite|percent:2|default:"—" }}
+                    <span aria-hidden="true">🧾</span> Taux de subvention sollicité : <b>{{ enveloppe_projet.taux_de_subvention_sollicite|percent:2|default:"—" }}</b>
                 </li>
                 <li>
-                    <span aria-hidden="true">🧾</span> Montant retenu : {{ enveloppe_projet.montant_retenu|euro }}
+                    <span aria-hidden="true">🧾</span> Montant retenu : <b>{{ enveloppe_projet.montant_retenu|euro }}</b>
                 </li>
                 <li>
-                    <span aria-hidden="true">🧾</span> Taux retenu : {{ enveloppe_projet.taux_retenu|percent:2|default:"—" }}
+                    <span aria-hidden="true">🧾</span> Taux retenu : <b>{{ enveloppe_projet.taux_retenu|percent:2|default:"—" }}</b>
                 </li>
             </ul>
         {% endif %}
