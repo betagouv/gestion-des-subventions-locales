@@ -52,6 +52,7 @@ from gsl.simulation.forms import SimulationProjetForm
 from gsl.simulation.models import SimulationProjet
 
 from .forms import (
+    EnveloppeProjetDeleteForm,
     ProjetCommentForm,
     ProjetForm,
     ProjetNoteForm,
@@ -395,6 +396,46 @@ class ProjetNoteCreateView(ProjetNotesContextMixin, CreateView):
             return referer
         return reverse(
             "projet:get-projet-notes", kwargs={"projet_id": self.object.projet.pk}
+        )
+
+
+class EnveloppeProjetDeleteView(DeleteView):
+    model = EnveloppeProjet
+    form_class = EnveloppeProjetDeleteForm
+    http_method_names = ["post"]
+
+    def get_queryset(self):
+        projets = (
+            Projet.objects.all()
+            if self.request.user.is_staff
+            else Projet.objects.for_user(self.request.user)
+        )
+        return EnveloppeProjet.objects.filter(projet__in=projets)
+
+    def get_form_kwargs(self):
+        return {
+            **super().get_form_kwargs(),
+            "instance": self.object,
+            "user": self.request.user,
+        }
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            f"La dotation {self.object.dotation} - {self.object.enveloppe.annee} "
+            "a bien été supprimée.",
+        )
+        return redirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        for error in form.non_field_errors():
+            messages.error(self.request, error)
+        return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse(
+            "projet:get-projet-dotations", kwargs={"projet_id": self.object.projet_id}
         )
 
 

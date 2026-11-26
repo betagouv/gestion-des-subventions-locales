@@ -1,13 +1,16 @@
 import re
 
 import pytest
+from django.contrib.messages import get_messages
 from django.shortcuts import reverse
 
-from dn.sync.models import Cofinancement
+from dn.sync.models import Cofinancement, Dotation
 from dn.sync.tests.factories import CategorieDetrFactory, CategorieDsilFactory
 from gsl.core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
+from gsl.historique.models import ProjetAction
 from gsl.programmation.tests.factories import DetrEnveloppeFactory, DsilEnveloppeFactory
 from gsl.projet.constants import ProjetStatus
+from gsl.projet.models import EnveloppeProjet
 from gsl.projet.tests.factories import (
     DetrProjetFactory,
     DsilProjetFactory,
@@ -402,3 +405,123 @@ def test_dotation_card_fragment_cannot_be_fetched_for_a_programmed_dotation(edit
     response = _get_dotation_card_fragment(user, enveloppe_projet, edit=edit)
 
     assert response.status_code == 404
+
+
+def _delete_url(enveloppe_projet):
+    return reverse(
+        "gsl_projet:enveloppe-projet-delete", kwargs={"pk": enveloppe_projet.pk}
+    )
+
+
+def _projet_with_detr_and_dsil(user, detr_status=ProjetStatus.PROCESSING):
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    detr = DetrProjetFactory(projet=projet, status=detr_status)
+    dsil = DsilProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+    return projet, detr, dsil
+
+
+def test_dotation_card_displays_delete_action_with_its_confirmation_modal():
+    user = CollegueFactory()
+    projet, detr, _ = _projet_with_detr_and_dsil(user)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert _delete_url(detr) in content
+    assert f'aria-controls="delete-enveloppe-projet-modal-{detr.pk}"' in content
+    assert f'id="delete-enveloppe-projet-modal-{detr.pk}"' in content
+    assert f'form="delete-enveloppe-projet-form-{detr.pk}"' in content
+
+
+def test_dotation_card_hides_delete_action_of_the_only_enveloppe_projet():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DetrProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert _delete_url(enveloppe_projet) not in content
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
+)
+def test_dotation_card_hides_delete_action_of_a_programmed_enveloppe_projet(status):
+    user = CollegueFactory()
+    projet, detr, dsil = _projet_with_detr_and_dsil(user, detr_status=status)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert _delete_url(detr) not in content
+    assert _delete_url(dsil) in content
+
+
+def test_delete_enveloppe_projet():
+    user = CollegueFactory()
+    projet, detr, dsil = _projet_with_detr_and_dsil(user)
+
+    response = ClientWithLoggedUserFactory(user=user).post(_delete_url(detr))
+
+    assert response.status_code == 302
+    assert response.url == reverse(
+        "gsl_projet:get-projet-dotations", kwargs={"projet_id": projet.id}
+    )
+    assert list(EnveloppeProjet.all_objects.filter(projet=projet)) == [dsil]
+    projet.refresh_from_db()
+    assert projet.dotations_updated_in_app is True
+    action = ProjetAction.objects.get(projet=projet)
+    assert action.action_type == ProjetAction.TYPE_DOTATION_REMOVED
+    assert action.dotation == Dotation.DETR
+    assert action.actor == user
+    assert action.source == ProjetAction.SOURCE_TURGOT
+    messages = [str(m) for m in get_messages(response.wsgi_request)]
+    assert messages == [
+        f"La dotation DETR - {detr.enveloppe.annee} a bien été supprimée."
+    ]
+
+
+def test_cannot_delete_the_only_enveloppe_projet():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DetrProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _delete_url(enveloppe_projet)
+    )
+
+    assert response.status_code == 302
+    assert EnveloppeProjet.objects.filter(pk=enveloppe_projet.pk).exists()
+    assert not ProjetAction.objects.filter(projet=projet).exists()
+    messages = [str(m) for m in get_messages(response.wsgi_request)]
+    assert len(messages) == 1
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
+)
+def test_cannot_delete_a_programmed_enveloppe_projet(status):
+    user = CollegueFactory()
+    projet, detr, _ = _projet_with_detr_and_dsil(user, detr_status=status)
+
+    ClientWithLoggedUserFactory(user=user).post(_delete_url(detr))
+
+    assert EnveloppeProjet.objects.filter(pk=detr.pk).exists()
+
+
+def test_cannot_delete_an_enveloppe_projet_outside_perimetre():
+    projet, detr, _ = _projet_with_detr_and_dsil(CollegueFactory())
+
+    response = ClientWithLoggedUserFactory(user=CollegueFactory()).post(
+        _delete_url(detr)
+    )
+
+    assert response.status_code == 404
+    assert EnveloppeProjet.objects.filter(pk=detr.pk).exists()
+
+
+def test_delete_enveloppe_projet_get_is_not_allowed():
+    user = CollegueFactory()
+    _, detr, _ = _projet_with_detr_and_dsil(user)
+
+    response = ClientWithLoggedUserFactory(user=user).get(_delete_url(detr))
+
+    assert response.status_code == 405

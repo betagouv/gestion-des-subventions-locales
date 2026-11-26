@@ -73,6 +73,16 @@
                           data-controller="auto-dismiss">Modifications enregistrées</span>
                 </li>
             {% endif %}
+            {% if enveloppe_projet.can_be_deleted %}
+                <li class="fr-ml-auto">
+                    <button type="button"
+                            class="fr-btn fr-btn--secondary fr-icon-delete-line"
+                            aria-controls="delete-enveloppe-projet-modal-{{ enveloppe_projet.pk }}"
+                            data-fr-opened="false">
+                        Supprimer
+                    </button>
+                </li>
+            {% endif %}
         </ul>
     {% endif %}
 </div>

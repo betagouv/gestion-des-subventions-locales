@@ -1,5 +1,5 @@
 {% extends "gsl_projet/projet.html" %}
-{% load gsl_filters %}
+{% load gsl_filters ui_tags %}
 
 {% block tab_projet %}
     <div class="fr-grid-row fr-grid-row--gutters">
@@ -31,7 +31,20 @@
     <h3 class="fr-h4 fr-mt-4w">Dotations</h3>
     <div class="fr-grid-row fr-grid-row--gutters fr-mt-3w">
         {% for enveloppe_projet in enveloppe_projets %}
-            <div class="fr-col-12 fr-col-md-6">{% include "includes/projet_detail/_dotation_card.html" %}</div>
+            <div class="fr-col-12 fr-col-lg-6">{% include "includes/projet_detail/_dotation_card.html" %}</div>
         {% endfor %}
     </div>
 {% endblock tab_projet %}
+
+{% block modal %}
+    {{ block.super }}
+    {% for enveloppe_projet in enveloppe_projets %}
+        {% if enveloppe_projet.can_be_deleted %}
+            {% with pk=enveloppe_projet.pk|stringformat:"s" %}
+                {% with modal_id="delete-enveloppe-projet-modal-"|add:pk form_id="delete-enveloppe-projet-form-"|add:pk %}
+                    {% ui_confirmation_modal modal_id=modal_id title="Supprimer la dotation" text="Êtes-vous sûr(e) de vouloir supprimer cette dotation ? Le projet ne sera plus affiché dans les simulations de cette dotation. Cette action est irréversible." form=form_id action_text="Supprimer" %}
+                {% endwith %}
+            {% endwith %}
+        {% endif %}
+    {% endfor %}
+{% endblock modal %}
