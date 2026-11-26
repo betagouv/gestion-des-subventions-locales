@@ -384,6 +384,17 @@ class EnveloppeProjet(BaseModel):
         )
 
     @property
+    def can_be_set_back_to_processing(self) -> bool:
+        """Only once programmed, and on the most recent campagne of its projet: the
+        older campagnes are closed."""
+        return (
+            self.is_programmee
+            and not self.projet.enveloppeprojet_set.filter(
+                enveloppe__annee__gt=self.enveloppe.annee
+            ).exists()
+        )
+
+    @property
     def other_dotations_in_the_same_campagne(self) -> List["EnveloppeProjet"]:
         # Python side filtering so we benefit from prefetching
         return [
@@ -680,10 +691,20 @@ class EnveloppeProjet(BaseModel):
 
     @transaction.atomic
     def set_back_status_to_processing(self, user: Collegue) -> "EnveloppeProjet":
-        is_notified = self.projet.has_been_notified
+        """A notified dotation reopens its whole campagne: DN holds a single status
+        per dossier, which goes back to instruction."""
+        is_notified = self.is_notified
+        # Computed before superseding, which changes the courant enveloppe projets.
+        others = (
+            [ep for ep in self.other_dotations_in_the_same_campagne if ep.is_programmee]
+            if is_notified
+            else []
+        )
         ds_service = DsService()
 
         nouveau = self.set_back_status_to_processing_without_ds(actor=user)
+        for other in others:
+            other.set_back_status_to_processing_without_ds(actor=user)
         self.projet.notified_at = None
         self.projet.save()
 

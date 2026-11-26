@@ -46,5 +46,18 @@
                 {% endwith %}
             {% endwith %}
         {% endif %}
+        {% if enveloppe_projet.can_be_set_back_to_processing %}
+            {% with pk=enveloppe_projet.pk|stringformat:"s" annee=enveloppe_projet.enveloppe.annee|stringformat:"s" %}
+                {% with modal_id="revert-enveloppe-projet-modal-"|add:pk form_id="revert-enveloppe-projet-form-"|add:pk %}
+                    {% if enveloppe_projet.is_notified %}
+                        {% with text="Cette dotation a été notifiée : toutes les dotations de la campagne "|add:annee|add:" repasseront en traitement dans toutes les simulations, et le projet sera retiré de la programmation. Le dossier repassera aussi en instruction sur Démarche Numérique : le demandeur en sera prévenu via la messagerie." %}
+                            {% ui_confirmation_modal modal_id=modal_id title="Repasser en traitement" icon="fr-icon-arrow-go-back-fill" text=text form=form_id action_text="Repasser en traitement" is_title_red=False %}
+                        {% endwith %}
+                    {% else %}
+                        {% ui_confirmation_modal modal_id=modal_id title="Repasser en traitement" icon="fr-icon-arrow-go-back-fill" text="Cette dotation repassera en traitement dans toutes les simulations, et le projet sera retiré de la programmation." form=form_id action_text="Repasser en traitement" is_title_red=False %}
+                    {% endif %}
+                {% endwith %}
+            {% endwith %}
+        {% endif %}
     {% endfor %}
 {% endblock modal %}

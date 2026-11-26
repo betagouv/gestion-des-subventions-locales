@@ -1,10 +1,14 @@
 import re
+from unittest import mock
 
 import pytest
 from django.contrib.messages import get_messages
 from django.shortcuts import reverse
+from django.utils import timezone
 
+from dn.sync.exceptions import DsServiceException
 from dn.sync.models import Cofinancement, Dotation
+from dn.sync.services import DsService
 from dn.sync.tests.factories import CategorieDetrFactory, CategorieDsilFactory
 from gsl.core.tests.factories import ClientWithLoggedUserFactory, CollegueFactory
 from gsl.historique.models import ProjetAction
@@ -523,5 +527,235 @@ def test_delete_enveloppe_projet_get_is_not_allowed():
     _, detr, _ = _projet_with_detr_and_dsil(user)
 
     response = ClientWithLoggedUserFactory(user=user).get(_delete_url(detr))
+
+    assert response.status_code == 405
+
+
+# -- Repasser en traitement --
+
+
+def _revert_url(enveloppe_projet):
+    return reverse(
+        "gsl_projet:enveloppe-projet-revert-to-processing",
+        kwargs={"pk": enveloppe_projet.pk},
+    )
+
+
+def _projet_programmed_on_2026(user, notified=False):
+    notified_at = timezone.now() if notified else None
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre, notified_at=notified_at
+    )
+    detr = DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+        notified_at=notified_at,
+    )
+    dsil = DsilProjetFactory(
+        projet=projet,
+        status=ProjetStatus.REFUSED,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+        notified_at=notified_at,
+    )
+    return projet, detr, dsil
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
+)
+def test_programmed_dotation_card_displays_revert_to_processing_action(status):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DetrProjetFactory(projet=projet, status=status)
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert _revert_url(enveloppe_projet) in content
+    modal_id = f"revert-enveloppe-projet-modal-{enveloppe_projet.pk}"
+    assert f'aria-controls="{modal_id}"' in content
+    assert f'id="{modal_id}"' in content
+    assert f'form="revert-enveloppe-projet-form-{enveloppe_projet.pk}"' in content
+    assert (
+        "Cette dotation repassera en traitement dans toutes les simulations, et le "
+        "projet sera retiré de la programmation." in content
+    )
+    assert "repassera aussi en instruction" not in content
+
+
+def test_notified_dotation_revert_modal_warns_about_the_whole_campagne():
+    user = CollegueFactory()
+    projet, _, _ = _projet_programmed_on_2026(user, notified=True)
+
+    text = _get_dotations_tab_text(user, projet)
+
+    assert (
+        "toutes les dotations de la campagne 2026 repasseront en traitement dans "
+        "toutes les simulations, et le projet sera retiré de la programmation. Le "
+        "dossier repassera aussi en instruction sur Démarche Numérique" in text
+    )
+
+
+def test_processing_dotation_card_has_no_revert_to_processing_action():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DetrProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    assert _revert_url(enveloppe_projet) not in _get_dotations_tab_content(user, projet)
+
+
+def test_dotation_card_of_a_closed_campagne_has_no_revert_to_processing_action():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    closed = DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2025),
+    )
+    current = DsilProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+    )
+
+    content = _get_dotations_tab_content(user, projet)
+
+    assert _revert_url(closed) not in content
+    assert _revert_url(current) in content
+
+
+@mock.patch.object(DsService, "repasser_en_instruction")
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+def test_revert_a_not_notified_dotation_to_processing(
+    mock_update_ds, mock_repasser_en_instruction
+):
+    user = CollegueFactory()
+    projet, detr, dsil = _projet_programmed_on_2026(user)
+
+    response = ClientWithLoggedUserFactory(user=user).post(_revert_url(detr))
+
+    assert response.status_code == 302
+    assert response.url == reverse(
+        "gsl_projet:get-projet-dotations", kwargs={"projet_id": projet.id}
+    )
+    courants = EnveloppeProjet.objects.filter(projet=projet)
+    assert courants.get(enveloppe=detr.enveloppe).status == ProjetStatus.PROCESSING
+    assert courants.get(enveloppe=dsil.enveloppe).status == ProjetStatus.REFUSED
+    mock_update_ds.assert_called_once()
+    mock_repasser_en_instruction.assert_not_called()
+    assert ProjetAction.objects.filter(
+        projet=projet,
+        action_type=ProjetAction.TYPE_STATUS_CHANGE,
+        status=ProjetStatus.PROCESSING,
+        actor=user,
+        dotation=Dotation.DETR,
+    ).exists()
+    assert [m.message for m in get_messages(response.wsgi_request)] == [
+        "La dotation DETR - 2026 est repassée en traitement."
+    ]
+
+
+@mock.patch.object(DsService, "repasser_en_instruction")
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+def test_revert_a_notified_dotation_reopens_its_campagne_and_dn_instruction(
+    _mock_update_ds, mock_repasser_en_instruction
+):
+    user = CollegueFactory()
+    projet, detr, dsil = _projet_programmed_on_2026(user, notified=True)
+
+    response = ClientWithLoggedUserFactory(user=user).post(_revert_url(detr))
+
+    courants = EnveloppeProjet.objects.filter(projet=projet)
+    assert courants.get(enveloppe=detr.enveloppe).status == ProjetStatus.PROCESSING
+    assert courants.get(enveloppe=dsil.enveloppe).status == ProjetStatus.PROCESSING
+    projet.refresh_from_db()
+    assert projet.notified_at is None
+    mock_repasser_en_instruction.assert_called_once_with(projet.dossier_ds, user)
+    assert [m.message for m in get_messages(response.wsgi_request)] == [
+        "Les dotations de la campagne 2026 sont repassées en traitement et le "
+        "dossier est repassé en instruction sur Démarche Numérique."
+    ]
+
+
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+@mock.patch.object(
+    DsService,
+    "repasser_en_instruction",
+    side_effect=DsServiceException("DN indisponible"),
+)
+def test_revert_to_processing_is_rolled_back_when_dn_fails(
+    _mock_repasser, _mock_update
+):
+    user = CollegueFactory()
+    projet, detr, dsil = _projet_programmed_on_2026(user, notified=True)
+
+    response = ClientWithLoggedUserFactory(user=user).post(_revert_url(detr))
+
+    assert response.status_code == 302
+    courants = EnveloppeProjet.objects.filter(projet=projet)
+    assert set(courants) == {detr, dsil}
+    assert courants.get(pk=detr.pk).status == ProjetStatus.ACCEPTED
+    projet.refresh_from_db()
+    assert projet.notified_at is not None
+    assert [m.message for m in get_messages(response.wsgi_request)] == [
+        "DN indisponible"
+    ]
+
+
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+def test_cannot_revert_a_processing_dotation(mock_update_ds):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DetrProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _revert_url(enveloppe_projet)
+    )
+
+    assert response.status_code == 302
+    assert list(EnveloppeProjet.all_objects.filter(projet=projet)) == [enveloppe_projet]
+    mock_update_ds.assert_not_called()
+    assert len(list(get_messages(response.wsgi_request))) == 1
+
+
+@mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
+def test_cannot_revert_a_dotation_of_a_closed_campagne(mock_update_ds):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    closed = DetrProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=2025),
+    )
+    DsilProjetFactory(
+        projet=projet,
+        status=ProjetStatus.PROCESSING,
+        enveloppe=DsilEnveloppeFactory(perimetre=user.perimetre, annee=2026),
+    )
+
+    ClientWithLoggedUserFactory(user=user).post(_revert_url(closed))
+
+    closed.refresh_from_db()
+    assert closed.is_courant
+    assert closed.status == ProjetStatus.ACCEPTED
+    mock_update_ds.assert_not_called()
+
+
+def test_cannot_revert_a_dotation_outside_perimetre():
+    projet = ProjetFactory()
+    enveloppe_projet = DetrProjetFactory(projet=projet, status=ProjetStatus.ACCEPTED)
+
+    response = ClientWithLoggedUserFactory(user=CollegueFactory()).post(
+        _revert_url(enveloppe_projet)
+    )
+
+    assert response.status_code == 404
+
+
+def test_revert_to_processing_get_is_not_allowed():
+    user = CollegueFactory()
+    _, detr, _ = _projet_programmed_on_2026(user)
+
+    response = ClientWithLoggedUserFactory(user=user).get(_revert_url(detr))
 
     assert response.status_code == 405
