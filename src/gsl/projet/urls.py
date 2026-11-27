@@ -15,11 +15,6 @@ urlpatterns = [
         name="get-projet",
     ),
     path(
-        "voir/<int:projet_id>/modifier/",
-        views.ProjetUpdateView.as_view(),
-        name="patch-projet",
-    ),
-    path(
         "voir/<int:projet_id>/dotations/",
         views.ProjetDotationsView.as_view(),
         name="get-projet-dotations",

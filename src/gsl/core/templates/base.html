@@ -53,7 +53,6 @@
                     "autocomplete": "{% static 'ui/controllers/autocomplete.js' %}",
                     "documentImport": "{% static 'ui/controllers/document_import_controller.js' %}",
                     "fileDropzone": "{% static 'ui/controllers/file_dropzone_controller.js' %}",
-                    "doubleDotation": "{% static 'js/controllers/doubleDotation.js' %}",
                     "modeleArreteForm": "{% static 'js/modeleArreteForm.js' %}",
                     "deleteNotificationDocumentModal": "{% static 'js/deleteNotificationDocumentModal.js' %}",
                     "skipDocumentToggle": "{% static 'js/skipDocumentToggle.js' %}",
@@ -61,7 +60,6 @@
                     "bindAmountFields": "{% static 'js/controllers/bindAmountFields.js' %}",
                     "cancelPollOnModalClose": "{% static 'js/controllers/cancelPollOnModalClose.js' %}",
                     "formUtils": "{% static 'js/controllers/formUtils.js' %}",
-                    "dotationDropdown": "{% static 'js/controllers/dotationDropdown.js' %}",
                     "commentArbitrage": "{% static 'js/controllers/commentArbitrage.js' %}",
                     "conditionalField": "{% static 'js/controllers/conditionalField.js' %}",
                     "enableOnChange": "{% static 'js/controllers/enableOnChange.js' %}",
@@ -141,8 +139,6 @@
             import { ConditionalField } from "conditionalField"
             import { DeleteNotificationDocumentModal } from "deleteNotificationDocumentModal"
             import { DocumentImport } from "documentImport"
-            import { DotationDropdown } from "dotationDropdown"
-            import { DoubleDotation } from "doubleDotation"
             import { FormatMontant } from "formatMontant"
             import { FormUtils } from "formUtils"
             import { HtmxError } from "htmxError"
@@ -158,7 +154,6 @@
 
             window.Stimulus = Application.start()
 
-            Stimulus.register("double-dotation", DoubleDotation)
             Stimulus.register("modal", Modal)
             Stimulus.register("document-import", DocumentImport)
             Stimulus.register("file-dropzone", FileDropzone)
@@ -170,7 +165,6 @@
             Stimulus.register("bind-amount-fields", BindAmountFields)
             Stimulus.register("cancel-poll-on-modal-close", CancelPollOnModalClose)
             Stimulus.register("form-utils", FormUtils)
-            Stimulus.register("dotation-dropdown", DotationDropdown)
             Stimulus.register("comment-arbitrage", CommentArbitrage)
             Stimulus.register("conditional-field", ConditionalField)
             Stimulus.register("enable-on-change", EnableOnChange)

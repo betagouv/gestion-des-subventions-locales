@@ -1,0 +1,44 @@
+{% load ui_tags %}
+<div id="new-dotation-card" class="fr-col-12 fr-col-lg-6">
+    <div class="fr-callout fr-background-alt--blue-france fr-mb-3w">
+        <h3 class="fr-callout__title fr-h6">Nouvelle dotation {{ form.instance.dotation }}</h3>
+        <div class="fr-callout__text">
+            {% ui_status_badge type="processing" %}
+            <form id="new-dotation-card-form"
+                  class="fr-mt-2w"
+                  hx-post="{% url 'fragment:gsl_projet:new_dotation_card' projet.pk %}?choix={{ choix|urlencode }}"
+                  hx-target="#new-dotation-card"
+                  hx-swap="outerHTML">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="fr-alert fr-alert--error fr-alert--sm fr-mb-2w" role="alert">
+                        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+                {% include "includes/forms/_dotation_card_fields.html" %}
+                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--sm fr-btns-group--icon-left">
+                    <li>
+                        {% if projet.dossier_ds.is_treated %}
+                            {# The dossier goes back to instruction on DN: confirm first. #}
+                            <button class="fr-btn fr-btn--secondary fr-icon-save-3-fill"
+                                    type="button"
+                                    aria-controls="add-dotation-confirmation-modal"
+                                    data-fr-opened="false">
+                                Enregistrer
+                            </button>
+                        {% else %}
+                            <button class="fr-btn fr-btn--secondary fr-icon-save-3-fill" type="submit">Enregistrer</button>
+                        {% endif %}
+                    </li>
+                    <li>
+                        <button class="fr-btn fr-btn--tertiary"
+                                type="button"
+                                hx-get="{% url 'fragment:gsl_projet:new_dotation_card' projet.pk %}">
+                            Annuler
+                        </button>
+                    </li>
+                </ul>
+            </form>
+        </div>
+    </div>
+</div>

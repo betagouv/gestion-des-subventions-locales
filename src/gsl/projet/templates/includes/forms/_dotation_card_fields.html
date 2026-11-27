@@ -1,0 +1,33 @@
+{# The fields of a dotation card form: its year, then while in processing its avis and assiette. #}
+{{ form.annee.as_field_group }}
+{% if "detr_avis_commission" in form.fields %}
+    {% with field=form.detr_avis_commission %}
+        <div class="fr-select-group{% if field.errors %} fr-select-group--error{% endif %}">
+            <div class="fr-grid-row fr-grid-row--middle">
+                <label class="fr-label fr-col-auto fr-mr-2w" for="{{ field.id_for_label }}">
+                    <span class="fr-icon-team-fill blue-color fr-mr-1w" aria-hidden="true"></span>Avis de la commission
+                </label>
+                <div class="fr-col-auto">{{ field }}</div>
+            </div>
+            {% if field.errors %}
+                <div class="fr-messages-group" aria-live="polite">
+                    {% for error in field.errors %}<p class="fr-message fr-message--error">{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endwith %}
+{% endif %}
+{% if "assiette" in form.fields %}
+    {% with field=form.assiette %}
+        <div class="fr-input-group{% if field.errors %} fr-input-group--error{% endif %}">
+            <label class="fr-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            <div class="fr-messages-group"
+                 id="{{ field.auto_id }}-messages"
+                 aria-live="polite">
+                {% for error in field.errors %}<p class="fr-message fr-message--error">{{ error }}</p>{% endfor %}
+                <p class="fr-message fr-message--info">{{ field.help_text }}</p>
+            </div>
+        </div>
+    {% endwith %}
+{% endif %}

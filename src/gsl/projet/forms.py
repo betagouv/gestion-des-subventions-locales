@@ -12,133 +12,12 @@ from dn.sync.models import Dotation
 from dn.sync.services import DsService
 from gsl.core.models import Collegue
 from gsl.historique.models import ProjetAction
+from gsl.programmation.models import Enveloppe
 from gsl.simulation.models import SimulationProjet
 
-from .constants import ProjetStatus
 from .models import EnveloppeProjet, Projet, ProjetNote
 
 logger = getLogger(__name__)
-
-
-class ProjetForm(ModelForm, DsfrBaseForm):
-    dotations = forms.MultipleChoiceField(
-        choices=Dotation.choices,
-        required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"form": "projet-form"}),
-    )
-
-    class Meta:
-        model = Projet
-        fields = []
-
-    def __init__(self, *args, user=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["dotations"].initial = self.instance.dotations
-        self.user = user
-
-    def is_valid(self):
-        valid = super().is_valid()
-        if not self.cleaned_data.get("dotations"):
-            self.add_error("dotations", "Veuillez sélectionner au moins une dotation.")
-            valid = False
-        return valid
-
-    def clean_dotations(self):
-        dotations = self.cleaned_data.get("dotations")
-        if self.instance.all_dotations_are_notified and set(dotations) != set(
-            self.instance.dotations
-        ):
-            raise ValidationError(
-                "Les dotations d'un projet déjà notifié ne peuvent être modifiées."
-            )
-        return dotations
-
-    @transaction.atomic
-    def save(self, commit=True):
-        instance: Projet = super().save(commit=False)
-        if not commit:
-            return instance
-
-        dotations = self.cleaned_data.get("dotations")
-        if dotations:
-            self.update_dotation(instance, dotations, self.user)
-
-        return instance
-
-    @transaction.atomic
-    def update_dotation(
-        self, projet: Projet, dotations: list[Dotation], user: Collegue
-    ):
-        if len(dotations) == 0:
-            logger.warning(
-                "Projet must have at least one dotation", extra={"projet": projet.pk}
-            )
-            self.add_error("dotations", "Le projet doit avoir au moins une dotation.")
-            return
-
-        if len(dotations) > 2:
-            logger.warning(
-                "Projet can't have more than two dotations", extra={"projet": projet.pk}
-            )
-            self.add_error(
-                "dotations", "Le projet ne peut avoir plus de deux dotations."
-            )
-            return
-
-        new_dotations = set(dotations) - set(projet.dotations)
-        dotation_to_remove = set[Dotation](projet.dotations) - set(dotations)
-        dotations_updated_in_app = new_dotations or dotation_to_remove
-
-        for dotation in new_dotations:
-            enveloppe_projet = EnveloppeProjet.objects.create_for(
-                projet,
-                projet.root_enveloppe(dotation, projet.dossier_ds.annee_de_campagne),
-            )
-            SimulationProjet.objects.reset_for_enveloppe_projet(enveloppe_projet)
-            ProjetAction.objects.create(
-                projet=projet,
-                action_type=ProjetAction.TYPE_DOTATION_ADDED,
-                actor=user,
-                source=ProjetAction.SOURCE_TURGOT,
-                dotation=dotation,
-                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
-            )
-
-        enveloppe_projet_to_remove = EnveloppeProjet.objects.filter(
-            projet=projet, enveloppe__dotation__in=dotation_to_remove
-        )
-
-        if enveloppe_projet_to_remove.filter(status=ProjetStatus.ACCEPTED).exists():
-            dotations_to_be_checked = (
-                EnveloppeProjet.objects.filter(
-                    projet=projet, status=ProjetStatus.ACCEPTED
-                )
-                .exclude(enveloppe__dotation__in=dotation_to_remove)
-                .values_list("enveloppe__dotation", flat=True)
-            )
-
-            ds_service = DsService()
-            ds_service.update_ds_annotations_for_one_dotation(
-                dossier=projet.dossier_ds,
-                user=user,
-                dotations_to_be_checked=list(dotations_to_be_checked),
-            )
-
-        for dotation in dotation_to_remove:
-            ProjetAction.objects.create(
-                projet=projet,
-                action_type=ProjetAction.TYPE_DOTATION_REMOVED,
-                actor=user,
-                source=ProjetAction.SOURCE_TURGOT,
-                dotation=dotation,
-                form_id=f"{type(self).__module__}.{type(self).__qualname__}",
-            )
-
-        enveloppe_projet_to_remove.delete()
-
-        if dotations_updated_in_app:
-            projet.dotations_updated_in_app = True
-            projet.save()
 
 
 class ProjetAnnotationsForm(ModelForm, DsfrBaseForm):
@@ -454,6 +333,61 @@ class DotationCardForm(EnveloppeProjetForm):
         if commit and self.annee_changed:
             instance.basculer(self.cleaned_data["annee"], actor=self.user)
         return instance
+
+
+class EnveloppeProjetCreateForm(DotationCardForm):
+    """A new dotation for a projet, filled in from a card like an existing one:
+    its year (preselected, still adjustable), its assiette and, for a DETR one
+    reaching the threshold, the commission avis.
+
+    Created on a dossier already treated on DN, it sends the dossier back to
+    instruction there: the DN sync would otherwise close it again."""
+
+    def __init__(self, *args, projet: Projet, dotation: str, annee: int, **kwargs):
+        # Unsaved: it only gets its (root) enveloppe once its year is confirmed.
+        instance = EnveloppeProjet(
+            projet=projet, enveloppe=Enveloppe(dotation=dotation, annee=annee)
+        )
+        kwargs.setdefault("auto_id", "id_%s_new")
+        super().__init__(*args, instance=instance, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if "annee" in cleaned_data:
+            # Its actual enveloppe, which the model validation checks.
+            self.instance.enveloppe = self.instance.projet.root_enveloppe(
+                self.instance.dotation, cleaned_data["annee"]
+            )
+        return cleaned_data
+
+    def _post_clean(self):
+        # Without a valid year, there is no enveloppe to validate the instance with.
+        if self.instance.enveloppe.pk is None:
+            return
+        super()._post_clean()
+
+    @transaction.atomic
+    def save(self, commit=True):
+        projet = self.instance.projet
+        dotation = self.instance.dotation
+        self.instance.save()
+        SimulationProjet.objects.reset_for_enveloppe_projet(self.instance)
+        ProjetAction.objects.create(
+            projet=projet,
+            action_type=ProjetAction.TYPE_DOTATION_ADDED,
+            actor=self.user,
+            source=ProjetAction.SOURCE_TURGOT,
+            dotation=dotation,
+            enveloppe=self.instance.enveloppe,
+            form_id=f"{type(self).__module__}.{type(self).__qualname__}",
+        )
+        # So that the DN sync does not take it back to the requested dotations.
+        projet.dotations_updated_in_app = True
+        projet.save(update_fields=["dotations_updated_in_app"])
+        # A treated dossier goes back to instruction on DN; the other dotations
+        # keep their status and notification.
+        projet.repasser_en_traitement(self.user)
+        return self.instance
 
 
 class EnveloppeProjetDeleteForm(forms.Form):

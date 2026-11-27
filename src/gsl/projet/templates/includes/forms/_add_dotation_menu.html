@@ -1,0 +1,28 @@
+{# The « Ajouter une dotation » dropdown: each entry opens the card of a new dotation. #}
+<div class="fr-nav fr-translate fr-mt-2w">
+    <div class="fr-nav__item">
+        <button type="button"
+                class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-add-line"
+                aria-controls="add-dotation-menu"
+                aria-expanded="false">
+            Ajouter une dotation
+        </button>
+        <div class="fr-menu fr-collapse" id="add-dotation-menu">
+            <ul class="fr-menu__list">
+                {% for dotation, annee, existe in projet.dotations_ajoutables %}
+                    <li>
+                        <button type="button"
+                                class="fr-nav__link"
+                                hx-get="{% url 'fragment:gsl_projet:new_dotation_card' projet.pk %}?choix={{ dotation }}-{{ annee }}"
+                                hx-target="#new-dotation-card"
+                                hx-swap="outerHTML"
+                                aria-controls="add-dotation-menu"
+                                {% if existe %}disabled{% endif %}>
+                            {{ dotation }} - {{ annee }}
+                        </button>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>

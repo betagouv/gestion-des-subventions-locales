@@ -235,7 +235,6 @@ class Projet(ProjetDNActionsMixin, BaseModel):
         null=True,
         blank=True,
     )
-
     is_in_qpv = models.BooleanField("Projet situé en QPV", null=False, default=False)
     is_attached_to_a_crte = models.BooleanField(
         "Projet rattaché à un CRTE",
@@ -331,6 +330,20 @@ class Projet(ProjetDNActionsMixin, BaseModel):
             (ep.enveloppe.annee for ep in self.enveloppeprojet_set.all()), default=None
         )
 
+    @property
+    def dotations_ajoutables(self) -> list[tuple[str, int, bool]]:
+        """Each dotation on each year of its enveloppe projets, with whether the
+        projet already holds it: the dotations that can be added to it."""
+        existantes = {
+            (ep.dotation, ep.enveloppe.annee) for ep in self.enveloppeprojet_set.all()
+        }
+        annees = sorted({annee for _, annee in existantes}, reverse=True)
+        return [
+            (dotation, annee, (dotation, annee) in existantes)
+            for annee in annees
+            for dotation in Dotation.values
+        ]
+
     def status_for(self, campagne: int) -> str | None:
         """Derived from its enveloppe projets of the campagne only."""
         return projet_status_from_dotation_statuses(
@@ -358,12 +371,13 @@ class Projet(ProjetDNActionsMixin, BaseModel):
 
     @property
     def dotations(self) -> list[Dotation]:
+        """Its dotations, each once, whatever the campagnes they span."""
         return sorted(
-            [
-                dotation.dotation
-                for dotation in self.enveloppeprojet_set.all()
-                if dotation.dotation in [Dotation.DETR, Dotation.DSIL]
-            ]
+            {
+                enveloppe_projet.dotation
+                for enveloppe_projet in self.enveloppeprojet_set.all()
+                if enveloppe_projet.dotation in [Dotation.DETR, Dotation.DSIL]
+            }
         )
 
     @property

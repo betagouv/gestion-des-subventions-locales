@@ -1,5 +1,3 @@
-import json
-
 from django.contrib import messages
 from django.db.models import (
     Case,
@@ -13,7 +11,6 @@ from django.db.models import (
     Value,
     When,
 )
-from django.http import QueryDict
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -58,7 +55,6 @@ from .forms import (
     EnveloppeProjetReportForm,
     EnveloppeProjetRevertToProcessingForm,
     ProjetCommentForm,
-    ProjetForm,
     ProjetNoteForm,
     ProjetRevertToProcessingForm,
 )
@@ -111,30 +107,8 @@ class ProjetDetailView(BaseProjetDetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        projet_form = self._build_projet_form()
-        dotation_field = projet_form.fields.get("dotations")
-
-        context.update(
-            {
-                "menu_dict": PROJET_MENU,
-                "projet_form": projet_form,
-                "initial_dotations": (
-                    json.dumps(dotation_field.initial) if dotation_field else "[]"
-                ),
-            }
-        )
+        context["menu_dict"] = PROJET_MENU
         return context
-
-    def _build_projet_form(self):
-        session_key = f"projet_errors_{self.object.pk}"
-        if session_key in self.request.session:
-            form_data = QueryDict(self.request.session.pop(session_key))
-            form = ProjetForm(
-                data=form_data, instance=self.object, user=self.request.user
-            )
-            form.is_valid()
-            return form
-        return ProjetForm(instance=self.object)
 
 
 class ProjetDotationsView(BaseProjetDetailView):
@@ -269,54 +243,6 @@ class ProjetCommentUpdateView(SafeRedirectMixin, UpdateView):
 
     def form_invalid(self, form):
         return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
-
-
-def _redirect_to_referer_or_projet(request, projet):
-    referer = request.headers.get("Referer")
-    if referer and url_has_allowed_host_and_scheme(
-        referer, allowed_hosts=request.get_host()
-    ):
-        return redirect(referer)
-    return redirect("projet:get-projet", projet_id=projet.pk)
-
-
-class ProjetUpdateView(BaseProjetDetailView, UpdateView):
-    form_class = ProjetForm
-    http_method_names = ["post"]
-
-    def get_queryset(self):
-        return Projet.objects.active().for_user(self.request.user)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        try:
-            form.save()
-            messages.success(
-                self.request,
-                "Les modifications ont été enregistrées avec succès.",
-            )
-        except DsServiceException as e:
-            messages.error(
-                self.request,
-                f"Une erreur est survenue lors de la mise à jour sur Démarche Numérique. {e}",
-            )
-        return _redirect_to_referer_or_projet(self.request, self.object)
-
-    def form_invalid(self, form):
-        messages.error(
-            self.request,
-            "Une erreur s'est produite lors de la soumission du formulaire.",
-        )
-        for error in form.non_field_errors():
-            messages.error(self.request, error)
-        self.request.session[f"projet_errors_{self.object.pk}"] = (
-            self.request.POST.urlencode()
-        )
-        return _redirect_to_referer_or_projet(self.request, self.object)
 
 
 @method_decorator(htmx_only, name="dispatch")

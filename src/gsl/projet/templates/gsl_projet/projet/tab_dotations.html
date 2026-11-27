@@ -29,7 +29,9 @@
     </div>
 
     <h3 class="fr-h4 fr-mt-4w">Dotations</h3>
+    {% include "includes/forms/_add_dotation_menu.html" %}
     <div class="fr-grid-row fr-grid-row--gutters fr-mt-3w">
+        <div id="new-dotation-card"></div>
         {% for enveloppe_projet in enveloppe_projets %}
             <div class="fr-col-12 fr-col-lg-6">{% include "includes/projet_detail/_dotation_card.html" %}</div>
         {% endfor %}
@@ -38,6 +40,9 @@
 
 {% block modal %}
     {{ block.super }}
+    {% if dossier.is_treated %}
+        {% include "includes/modals/_add_dotation_confirmation_modal.html" %}
+    {% endif %}
     {% for enveloppe_projet in enveloppe_projets %}
         {% if enveloppe_projet.can_be_deleted %}
             {% with pk=enveloppe_projet.pk|stringformat:"s" %}
