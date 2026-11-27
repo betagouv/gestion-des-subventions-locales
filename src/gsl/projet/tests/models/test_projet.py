@@ -137,6 +137,75 @@ def test_all_dotations_are_notified(notified, expected):
     assert (projet in Projet.objects.not_totally_notified()) is not expected
 
 
+# -- not_totally_notified --
+
+
+def _dotation(projet, dotation=Dotation.DETR, notified=True, **kwargs):
+    return EnveloppeProjetFactory(
+        projet=projet,
+        dotation=dotation,
+        status=ProjetStatus.ACCEPTED,
+        notified_at=timezone.now() if notified else None,
+        **kwargs,
+    )
+
+
+def test_not_totally_notified_includes_a_projet_without_dotation():
+    projet = ProjetFactory()
+
+    assert projet in Projet.objects.not_totally_notified()
+
+
+def test_not_totally_notified_includes_a_projet_with_a_dotation_not_notified():
+    projet = ProjetFactory()
+    _dotation(projet, Dotation.DETR, notified=True)
+    _dotation(projet, Dotation.DSIL, notified=False)
+
+    assert projet in Projet.objects.not_totally_notified()
+
+
+def test_not_totally_notified_excludes_a_projet_with_all_dotations_notified():
+    projet = ProjetFactory()
+    _dotation(projet, Dotation.DETR)
+    _dotation(projet, Dotation.DSIL)
+
+    assert projet not in Projet.objects.not_totally_notified()
+
+
+def test_not_totally_notified_ignores_superseded_dotations():
+    """Only the courant version of a dotation counts: a former version, kept as
+    history, does not make the projet to notify."""
+    projet = ProjetFactory()
+    ancienne = _dotation(projet, notified=False)
+    ancienne.is_courant = False
+    ancienne.save(update_fields=["is_courant"])
+    _dotation(projet, enveloppe=ancienne.enveloppe)
+
+    assert projet not in Projet.objects.not_totally_notified()
+
+
+def test_not_totally_notified_spans_every_campagne():
+    """A dotation of another campagne still to notify keeps the projet in."""
+    projet = ProjetFactory()
+    _dotation(projet, enveloppe=DetrEnveloppeFactory(annee=2026))
+    _dotation(projet, notified=False, enveloppe=DetrEnveloppeFactory(annee=2027))
+
+    assert projet in Projet.objects.not_totally_notified()
+
+
+def test_not_totally_notified_filters_each_projet_on_its_own_dotations():
+    notified = ProjetFactory()
+    _dotation(notified)
+    not_notified = ProjetFactory()
+    _dotation(not_notified, notified=False)
+
+    assert list(
+        Projet.objects.filter(pk__in=[notified.pk, not_notified.pk])
+        .not_totally_notified()
+        .values_list("pk", flat=True)
+    ) == [not_notified.pk]
+
+
 def test_last_notification_date_is_the_latest_of_its_dotations():
     projet = ProjetFactory()
     premiere = timezone.now() - timezone.timedelta(days=30)
