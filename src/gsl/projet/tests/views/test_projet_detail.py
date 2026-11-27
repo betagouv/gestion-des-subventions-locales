@@ -54,7 +54,7 @@ def test_projet_detail_page_has_dotation_status_card_with_not_processing_simple_
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     assert response.context["projet"].all_dotations_have_processing_status is False
-    assert "notification_status_message" in response.content.decode()
+    assert 'id="dotation-status-cards"' in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode(), (
         "Notify button is never displayed in projet page from main tab #1"
     )
@@ -89,7 +89,7 @@ def test_projet_detail_page_has_dotation_status_card_with_not_processing_double_
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     assert response.context["projet"].all_dotations_have_processing_status is False
-    assert "notification_status_message" in response.content.decode()
+    assert 'id="dotation-status-cards"' in response.content.decode()
     assert "Notifier le demandeur" not in response.content.decode(), (
         "Notify button is never displayed in projet page from main tab #1"
     )
@@ -214,7 +214,7 @@ def test_unified_projet_page_shows_decision_card_and_notification_tab_for_progra
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
     content = response.content.decode()
-    assert "notification_status_message" in content
+    assert 'id="dotation-status-cards"' in content
     assert "Notifications" in content
 
 
