@@ -283,8 +283,6 @@ def test_simulation_projet_form_cannot_change_amounts_when_notified():
         enveloppe_projet=enveloppe_projet,
         montant=200,
     )
-    simulation_projet.enveloppe_projet.projet.notified_at = timezone.now()
-    simulation_projet.enveloppe_projet.projet.save()
     simulation_projet.enveloppe_projet.notified_at = timezone.now()
     simulation_projet.enveloppe_projet.save()
 

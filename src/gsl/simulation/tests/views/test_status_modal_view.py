@@ -68,8 +68,6 @@ def test_refuse_modal_excludes_notified_projects(
     client_with_user_logged, simulation_projet
 ):
     # Mark the related programmation as notified
-    simulation_projet.enveloppe_projet.projet.notified_at = date.today()
-    simulation_projet.enveloppe_projet.projet.save()
     simulation_projet.enveloppe_projet.notified_at = date.today()
     simulation_projet.enveloppe_projet.save()
 
@@ -123,4 +121,4 @@ def test_dismiss_projet(
     # The status changed but notification is now decoupled: no DS update here.
     simulation_projet.refresh_from_db()
     assert simulation_projet.enveloppe_projet.status == "dismissed"
-    assert simulation_projet.projet.notified_at is None
+    assert not simulation_projet.projet.all_dotations_are_notified

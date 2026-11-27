@@ -58,7 +58,7 @@ def test_refuse_or_dismiss_does_not_touch_ds(
     mock_dismiss.assert_not_called()
 
     simulation_projet.refresh_from_db()
-    assert simulation_projet.projet.notified_at is None
+    assert not simulation_projet.projet.all_dotations_are_notified
 
 
 @mock.patch("dn.sync.services.DsService.update_ds_annotations_for_one_dotation")

@@ -46,7 +46,6 @@ def enveloppe_projets(perimetre):
         projet__dossier_ds__perimetre=perimetre,
         dotation=Dotation.DETR,
         status=ProjetStatus.REFUSED,
-        projet__notified_at=None,
     )
 
 
@@ -191,7 +190,6 @@ def test_launch_wrong_perimetre_renders_error_body(client):
     wrong_enveloppe_projet = EnveloppeProjetFactory(
         dotation=Dotation.DETR,
         status=ProjetStatus.REFUSED,
-        projet__notified_at=None,
     )
     response = _post_launch(client, ids=str(wrong_enveloppe_projet.id))
     assert response.status_code == 200
@@ -207,7 +205,6 @@ def test_launch_ignores_ineligible_ids_silently(client, enveloppe_projets):
         projet__dossier_ds__perimetre=enveloppe_projets[0].dossier_ds.perimetre,
         dotation=Dotation.DETR,
         status=ProjetStatus.ACCEPTED,
-        projet__notified_at=None,
     )
     ids = ",".join([str(dp.id) for dp in enveloppe_projets] + [str(accepted.id)])
     response = _post_launch(client, ids=ids)

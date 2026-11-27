@@ -44,7 +44,7 @@ class ProjetForm(ModelForm, DsfrBaseForm):
 
     def clean_dotations(self):
         dotations = self.cleaned_data.get("dotations")
-        if self.instance.has_been_notified and set(dotations) != set(
+        if self.instance.all_dotations_are_notified and set(dotations) != set(
             self.instance.dotations
         ):
             raise ValidationError(
@@ -514,10 +514,13 @@ COMMENT_FIELDS = {
 
 
 class ProjetRevertToProcessingForm(forms.ModelForm):
+    """Sends the dossier back to instruction on DN: its dotations keep their status
+    but are to notify again."""
+
     @transaction.atomic
     def save(self, user, commit=True):
-        ds_service = DsService()
-        ds_service.repasser_en_instruction(self.instance.dossier_ds, user)
+        self.instance.enveloppeprojet_set.update(notified_at=None)
+        DsService().repasser_en_instruction(self.instance.dossier_ds, user)
         return self.instance
 
     class Meta:

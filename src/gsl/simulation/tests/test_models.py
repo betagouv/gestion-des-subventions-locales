@@ -98,14 +98,12 @@ def test_get_projet_status_summary_notified_count(simulation):
         2,
         simulation=simulation,
         enveloppe_projet__dotation=simulation.enveloppe.dotation,
-        enveloppe_projet__projet__notified_at=timezone.now(),
         enveloppe_projet__notified_at=timezone.now(),
         status=SimulationProjet.STATUS_ACCEPTED,
     )
     SimulationProjetFactory(
         simulation=simulation,
         enveloppe_projet__dotation=simulation.enveloppe.dotation,
-        enveloppe_projet__projet__notified_at=None,
         status=SimulationProjet.STATUS_ACCEPTED,
     )
 

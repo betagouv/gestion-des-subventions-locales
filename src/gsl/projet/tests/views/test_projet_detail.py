@@ -14,6 +14,7 @@ from gsl.core.tests.factories import (
 )
 
 from ...constants import ProjetStatus
+from ...models import Projet
 from ..factories import EnveloppeProjetFactory, ProjetFactory
 
 pytestmark = pytest.mark.django_db()
@@ -168,19 +169,20 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
 ):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=datetime.now())
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    notified_at = datetime.now()
 
     EnveloppeProjetFactory(
         projet=projet,
         status=dotation_status_1,
         dotation=Dotation.DETR,
-        notified_at=projet.notified_at,
+        notified_at=notified_at,
     )
     EnveloppeProjetFactory(
         projet=projet,
         status=dotation_status_2,
         dotation=Dotation.DSIL,
-        notified_at=projet.notified_at,
+        notified_at=notified_at,
     )
 
     url = reverse(
@@ -189,8 +191,8 @@ def test_projet_detail_page_has_correct_notification_status_message_when_already
     )
     response = ClientWithLoggedUserFactory(user=user).get(url)
     assert response.status_code == 200
-    assert projet.to_notify is False
-    assert projet.notified_at is not None
+    assert projet not in Projet.objects.to_notify()
+    assert projet.all_dotations_are_notified
     assert response.context["projet"].all_dotations_have_processing_status is False
     assert notification_status_message in response.content.decode()
 
@@ -341,7 +343,7 @@ def _projet_url(projet):
 def test_assiette_form_shown_for_processing_non_notified_dotation():
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dp = EnveloppeProjetFactory(
         projet=projet, status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
     )
@@ -359,7 +361,7 @@ def test_assiette_form_shown_for_processing_non_notified_dotation():
 def test_readonly_block_shown_for_final_status_dotation(status):
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
     dp = EnveloppeProjetFactory(projet=projet, status=status, dotation=Dotation.DETR)
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
     content = response.content.decode()
@@ -370,20 +372,25 @@ def test_readonly_block_shown_for_final_status_dotation(status):
     assert "Montant des dépenses éligibles retenues :" in content
 
 
-def test_readonly_block_shown_for_processing_dotation_when_projet_is_notified():
+def test_assiette_form_shown_for_processing_dotation_next_to_a_notified_one():
+    """The other dotation being notified does not freeze this one."""
     perimetre = PerimetreArrondissementFactory()
     user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=timezone.now())
+    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+    EnveloppeProjetFactory(
+        projet=projet,
+        status=ProjetStatus.ACCEPTED,
+        dotation=Dotation.DSIL,
+        notified_at=timezone.now(),
+    )
     dp = EnveloppeProjetFactory(
         projet=projet, status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
     )
     response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
-    content = response.content.decode()
     assiette_url = reverse(
         "fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk}
     )
-    assert assiette_url not in content
-    assert "Montant des dépenses éligibles retenues :" in content
+    assert assiette_url in response.content.decode()
 
 
 def test_projet_detail_displays_description_and_renovation_energetique():

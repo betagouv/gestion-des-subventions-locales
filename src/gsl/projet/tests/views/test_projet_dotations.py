@@ -544,9 +544,7 @@ def _revert_url(enveloppe_projet):
 
 def _projet_programmed_on_2026(user, notified=False):
     notified_at = timezone.now() if notified else None
-    projet = ProjetFactory(
-        dossier_ds__perimetre=user.perimetre, notified_at=notified_at
-    )
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
     detr = DetrProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
@@ -670,7 +668,7 @@ def test_revert_a_notified_dotation_reopens_its_campagne_and_dn_instruction(
     assert courants.get(enveloppe=detr.enveloppe).status == ProjetStatus.PROCESSING
     assert courants.get(enveloppe=dsil.enveloppe).status == ProjetStatus.PROCESSING
     projet.refresh_from_db()
-    assert projet.notified_at is None
+    assert not projet.all_dotations_are_notified
     mock_repasser_en_instruction.assert_called_once_with(projet.dossier_ds, user)
     assert [m.message for m in get_messages(response.wsgi_request)] == [
         "Les dotations de la campagne 2026 sont repassées en traitement et le "
@@ -697,7 +695,7 @@ def test_revert_to_processing_is_rolled_back_when_dn_fails(
     assert set(courants) == {detr, dsil}
     assert courants.get(pk=detr.pk).status == ProjetStatus.ACCEPTED
     projet.refresh_from_db()
-    assert projet.notified_at is not None
+    assert projet.all_dotations_are_notified
     assert [m.message for m in get_messages(response.wsgi_request)] == [
         "DN indisponible"
     ]
@@ -782,7 +780,6 @@ def _projet_refused_and_notified_on_2026(user, ds_state=Dossier.State.REFUSE):
     projet = ProjetFactory(
         dossier_ds__perimetre=user.perimetre,
         dossier_ds__ds_state=ds_state,
-        notified_at=timezone.now(),
     )
     detr = DetrProjetFactory(
         projet=projet,
@@ -912,7 +909,7 @@ def test_report_is_rolled_back_when_dn_fails(_mock_repasser):
         projet=projet, action_type=ProjetAction.TYPE_REPORT
     ).exists()
     projet.refresh_from_db()
-    assert projet.notified_at is not None
+    assert projet.all_dotations_are_notified
     assert [m.message for m in get_messages(response.wsgi_request)] == [
         "DN indisponible"
     ]

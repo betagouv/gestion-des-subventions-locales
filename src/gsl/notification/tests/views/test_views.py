@@ -304,8 +304,7 @@ def test_post_documents_after_notification_returns_404(
 
     enveloppe_projet = accepted_detr_enveloppe_projet
     projet = enveloppe_projet.projet
-    projet.notified_at = timezone.now()
-    projet.save()
+    projet.enveloppeprojet_set.update(notified_at=timezone.now())
 
     modele_arrete = ModeleArreteFactory(dotation=Dotation.DETR, perimetre=perimetre)
     modele_lettre = ModeleLettreNotificationFactory(

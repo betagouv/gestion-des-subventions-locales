@@ -251,8 +251,6 @@ def test_bulk_status_update_rejects_notified_projets(
         dotation_status=ProjetStatus.ACCEPTED,
         simu_status=SimulationProjet.STATUS_ACCEPTED,
     )
-    sp_notified.projet.notified_at = timezone.now()
-    sp_notified.projet.save()
     sp_notified.enveloppe_projet.notified_at = timezone.now()
     sp_notified.enveloppe_projet.save()
 

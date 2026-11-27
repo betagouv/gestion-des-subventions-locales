@@ -178,7 +178,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_instruction_one_a
     assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette == 4_000
     assert enveloppe_projet.status == ProjetStatus.ACCEPTED
-    assert enveloppe_projet.projet.notified_at is None
+    assert not enveloppe_projet.projet.all_dotations_are_notified
 
     for simulation_projet in enveloppe_projet.simulationprojet_set.all():
         assert simulation_projet.status == SimulationProjet.STATUS_ACCEPTED
@@ -332,7 +332,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_refused(
     assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette is None
     assert enveloppe_projet.status == ProjetStatus.REFUSED
-    assert enveloppe_projet.projet.notified_at == datetime(
+    assert enveloppe_projet.projet.last_notification_date == datetime(
         2024, 1, 15, 10, 30, tzinfo=UTC
     )
 
@@ -382,7 +382,7 @@ def test_task_create_or_update_projet_and_co_from_dossier_with_dismissed(
     assert enveloppe_projet.dotation == Dotation.DETR
     assert enveloppe_projet.assiette is None
     assert enveloppe_projet.status == ProjetStatus.DISMISSED
-    assert enveloppe_projet.projet.notified_at == datetime(
+    assert enveloppe_projet.projet.last_notification_date == datetime(
         2024, 1, 15, 10, 30, tzinfo=UTC
     )
 

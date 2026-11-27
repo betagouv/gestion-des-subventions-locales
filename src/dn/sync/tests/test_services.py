@@ -683,7 +683,7 @@ def test_passer_repasser_en_instruction_calls_refresh_dossier_from_saved_data(
         mock_refresh.assert_called_once_with(dossier)
 
     projet.refresh_from_db()
-    assert projet.notified_at is None
+    assert not projet.all_dotations_are_notified
 
     action_types = {
         "passer_en_instruction": ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
@@ -763,7 +763,7 @@ def test_passer_repasser_en_instruction_merges_only_present_fields_into_dossier_
     # refresh_dossier_from_saved_data is mocked out above, so nothing here
     # sets notified_at: it stays null, as it was at creation.
     projet.refresh_from_db()
-    assert projet.notified_at is None
+    assert not projet.all_dotations_are_notified
 
     action_types = {
         "passer_en_instruction": ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION,
@@ -841,7 +841,7 @@ def test_passer_en_instruction_updates_dossier_state_and_traitements_end_to_end(
 
     # A dossier back in instruction is not treated: notified_at is cleared.
     projet.refresh_from_db()
-    assert projet.notified_at is None
+    assert not projet.all_dotations_are_notified
 
     action = ProjetAction.objects.get(projet=projet)
     assert action.action_type == ProjetAction.TYPE_PASSAGE_EN_INSTRUCTION

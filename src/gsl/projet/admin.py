@@ -72,7 +72,6 @@ class ProjetAdmin(AllPermsForStaffUser, admin.ModelAdmin):
         "get_status_display",
         "dossier_departement",
         "dotations",
-        "notified_at",
     )
     list_filter = (
         "dossier_ds__is_active",

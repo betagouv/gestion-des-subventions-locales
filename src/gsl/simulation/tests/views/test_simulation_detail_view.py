@@ -244,10 +244,8 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         Notified projects should show montant as text instead of input field
         """
         perimetre = detr_envelope.perimetre
-        projet = ProjetFactory(
-            dossier_ds__perimetre=perimetre, notified_at=timezone.now()
-        )
-        detr_dotation = DetrProjetFactory(projet=projet, notified_at=projet.notified_at)
+        projet = ProjetFactory(dossier_ds__perimetre=perimetre)
+        detr_dotation = DetrProjetFactory(projet=projet, notified_at=timezone.now())
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)
         simu = SimulationProjetFactory(
@@ -280,7 +278,7 @@ class TestNotifiedProjectDisplayOnSimulationTable:
         Non-notified projects should still show editable forms
         """
         perimetre = detr_envelope.perimetre
-        projet = ProjetFactory(dossier_ds__perimetre=perimetre, notified_at=None)
+        projet = ProjetFactory(dossier_ds__perimetre=perimetre)
         detr_dotation = DetrProjetFactory(projet=projet)
 
         detr_simulation = SimulationFactory(enveloppe=detr_envelope)

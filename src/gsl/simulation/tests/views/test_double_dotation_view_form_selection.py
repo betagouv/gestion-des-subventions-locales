@@ -337,7 +337,7 @@ class TestPostNoLongerPushesDsAtStatusChange:
         assert response.status_code == 200
         mock_ds_refuser.assert_not_called()
         projet.refresh_from_db()
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified
 
     def test_post_refuse_with_dsil_processing_no_ds_call(
         self, client_with_user_logged, double_enveloppe_projet
@@ -362,4 +362,4 @@ class TestPostNoLongerPushesDsAtStatusChange:
 
         assert response.status_code == 200
         projet.refresh_from_db()
-        assert projet.notified_at is None
+        assert not projet.all_dotations_are_notified

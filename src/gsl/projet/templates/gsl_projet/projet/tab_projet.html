@@ -62,7 +62,7 @@
         <ul id="projet-actions"
             {% if oob %}hx-swap-oob="true"{% endif %}
             class="fr-btns-group--right fr-btns-group--inline fr-mt-3w fr-mb-3w">
-            {% if projet.has_been_notified %}
+            {% if projet.dossier_ds.is_treated %}
                 <li class="fr-mb-2w">
                     <button type="button"
                             class="fr-btn fr-btn--secondary"
@@ -334,7 +334,7 @@
                         {{ projet.dossier_ds.dotations_demande|join:", " }}
                     </p>
                     {% if projet_form %}
-                        {% if not projet.has_been_notified %}
+                        {% if not projet.all_dotations_are_notified %}
                             {% include "includes/forms/_dotations_form.html" %}
                         {% else %}
                             {% for dp in enveloppe_projets %}
@@ -393,7 +393,7 @@
                         </p>
                     </div>
                     {% for ep in enveloppe_projets %}
-                        {% if ep.status == "processing" and not projet.has_been_notified %}
+                        {% if ep.status == "processing" and not projet.all_dotations_are_notified %}
                             {% render_fragment "gsl_projet:assiette_dotation_form" ep %}
                         {% else %}
                             {% include "includes/projet_detail/_enveloppe_projet_readonly_block.html" %}
