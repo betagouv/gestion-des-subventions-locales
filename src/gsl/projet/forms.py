@@ -468,21 +468,6 @@ COMMENT_FIELDS = {
 }
 
 
-class ProjetRevertToProcessingForm(forms.ModelForm):
-    """Sends the dossier back to instruction on DN: its dotations keep their status
-    but are to notify again."""
-
-    @transaction.atomic
-    def save(self, user, commit=True):
-        self.instance.enveloppeprojet_set.update(notified_at=None)
-        DsService().repasser_en_instruction(self.instance.dossier_ds, user)
-        return self.instance
-
-    class Meta:
-        model = Projet
-        fields = ()
-
-
 class ProjetCommentForm(ModelForm, DsfrBaseForm):
     comment_number = forms.ChoiceField(
         choices=(
