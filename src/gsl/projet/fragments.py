@@ -4,13 +4,11 @@ from django_htmx.http import HttpResponseClientRefresh
 
 from gsl.core.fragments import Fragment
 
-from .constants import ProjetStatus
 from .forms import (
     DotationCardForm,
     EnveloppeProjetAssietteForm,
     EnveloppeProjetForm,
     ProjetBudgetVertForm,
-    ProjetPremiereAnneeForm,
     ProjetZonageForm,
 )
 from .models import EnveloppeProjet, Projet
@@ -67,25 +65,6 @@ class ZonageFragment(ProjetFormFragment):
     template_name = "includes/forms/_boolean_fields_projet_form.html"
 
 
-class PremiereAnneeFragment(ProjetFormFragment):
-    name = "premiere_annee_form"
-    form_class = ProjetPremiereAnneeForm
-    template_name = "includes/forms/_premiere_annee_form.html"
-
-    def on_valid(self):
-        """A bascule changes most of the page: reload it."""
-        self.form.save()
-        if self.form.errors:
-            return self.on_invalid()
-        if "campagne" in self.form.changed_data:
-            messages.success(
-                self.request,
-                "Le projet a été basculé sur la campagne "
-                f"{self.form.cleaned_data['campagne']}.",
-            )
-        return HttpResponseClientRefresh()
-
-
 class EnveloppeProjetFormFragment(FormFragment):
     context_object_name = "enveloppe_projet"
     route_params = "<int:pk>"
@@ -118,28 +97,32 @@ class DotationCardFragment(EnveloppeProjetFormFragment):
     form_class = DotationCardForm
     template_name = "includes/forms/_dotation_card_form.html"
 
-    @classmethod
-    def get_queryset(cls, request):
-        return (
-            super()
-            .get_queryset(request)
-            .filter(status=ProjetStatus.PROCESSING, notified_at__isnull=True)
-        )
+    def get_form(self, data=None):
+        return self.form_class(instance=self.object, data=data, user=self.request.user)
 
     def on_get(self):
         """Read-only by default; `?edit` opens the form, and dropping it cancels."""
         editing = "edit" in self.request.GET
         if editing:
             self.form = self.get_form()
-            first_field = next(iter(self.form.fields.values()))
-            first_field.widget.attrs["autofocus"] = True
+            # On the checked year: an autofocus on the radio widget would land on
+            # every one of its buttons.
+            self.form.fields["annee"].widget.focus_checked = True
         return HttpResponse(self.render(editing=editing))
 
     def on_valid(self):
-        """Back to read-only once saved, displaying the saved values."""
+        """Back to read-only once saved, displaying the saved values. A new campagne
+        changes the card title, the cards order and the other tabs: reload."""
         self.form.save()
         if self.form.errors:
             return self.on_invalid()
+        if self.form.annee_changed:
+            messages.success(
+                self.request,
+                f"La dotation {self.object.dotation} est passée sur la campagne "
+                f"{self.object.enveloppe.annee}.",
+            )
+            return HttpResponseClientRefresh()
         self.form = None
         return self.render_valid(saved=True)
 

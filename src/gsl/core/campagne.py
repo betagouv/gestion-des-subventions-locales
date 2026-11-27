@@ -8,7 +8,7 @@ from django.urls import Resolver404, resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import RedirectView
 
-CAMPAGNES = (2026, 2027)
+CAMPAGNES = (2025, 2026, 2027)
 
 PREMIER_MOIS_DE_LA_CAMPAGNE_SUIVANTE = 10
 

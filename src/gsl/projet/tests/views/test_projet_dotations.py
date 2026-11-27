@@ -163,14 +163,12 @@ def test_programmed_dotation_card_displays_detr_avis_commission_read_only(
     projet = ProjetFactory(
         dossier_ds__perimetre=user.perimetre, dossier_ds__demande_montant=100_000
     )
-    enveloppe_projet = DetrProjetFactory(
-        projet=projet, status=status, detr_avis_commission=avis
-    )
+    DetrProjetFactory(projet=projet, status=status, detr_avis_commission=avis)
 
     content = _get_dotations_tab_content(user, projet)
 
     assert expected in " ".join(re.sub(r"<[^>]+>", " ", content).split())
-    assert _dotation_card_form_url(enveloppe_projet) not in content
+    assert 'name="detr_avis_commission"' not in content
 
 
 def _get_dotation_card_fragment(user, enveloppe_projet, edit=False):
@@ -300,15 +298,18 @@ def test_dsil_dotation_card_has_no_avis_commission(status):
 @pytest.mark.parametrize(
     "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
 )
-def test_programmed_dotation_card_has_no_form(status):
+def test_programmed_dotation_card_is_read_only_with_a_modify_button(status):
     user = CollegueFactory()
     projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
     enveloppe_projet = DsilProjetFactory(projet=projet, status=status)
 
     content = _get_dotations_tab_content(user, projet)
+    text = _get_dotations_tab_text(user, projet)
 
-    assert _dotation_card_form_url(enveloppe_projet) not in content
+    assert f'hx-get="{_dotation_card_form_url(enveloppe_projet)}?edit"' in content
     assert 'name="assiette"' not in content
+    assert "Montant retenu" in text
+    assert "Taux retenu" in text
 
 
 def test_dotation_card_form_saves_assiette_and_detr_avis_commission():
@@ -326,7 +327,11 @@ def test_dotation_card_form_saves_assiette_and_detr_avis_commission():
 
     response = ClientWithLoggedUserFactory(user=user).post(
         url,
-        {"assiette": "50 000 €", "detr_avis_commission": "False"},
+        {
+            "annee": enveloppe_projet.enveloppe.annee,
+            "assiette": "50 000 €",
+            "detr_avis_commission": "False",
+        },
         headers={"HX-Request": "true"},
     )
 
@@ -354,7 +359,11 @@ def test_dotation_card_form_ignores_detr_avis_commission_for_dsil():
 
     ClientWithLoggedUserFactory(user=user).post(
         _dotation_card_form_url(enveloppe_projet),
-        {"assiette": "50000", "detr_avis_commission": "True"},
+        {
+            "annee": enveloppe_projet.enveloppe.annee,
+            "assiette": "50000",
+            "detr_avis_commission": "True",
+        },
         headers={"HX-Request": "true"},
     )
 
@@ -372,7 +381,7 @@ def test_dotation_card_form_requires_assiette():
 
     response = ClientWithLoggedUserFactory(user=user).post(
         _dotation_card_form_url(enveloppe_projet),
-        {"assiette": ""},
+        {"annee": enveloppe_projet.enveloppe.annee, "assiette": ""},
         headers={"HX-Request": "true"},
     )
 
@@ -387,27 +396,43 @@ def test_dotation_card_form_requires_assiette():
 @pytest.mark.parametrize(
     "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
 )
-def test_dotation_card_form_cannot_be_posted_for_a_programmed_dotation(status):
+def test_programmed_dotation_card_form_only_edits_the_annee(status):
     user = CollegueFactory()
     projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
     enveloppe_projet = DsilProjetFactory(projet=projet, status=status)
 
-    response = ClientWithLoggedUserFactory(user=user).post(
+    content = _get_dotation_card_fragment(
+        user, enveloppe_projet, edit=True
+    ).content.decode()
+
+    assert 'name="annee"' in content
+    assert 'name="assiette"' not in content
+    assert 'name="detr_avis_commission"' not in content
+
+
+@pytest.mark.parametrize(
+    "status", (ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED)
+)
+def test_programmed_dotation_card_form_ignores_the_assiette(status):
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    enveloppe_projet = DsilProjetFactory(projet=projet, status=status, assiette=10_000)
+
+    ClientWithLoggedUserFactory(user=user).post(
         _dotation_card_form_url(enveloppe_projet),
-        {"assiette": "50000"},
+        {"annee": enveloppe_projet.enveloppe.annee, "assiette": "50000"},
         headers={"HX-Request": "true"},
     )
 
-    assert response.status_code == 404
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.assiette == 10_000
 
 
-@pytest.mark.parametrize("edit", (True, False))
-def test_dotation_card_fragment_cannot_be_fetched_for_a_programmed_dotation(edit):
-    user = CollegueFactory()
-    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
-    enveloppe_projet = DsilProjetFactory(projet=projet, status=ProjetStatus.ACCEPTED)
+def test_dotation_card_fragment_cannot_be_fetched_outside_perimetre():
+    projet = ProjetFactory()
+    enveloppe_projet = DsilProjetFactory(projet=projet)
 
-    response = _get_dotation_card_fragment(user, enveloppe_projet, edit=edit)
+    response = _get_dotation_card_fragment(CollegueFactory(), enveloppe_projet)
 
     assert response.status_code == 404
 
@@ -1020,3 +1045,164 @@ def test_dotation_card_stays_blue_unless_notified_on_a_closed_campagne(
     content = _get_dotations_tab_content(user, projet)
 
     assert "fr-background-alt--blue-france" in _card_classes(content, "DETR - 2026")
+
+
+# -- Année de traitement --
+
+
+def _radio_input(content, annee):
+    return re.search(rf'<input[^>]*name="annee"[^>]*value="{annee}"[^>]*>', content)
+
+
+def _detr_on(user, annee, **kwargs):
+    projet = kwargs.pop("projet", None) or ProjetFactory(
+        dossier_ds__perimetre=user.perimetre
+    )
+    return DetrProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(perimetre=user.perimetre, annee=annee),
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize(
+    "annee, choix",
+    ((2025, [2025, 2026]), (2026, [2025, 2026, 2027]), (2027, [2026, 2027])),
+)
+def test_dotation_card_form_offers_the_adjacent_open_campagnes(annee, choix):
+    user = CollegueFactory()
+    enveloppe_projet = _detr_on(user, annee, status=ProjetStatus.PROCESSING)
+
+    content = _get_dotation_card_fragment(
+        user, enveloppe_projet, edit=True
+    ).content.decode()
+
+    assert "Année de traitement" in content
+    assert re.findall(r'name="annee"[^>]*value="(\d+)"', content) == [
+        str(a) for a in choix
+    ]
+    assert "checked" in _radio_input(content, annee).group(0)
+    assert content.count("autofocus") == 1
+    assert "autofocus" in _radio_input(content, annee).group(0)
+    # The year comes first in the form
+    assert content.index('name="annee"') < content.index('name="assiette"')
+
+
+def test_dotation_card_form_disables_a_year_already_holding_the_dotation():
+    user = CollegueFactory()
+    enveloppe_projet = _detr_on(user, 2026, status=ProjetStatus.PROCESSING)
+    _detr_on(user, 2027, projet=enveloppe_projet.projet, status=ProjetStatus.PROCESSING)
+
+    content = _get_dotation_card_fragment(
+        user, enveloppe_projet, edit=True
+    ).content.decode()
+
+    disabled = _radio_input(content, 2027).group(0)
+    assert "disabled" in disabled
+    assert "disabled" not in _radio_input(content, 2025).group(0)
+    tooltip_id = re.search(r'aria-describedby="([^"]+)"', disabled).group(1)
+    tooltip = re.search(
+        rf'<span class="fr-tooltip fr-placement"\s+id="{tooltip_id}"\s+role="tooltip">'
+        r"([^<]*)</span>",
+        content,
+    )
+    assert (
+        tooltip.group(1) == "Le projet a déjà une dotation DETR sur la campagne 2027."
+    )
+    assert content.count('class="fr-tooltip') == 1
+
+
+@pytest.mark.parametrize(
+    "status, notified",
+    (
+        (ProjetStatus.PROCESSING, False),
+        (ProjetStatus.ACCEPTED, False),
+        (ProjetStatus.REFUSED, True),
+    ),
+)
+def test_dotation_card_form_bascules_the_dotation(status, notified):
+    user = CollegueFactory()
+    enveloppe_projet = _detr_on(
+        user,
+        2026,
+        status=status,
+        assiette=10_000,
+        notified_at=timezone.now() if notified else None,
+    )
+    data = {"annee": 2027}
+    if status == ProjetStatus.PROCESSING:
+        data["assiette"] = "10000"
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _dotation_card_form_url(enveloppe_projet),
+        data,
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.headers["HX-Refresh"] == "true"
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe.annee == 2027
+    assert enveloppe_projet.status == status
+    assert enveloppe_projet.is_notified == notified
+    assert ProjetAction.objects.filter(
+        projet=enveloppe_projet.projet,
+        action_type=ProjetAction.TYPE_BASCULE,
+        actor=user,
+    ).exists()
+    assert [m.message for m in get_messages(response.wsgi_request)] == [
+        "La dotation DETR est passée sur la campagne 2027."
+    ]
+
+
+def test_dotation_card_form_refuses_a_year_already_holding_the_dotation():
+    user = CollegueFactory()
+    enveloppe_projet = _detr_on(
+        user, 2026, status=ProjetStatus.PROCESSING, assiette=10_000
+    )
+    _detr_on(user, 2027, projet=enveloppe_projet.projet, status=ProjetStatus.PROCESSING)
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _dotation_card_form_url(enveloppe_projet),
+        {"annee": 2027, "assiette": "50000"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert "HX-Refresh" not in response.headers
+    content = response.content.decode()
+    assert "fr-fieldset--error" in content
+    assert "Le projet a déjà une dotation DETR sur la campagne 2027." in content
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe.annee == 2026
+    assert enveloppe_projet.assiette == 10_000
+
+
+def test_dotation_card_form_keeps_the_year_when_only_the_assiette_changes():
+    user = CollegueFactory()
+    enveloppe_projet = _detr_on(user, 2026, status=ProjetStatus.PROCESSING)
+
+    response = ClientWithLoggedUserFactory(user=user).post(
+        _dotation_card_form_url(enveloppe_projet),
+        {"annee": 2026, "assiette": "50000"},
+        headers={"HX-Request": "true"},
+    )
+
+    assert "HX-Refresh" not in response.headers
+    assert "Modifications enregistrées" in response.content.decode()
+    enveloppe_projet.refresh_from_db()
+    assert enveloppe_projet.enveloppe.annee == 2026
+    assert not ProjetAction.objects.filter(
+        projet=enveloppe_projet.projet, action_type=ProjetAction.TYPE_BASCULE
+    ).exists()
+
+
+def test_projet_tab_no_longer_has_the_premiere_annee_form():
+    user = CollegueFactory()
+    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    DetrProjetFactory(projet=projet, status=ProjetStatus.PROCESSING)
+
+    response = ClientWithLoggedUserFactory(user=user).get(
+        reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
+    )
+
+    assert response.status_code == 200
+    assert "Première année de traitement" not in response.content.decode()
