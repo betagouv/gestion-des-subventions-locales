@@ -39,22 +39,5 @@ PROJET_MENU = {
                 },
             ),
         },
-        {
-            "label": "3 – Plan de financement prévisionnel",
-            "items": (
-                {
-                    "label": "Détails  du financement",
-                    "link": "#detail_financement",
-                },
-                {
-                    "label": "Dispositifs de financement sollicités",
-                    "link": "#dispositifs_sollicites",
-                },
-                {
-                    "label": "Coûts de financement",
-                    "link": "#couts_financement",
-                },
-            ),
-        },
     ),
 }

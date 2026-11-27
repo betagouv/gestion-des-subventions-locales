@@ -215,19 +215,6 @@ MONTANT_INPUT_ATTRS = {
 }
 
 
-class EnveloppeProjetAssietteForm(ModelForm, DsfrBaseForm):
-    assiette = FrenchDecimalField(
-        label="Montant des dépenses éligibles retenues (€)",
-        required=True,
-        help_text=" Cette valeur est identique sur toutes les simulations de cette dotation.",
-        widget=forms.TextInput(attrs=MONTANT_INPUT_ATTRS),
-    )
-
-    class Meta:
-        model = EnveloppeProjet
-        fields = ["assiette"]
-
-
 class InlineRadioSelect(dsfr_widgets.InlineRadioSelect):
     """Inline DSFR radio buttons whose `disabled_choices` ({value: reason}) stay
     visible but cannot be picked, the reason shown in a tooltip; it can also put
@@ -479,21 +466,6 @@ COMMENT_FIELDS = {
     "2": "comment_2",
     "3": "comment_3",
 }
-
-
-class ProjetRevertToProcessingForm(forms.ModelForm):
-    """Sends the dossier back to instruction on DN: its dotations keep their status
-    but are to notify again."""
-
-    @transaction.atomic
-    def save(self, user, commit=True):
-        self.instance.enveloppeprojet_set.update(notified_at=None)
-        DsService().repasser_en_instruction(self.instance.dossier_ds, user)
-        return self.instance
-
-    class Meta:
-        model = Projet
-        fields = ()
 
 
 class ProjetCommentForm(ModelForm, DsfrBaseForm):

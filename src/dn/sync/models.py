@@ -276,10 +276,6 @@ class DossierData(BaseModel):
 
 
 class DossierQuerySet(models.QuerySet):
-    def treated(self):
-        """Twin of `Dossier.is_treated`: accepted, refused or dismissed on DN."""
-        return self.filter(ds_state__in=Dossier.State.PROGRAMME)
-
     def for_user(self, user: Collegue):
         if user.perimetre is None:
             if user.is_staff or user.is_superuser:

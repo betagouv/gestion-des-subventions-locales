@@ -25,14 +25,12 @@ from django.views.generic import (
 )
 from django.views.generic.edit import BaseUpdateView
 from django_filters.views import FilterView
-from django_htmx.http import HttpResponseClientRedirect
 
 from dn.sync.exceptions import DsServiceException
 from dn.sync.models import (
     CategorieDetr,
     CategorieDsil,
     Cofinancement,
-    Dossier,
     ProjetContractualisation,
     ProjetZonage,
 )
@@ -43,7 +41,6 @@ from gsl.core.decorators import htmx_only
 from gsl.core.models import Perimetre
 from gsl.core.view_mixins import (
     FilterSkiplinksMixin,
-    OpenHtmxModalMixin,
     SafeRedirectMixin,
 )
 from gsl.historique.models import ProjetAction
@@ -56,7 +53,6 @@ from .forms import (
     EnveloppeProjetRevertToProcessingForm,
     ProjetCommentForm,
     ProjetNoteForm,
-    ProjetRevertToProcessingForm,
 )
 from .models import EnveloppeProjet, Projet, ProjetNote
 from .table_columns import PROJET_TABLE_COLUMNS, SANS_PIECES_SKIP_KEYS
@@ -243,35 +239,6 @@ class ProjetCommentUpdateView(SafeRedirectMixin, UpdateView):
 
     def form_invalid(self, form):
         return redirect(self.get_safe_redirect_url(fallback=self.get_success_url()))
-
-
-@method_decorator(htmx_only, name="dispatch")
-class ProjetRevertToProcessingView(OpenHtmxModalMixin, UpdateView):
-    model = Projet
-    form_class = ProjetRevertToProcessingForm
-    template_name = "htmx/revert_to_processing_modal.html"
-    pk_url_kwarg = "projet_id"
-
-    def get_queryset(self):
-        return Projet.objects.for_user(self.request.user).filter(
-            dossier_ds__in=Dossier.objects.treated()
-        )
-
-    def get_modal_id(self):
-        return f"revert-to-processing-modal-{self.object.pk}"
-
-    def form_valid(self, form):
-        try:
-            form.save(user=self.request.user)
-            messages.info(
-                self.request,
-                "Le projet est bien repassé en traitement sur Démarche Numérique.",
-            )
-        except DsServiceException as e:
-            messages.error(self.request, str(e))
-        return HttpResponseClientRedirect(
-            self.request.headers.get("HX-Current-URL", self.request.path)
-        )
 
 
 class ProjetNoteCreateView(ProjetNotesContextMixin, CreateView):

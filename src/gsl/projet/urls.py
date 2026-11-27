@@ -79,11 +79,6 @@ urlpatterns = [
         views.ProjetCommentUpdateView.as_view(),
         name="update-projet-comment",
     ),
-    path(
-        "voir/<int:projet_id>/repasser-en-traitement/",
-        views.ProjetRevertToProcessingView.as_view(),
-        name="revert-to-processing",
-    ),
     path("liste/<int:campagne>", views.ProjetListView.as_view(), name="list"),
     path(
         "liste/annotations-manquantes",
