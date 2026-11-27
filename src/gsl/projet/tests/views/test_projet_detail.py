@@ -3,7 +3,6 @@ from datetime import datetime
 
 import pytest
 from django.shortcuts import reverse
-from django.utils import timezone
 
 from dn.sync.models import Dotation
 from gsl.core.campagne import default_campagne
@@ -338,59 +337,6 @@ def test_notification_tab_highlights_programmation_when_opened_from_programmatio
 
 def _projet_url(projet):
     return reverse("gsl_projet:get-projet", kwargs={"projet_id": projet.id})
-
-
-def test_assiette_form_shown_for_processing_non_notified_dotation():
-    perimetre = PerimetreArrondissementFactory()
-    user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dp = EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
-    )
-    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
-    assert response.status_code == 200
-    assiette_url = reverse(
-        "fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk}
-    )
-    assert assiette_url in response.content.decode()
-
-
-@pytest.mark.parametrize(
-    "status", [ProjetStatus.ACCEPTED, ProjetStatus.REFUSED, ProjetStatus.DISMISSED]
-)
-def test_readonly_block_shown_for_final_status_dotation(status):
-    perimetre = PerimetreArrondissementFactory()
-    user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    dp = EnveloppeProjetFactory(projet=projet, status=status, dotation=Dotation.DETR)
-    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
-    content = response.content.decode()
-    assiette_url = reverse(
-        "fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk}
-    )
-    assert assiette_url not in content
-    assert "Montant des dépenses éligibles retenues :" in content
-
-
-def test_assiette_form_shown_for_processing_dotation_next_to_a_notified_one():
-    """The other dotation being notified does not freeze this one."""
-    perimetre = PerimetreArrondissementFactory()
-    user = CollegueFactory(perimetre=perimetre)
-    projet = ProjetFactory(dossier_ds__perimetre=perimetre)
-    EnveloppeProjetFactory(
-        projet=projet,
-        status=ProjetStatus.ACCEPTED,
-        dotation=Dotation.DSIL,
-        notified_at=timezone.now(),
-    )
-    dp = EnveloppeProjetFactory(
-        projet=projet, status=ProjetStatus.PROCESSING, dotation=Dotation.DETR
-    )
-    response = ClientWithLoggedUserFactory(user=user).get(_projet_url(projet))
-    assiette_url = reverse(
-        "fragment:gsl_projet:assiette_dotation_form", kwargs={"pk": dp.pk}
-    )
-    assert assiette_url in response.content.decode()
 
 
 def test_projet_detail_displays_description_and_renovation_energetique():

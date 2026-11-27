@@ -9,9 +9,7 @@ from gsl.core.fragments import Fragment
 
 from .forms import (
     DotationCardForm,
-    EnveloppeProjetAssietteForm,
     EnveloppeProjetCreateForm,
-    EnveloppeProjetForm,
     ProjetBudgetVertForm,
     ProjetZonageForm,
 )
@@ -78,22 +76,6 @@ class EnveloppeProjetFormFragment(FormFragment):
         return EnveloppeProjet.objects.filter(
             projet__in=Projet.objects.active().for_user(request.user)
         )
-
-
-class DetrAvisCommissionFragment(EnveloppeProjetFormFragment):
-    name = "detr_avis_commission_form"
-    form_class = EnveloppeProjetForm
-    template_name = "includes/forms/_detr_avis_commission_form.html"
-
-
-class AssietteDotationFragment(EnveloppeProjetFormFragment):
-    name = "assiette_dotation_form"
-    form_class = EnveloppeProjetAssietteForm
-    template_name = "includes/forms/_assiette_enveloppe_projet_form.html"
-
-    @classmethod
-    def get_queryset(cls, request):
-        return super().get_queryset(request).filter(notified_at__isnull=True)
 
 
 class DotationCardFragment(EnveloppeProjetFormFragment):

@@ -215,19 +215,6 @@ MONTANT_INPUT_ATTRS = {
 }
 
 
-class EnveloppeProjetAssietteForm(ModelForm, DsfrBaseForm):
-    assiette = FrenchDecimalField(
-        label="Montant des dépenses éligibles retenues (€)",
-        required=True,
-        help_text=" Cette valeur est identique sur toutes les simulations de cette dotation.",
-        widget=forms.TextInput(attrs=MONTANT_INPUT_ATTRS),
-    )
-
-    class Meta:
-        model = EnveloppeProjet
-        fields = ["assiette"]
-
-
 class InlineRadioSelect(dsfr_widgets.InlineRadioSelect):
     """Inline DSFR radio buttons whose `disabled_choices` ({value: reason}) stay
     visible but cannot be picked, the reason shown in a tooltip; it can also put
