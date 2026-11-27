@@ -543,8 +543,14 @@ def _revert_url(enveloppe_projet):
 
 
 def _projet_programmed_on_2026(user, notified=False):
+    """Notified: the dossier is treated on DN."""
     notified_at = timezone.now() if notified else None
-    projet = ProjetFactory(dossier_ds__perimetre=user.perimetre)
+    projet = ProjetFactory(
+        dossier_ds__perimetre=user.perimetre,
+        dossier_ds__ds_state=(
+            Dossier.State.ACCEPTE if notified else Dossier.State.EN_INSTRUCTION
+        ),
+    )
     detr = DetrProjetFactory(
         projet=projet,
         status=ProjetStatus.ACCEPTED,
@@ -582,16 +588,18 @@ def test_programmed_dotation_card_displays_revert_to_processing_action(status):
     assert "repassera aussi en instruction" not in content
 
 
-def test_notified_dotation_revert_modal_warns_about_the_whole_campagne():
+def test_revert_modal_of_a_treated_dossier_warns_about_dn():
     user = CollegueFactory()
     projet, _, _ = _projet_programmed_on_2026(user, notified=True)
 
     text = _get_dotations_tab_text(user, projet)
 
     assert (
-        "toutes les dotations de la campagne 2026 repasseront en traitement dans "
-        "toutes les simulations, et le projet sera retiré de la programmation. Le "
-        "dossier repassera aussi en instruction sur Démarche Numérique" in text
+        "Cette dotation repassera en traitement dans toutes les simulations, et le "
+        "projet sera retiré de la programmation. Le dossier repassera aussi en "
+        "instruction sur Démarche Numérique : le demandeur en sera prévenu via la "
+        "messagerie. Les autres dotations gardent leur statut et leur notification."
+        in text
     )
 
 
@@ -656,7 +664,7 @@ def test_revert_a_not_notified_dotation_to_processing(
 
 @mock.patch.object(DsService, "repasser_en_instruction")
 @mock.patch.object(DsService, "update_ds_annotations_for_one_dotation")
-def test_revert_a_notified_dotation_reopens_its_campagne_and_dn_instruction(
+def test_revert_a_dotation_of_a_treated_dossier_back_to_dn_instruction(
     _mock_update_ds, mock_repasser_en_instruction
 ):
     user = CollegueFactory()
@@ -666,13 +674,16 @@ def test_revert_a_notified_dotation_reopens_its_campagne_and_dn_instruction(
 
     courants = EnveloppeProjet.objects.filter(projet=projet)
     assert courants.get(enveloppe=detr.enveloppe).status == ProjetStatus.PROCESSING
-    assert courants.get(enveloppe=dsil.enveloppe).status == ProjetStatus.PROCESSING
+    dsil.refresh_from_db()
+    assert dsil.is_courant
+    assert dsil.status == ProjetStatus.REFUSED
+    assert dsil.is_notified
     projet.refresh_from_db()
-    assert not projet.all_dotations_are_notified
+    assert projet.instruction_rouverte_par_turgot_le is not None
     mock_repasser_en_instruction.assert_called_once_with(projet.dossier_ds, user)
     assert [m.message for m in get_messages(response.wsgi_request)] == [
-        "Les dotations de la campagne 2026 sont repassées en traitement et le "
-        "dossier est repassé en instruction sur Démarche Numérique."
+        "La dotation DETR - 2026 est repassée en traitement et le dossier est "
+        "repassé en instruction sur Démarche Numérique."
     ]
 
 

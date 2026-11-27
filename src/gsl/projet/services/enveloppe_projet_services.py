@@ -204,6 +204,10 @@ class EnveloppeProjetService:
             # wins, nothing to undo.
             if ep.date_programmation > ep.dossier_ds.ds_date_passage_en_instruction:
                 continue
+            # Turgot sent the dossier back to instruction for another dotation:
+            # the notified decisions stand.
+            if ep.is_notified and ep.projet.is_instruction_rouverte_par_turgot:
+                continue
             ep.set_back_status_to_processing_without_ds()
 
     ## -------------------------- Notification --------------------------

@@ -735,34 +735,21 @@ class EnveloppeProjet(BaseModel):
             details=str(self.enveloppe.annee),
         )
         # A second report finds the dossier already back in instruction.
-        if self.dossier_ds.is_treated:
-            DsService().repasser_en_instruction(self.dossier_ds, user)
+        self.projet.repasser_en_traitement(user)
         return nouveau
 
     @transaction.atomic
     def set_back_status_to_processing(self, user: Collegue) -> "EnveloppeProjet":
-        """A notified dotation reopens its whole campagne: DN holds a single status
-        per dossier, which goes back to instruction."""
-        is_notified = self.is_notified
-        # Computed before superseding, which changes the courant enveloppe projets.
-        others = (
-            [ep for ep in self.other_dotations_in_the_same_campagne if ep.is_programmee]
-            if is_notified
-            else []
-        )
-        ds_service = DsService()
-
+        """Only this dotation goes back to processing: a dossier treated on DN goes
+        back to instruction there, while the other dotations keep their status and
+        their notification."""
         nouveau = self.set_back_status_to_processing_without_ds(actor=user)
-        for other in others:
-            other.set_back_status_to_processing_without_ds(actor=user)
-        if is_notified:
-            ds_service.repasser_en_instruction(self.projet.dossier_ds, user)
-
-        ds_service.update_ds_annotations_for_one_dotation(
+        DsService().update_ds_annotations_for_one_dotation(
             dossier=self.projet.dossier_ds,
             user=user,
             dotations_to_be_checked=nouveau.other_accepted_dotations,
         )
+        self.projet.repasser_en_traitement(user)
         return nouveau
 
     ## -------------------------- Following DN --------------------------

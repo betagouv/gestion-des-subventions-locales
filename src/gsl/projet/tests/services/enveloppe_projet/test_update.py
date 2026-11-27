@@ -1015,3 +1015,68 @@ def test_update_keeps_a_reported_dotation_in_processing_once_back_to_instruction
     origine.refresh_from_db()
     assert origine.is_courant
     assert origine.status == ProjetStatus.REFUSED
+
+
+def _projet_accepted_notified_back_to_instruction(rouverte_le, traitement):
+    """A dossier treated on DN, then back to instruction on DN."""
+    projet = ProjetFactory(
+        dossier_ds__ds_state=Dossier.State.EN_INSTRUCTION,
+        dossier_ds__ds_date_traitement=traitement,
+        dossier_ds__ds_date_passage_en_instruction=timezone.datetime(
+            2026, 11, 26, tzinfo=UTC
+        ),
+        instruction_rouverte_par_turgot_le=rouverte_le,
+    )
+    detr = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DetrEnveloppeFactory(
+            perimetre=projet.perimetre, annee=2026
+        ).delegation_root,
+        status=ProjetStatus.ACCEPTED,
+        date_programmation=timezone.datetime(2026, 6, 1, tzinfo=UTC),
+        notified_at=traitement,
+    )
+    dsil = EnveloppeProjetFactory(
+        projet=projet,
+        enveloppe=DsilEnveloppeFactory(
+            perimetre=projet.perimetre, annee=2026
+        ).delegation_root,
+        status=ProjetStatus.PROCESSING,
+    )
+    return projet, detr, dsil
+
+
+@pytest.mark.django_db
+def test_update_keeps_notified_dotations_when_turgot_reopened_the_instruction():
+    traitement = timezone.datetime(2026, 6, 10, tzinfo=UTC)
+    projet, detr, dsil = _projet_accepted_notified_back_to_instruction(
+        rouverte_le=timezone.datetime(2026, 11, 26, tzinfo=UTC), traitement=traitement
+    )
+
+    synchroniser(projet)
+
+    detr.refresh_from_db()
+    assert detr.is_courant
+    assert detr.status == ProjetStatus.ACCEPTED
+    assert detr.notified_at == traitement
+    dsil.refresh_from_db()
+    assert dsil.status == ProjetStatus.PROCESSING
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "rouverte_le",
+    (None, timezone.datetime(2026, 1, 5, tzinfo=UTC)),
+    ids=("retour_fait_sur_dn", "retraite_par_dn_depuis"),
+)
+def test_update_reopens_notified_dotations_on_any_other_back_to_instruction(
+    rouverte_le,
+):
+    projet, detr, _ = _projet_accepted_notified_back_to_instruction(
+        rouverte_le=rouverte_le,
+        traitement=timezone.datetime(2026, 6, 10, tzinfo=UTC),
+    )
+
+    synchroniser(projet)
+
+    assert courant(detr).status == ProjetStatus.PROCESSING
