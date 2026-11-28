@@ -38,7 +38,14 @@
 
     <div id="simulation-table-wrapper" data-controller="bulk-selection">
         {% include "includes/_simulation_bulk_actions_toolbar.html" %}
-        <div class="fr-table fr-table--multiline fr-table--sm fr-table--no-caption gsl-projet-table">
+        <div class="fr-table fr-table--multiline fr-table--sm fr-table--no-caption gsl-projet-table"
+             id="simulation-projet-table"
+             hx-get="{{ request.get_full_path }}"
+             hx-trigger="bulk-action-done from:body"
+             hx-select="#simulation-projet-table"
+             hx-select-oob="#projet-states-count,#enveloppe-summary"
+             hx-swap="outerHTML"
+             hx-disinherit="*">
             <div class="fr-table__wrapper">
                 <div class="fr-table__container">
                     <div class="fr-table__content">

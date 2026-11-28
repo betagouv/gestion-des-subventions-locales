@@ -5,7 +5,6 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from django_htmx.http import trigger_client_event
 
-from dn.sync.models import Dotation
 from gsl.core.decorators import htmx_only
 from gsl.core.exceptions import Http404
 from gsl.core.matomo import queue_matomo_event
@@ -16,12 +15,7 @@ from gsl.core.matomo_constants import (
 from gsl.core.models import BulkActionsJob
 
 from ..forms import BulkStatusJobForm
-from ..models import (
-    BULK_STATUS_ACTION,
-    Simulation,
-    SimulationProjet,
-)
-from ..table_columns import SIMULATION_TABLE_COLUMNS
+from ..models import BULK_STATUS_ACTION, Simulation
 from ..tasks import run_bulk_status_job
 
 BULK_STATUS_MODAL_ID = "bulk-status-confirm-modal"
@@ -95,14 +89,10 @@ class BulkStatusJobStartView(FormView):
         response = render(
             self.request,
             "htmx/_bulk_status_progress_partial.html",
-            {
-                "job": job,
-                "modal_id": BULK_STATUS_MODAL_ID,
-                "simulation_projets_to_refresh": [],
-            },
+            {"job": job, "modal_id": BULK_STATUS_MODAL_ID},
         )
         if not job.is_unfinished:
-            response = trigger_client_event(response, "bulk-status-updated")
+            response = trigger_client_event(response, BulkActionsJob.DONE_EVENT)
         return response
 
 
@@ -133,43 +123,10 @@ class BulkStatusJobProgressView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["modal_id"] = BULK_STATUS_MODAL_ID
-        simulation_projets_to_refresh = self._get_simulation_projets_to_refresh()
-        context["simulation_projets_to_refresh"] = simulation_projets_to_refresh
-        context["columns"] = SIMULATION_TABLE_COLUMNS
-        context["dotations"] = Dotation.values
         return context
 
     def render_to_response(self, context, **response_kwargs):
         response = super().render_to_response(context, **response_kwargs)
         if not self.object.is_unfinished:
-            response = trigger_client_event(response, "bulk-status-updated")
+            response = trigger_client_event(response, BulkActionsJob.DONE_EVENT)
         return response
-
-    def _get_simulation_projets_to_refresh(self):
-        if self.object.status != BulkActionsJob.Status.DONE:
-            return []
-        return list(
-            SimulationProjet.objects.active()
-            .filter(
-                id__in=self.object.object_ids,
-            )
-            .select_related(
-                "simulation",
-                "simulation__enveloppe",
-                "enveloppe_projet",
-                "enveloppe_projet__projet",
-                "enveloppe_projet__projet__dossier_ds",
-                "enveloppe_projet__projet__dossier_ds__ds_demarche",
-                "enveloppe_projet__projet__dossier_ds__ds_demandeur",
-                "enveloppe_projet__projet__dossier_ds__porteur_de_projet_arrondissement",
-                "enveloppe_projet__projet__dossier_ds__demande_categorie_detr",
-                "enveloppe_projet__projet__dossier_ds__demande_categorie_dsil",
-            )
-            .prefetch_related(
-                "enveloppe_projet__projet__enveloppeprojet_set",
-                "enveloppe_projet__projet__enveloppeprojet_set__simulationprojet_set",
-                "enveloppe_projet__projet__dossier_ds__demande_cofinancements",
-                "enveloppe_projet__projet__dossier_ds__projet_zonage",
-                "enveloppe_projet__projet__dossier_ds__projet_contractualisation",
-            )
-        )
