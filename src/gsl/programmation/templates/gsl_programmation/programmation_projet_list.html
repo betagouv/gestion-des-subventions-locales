@@ -21,7 +21,9 @@
     {% include "includes/_enveloppe_summary.html" with hide_actions=True %}
     {% include "includes/_projet_list_filters.html" %}
 
-    <div id="programmation-table-wrapper" data-controller="bulk-selection">
+    <div id="programmation-table-wrapper"
+         data-controller="bulk-selection"
+         data-action="bulk-action-done->bulk-selection#clearSelection">
         <dialog class="fr-modal"
                 id="generate-multiple-modal"
                 aria-labelledby="generate-multiple-modal-title"
@@ -265,7 +267,12 @@
             </ul>
         </div>
         <div class="fr-table fr-table--multiline fr-table--xs fr-table--no-caption gsl-projet-table"
-             id="programmation-projet-table">
+             id="programmation-projet-table"
+             hx-get="{{ request.get_full_path }}"
+             hx-trigger="bulk-action-done from:body"
+             hx-select="#programmation-projet-table"
+             hx-swap="outerHTML"
+             hx-disinherit="*">
             <div class="fr-table__wrapper">
                 <div class="fr-table__container">
                     <div class="fr-table__content">

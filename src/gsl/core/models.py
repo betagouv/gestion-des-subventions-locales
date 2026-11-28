@@ -429,6 +429,10 @@ class BulkActionsJob(BaseModel):
         RUNNING = "running", "En cours"
         DONE = "done", "Terminé"
 
+    # Client event sent with the view response that sees the job done, for the
+    # page to reload what the job changed. Templates listen to it by name.
+    DONE_EVENT = "bulk-action-done"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Set by the creator, e.g. "bulk_notification"
     action = models.CharField("Action", max_length=64)

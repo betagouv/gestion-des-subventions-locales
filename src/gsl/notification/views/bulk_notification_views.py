@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.utils.functional import classproperty
 from django.views.generic import DetailView
+from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
 from dn.sync.models import Dotation
@@ -174,3 +175,9 @@ class NotifyProgressView(DotationMixin, DetailView):
             }
         )
         return context
+
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        if self.object.is_unfinished:
+            return response
+        return trigger_client_event(response, BulkActionsJob.DONE_EVENT)

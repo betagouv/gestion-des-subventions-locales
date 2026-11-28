@@ -315,7 +315,7 @@ def test_task_skips_a_projet_whose_signed_document_was_deleted(
     dn.accepter.assert_not_called()
 
 
-def test_progress_of_a_done_job_renders_its_report_and_stops_polling(
+def test_progress_of_a_done_job_renders_its_report_and_tells_the_page(
     client, make_enveloppe_projet, dn
 ):
     refused = make_enveloppe_projet()
@@ -330,6 +330,7 @@ def test_progress_of_a_done_job_renders_its_report_and_stops_polling(
     content = response.content.decode()
     assert "1 projet notifié" in content
     assert "hx-trigger" not in content
+    assert BulkActionsJob.DONE_EVENT in response["HX-Trigger"]
 
 
 def test_progress_of_another_user_job_is_not_found(client, make_enveloppe_projet):
