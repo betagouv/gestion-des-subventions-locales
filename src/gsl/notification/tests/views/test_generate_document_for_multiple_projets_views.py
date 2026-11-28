@@ -97,13 +97,13 @@ def _mock_logo_base64():
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
-WIZARD_PREFIX_DETR = f"generate_accepted_documents_wizard_{Dotation.DETR}"
+WIZARD_PREFIX_DETR = f"generate_accepted_{Dotation.DETR}"
 
 
 def _wizard_url(dotation=Dotation.DETR):
     from django.urls import reverse
 
-    return reverse("gsl_notification:generate-documents-modal", args=[dotation])
+    return reverse("bulk-action", args=[dotation, "generate_accepted"])
 
 
 def _status_url(dotation, job_id):
@@ -130,9 +130,7 @@ def _post_launch(client, ids=None, dotation=Dotation.DETR):
         fields["ids"] = ids
     return client.post(
         _wizard_url(dotation),
-        _wizard_step_data(
-            "launch", fields, prefix=f"generate_accepted_documents_wizard_{dotation}"
-        ),
+        _wizard_step_data("launch", fields, prefix=f"generate_accepted_{dotation}"),
         **HTMX_HEADERS,
     )
 
@@ -433,7 +431,7 @@ def _drive_through_format_step(
         _wizard_step_data(
             "type_selection",
             {"document_type": document_type},
-            prefix=f"generate_accepted_documents_wizard_{dotation}",
+            prefix=f"generate_accepted_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -442,7 +440,7 @@ def _drive_through_format_step(
         _wizard_step_data(
             "modele_selection",
             modele_selection_fields,
-            prefix=f"generate_accepted_documents_wizard_{dotation}",
+            prefix=f"generate_accepted_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -451,7 +449,7 @@ def _drive_through_format_step(
         _wizard_step_data(
             "format",
             {"export_format": export_format},
-            prefix=f"generate_accepted_documents_wizard_{dotation}",
+            prefix=f"generate_accepted_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -461,9 +459,7 @@ def _post_create_step_raw(client, dotation=Dotation.DETR):
     """POST the create step and return the intermediate polling response."""
     return client.post(
         _wizard_url(dotation),
-        _wizard_step_data(
-            "create", {}, prefix=f"generate_accepted_documents_wizard_{dotation}"
-        ),
+        _wizard_step_data("create", {}, prefix=f"generate_accepted_{dotation}"),
         **HTMX_HEADERS,
     )
 
@@ -490,7 +486,7 @@ def test_wizard_format_step_renders_loading_body(
     assert response.context["doc_count"] == 3
     # Loading body must include the wizard management form so the auto-POST
     # is dispatched to the wizard's create step.
-    assert b"generate_accepted_documents_wizard_DETR-current_step" in response.content
+    assert b"generate_accepted_DETR-current_step" in response.content
     assert b'value="create"' in response.content
 
 

@@ -9,10 +9,8 @@ from django.views.generic import DetailView
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
 
-from dn.sync.models import Dotation
 from gsl.celery import TASK_PRIORITY_NORMAL
 from gsl.core.decorators import htmx_only
-from gsl.core.exceptions import Http404
 from gsl.notification.forms.bulk_generation import (
     EXPORT_FORMAT_ONE_PDF_ALL,
     EXPORT_FORMAT_ONE_PDF_ALL_GROUPED,
@@ -27,6 +25,7 @@ from gsl.notification.forms.bulk_generation import (
 )
 from gsl.notification.models import ExportJob, GeneratedDocument
 from gsl.notification.tasks import generate_export_task
+from gsl.programmation.constants import BulkAction
 from gsl.projet.models import EnveloppeProjet
 
 
@@ -54,19 +53,27 @@ class HtmxModalWizardMixin:
     response swaps the modal content in place.
 
     Mix into a WizardView. A wizard is entirely described by its `STEPS` and
-    its modal identifiers; nothing here knows what it generates.
+    its modal identifiers; nothing here knows what it generates. Its first
+    step's form names the BulkAction it runs.
     """
 
     STEPS: tuple[Step, ...] = ()
 
     MODAL_TITLE: str = ""
-    MODAL_POST_URL_NAME: str = ""
     modal_id: str = ""
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         # formtools builds the flow from form_list, read once at as_view() time.
         cls.form_list = [(step.name, step.form_class) for step in cls.STEPS]
+
+    @classproperty
+    def launch_form(cls) -> type:
+        return cls.STEPS[0].form_class
+
+    @classproperty
+    def action(cls) -> BulkAction:
+        return cls.launch_form.action
 
     @classproperty
     def total_steps(cls) -> int:
@@ -85,9 +92,8 @@ class HtmxModalWizardMixin:
         return {name: getattr(self, name) for name in hook_names}
 
     def get_prefix(self, request, *args, **kwargs):
-        prefix = super().get_prefix(request, *args, **kwargs)
         namespace = self.get_storage_namespace()
-        return f"{prefix}_{namespace}" if namespace else prefix
+        return f"{self.action}_{namespace}" if namespace else self.action
 
     def get_storage_namespace(self) -> str:
         """
@@ -110,7 +116,7 @@ class HtmxModalWizardMixin:
             {
                 "modal_id": self.modal_id,
                 "modal_title": self.MODAL_TITLE,
-                "modal_post_url_name": self.MODAL_POST_URL_NAME,
+                "bulk_action": self.action,
                 "total_steps": self.total_steps,
             }
         )
@@ -191,7 +197,6 @@ CREATE = Step(
 )
 
 
-@method_decorator(htmx_only, name="dispatch")
 class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
     """
     Generates documents for several projets of a single dotation at once: pick
@@ -200,17 +205,11 @@ class BaseGenerateDocumentsWizard(HtmxModalWizardMixin, SessionWizardView):
 
     Subclasses declare their flow through STEPS, plus:
     - MODAL_TITLE, modal_id: modal identifiers,
-    - MODAL_POST_URL_NAME, STATUS_URL_NAME: their own URL names, used by the
-      shared templates (form actions, polling endpoint),
+    - STATUS_URL_NAME: their polling endpoint, used by the shared templates,
     - document_type: the kind of documents the run generates.
     """
 
     STATUS_URL_NAME: str = ""
-
-    def dispatch(self, request, *args, **kwargs):
-        if kwargs.get("dotation") not in Dotation.values:
-            raise Http404(user_message="Dotation inconnue")
-        return super().dispatch(request, *args, **kwargs)
 
     def get_storage_namespace(self):
         # One run per dotation, so DETR and DSIL don't collide.
@@ -311,7 +310,6 @@ class GenerateAcceptedDocumentsWizard(BaseGenerateDocumentsWizard):
 
     MODAL_TITLE = "Générer les documents"
     modal_id = "generate-multiple-modal"
-    MODAL_POST_URL_NAME = "gsl_notification:generate-documents-modal"
     STATUS_URL_NAME = "gsl_notification:generate-documents-status"
 
     @cached_property
@@ -335,7 +333,6 @@ class GenerateLettreRefusWizard(BaseGenerateDocumentsWizard):
 
     MODAL_TITLE = "Générer les lettres de refus ou de classement sans suite"
     modal_id = "generate-refus-modal"
-    MODAL_POST_URL_NAME = "gsl_notification:generate-refus-documents-modal"
     STATUS_URL_NAME = "gsl_notification:generate-refus-documents-status"
 
     document_type = GeneratedDocument.Type.LETTRE_REFUS

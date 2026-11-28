@@ -1,28 +1,14 @@
 from django import template
 
-from gsl.notification.forms.bulk_generation import (
-    GenerateAcceptedDocumentsLaunchForm,
-    GenerateRefusLettersLaunchForm,
-)
-from gsl.notification.forms.bulk_notification import (
-    NotifyAcceptedLaunchForm,
-    NotifyRefusLaunchForm,
-)
+from gsl.core.bulk_actions import WIZARDS
 
 register = template.Library()
-
-BULK_ACTION_FORMS = [
-    GenerateAcceptedDocumentsLaunchForm,
-    GenerateRefusLettersLaunchForm,
-    NotifyRefusLaunchForm,
-    NotifyAcceptedLaunchForm,
-]
 
 
 @register.filter
 def bulk_actions(enveloppe_projet):
     return " ".join(
-        launch_form.action
-        for launch_form in BULK_ACTION_FORMS
-        if launch_form.applies_to(enveloppe_projet)
+        action
+        for action, wizard in WIZARDS.items()
+        if wizard.launch_form.applies_to(enveloppe_projet)
     )

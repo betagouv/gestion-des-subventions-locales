@@ -1,16 +1,10 @@
 from django.urls import path, register_converter
 
 from gsl.notification.converters import GeneratedDocumentTypeConverter
-from gsl.notification.views.bulk_notification_views import (
-    NotifyAcceptedWizard,
-    NotifyProgressView,
-    NotifyRefusWizard,
-)
+from gsl.notification.views.bulk_notification_views import NotifyProgressView
 from gsl.notification.views.generate_document_for_multiple_projets_views import (
     GenerateAcceptedDocumentsStatusView,
-    GenerateAcceptedDocumentsWizard,
     GenerateLettreRefusStatusView,
-    GenerateLettreRefusWizard,
 )
 from gsl.notification.views.import_views import (
     ImportDocumentsModalView,
@@ -81,37 +75,16 @@ urlpatterns = [
         DeleteGeneratedDocumentView.as_view(),
         name="delete-document",
     ),
-    # Modal HTMX - génération en masse
-    path(
-        "<str:dotation>/generer/",
-        GenerateAcceptedDocumentsWizard.as_view(),
-        name="generate-documents-modal",
-    ),
+    # Modal HTMX - suivi des actions en masse
     path(
         "<str:dotation>/generer/status/<uuid:job_id>/",
         GenerateAcceptedDocumentsStatusView.as_view(),
         name="generate-documents-status",
     ),
     path(
-        "<str:dotation>/generer-refus/",
-        GenerateLettreRefusWizard.as_view(),
-        name="generate-refus-documents-modal",
-    ),
-    path(
         "<str:dotation>/generer-refus/status/<uuid:job_id>/",
         GenerateLettreRefusStatusView.as_view(),
         name="generate-refus-documents-status",
-    ),
-    # Modal HTMX - notification en masse
-    path(
-        "<str:dotation>/notifier-refus/",
-        NotifyRefusWizard.as_view(),
-        name="notify-refus-modal",
-    ),
-    path(
-        "<str:dotation>/notifier-acceptations/",
-        NotifyAcceptedWizard.as_view(),
-        name="notify-accepted-modal",
     ),
     path(
         "<str:dotation>/notifier/progress/<uuid:pk>/",

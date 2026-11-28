@@ -159,7 +159,7 @@
                             <div class="fr-menu fr-collapse" id="programmation-bulk-actions-menu">
                                 <ul class="fr-menu__list">
                                     <li>
-                                        <form hx-post="{% url "gsl_notification:generate-documents-modal" dotation %}"
+                                        <form hx-post="{% url "bulk-action" dotation "generate_accepted" %}"
                                               hx-target="#generate-multiple-modal-step"
                                               hx-swap="outerHTML"
                                               hx-indicator=".modal-wizard-body"
@@ -167,7 +167,7 @@
                                               data-action-name="generate_accepted">
                                             {% csrf_token %}
                                             <input type="hidden"
-                                                   name="generate_accepted_documents_wizard_{{ dotation }}-current_step"
+                                                   name="generate_accepted_{{ dotation }}-current_step"
                                                    value="launch">
                                             <input type="hidden" name="launch-ids" value="" data-bulk-ids>
                                             {% comment %}
@@ -185,7 +185,7 @@
                                         </form>
                                     </li>
                                     <li>
-                                        <form hx-post="{% url "gsl_notification:generate-refus-documents-modal" dotation %}"
+                                        <form hx-post="{% url "bulk-action" dotation "generate_refus" %}"
                                               hx-target="#generate-refus-modal-step"
                                               hx-swap="outerHTML"
                                               hx-indicator=".modal-wizard-body"
@@ -193,7 +193,7 @@
                                               data-action-name="generate_refus">
                                             {% csrf_token %}
                                             <input type="hidden"
-                                                   name="generate_lettre_refus_wizard_{{ dotation }}-current_step"
+                                                   name="generate_refus_{{ dotation }}-current_step"
                                                    value="launch">
                                             <input type="hidden" name="launch-ids" value="" data-bulk-ids>
                                             <button type="submit"
@@ -206,7 +206,7 @@
                                         </form>
                                     </li>
                                     <li>
-                                        <form hx-post="{% url "gsl_notification:notify-refus-modal" dotation %}"
+                                        <form hx-post="{% url "bulk-action" dotation "notify_refus" %}"
                                               hx-target="#notify-refus-modal-step"
                                               hx-swap="outerHTML"
                                               hx-indicator=".modal-wizard-body"
@@ -214,7 +214,7 @@
                                               data-action-name="notify_refus">
                                             {% csrf_token %}
                                             <input type="hidden"
-                                                   name="notify_refus_wizard_{{ dotation }}-current_step"
+                                                   name="notify_refus_{{ dotation }}-current_step"
                                                    value="launch">
                                             <input type="hidden" name="launch-ids" value="" data-bulk-ids>
                                             <button type="submit"
@@ -227,7 +227,7 @@
                                         </form>
                                     </li>
                                     <li>
-                                        <form hx-post="{% url "gsl_notification:notify-accepted-modal" dotation %}"
+                                        <form hx-post="{% url "bulk-action" dotation "notify_accepted" %}"
                                               hx-target="#notify-accepted-modal-step"
                                               hx-swap="outerHTML"
                                               hx-indicator=".modal-wizard-body"
@@ -235,7 +235,7 @@
                                               data-action-name="notify_accepted">
                                             {% csrf_token %}
                                             <input type="hidden"
-                                                   name="notify_accepted_wizard_{{ dotation }}-current_step"
+                                                   name="notify_accepted_{{ dotation }}-current_step"
                                                    value="launch">
                                             <input type="hidden" name="launch-ids" value="" data-bulk-ids>
                                             <button type="submit"
