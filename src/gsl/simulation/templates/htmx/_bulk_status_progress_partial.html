@@ -1,6 +1,6 @@
 {% load custom_pluralize simulation_filters %}
 <div id="bulk-status-progress-body"
-     data-action="bulk-status-updated->bulk-selection#clearSelection"
+     data-action="bulk-action-done->bulk-selection#clearSelection"
      {% if job.is_unfinished %} hx-get="{% url 'simulation:bulk-status-job-progress' pk=job.pk %}" hx-trigger="every 500ms" hx-swap="outerHTML" hx-target="this" {% endif %}>
     <div class="fr-modal__header">
         {% if not job.is_unfinished %}
@@ -60,10 +60,3 @@
         </div>
     {% endif %}
 </div>
-{% if not job.is_unfinished and simulation_projets_to_refresh %}
-    <template>
-        {% for simu in simulation_projets_to_refresh %}
-            {% include "includes/_simulation_detail_row.html" with simu=simu projet=simu.projet enveloppe_projet=simu.enveloppe_projet %}
-        {% endfor %}
-    </template>
-{% endif %}

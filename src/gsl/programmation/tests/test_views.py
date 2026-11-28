@@ -14,6 +14,7 @@ from gsl.core.tests.factories import (
     PerimetreDepartementalFactory,
     PerimetreRegionalFactory,
 )
+from gsl.notification.tests.factories import LettreEtArreteSignesFactory
 from gsl.programmation.tests.factories import (
     DetrEnveloppeFactory,
     DsilEnveloppeFactory,
@@ -124,6 +125,8 @@ class TestProgrammationProjetListViewWithDotation:
             "enveloppe": detr_enveloppe,
         }
         accepted = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, **common)
+        signed = EnveloppeProjetFactory(status=ProjetStatus.ACCEPTED, **common)
+        LettreEtArreteSignesFactory(enveloppe_projet=signed)
         refused = EnveloppeProjetFactory(status=ProjetStatus.REFUSED, **common)
         notified = EnveloppeProjetFactory(
             status=ProjetStatus.ACCEPTED, notified_at=timezone.now(), **common
@@ -142,6 +145,7 @@ class TestProgrammationProjetListViewWithDotation:
             return re.search(r'data-actions="([^"]*)"', checkbox).group(1)
 
         assert actions(accepted) == "generate_accepted"
+        assert actions(signed) == "generate_accepted notify_accepted"
         assert actions(refused) == "generate_refus notify_refus"
         assert actions(notified) == ""
 

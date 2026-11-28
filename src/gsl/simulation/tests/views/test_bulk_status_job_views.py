@@ -334,7 +334,7 @@ def test_confirm_modal_is_not_closable_by_backdrop(
     assert b'data-fr-concealing-backdrop="false"' in response.content
 
 
-def test_progress_view_running_does_not_render_row_oob(
+def test_progress_view_running_keeps_polling(
     client_with_user_logged, collegue, simulation
 ):
     sp = _make_simu_projet(collegue, simulation)
@@ -353,23 +353,22 @@ def test_progress_view_running_does_not_render_row_oob(
     )
 
     assert response.status_code == 200
-    assert f'id="simulation-{sp.id}"'.encode() not in response.content
-    assert b'hx-swap-oob="true"' not in response.content
+    assert b'hx-trigger="every 500ms"' in response.content
     assert b"Fermer" not in response.content
+    assert "HX-Trigger" not in response
 
 
-def test_progress_view_done_renders_row_oob_for_each_projet(
+def test_progress_view_done_tells_the_page(
     client_with_user_logged, collegue, simulation
 ):
-    sp1 = _make_simu_projet(collegue, simulation)
-    sp2 = _make_simu_projet(collegue, simulation)
+    sp = _make_simu_projet(collegue, simulation)
     job = BulkStatusJobFactory(
         simulation=simulation,
         created_by=collegue,
         target_status=SimulationProjet.STATUS_PROVISIONALLY_ACCEPTED,
-        simulation_projet_ids=[sp1.id, sp2.id],
+        simulation_projet_ids=[sp.id],
         status=BulkActionsJob.Status.DONE,
-        processed=2,
+        processed=1,
     )
 
     response = client_with_user_logged.get(
@@ -378,14 +377,8 @@ def test_progress_view_done_renders_row_oob_for_each_projet(
     )
 
     assert response.status_code == 200
-    assert f'id="simulation-{sp1.id}"'.encode() in response.content
-    assert f'id="simulation-{sp2.id}"'.encode() in response.content
-    assert response.content.count(b'hx-swap-oob="true"') >= 2
     assert b"Fermer" in response.content
-    # Selectable rows keep their bulk-status checkbox after the refresh so
-    # the user can immediately make a new selection.
-    assert f'id="bulk-status-checkbox-{sp1.id}"'.encode() in response.content
-    assert f'id="bulk-status-checkbox-{sp2.id}"'.encode() in response.content
+    assert BulkActionsJob.DONE_EVENT in response["HX-Trigger"]
 
 
 def test_progress_view_rejects_foreign_perimeter_job(

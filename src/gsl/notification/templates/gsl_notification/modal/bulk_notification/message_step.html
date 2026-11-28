@@ -1,14 +1,25 @@
 {% extends "gsl_notification/modal/bulk_generation/form_step_base.html" %}
-{% load custom_pluralize %}
+{% load custom_pluralize dsfr_tags %}
 {% block stepper %}
+    {% dsfr_stepper current_step_id=1 total_steps=2 current_step_title=current_step_title next_step_title="Notification" %}
 {% endblock stepper %}
 {% block content %}
-    {% with count=enveloppe_projets|length %}
-        <p>
-            Vous allez notifier sur Démarches Numériques {{ count }} projet{{ count|custom_pluralize }}
-            refusé{{ count|custom_pluralize }} ou classé{{ count|custom_pluralize }} sans suite.
-        </p>
-    {% endwith %}
+    {% if skipped_count %}
+        <div class="fr-alert fr-alert--warning fr-alert--sm fr-mt-3w"
+             role="status">
+            <p>
+                {{ skipped_count }} projet{{ skipped_count|custom_pluralize }} de la sélection
+                {{ skipped_count|pluralize:"n'est,ne sont" }} plus notifiable{{ skipped_count|custom_pluralize }} :
+                leur état a changé depuis l'affichage de la page.
+            </p>
+        </div>
+    {% endif %}
+    <p class="fr-mt-3w">
+        Vous allez notifier sur Démarches Numériques {{ enveloppe_projets|length }} projet(s) {{ decision_label }}.
+    </p>
+    <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-3w">
+        <p>La notification sera accompagnée des documents associés au projet.</p>
+    </div>
     <p>Cette opération peut prendre plusieurs minutes et ne doit pas être interrompue.</p>
     {{ form.message.as_field_group }}
 {% endblock content %}

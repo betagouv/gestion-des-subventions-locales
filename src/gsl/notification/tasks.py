@@ -24,21 +24,26 @@ from gsl.projet.models import EnveloppeProjet, Projet
 logger = logging.getLogger(__name__)
 
 
+NOTIFIED_STATUSES = {
+    BulkAction.NOTIFY_REFUS: (ProjetStatus.NEGATIVE, "refusé ou classé sans suite"),
+    BulkAction.NOTIFY_ACCEPTED: ((ProjetStatus.ACCEPTED,), "accepté"),
+}
+
+
 @shared_task
-def run_bulk_notification_refus_job(job_id: str) -> None:
+def run_bulk_notification_job(job_id: str) -> None:
     """
-    Notify DN of the refusal or dismissal of every projet referenced by `job`,
-    one projet at a time, so a failure on one is recorded and the next one is
-    attempted.
+    Notify DN of the decision on every projet referenced by `job`, one projet
+    at a time, so a failure on one is recorded and the next one is attempted.
     """
     job = BulkActionsJob.objects.select_related("created_by").get(
-        pk=job_id, action=BulkAction.NOTIFY_REFUS
+        pk=job_id, action__in=NOTIFIED_STATUSES
     )
     with job.running():
         projets = Projet.objects.filter(pk__in=job.object_ids).order_by("pk")
         for projet in projets:
             try:
-                _notify_refus(job, projet)
+                _notify(job, projet)
             except (BulkItemError, DsServiceException) as exc:
                 message = str(exc) or type(exc).__name__
                 job.record_error(projet.pk, _label(projet), message)
@@ -46,11 +51,19 @@ def run_bulk_notification_refus_job(job_id: str) -> None:
                 job.record_success()
 
 
-def _notify_refus(job: BulkActionsJob, projet: Projet) -> None:
+def _notify(job: BulkActionsJob, projet: Projet) -> None:
+    statuses, status_label = NOTIFIED_STATUSES[job.action]
+    campagne = projet.most_recent_campagne
     if projet.has_been_notified:
         raise BulkItemError("Le projet a été notifié depuis la sélection.")
-    if projet.status_for(projet.most_recent_campagne) not in ProjetStatus.NEGATIVE:
-        raise BulkItemError("Le projet n'est plus refusé ou classé sans suite.")
+    if projet.status_for(campagne) not in statuses:
+        raise BulkItemError(f"Le projet n'est plus {status_label}.")
+    if (
+        projet.enveloppeprojet_set.for_campagne(campagne)
+        .without_signed_document()
+        .exists()
+    ):
+        raise BulkItemError("Il manque des documents signés obligatoires.")
     if not projet.dossier_ds.is_instructeur(job.created_by):
         raise BulkItemError("Vous n'êtes pas instructeur de ce dossier.")
     projet.notify(job.created_by, motivation=job.params["motivation"])
