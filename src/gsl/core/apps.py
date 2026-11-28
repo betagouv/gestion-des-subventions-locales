@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.utils.module_loading import autodiscover_modules
 
 
 class GslcoreConfig(AppConfig):
@@ -9,3 +10,5 @@ class GslcoreConfig(AppConfig):
 
     def ready(self):
         import gsl.core.signals  # noqa F401
+
+        autodiscover_modules("bulk_actions")

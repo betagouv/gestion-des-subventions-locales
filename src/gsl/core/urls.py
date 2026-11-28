@@ -3,9 +3,15 @@ from django.urls import path
 from django.views.generic import TemplateView
 
 from . import views
+from .bulk_actions import bulk_action_wizard
 from .campagne import ChangeCampagneView
 
 urlpatterns = [
+    path(
+        "actions-en-masse/<str:dotation>/<str:action>/",
+        bulk_action_wizard,
+        name="bulk-action",
+    ),
     path(
         "campagne/<int:campagne>/",
         ChangeCampagneView.as_view(),

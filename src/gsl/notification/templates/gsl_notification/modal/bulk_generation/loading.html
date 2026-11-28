@@ -2,7 +2,7 @@
 {% load dsfr_tags %}
 {% block before_content %}
     <form style="display:none"
-          hx-post="{% url modal_post_url_name dotation %}"
+          hx-post="{% url 'bulk-action' dotation bulk_action %}"
           hx-trigger="load"
           hx-target="#{{ modal_id }}-step"
           hx-swap="outerHTML">

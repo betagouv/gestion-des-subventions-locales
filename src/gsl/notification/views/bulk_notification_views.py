@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
-from django.utils.functional import classproperty
 from django.views.generic import DetailView
 from django_htmx.http import trigger_client_event
 from formtools.wizard.views import SessionWizardView
@@ -52,8 +51,7 @@ class DotationMixin:
         return self.kwargs["dotation"]
 
 
-@method_decorator(htmx_only, name="dispatch")
-class BaseNotifyWizard(DotationMixin, HtmxModalWizardMixin, SessionWizardView):
+class BaseNotifyWizard(HtmxModalWizardMixin, SessionWizardView):
     """
     Notifies DN of the decision on the checked projets, all with the same
     message, then polls the BulkActionsJob until every projet is done.
@@ -64,9 +62,9 @@ class BaseNotifyWizard(DotationMixin, HtmxModalWizardMixin, SessionWizardView):
 
     MATOMO_LABEL: str
 
-    @classproperty
-    def action(cls):
-        return cls.STEPS[0].form_class.action
+    @property
+    def dotation(self) -> str:
+        return self.kwargs["dotation"]
 
     def get_storage_namespace(self):
         # One run per dotation, so DETR and DSIL don't collide.
@@ -123,7 +121,6 @@ class NotifyRefusWizard(BaseNotifyWizard):
         MESSAGE,
     )
     MODAL_TITLE = "Notifier les refus et classements sans suite"
-    MODAL_POST_URL_NAME = "gsl_notification:notify-refus-modal"
     MATOMO_LABEL = "refus_en_masse"
     modal_id = "notify-refus-modal"
     decision_label = "refusé(s) ou classé(s) sans suite"
@@ -140,7 +137,6 @@ class NotifyAcceptedWizard(BaseNotifyWizard):
         MESSAGE,
     )
     MODAL_TITLE = "Notifier les acceptations"
-    MODAL_POST_URL_NAME = "gsl_notification:notify-accepted-modal"
     MATOMO_LABEL = "acceptation_en_masse"
     modal_id = "notify-accepted-modal"
     decision_label = "accepté(s)"

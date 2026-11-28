@@ -5,7 +5,7 @@
 {% endblock stepper %}
 {% block form_open %}
     {# djlint:off H041 #}
-    <form hx-post="{% url modal_post_url_name dotation %}"
+    <form hx-post="{% url 'bulk-action' dotation bulk_action %}"
           hx-target="#{{ modal_id }}-step"
           hx-swap="outerHTML">
         {% csrf_token %}

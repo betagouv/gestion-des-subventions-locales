@@ -77,13 +77,13 @@ def _mock_logo_base64():
 
 HTMX_HEADERS = {"HTTP_HX_REQUEST": "true"}
 
-WIZARD_PREFIX_DETR = f"generate_lettre_refus_wizard_{Dotation.DETR}"
+WIZARD_PREFIX_DETR = f"generate_refus_{Dotation.DETR}"
 
 
 def _wizard_url(dotation=Dotation.DETR):
     from django.urls import reverse
 
-    return reverse("gsl_notification:generate-refus-documents-modal", args=[dotation])
+    return reverse("bulk-action", args=[dotation, "generate_refus"])
 
 
 def _status_url(dotation, job_id):
@@ -110,9 +110,7 @@ def _post_launch(client, ids=None, dotation=Dotation.DETR):
         fields["ids"] = ids
     return client.post(
         _wizard_url(dotation),
-        _wizard_step_data(
-            "launch", fields, prefix=f"generate_lettre_refus_wizard_{dotation}"
-        ),
+        _wizard_step_data("launch", fields, prefix=f"generate_refus_{dotation}"),
         **HTMX_HEADERS,
     )
 
@@ -302,7 +300,7 @@ def _drive_through_step_format(
         _wizard_step_data(
             "modele_selection",
             step_modele_fields,
-            prefix=f"generate_lettre_refus_wizard_{dotation}",
+            prefix=f"generate_refus_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -311,7 +309,7 @@ def _drive_through_step_format(
         _wizard_step_data(
             "format",
             {"export_format": export_format},
-            prefix=f"generate_lettre_refus_wizard_{dotation}",
+            prefix=f"generate_refus_{dotation}",
         ),
         **HTMX_HEADERS,
     )
@@ -321,9 +319,7 @@ def _post_step_create_raw(client, dotation=Dotation.DETR):
     """POST step_create and return the intermediate polling response."""
     return client.post(
         _wizard_url(dotation),
-        _wizard_step_data(
-            "create", {}, prefix=f"generate_lettre_refus_wizard_{dotation}"
-        ),
+        _wizard_step_data("create", {}, prefix=f"generate_refus_{dotation}"),
         **HTMX_HEADERS,
     )
 
@@ -345,7 +341,7 @@ def test_wizard_step_format_renders_loading_body(
     assert response.status_code == 200
     assert response.templates[0].name == TEMPLATE_BASE + "loading.html"
     assert response.context["doc_count"] == 3
-    assert b"generate_lettre_refus_wizard_DETR-current_step" in response.content
+    assert b"generate_refus_DETR-current_step" in response.content
     assert b'value="create"' in response.content
 
 

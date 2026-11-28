@@ -92,10 +92,11 @@ def dn():
 
 
 def _post_step(client, step, fields, kind=REFUS):
-    data = {f"notify_{kind}_wizard_{Dotation.DETR}-current_step": step}
+    action = f"notify_{kind}"
+    data = {f"{action}_{Dotation.DETR}-current_step": step}
     data.update({f"{step}-{key}": value for key, value in fields.items()})
     return client.post(
-        reverse(f"gsl_notification:notify-{kind}-modal", args=[Dotation.DETR]),
+        reverse("bulk-action", args=[Dotation.DETR, action]),
         data,
         **HTMX_HEADERS,
     )
